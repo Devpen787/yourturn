@@ -14,6 +14,7 @@ export function ResaleClient({
   slotTitle,
   guestAId = "",
   guestBId = "",
+  lockTo,
 }: {
   serial: number;
   tokenId: string | null;
@@ -21,6 +22,7 @@ export function ResaleClient({
   slotTitle: string;
   guestAId?: string;
   guestBId?: string;
+  lockTo?: "guestA" | "guestB";
 }) {
   const router = useRouter();
   const [actor, setActor] = useState<ActorValue>("guestA");
@@ -75,11 +77,15 @@ export function ResaleClient({
         return;
       }
       setMsg(
-        `Listing live: US$${askNum} (= ${askNum} ℏ, demo 1 ℏ = US$1). Switch to the other guest — Buy below or Public slots.`
+        lockTo
+          ? `Listing live: US$${askNum} (= ${askNum} ℏ). Another browser session signed in as the other demo user can buy from Public slots.`
+          : `Listing live: US$${askNum} (= ${askNum} ℏ, demo 1 ℏ = US$1). Switch to the other guest — Buy below or Public slots.`
       );
-      setActor((prev) =>
-        prev === "guestA" ? "guestB" : prev === "guestB" ? "guestA" : prev
-      );
+      if (!lockTo) {
+        setActor((prev) =>
+          prev === "guestA" ? "guestB" : prev === "guestB" ? "guestA" : prev
+        );
+      }
       router.refresh();
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
@@ -125,7 +131,11 @@ export function ResaleClient({
 
   return (
     <div className="mt-4 space-y-4">
-      <ActorSelector pageDefault="guestA" onChange={setActor} />
+      <ActorSelector
+        pageDefault="guestA"
+        onChange={setActor}
+        lockTo={lockTo}
+      />
       <div className="rounded border border-slate-200 bg-white p-4">
         <h2 className="font-medium">{slotTitle}</h2>
         {!tokenId && (

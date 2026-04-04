@@ -12,12 +12,20 @@ import {
 import { readSlotChainState } from "@/lib/server/slotChain";
 import { getStoredTokenId, getStoredTopicId } from "@/lib/store/ids";
 import { getSlotByTokenSerial } from "@/lib/store/slots";
+import {
+  enforceLockedGuestActor,
+  requireGuestAppUser,
+} from "@/lib/auth/guest-api-auth";
 import { bookBodySchema, fail } from "@/lib/validation/api";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
+    const appUser = await requireGuestAppUser();
+    if (appUser instanceof NextResponse) {
+      return appUser;
+    }
     const parsed = bookBodySchema.safeParse(await req.json());
     if (!parsed.success) {
       return NextResponse.json(
@@ -26,6 +34,8 @@ export async function POST(req: Request) {
       );
     }
     const { actor, serial } = parsed.data;
+    const denied = enforceLockedGuestActor(appUser, actor);
+    if (denied) return denied;
     const tokenId = await getStoredTokenId();
     const topicId = await getStoredTopicId();
     if (!tokenId || !topicId) {

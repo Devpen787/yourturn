@@ -2,9 +2,17 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ActorSelector } from "@/components/ActorSelector";
 
 type HolderHint = { serial: number; label: string };
+type SlotOverview = {
+  serial: number;
+  title: string;
+  status: string;
+  holderLabel: string;
+  resaleActive: boolean;
+  resaleAskHbar: number | null;
+  resaleAskUsd: number | null;
+};
 
 type Props = {
   tokenId: string | null;
@@ -12,6 +20,7 @@ type Props = {
   tokenExists: boolean;
   slotsCount: number;
   holderHints?: HolderHint[];
+  slotOverview?: SlotOverview[];
 };
 
 export function IssuerPanel({
@@ -20,6 +29,7 @@ export function IssuerPanel({
   tokenExists,
   slotsCount,
   holderHints = [],
+  slotOverview = [],
 }: Props) {
   const router = useRouter();
   const [msg, setMsg] = useState<string | null>(null);
@@ -30,6 +40,11 @@ export function IssuerPanel({
     "auto" | "guestA" | "guestB"
   >("auto");
   const [burnSerial, setBurnSerial] = useState("1");
+  const availableCount = slotOverview.filter((s) => s.status === "AVAILABLE").length;
+  const heldCount = slotOverview.filter((s) => s.status === "HELD").length;
+  const frozenCount = slotOverview.filter((s) => s.status === "FROZEN").length;
+  const usedCount = slotOverview.filter((s) => s.status === "USED").length;
+  const resaleCount = slotOverview.filter((s) => s.resaleActive).length;
 
   async function run(
     label: string,
@@ -50,12 +65,27 @@ export function IssuerPanel({
         setErr(data.error || res.statusText);
         return;
       }
+      if (label === "Mint Demo Slots" && data.minted === false) {
+        const serials = Array.isArray(data.serials) ? data.serials.join(", ") : "—";
+        setMsg(
+          `Already seeded for this token (serials ${serials}). Use "Reset Demo" to mint fresh serials and replace state.`
+        );
+        router.refresh();
+        return;
+      }
       let m = `${label} OK`;
       if (
         typeof data.holderActorUsed === "string" &&
         (label === "Freeze" || label === "Unfreeze")
       ) {
         m += ` (holder: ${data.holderActorUsed})`;
+      }
+      if (
+        Array.isArray(data.affectedSerials) &&
+        data.affectedSerials.length > 0 &&
+        (label === "Freeze" || label === "Unfreeze")
+      ) {
+        m += ` · affected holder serials: ${data.affectedSerials.join(", ")}`;
       }
       if (Array.isArray(data.serials) && data.serials.length > 0) {
         m += ` (NFT serials ${data.serials.join(", ")})`;
@@ -93,7 +123,6 @@ export function IssuerPanel({
   return (
     <div>
       <h1 className="mb-2 text-xl font-semibold">Issuer</h1>
-      <ActorSelector pageDefault="issuer" />
       <div className="mb-4 space-y-1 rounded border border-slate-200 bg-white p-4 text-sm">
         <p>
           <span className="font-medium">Token ID:</span>{" "}
@@ -143,16 +172,87 @@ export function IssuerPanel({
           {loading === "Reset Demo" ? "…" : "Reset Demo"}
         </button>
       </div>
+      <p className="mt-2 text-xs text-slate-500">
+        Mint only seeds once per token. For new serial numbers, use{" "}
+        <span className="font-medium text-slate-700">Reset Demo</span>.
+      </p>
       <section className="mt-8 border-t border-slate-200 pt-6">
-        <h2 className="mb-2 font-medium">Freeze / unfreeze holder</h2>
+        <h2 className="mb-2 font-medium">Slot monitor</h2>
+        <p className="mb-3 text-sm text-slate-600">
+          Issuer overview of all seeded serials: availability, holder, and resale state.
+        </p>
+        <div className="mb-3 flex flex-wrap gap-2 text-xs">
+          <span className="rounded border border-slate-200 bg-white px-2 py-1">
+            Available: <strong>{availableCount}</strong>
+          </span>
+          <span className="rounded border border-slate-200 bg-white px-2 py-1">
+            Held: <strong>{heldCount}</strong>
+          </span>
+          <span className="rounded border border-slate-200 bg-white px-2 py-1">
+            Frozen: <strong>{frozenCount}</strong>
+          </span>
+          <span className="rounded border border-slate-200 bg-white px-2 py-1">
+            Used: <strong>{usedCount}</strong>
+          </span>
+          <span className="rounded border border-slate-200 bg-white px-2 py-1">
+            On resale: <strong>{resaleCount}</strong>
+          </span>
+        </div>
+        {slotOverview.length > 0 ? (
+          <div className="overflow-x-auto rounded border border-slate-200 bg-white">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-600">
+                <tr>
+                  <th className="px-3 py-2">Serial</th>
+                  <th className="px-3 py-2">Title</th>
+                  <th className="px-3 py-2">Status</th>
+                  <th className="px-3 py-2">Holder</th>
+                  <th className="px-3 py-2">Resale</th>
+                </tr>
+              </thead>
+              <tbody>
+                {slotOverview.map((s) => (
+                  <tr key={s.serial} className="border-t border-slate-100">
+                    <td className="px-3 py-2 font-medium">#{s.serial}</td>
+                    <td className="px-3 py-2">{s.title}</td>
+                    <td className="px-3 py-2">{s.status}</td>
+                    <td className="px-3 py-2">{s.holderLabel}</td>
+                    <td className="px-3 py-2">
+                      {s.resaleActive
+                        ? s.resaleAskUsd != null
+                          ? `US$${s.resaleAskUsd}`
+                          : `${s.resaleAskHbar ?? "?"} ℏ`
+                        : "No"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-slate-600">
+            No seeded slots yet. Initialize and mint demo slots first.
+          </p>
+        )}
+      </section>
+      <section className="mt-8 border-t border-slate-200 pt-6">
+        <h2 className="mb-2 font-medium">Freeze / unfreeze holder (account-wide)</h2>
         <p className="mb-2 max-w-xl text-sm text-slate-600">
           <span className="font-medium text-slate-700">Auto</span> uses the
           account Mirror reports for this serial (Guest A or B). That matches
           slots listed for resale—the seller still holds the NFT until someone
-          buys. Freeze only applies after a guest holds the NFT (not while it is
-          still AVAILABLE in treasury). To pull an unbooked slot from sale, use{" "}
+          buys. <span className="font-medium text-slate-800">Freeze/unfreeze is token-wide for that holder</span>{" "}
+          (all serials they hold for this token), not just one serial. Freeze
+          only applies after a guest holds the NFT (not while it is still
+          AVAILABLE in treasury). To pull an unbooked slot from sale, use{" "}
           <span className="font-medium text-slate-800">Burn / withdraw slot</span>{" "}
           below.
+        </p>
+        <p className="mb-3 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+          Safety note: freezing one serial is effectively a <strong>holder-level lockdown</strong>
+          for this token. If a holder shows suspicious or malicious behavior,
+          freeze lets the issuer keep control over all that holder&apos;s slot transfers
+          until unfreezed by issuer.
         </p>
         {holderHints.length > 0 && (
           <div className="mb-3 rounded border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
@@ -210,7 +310,7 @@ export function IssuerPanel({
               )
             }
           >
-            Freeze
+            Freeze holder (all holder serials)
           </button>
           <button
             type="button"
@@ -229,7 +329,7 @@ export function IssuerPanel({
               )
             }
           >
-            Unfreeze
+            Unfreeze holder (all holder serials)
           </button>
         </div>
       </section>

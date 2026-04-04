@@ -7,7 +7,7 @@ import {
 } from "@/lib/hedera/client";
 import { getHashscanTxUrl } from "@/lib/hedera/hashscan";
 import { freezeHolder, isNftHolderTreasury } from "@/lib/hedera/token";
-import { getNftBySerial } from "@/lib/hedera/mirror";
+import { getAccountNfts, getNftBySerial } from "@/lib/hedera/mirror";
 import { getStoredTokenId, getStoredTopicId } from "@/lib/store/ids";
 import { fail, freezeBodySchema } from "@/lib/validation/api";
 
@@ -82,6 +82,12 @@ export async function POST(req: Request) {
       holderAccountId: mirrorHolder,
       tokenIdStr: tokenId,
     });
+    const affectedSerials = (
+      await getAccountNfts(mirrorHolder, tokenId)
+    )
+      .map((n) => n.serial_number)
+      .filter((n) => Number.isFinite(n))
+      .sort((a, b) => a - b);
     const lifecycleTxId = await submitLifecycleEvent(topicId, {
       eventType: "FROZEN",
       tokenId,
@@ -93,6 +99,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       ok: true as const,
       holderActorUsed,
+      affectedSerials,
       freezeTxId,
       freezeHashscanUrl: getHashscanTxUrl(freezeTxId),
       lifecycleTxId,

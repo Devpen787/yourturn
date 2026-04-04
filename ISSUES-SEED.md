@@ -17,6 +17,14 @@ Open these as small slices. Keep ownership disjoint where possible.
    - Owner: chain side
    - Outcome: single typed contract imported by both tracks
 
+## Auth / platform (Sebastian)
+
+- `Email login with Redis (Upstash) — Phase A`
+  - Owner: Sebastian
+  - Plan: `docs/AUTH-EMAIL-REDIS.md`
+  - Outcome: register/login + session cookie; **no** replacement of Hedera Guest A/B actor demo in Phase A
+  - Collision warning: may touch `app/layout.tsx` / `components/SiteHeader.tsx` — coordinate with product partner
+
 ## Chain track
 
 4. `Add Mirror health and booking-right read client` *(largely done — verify / extend if needed)*

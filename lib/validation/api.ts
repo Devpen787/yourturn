@@ -65,6 +65,9 @@ export function fail(
     | "CONFLICT"
     | "HEDERA_TX_ERROR"
     | "INTERNAL_ERROR"
+    | "NOT_CONFIGURED"
+    | "UNAUTHORIZED"
+    | "FORBIDDEN"
 ): ApiFailure {
   return { ok: false, error, code };
 }

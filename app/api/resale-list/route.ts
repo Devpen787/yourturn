@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import {
+  enforceLockedGuestActor,
+  requireGuestAppUser,
+} from "@/lib/auth/guest-api-auth";
 import { canResell } from "@/lib/domain/guards";
 import { submitLifecycleEvent } from "@/lib/hedera/consensus";
 import { getActorCredentials } from "@/lib/hedera/client";
@@ -17,6 +21,10 @@ export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
+    const appUser = await requireGuestAppUser();
+    if (appUser instanceof NextResponse) {
+      return appUser;
+    }
     const parsed = resaleListBodySchema.safeParse(await req.json());
     if (!parsed.success) {
       return NextResponse.json(
@@ -25,6 +33,8 @@ export async function POST(req: Request) {
       );
     }
     const { actor, serial, askUsd } = parsed.data;
+    const denied = enforceLockedGuestActor(appUser, actor);
+    if (denied) return denied;
     const askPriceHbar = askUsd;
     const tokenId = await getStoredTokenId();
     const topicId = await getStoredTopicId();

@@ -1,3 +1,4 @@
+import { getSessionUser } from "@/lib/auth/get-session";
 import { getStoredTokenId } from "@/lib/store/ids";
 import { readSlotChainState } from "@/lib/server/slotChain";
 import { getTreasuryIdString } from "@/lib/hedera/token";
@@ -7,6 +8,12 @@ import { MyBookingsClient } from "./MyBookingsClient";
 export const dynamic = "force-dynamic";
 
 export default async function MyBookingsPage() {
+  const session = await getSessionUser();
+  const lockTo =
+    session?.hederaPersona === "guestA" ||
+    session?.hederaPersona === "guestB"
+      ? session.hederaPersona
+      : undefined;
   const guestAId = process.env.HEDERA_GUEST_A_ID ?? "";
   const guestBId = process.env.HEDERA_GUEST_B_ID ?? "";
   let tokenId: string | null = null;
@@ -58,6 +65,7 @@ export default async function MyBookingsPage() {
       guestBId={guestBId}
       tokenId={tokenId}
       initialRows={rows}
+      lockTo={lockTo}
     />
   );
 }

@@ -1,3 +1,4 @@
+import { getSessionUser } from "@/lib/auth/get-session";
 import { readSlotChainState } from "@/lib/server/slotChain";
 import { getStoredTokenId } from "@/lib/store/ids";
 import { loadListings } from "@/lib/store/listings";
@@ -8,6 +9,12 @@ import { SlotsClient, type SlotRow } from "./SlotsClient";
 export const dynamic = "force-dynamic";
 
 export default async function SlotsPage() {
+  const session = await getSessionUser();
+  const lockTo =
+    session?.hederaPersona === "guestA" ||
+    session?.hederaPersona === "guestB"
+      ? session.hederaPersona
+      : undefined;
   let rows: SlotRow[] = [];
   try {
     const tokenId = await getStoredTokenId();
@@ -62,6 +69,7 @@ export default async function SlotsPage() {
       rows={rows}
       guestAId={process.env.HEDERA_GUEST_A_ID ?? ""}
       guestBId={process.env.HEDERA_GUEST_B_ID ?? ""}
+      lockTo={lockTo}
     />
   );
 }

@@ -55,6 +55,11 @@ The following already exist in-repo: **F1** primary book, **F2** resale (royalty
 - [ ] Build `F7` refund transaction path
 - [ ] Log real F7 proof in `docs/TX-LOG.md`
 
+## Phase 5b: app accounts (Sebastian — coordinate with product)
+
+- [x] **Email auth** stored in **Upstash Redis** — `POST /api/auth/register|login|logout`, `GET /api/auth/me`, `/login`, `/register`, header session UI (`docs/AUTH-EMAIL-REDIS.md`)
+- [x] Phase A: **keep** Hedera Guest A/B **Actor** demo (unchanged)
+
 ## Phase 6: polish and submission proof
 
 - [ ] Tighten holder status language and issuer copy

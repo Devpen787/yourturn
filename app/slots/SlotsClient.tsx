@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ActorSelector, type ActorValue } from "@/components/ActorSelector";
 import { DemoPricingNotice } from "@/components/DemoPricingNotice";
@@ -26,16 +26,23 @@ export function SlotsClient({
   rows,
   guestAId = "",
   guestBId = "",
+  lockTo,
 }: {
   rows: SlotRow[];
   guestAId?: string;
   guestBId?: string;
+  lockTo?: "guestA" | "guestB";
 }) {
   const router = useRouter();
   const [actor, setActor] = useState<ActorValue>("guestA");
+  const [slotRows, setSlotRows] = useState<SlotRow[]>(rows);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState<number | null>(null);
+
+  useEffect(() => {
+    setSlotRows(rows);
+  }, [rows]);
 
   async function book(serial: number) {
     if (actor !== "guestA" && actor !== "guestB") {
@@ -53,9 +60,27 @@ export function SlotsClient({
       });
       const data = await res.json();
       if (!data.ok) {
-        setErr(data.error || res.statusText);
+        const msg = data.error || res.statusText;
+        setErr(msg);
+        if (
+          typeof msg === "string" &&
+          msg.toLowerCase().includes("not available")
+        ) {
+          // Mirror/on-chain state moved since this page load; sync immediately.
+          router.refresh();
+        }
         return;
       }
+      setSlotRows((prev) =>
+        prev.map((r) =>
+          r.serial === serial
+            ? {
+                ...r,
+                status: "HELD",
+              }
+            : r
+        )
+      );
       setMsg(`Booked serial ${serial}. Tx: ${data.txId}`);
       router.refresh();
     } catch (e) {
@@ -95,6 +120,19 @@ export function SlotsClient({
         setErr(data.error || res.statusText);
         return;
       }
+      setSlotRows((prev) =>
+        prev.map((r) =>
+          r.serial === serial
+            ? {
+                ...r,
+                status: "HELD",
+                resaleAskHbar: null,
+                resaleAskUsd: null,
+                resaleSellerAccountId: null,
+              }
+            : r
+        )
+      );
       setMsg(`Bought resale for serial ${serial}. Tx: ${data.txId}`);
       router.refresh();
     } catch (e) {
@@ -104,11 +142,19 @@ export function SlotsClient({
     }
   }
 
+  const availableRows = slotRows.filter((r) => r.status === "AVAILABLE");
+  const unavailableRows = slotRows.filter((r) => r.status !== "AVAILABLE");
+  const displayRows = [...availableRows, ...unavailableRows];
+
   return (
     <div>
       <h1 className="mb-2 text-xl font-semibold">Public slots</h1>
       <DemoPricingNotice />
-      <ActorSelector pageDefault="guestA" onChange={setActor} />
+      <ActorSelector
+        pageDefault="guestA"
+        onChange={setActor}
+        lockTo={lockTo}
+      />
       {msg && (
         <p className="mb-2 rounded bg-emerald-50 p-2 text-sm text-emerald-900">
           {msg}
@@ -117,8 +163,23 @@ export function SlotsClient({
       {err && (
         <p className="mb-2 rounded bg-red-50 p-2 text-sm text-red-800">{err}</p>
       )}
+      <p className="mb-3 text-xs text-slate-600">
+        Available now:{" "}
+        <strong>
+          {availableRows.length}/{slotRows.length}
+        </strong>
+      </p>
+      {availableRows.length === 0 && slotRows.length > 0 && (
+        <p className="mb-3 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          No slots are currently available. They may be held/frozen/used. Check{" "}
+          <Link href="/my-bookings" className="font-medium underline">
+            My bookings
+          </Link>{" "}
+          or ask Issuer to reset demo slots.
+        </p>
+      )}
       <ul className="space-y-3">
-        {rows.map((r) => (
+        {displayRows.map((r) => (
           <li
             key={r.serial}
             className="rounded border border-slate-200 bg-white p-4 text-sm"
@@ -193,7 +254,7 @@ export function SlotsClient({
           </li>
         ))}
       </ul>
-      {rows.length === 0 && (
+      {slotRows.length === 0 && (
         <p className="text-slate-600">
           No slots in Redis yet. Issuer must Initialize and Mint Demo Slots.
         </p>

@@ -46,6 +46,10 @@ export async function POST(req: Request) {
         ok: true as const,
         minted: false,
         serials: sameToken.map((s) => s.serial).sort((a, b) => a - b),
+        reason:
+          "ALREADY_MINTED_FOR_TOKEN" as const,
+        hint:
+          "Use Reset Demo to mint a fresh set of serials and replace slot state.",
       });
     }
     const raw = await readFile(

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getSessionUser } from "@/lib/auth/get-session";
 import { DemoPricingNotice } from "@/components/DemoPricingNotice";
 import { describeDemoRoyaltyFromAsk } from "@/lib/demo/pricing";
 import { getStoredTokenId } from "@/lib/store/ids";
@@ -13,6 +14,12 @@ export default async function ResalePage({
 }: {
   params: { serial: string };
 }) {
+  const session = await getSessionUser();
+  const lockTo =
+    session?.hederaPersona === "guestA" ||
+    session?.hederaPersona === "guestB"
+      ? session.hederaPersona
+      : undefined;
   const serial = Number(params.serial);
   if (!Number.isFinite(serial) || serial < 1) {
     return <p>Invalid serial</p>;
@@ -68,6 +75,7 @@ export default async function ResalePage({
         slotTitle={slot?.title ?? `Serial ${serial}`}
         guestAId={process.env.HEDERA_GUEST_A_ID ?? ""}
         guestBId={process.env.HEDERA_GUEST_B_ID ?? ""}
+        lockTo={lockTo}
       />
     </div>
   );

@@ -20,6 +20,7 @@ Before making material changes, read these files in order:
 5. `docs/ARCHITECTURE.md`
 6. `docs/DEMO.md`
 7. `docs/TX-LOG.md`
+8. `docs/AUTH-EMAIL-REDIS.md` *(email login / Redis — if touching auth)*
 
 ---
 
@@ -53,7 +54,8 @@ Last updated: <ISO date>
 
 | Track | Owner (default) | Next concrete work | Typical paths | Notes |
 |-------|-----------------|-------------------|---------------|--------|
-| **Chain** | Sebastian | Run **testnet proof** for F2 resale: one tx, confirm **single royalty** (HTS custom fee only); paste tx id + HashScan into `docs/TX-LOG.md` | `docs/TX-LOG.md` (shared write — comment in issue first) | Code fix for double royalty is on `main` (~`e38d153`); proof still needed |
+| **Auth / platform** | Sebastian | **Phase A done:** `/login`, `/register`, `POST /api/auth/*`, Redis users, `AUTH_SESSION_SECRET` cookie session; Hedera **Actor** unchanged | `app/api/auth/*`, `app/login/*`, `app/register/*`, `lib/auth/*`, `lib/store/users.ts`, `SiteHeader` | Next: optional route guards, or map user → Hedera (`docs/AUTH-EMAIL-REDIS.md`) |
+| **Chain** | Sebastian | **Testnet proof** for F1–F4: paste tx ids + HashScan into `docs/TX-LOG.md` | `docs/TX-LOG.md` | Filled on Sebastian’s machine; keep in sync if re-running flows |
 | **Chain** | Sebastian | Optional: small **API response** improvements if product needs them (e.g. echo `mirrorHolder` on freeze error — already in message) | `app/api/*` | Coordinate if it changes contracts |
 | **Chain** | Sebastian | **BookingPort** + typed boundary (RFC or `lib/adapters/booking-port.ts`) | `lib/`, `docs/DECISIONS.md` | **Shared** — agree interface in an issue before coding |
 | **Product** | Partner | **Issuer / freeze UX:** show **current Mirror holder** for the serial (and match `holderActor` dropdown or auto-select) to avoid 409s | `app/issuer/*` | API now validates `holderActor` vs Mirror |

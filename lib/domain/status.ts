@@ -1,4 +1,5 @@
 import type { SlotStatus } from "./guards";
+import { accountsEqual } from "@/lib/hedera/client";
 
 export type DeriveSlotStatusArgs = {
   burned: boolean;
@@ -9,7 +10,10 @@ export type DeriveSlotStatusArgs = {
 
 export function deriveSlotStatus(args: DeriveSlotStatusArgs): SlotStatus {
   if (args.burned) return "USED";
-  if (!args.holderAccountId || args.holderAccountId === args.treasuryAccountId)
+  if (
+    !args.holderAccountId ||
+    accountsEqual(args.holderAccountId, args.treasuryAccountId)
+  )
     return "AVAILABLE";
   if (args.frozenForToken) return "FROZEN";
   return "HELD";

@@ -41,12 +41,13 @@ npm run build
 npm run lint
 ```
 
-Copy `.env.example` → `.env.local` (Hedera accounts, Upstash Redis, optional reuse `BOOKED_RIGHTS_*`). Deploy on **Vercel** with the same vars.
+Copy `.env.example` → `.env.local` (Hedera accounts, Upstash Redis, optional reuse `BOOKED_RIGHTS_*`). **`AUTH_SESSION_SECRET`** is required for **production** deploy; **`npm run dev`** uses a dev fallback if omitted. Deploy on **Vercel** with all production secrets set.
 
 ### Implementation notes
 
 - **Royalty:** numerator **1** / denominator **10** (10%), no fallback fee — enforced by **HTS `CustomRoyaltyFee`** on resale (buyer pays seller full ask + NFT transfer in one tx); `lib/domain/fees.ts` is for **UI preview** only  
-- **Redis keys:** `bookedrights:tokenId`, `bookedrights:topicId`, `bookedrights:slots`, `bookedrights:listings`  
+- **Redis keys:** `bookedrights:tokenId`, `bookedrights:topicId`, `bookedrights:slots`, `bookedrights:listings`, `bookedrights:user:id:*`, `bookedrights:user:email:*`  
+- **App accounts (Phase A):** `/register`, `/login` — email + password in Redis; **httpOnly** session cookie `br_session`; **Demo issuer** / **Demo user** one-click in header; **Sign in** triple-click (fast) = demo issuer; Hedera booking still uses **Guest A/B** actor selector (`docs/AUTH-EMAIL-REDIS.md`)  
 - **Node:** `pino@8.17.2` override for Node 18 `next build`; Node 20+ recommended  
 
 ### Local smoke path
@@ -54,6 +55,14 @@ Copy `.env.example` → `.env.local` (Hedera accounts, Upstash Redis, optional r
 1. `/issuer` → **Initialize** → **Mint Demo Slots**  
 2. As **guestA**, book serial **1** on `/slots`  
 3. List resale on `/resale/1`, buy as **guestB**; issuer **Freeze** / **Unfreeze** / **Mark used** as needed  
+
+### Dev: page spins / “loads forever”
+
+- **First open after `npm run dev`:** wait 1–3 minutes while Next compiles (slow disks / OneDrive make this worse).  
+- **Try** `http://127.0.0.1:3000` (or the port Next prints) instead of `localhost` if the browser hangs on IPv6.  
+- **Stop duplicate servers:** close extra terminals running `next dev`; only one process per port.  
+- **EPERM on `.next`:** delete the `.next` folder and run `npm run dev` again, or move the repo out of OneDrive-synced folders.  
+- **Redis:** wrong `KV_REST_API_*` can make API routes slow; header no longer blocks on Redis after the `getSessionUser` change.
 
 ## Repo map
 

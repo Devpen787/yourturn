@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ActorSelector, type ActorValue } from "@/components/ActorSelector";
+import { accountsEqual } from "@/lib/hedera/client";
 
 type Row = {
   serial: number;
@@ -18,31 +19,39 @@ export function MyBookingsClient({
   guestBId,
   tokenId,
   initialRows,
+  lockTo,
 }: {
   guestAId: string;
   guestBId: string;
   tokenId: string | null;
   initialRows: Row[];
+  lockTo?: "guestA" | "guestB";
 }) {
   const router = useRouter();
   const [actor, setActor] = useState<ActorValue>("guestA");
 
   const accountId = useMemo(() => {
-    if (actor === "guestA") return guestAId;
-    if (actor === "guestB") return guestBId;
+    if (actor === "guestA") return guestAId.trim();
+    if (actor === "guestB") return guestBId.trim();
     return "";
   }, [actor, guestAId, guestBId]);
 
   const held = initialRows.filter((r) => {
     if (!accountId || !tokenId) return false;
-    if (r.holderAccountId !== accountId) return false;
+    if (!r.holderAccountId || !accountsEqual(r.holderAccountId, accountId)) {
+      return false;
+    }
     return r.status === "HELD" || r.status === "FROZEN";
   });
 
   return (
     <div>
       <h1 className="mb-2 text-xl font-semibold">My bookings</h1>
-      <ActorSelector pageDefault="guestA" onChange={setActor} />
+      <ActorSelector
+        pageDefault="guestA"
+        onChange={setActor}
+        lockTo={lockTo}
+      />
       {!tokenId && (
         <p className="text-slate-600">Initialize the app first from Issuer.</p>
       )}
@@ -80,7 +89,11 @@ export function MyBookingsClient({
       </ul>
       {held.length === 0 && tokenId && actor !== "issuer" && (
         <p className="text-slate-600">
-          No held slots for this actor (check Mirror holdings after booking).
+          No held slots for this actor (check Mirror holdings after booking).{" "}
+          <Link href="/slots" className="font-medium text-sky-800 underline">
+            Go to Browse slots
+          </Link>
+          .
         </p>
       )}
       <p className="mt-4 text-xs text-slate-500">

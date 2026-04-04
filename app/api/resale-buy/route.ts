@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import {
+  enforceLockedGuestActor,
+  requireGuestAppUser,
+} from "@/lib/auth/guest-api-auth";
 import { submitLifecycleEvent } from "@/lib/hedera/consensus";
 import { getActorCredentials } from "@/lib/hedera/client";
 import { getHashscanTxUrl } from "@/lib/hedera/hashscan";
@@ -29,6 +33,10 @@ function credentialsForSellerAccount(sellerAccountId: string): ReturnType<
 
 export async function POST(req: Request) {
   try {
+    const appUser = await requireGuestAppUser();
+    if (appUser instanceof NextResponse) {
+      return appUser;
+    }
     const parsed = resaleBuyBodySchema.safeParse(await req.json());
     if (!parsed.success) {
       return NextResponse.json(
@@ -37,6 +45,8 @@ export async function POST(req: Request) {
       );
     }
     const { actor, serial } = parsed.data;
+    const denied = enforceLockedGuestActor(appUser, actor);
+    if (denied) return denied;
     const tokenId = await getStoredTokenId();
     const topicId = await getStoredTopicId();
     if (!tokenId || !topicId) {
