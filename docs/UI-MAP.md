@@ -23,20 +23,20 @@ Update **`docs/UI-MAP.md` in the same PR** when you change any of the following 
 
 | Route | Server module | Renders | Client / child UI | User actions (primary) | APIs invoked from browser |
 |-------|----------------|---------|-------------------|-------------------------|---------------------------|
-| `/` | `app/page.tsx` | Marketing home | — (Server Component) | Navigate via links | — |
+| `/` | `app/page.tsx` | Marketing home | `HomeHero`, `ExperiencePillars`, `StartFlowCta` (`components/home/*`, Server Components) | Hero CTAs → `/slots`, `/my-bookings`; business card → `/issuer` | — |
 | `/login` | `app/login/page.tsx` | App sign-in | `DemoLoginButtons`, `LoginForm`, `LogoutToSwitchAccount` | Sign in as demo issuer / demo user A / demo user B, or sign in with email + password | `POST /api/auth/demo-login`, `POST /api/auth/login`, `POST /api/auth/logout` |
 | `/register` | `app/register/page.tsx` | App registration | `RegisterForm` | Create a guest app account | `POST /api/auth/register` |
 | `/slots` | `app/slots/page.tsx` | Customer browse list | `SlotsClient` | Signed-in guest sees a customer browse page; demo user A / B sign-ins lock the page to that customer; review and book an AVAILABLE slot | `POST /api/book` |
-| `/slots/[serial]` | `app/slots/[serial]/page.tsx` | Shared truth page: status, next step, proof | `SlotResaleCta` (link only) | Open resale when eligible | — |
+| `/slots/[serial]` | `app/slots/[serial]/page.tsx` | Shared truth page: status, next step, proof, HCS history | `SlotPassHeroCard`, `SlotDetailStickyBar`, `SlotResaleCta` (mostly Server Component tree) | Open resale when eligible; HashScan / technical details | — |
 | `/my-bookings` | `app/my-bookings/page.tsx` | Customer pass hub | `MyBookingsClient` | Signed-in guest sees only their customer view; open details / resale, refresh | — (`router.refresh()` only) |
 | `/resale/[serial]` | `app/resale/[serial]/page.tsx` | Customer resale handoff page | `ResaleClient` | Signed-in guest sees the seller / buyer side for their locked demo user; review and list at ask, review and buy listing | `POST /api/resale-list`, `POST /api/resale-buy` |
 | `/issuer` | `app/issuer/page.tsx` | Provider dashboard shell | `IssuerPanel` | Signed-in issuer saves business name + 3-session plan, init, mint, typed-confirm reset, confirm freeze, reopen, typed-confirm mark used | `POST /api/session-plan`, `POST /api/init`, `POST /api/mint-slots`, `POST /api/reset-demo`, `POST /api/freeze`, `POST /api/unfreeze`, `POST /api/mark-used` |
 | `/demo-help` | `app/demo-help/page.tsx` | In-app explanation of demo identities and confirm steps | — (Server Component) | Read how Person A / Person B / Provider map to the demo | — |
-| `/brand-lab` | `app/brand-lab/page.tsx` | Logo variants first, then internal UI kit + homepage composites | `BrandLabClient`, `BrandLabUiKit`, `BrandLabAgentPrototype` | Switch logo direction chips; preview buttons, feedback, toasts, ActorSelector; **assistant-style prototype** (scripted routing, not an LLM) calls `/api/agent/read` + `/api/agent/preview` when “Live API” is on | — |
-| `/brand-lab/assistant` | `app/brand-lab/assistant/page.tsx` | **Customer-only** conversation-shaped **prototype** (scripted routing, not an LLM); no internal column | `BrandLabAgentPrototype` (`mode="customerOnly"`) | Starter actions, preview/confirm cards; Person A + Live API defaults | — |
+| `/brand-lab` | `app/brand-lab/page.tsx` | Logo variants first, then internal UI kit + homepage composites | `BrandLabClient`, `BrandLabUiKit`, `BrandLabAgentPrototype` | Switch logo direction chips; preview buttons, feedback, toasts, ActorSelector; **assistant-style prototype** (scripted routing, not an LLM) calls `/api/agent/read` + `/api/agent/preview` when “Live API” is on | `POST /api/agent/read`, `POST /api/agent/preview` (internal lab only) |
+| `/brand-lab/assistant` | `app/brand-lab/assistant/page.tsx` | **Customer-only** conversation-shaped **prototype** (scripted routing, not an LLM); no internal column | `BrandLabAgentPrototype` (`mode="customerOnly"`) | Starter actions, preview/confirm cards; Person A + Live API defaults | `POST /api/agent/read`, `POST /api/agent/preview` (internal lab only) |
 | `/brandlab` | `app/brandlab/page.tsx` | Redirect → `/brand-lab` (typo alias) | — | — | — |
 
-Global chrome: `app/layout.tsx` + `components/SiteHeader.tsx` (header nav only; no API calls).
+Global chrome: `app/layout.tsx` + `components/SiteHeader.tsx` (header nav only; no API calls). **Browse** is active for both `/slots` and `/resale/*`; **Provider dashboard** is hidden on customer-only paths unless `NEXT_PUBLIC_SHOW_PROVIDER_NAV_ON_CUSTOMER_PAGES=true` or the path is `/` or `/issuer` (see `showProviderInNav` in `SiteHeader.tsx`). **Brand lab** is not linked from the shipped product nav.
 
 ## Shared components
 
@@ -143,6 +143,15 @@ Use when auditing “are we missing something?”
 | Real tx proof lines | See `docs/TX-LOG.md`; re-run and extend after new testnet proof |
 | Component inventory | This file — update when adding routes, `*Client.tsx`, shared app chrome, or route loading states |
 
+## Last-minute improvement targets (product QA, Apr 2026)
+
+Small, high-leverage UI/copy passes before demo freeze — no new flows required:
+
+| Target | Where | Why |
+|--------|--------|-----|
+| **Cross-role slot detail** | `/slots/[serial]` | Issuer sessions cannot open guest slot detail without switching to a guest account. Keep the demo script explicit; optional future: read-only issuer peek (out of current scope). |
+| **Mirror / Redis lag hint** | Browse, hub, resale | The happy path works, but a short “refresh if another role just changed this pass” note can still reduce judge confusion if pages are already open in parallel. |
+
 ## Surface split
 
 - **Customer surfaces:** `/slots`, `/my-bookings`, `/resale/[serial]`
@@ -153,6 +162,7 @@ Keep that split visible in copy and controls. If a customer page starts explaini
 
 ## Related docs
 
+- `docs/PAGE-OVERVIEW.md` — per-route purpose, controls, copy intent, and **Works / Partial / Review** status
 - `docs/MARKET-VOCABULARY.md` — Web2 booking / class / ticket terminology vs our copy
 - `docs/AGENT-INTEGRATION.md` — concrete backend and agent request / response examples for `/api/agent/*`
 - `docs/DEMO.md` — shipped walkthrough

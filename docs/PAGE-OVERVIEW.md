@@ -21,9 +21,9 @@
 | Item | Detail |
 |------|--------|
 | **Purpose** | Brand + navigation on every page. |
-| **Controls** | Links: **YourTurn** → `/`, **Browse** → `/slots`, **My passes** → `/my-bookings`, **Provider dashboard** → `/issuer`; auth actions change between **Sign in / Register** and **Sign out** with a signed-in email label. |
-| **Copy role** | Consumer-first labels, with the provider dashboard kept as a quieter secondary entry in the nav. |
-| **Purpose clear?** | **Yes** for demo: customer routes first, provider dashboard secondary. |
+| **Controls** | Links: **YourTurn** → `/`, **Browse** → `/slots` (nav item stays active on `/resale/*` too), **My passes** → `/my-bookings`, **Provider dashboard** → `/issuer` when shown; auth actions change between **Sign in / Register** and **Sign out** with a signed-in email label. **Provider dashboard** is omitted on customer routes unless `NEXT_PUBLIC_SHOW_PROVIDER_NAV_ON_CUSTOMER_PAGES=true`, or you are on `/` or `/issuer`. |
+| **Copy role** | Consumer-first labels, with the provider dashboard kept as a quieter secondary entry in the nav. **Brand lab** is not in product nav (internal route only). |
+| **Purpose clear?** | **Yes** for demo: customer routes first, provider dashboard secondary where visible. |
 | **Status** | **Works** as navigation. |
 
 ---
@@ -109,7 +109,7 @@
 | **Controls** | Link back to session; customer-only `ActorSelector` (seller / buyer); short demo-identity note linking to `/demo-help`; **Ask** input; **List this pass** and **Buy this pass** both open review dialogs before the API call; success/error blocks. |
 | **Copy role** | Resale vs free transfer clarified; fixed **10%** **provider fee on resale**; estimate disclaimer; explicitly states that listing is the seller approval and buying transfers immediately. |
 | **Purpose clear?** | **Yes** for demo roles; buyer must understand **actor = payer**. |
-| **Status** | **Works** when token + listing state correct; listing and buy confirmations now stay visible in-page with proof links. **Partial** if users expect marketplace discovery. |
+| **Status** | **Works** when token + listing state are correct; listing and buy confirmations stay visible in-page with proof links, and closed / invalid refs now read as read-only states instead of active resale worksheets. **Partial** only if users expect marketplace-style discovery rather than a direct handoff page. |
 
 ---
 
@@ -166,8 +166,20 @@
 
 ---
 
+## Last-minute improvement candidates (Apr 2026)
+
+Prioritised from exploratory demo runs. Keep these small and only ship what fits before freeze.
+
+1. **Cross-role slot detail:** Issuer accounts are blocked from `/slots/*` by design; keep **`docs/DEMO.md`** explicit about switching to a guest to open **Session details**.  
+2. **Mirror lag:** Reuse existing **Refresh** patterns; a short note after resale actions is enough if a full auto-poll is out of scope.
+
+Table form of the same list lives in **`docs/UI-MAP.md`**.
+
+---
+
 ## Changelog
 
+- **2026-04-05:** Synced global nav description (Browse includes `/resale`, conditional provider link, Brand lab remains out of product nav) and resale read-only end-state wording.
 - **2026-04-05:** Compact customer switcher on browse / passes / resale, softer provider nav, readable session times on browse/detail, and provider system ids moved behind disclosure.
 - **2026-04-05:** Provider dashboard gained editable business setup and a saved 3-session plan; mint/reset now follow that saved plan instead of only file-seeded defaults.
 - **2026-04-05:** Split the app more clearly into customer surfaces, a shared truth page, and a provider dashboard; actor switcher now stays on customer routes only.
