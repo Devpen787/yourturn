@@ -151,33 +151,6 @@ export default async function SlotDetailPage({
             </p>
           </div>
         )}
-        {meta && (
-          <pre className="mt-2 overflow-x-auto rounded bg-slate-100 p-2 text-xs">
-            {JSON.stringify(meta, null, 2)}
-          </pre>
-        )}
-        <p>
-          <a
-            className="text-blue-700 underline"
-            href={getHashscanTokenUrl(tokenId)}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Token on HashScan
-          </a>
-        </p>
-        {topicId && (
-          <p>
-            <a
-              className="text-blue-700 underline"
-              href={getHashscanTopicUrl(topicId)}
-              target="_blank"
-              rel="noreferrer"
-            >
-              HCS topic on HashScan
-            </a>
-          </p>
-        )}
       </div>
       {listing?.active && (
         <p className="mt-4 rounded bg-amber-50 p-2">
@@ -191,6 +164,42 @@ export default async function SlotDetailPage({
         <div className="mt-4">
           <SlotResaleCta serial={serial} />
         </div>
+      )}
+      <section className="mt-6 rounded border border-slate-200 bg-white p-4">
+        <h2 className="font-medium text-slate-900">Proof links</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Use these when you want to verify the token or audit trail outside the app.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-3">
+          <a
+            className="text-blue-700 underline"
+            href={getHashscanTokenUrl(tokenId)}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Token on HashScan
+          </a>
+          {topicId && (
+            <a
+              className="text-blue-700 underline"
+              href={getHashscanTopicUrl(topicId)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              HCS topic on HashScan
+            </a>
+          )}
+        </div>
+      </section>
+      {meta && (
+        <details className="mt-6 rounded border border-slate-200 bg-white p-4">
+          <summary className="cursor-pointer font-medium text-slate-900">
+            Technical metadata
+          </summary>
+          <pre className="mt-3 overflow-x-auto rounded bg-slate-100 p-2 text-xs">
+            {JSON.stringify(meta, null, 2)}
+          </pre>
+        </details>
       )}
       <section className="mt-6">
         <h2 className="font-medium">Lifecycle messages (HCS)</h2>

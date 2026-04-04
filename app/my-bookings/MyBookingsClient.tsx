@@ -68,6 +68,7 @@ export function MyBookingsClient({
     if (r.holderAccountId !== accountId) return false;
     return r.status === "HELD" || r.status === "FROZEN";
   });
+  const usedRows = initialRows.filter((r) => r.status === "USED");
 
   return (
     <div>
@@ -142,6 +143,42 @@ export function MyBookingsClient({
             Browse available slots
           </Link>
         </div>
+      )}
+      {actor !== "issuer" && tokenId && usedRows.length > 0 && (
+        <section className="mt-6">
+          <h2 className="text-sm font-medium text-slate-900">Recently closed in this demo</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            These booking rights have already been marked used and are no longer held by any guest.
+          </p>
+          <ul className="mt-3 space-y-3">
+            {usedRows.map((r) => (
+              <li
+                key={`used-${r.serial}`}
+                className="rounded border border-slate-200 bg-white p-4 text-sm"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="font-medium">
+                    #{r.serial} — {r.title}
+                  </div>
+                  <span
+                    className={`inline-flex rounded px-2 py-1 text-xs font-medium ${statusTone(
+                      r.status
+                    )}`}
+                  >
+                    {r.status}
+                  </span>
+                </div>
+                <div className="mt-2 text-slate-600">{statusCopy(r.status)}</div>
+                <Link
+                  className="mt-2 inline-flex text-blue-700 underline"
+                  href={`/slots/${r.serial}`}
+                >
+                  View lifecycle details
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
       <p className="mt-4 text-xs text-slate-500">
         <button

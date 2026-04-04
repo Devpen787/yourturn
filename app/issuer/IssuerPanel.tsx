@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ActorSelector } from "@/components/ActorSelector";
 
 type Props = {
@@ -28,11 +28,13 @@ function statusTone(status: string): string {
 }
 
 function holderLabel(
+  status: string,
   holderActor: "guestA" | "guestB" | null,
   holderAccountId: string | null
 ): string {
   if (holderActor) return holderActor;
-  if (!holderAccountId) return "treasury / none";
+  if (status === "USED") return "used / burned";
+  if (!holderAccountId) return "treasury inventory";
   return holderAccountId;
 }
 
@@ -57,6 +59,12 @@ export function IssuerPanel({
   const selectedBurnRow =
     rows.find((row) => row.serial === Number(burnSerial)) ?? null;
   const canFreezeHolder = selectedFreezeRow?.holderActor != null;
+
+  useEffect(() => {
+    if (selectedFreezeRow?.holderActor) {
+      setFreezeHolder(selectedFreezeRow.holderActor);
+    }
+  }, [selectedFreezeRow]);
 
   async function run(
     label: string,
@@ -94,8 +102,12 @@ export function IssuerPanel({
 
   return (
     <div>
-      <h1 className="mb-2 text-xl font-semibold">Issuer</h1>
+      <h1 className="mb-2 text-xl font-semibold">Issuer console</h1>
       <ActorSelector pageDefault="issuer" />
+      <p className="mb-4 text-sm text-slate-600">
+        Operator-only demo controls for seeding inventory, managing booking-right
+        lifecycle, and verifying issuer actions.
+      </p>
       <div className="mb-4 space-y-1 rounded border border-slate-200 bg-white p-4 text-sm">
         <p>
           <span className="font-medium">Token ID:</span>{" "}
@@ -177,7 +189,9 @@ export function IssuerPanel({
                       {row.status}
                     </span>
                   </td>
-                  <td className="px-3 py-2">{holderLabel(row.holderActor, row.holderAccountId)}</td>
+                  <td className="px-3 py-2">
+                    {holderLabel(row.status, row.holderActor, row.holderAccountId)}
+                  </td>
                   <td className="px-3 py-2">{row.listingActive ? "Active resale" : "None"}</td>
                   <td className="px-3 py-2">
                     <button
@@ -208,7 +222,7 @@ export function IssuerPanel({
           {selectedFreezeRow ? (
             <>
               {" "}· current status: <strong>{selectedFreezeRow.status}</strong>
-              {" "}· current holder: <strong>{holderLabel(selectedFreezeRow.holderActor, selectedFreezeRow.holderAccountId)}</strong>
+              {" "}· current holder: <strong>{holderLabel(selectedFreezeRow.status, selectedFreezeRow.holderActor, selectedFreezeRow.holderAccountId)}</strong>
             </>
           ) : (
             <> · serial not found in the current slot list</>
@@ -237,6 +251,12 @@ export function IssuerPanel({
             </select>
           </label>
         </div>
+        {selectedFreezeRow?.holderActor && (
+          <p className="mb-2 text-sm text-slate-600">
+            Auto-filled from current Mirror-backed holder:{" "}
+            <strong>{selectedFreezeRow.holderActor}</strong>
+          </p>
+        )}
         {!canFreezeHolder && selectedFreezeRow && (
           <p className="mb-2 rounded bg-amber-50 p-2 text-sm text-amber-900">
             This serial does not currently map to a guest holder. Freeze or unfreeze only applies when a guest is the current Mirror holder.
@@ -278,7 +298,7 @@ export function IssuerPanel({
           {selectedBurnRow ? (
             <>
               {" "}· current status: <strong>{selectedBurnRow.status}</strong>
-              {" "}· current holder: <strong>{holderLabel(selectedBurnRow.holderActor, selectedBurnRow.holderAccountId)}</strong>
+              {" "}· current holder: <strong>{holderLabel(selectedBurnRow.status, selectedBurnRow.holderActor, selectedBurnRow.holderAccountId)}</strong>
             </>
           ) : (
             <> · serial not found in the current slot list</>
