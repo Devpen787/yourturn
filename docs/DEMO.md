@@ -93,9 +93,12 @@ The Hedera demo actors underneath are still `guestA` / `guestB` / `issuer`, but 
 
 23. Return to **`/issuer`**. Confirm table shows Person B as the current holder for the serial.
 24. Use **Check in / mark used** for that ref, type the ref number in the confirm dialog, and submit — `POST /api/mark-used`.
-25. Refresh the affected guest page if you are still looking at the same pass, then show **USED** state on **`/slots/[serial]`** or the guest hub.
-26. Make it explicit that the issuer is the one who closes the lifecycle, so the pass cannot be used again.
-27. If needed, show the anti-double-use proof: a second `mark-used` or `book` attempt for the same serial now fails with `CONFLICT`.
+25. Refresh **`/issuer`** if you want the inventory counts to catch up before narrating the final provider state.
+26. Sign out of the issuer account and switch back to the current guest holder (typically **Demo user B**) before opening guest routes again.
+27. Open **`/slots/[serial]`** or **`/my-bookings`** as that guest and show the final **USED** / closed state.
+28. Optional but strong: open **`/resale/[serial]`** as the guest and show the read-only closed resale state.
+29. Make it explicit that the issuer is the one who closes the lifecycle, so the pass cannot be used again.
+30. If needed, show the anti-double-use proof: a second `mark-used` or `book` attempt for the same serial now fails with `CONFLICT`.
 
 ### F. Optional — freeze (`F3`)
 
@@ -116,6 +119,7 @@ The Hedera demo actors underneath are still `guestA` / `guestB` / `issuer`, but 
 - When using the new app auth, keep one browser per demo account for the cleanest story
 - Treat **Mark used** as the live redemption step, not just cleanup
 - Show that Person A is no longer the valid holder after resale
+- Remember that **`/slots/*`** and **`/my-bookings`** are guest routes. If you are still signed in as the issuer after check-in, switch back to a demo user before showing slot detail or pass hub.
 - If another browser is already sitting on the same page when a different user changes the pass, refresh that page before narrating the new state
 - If showing `F7` in future, use a separate booking from the one you plan to mark used
 - Only show `HCS` if it helps the audience understand the story faster (topic messages appear on slot detail)
