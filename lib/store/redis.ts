@@ -16,4 +16,5 @@ export const REDIS_KEYS = {
   init: "bookedrights:init",
   slots: "bookedrights:slots",
   listings: "bookedrights:listings",
+  demoPlan: "bookedrights:demoPlan",
 } as const;

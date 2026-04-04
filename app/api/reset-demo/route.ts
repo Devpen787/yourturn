@@ -1,7 +1,6 @@
-import { readFile } from "fs/promises";
-import path from "path";
 import { NextResponse } from "next/server";
 import { getNftBySerial } from "@/lib/hedera/mirror";
+import { loadDemoPlan } from "@/lib/store/demo-plan";
 import { getStoredTokenId } from "@/lib/store/ids";
 import { clearAllListings } from "@/lib/store/listings";
 import { loadSlots, saveSlots } from "@/lib/store/slots";
@@ -9,17 +8,6 @@ import type { SlotRecord } from "@/lib/types/slot";
 import { fail } from "@/lib/validation/api";
 
 export const runtime = "nodejs";
-
-type DemoSeed = {
-  slotId: string;
-  title: string;
-  startTime: string;
-  endTime: string;
-  location: string;
-  issuerName: string;
-  primaryPriceHbar: number;
-  resaleAllowed: boolean;
-};
 
 export async function POST() {
   try {
@@ -31,11 +19,7 @@ export async function POST() {
       );
     }
     await clearAllListings();
-    const raw = await readFile(
-      path.join(process.cwd(), "public", "demo-slots.json"),
-      "utf8"
-    );
-    const demo = JSON.parse(raw) as DemoSeed[];
+    const demo = await loadDemoPlan();
     const prev = await loadSlots();
     const bySerial = prev.filter((s) => s.tokenId === tokenId);
     const rebuilt: SlotRecord[] = [];

@@ -2,13 +2,16 @@
 
 import { useRouter } from "next/navigation";
 import { useId, useMemo, useState } from "react";
+import Link from "next/link";
 import { ActorSelector, type ActorValue } from "@/components/ActorSelector";
 import { useToast } from "@/components/providers/ToastProvider";
 import { calcRoyalty } from "@/lib/domain/fees";
 import type { SlotStatus } from "@/lib/domain/guards";
 import type { ResaleListing } from "@/lib/types/listing";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { LiveFeedback } from "@/components/ui/LiveFeedback";
+import { getButtonClassName } from "@/components/ui/button-classes";
 import { cn } from "@/lib/cn";
 import { getHashscanTxUrl } from "@/lib/hedera/hashscan";
 
@@ -39,8 +42,14 @@ export function ResaleClient({
   const [ask, setAsk] = useState(
     initialListing?.askPriceHbar?.toString() ?? "20"
   );
+  const [success, setSuccess] = useState<string | null>(null);
+  const [successLink, setSuccessLink] = useState<{
+    href: string;
+    label: string;
+  } | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<"list" | "buy" | null>(null);
   const askFieldId = useId();
   const feeHintId = useId();
 
@@ -120,16 +129,18 @@ export function ResaleClient({
               ),
             };
 
-  async function createListing() {
+  async function createListing(): Promise<boolean> {
     if (actor !== "guestA" && actor !== "guestB") {
       setErr("Switch to the person who currently holds this pass before listing it.");
-      return;
+      return false;
     }
     if (!Number.isFinite(askNum) || askNum <= 0) {
       setErr("Enter a positive resale ask");
-      return;
+      return false;
     }
     setLoading("list");
+    setSuccess(null);
+    setSuccessLink(null);
     setErr(null);
     try {
       const res = await fetch("/api/resale-list", {
@@ -144,37 +155,55 @@ export function ResaleClient({
       const data = await res.json();
       if (!data.ok) {
         setErr(data.error || res.statusText);
-        return;
+        return false;
       }
+      const auditHref =
+        typeof data.hashscanUrl === "string" && data.hashscanUrl.length > 0
+          ? data.hashscanUrl
+          : typeof data.auditTxId === "string" && data.auditTxId.length > 0
+            ? getHashscanTxUrl(data.auditTxId)
+            : null;
+      setSuccess(
+        `${demoPersonLabel(actor)} listed Ref #${serial} at ${askNum.toFixed(
+          2
+        )} ℏ. Switch to the other person to complete the handoff.`
+      );
+      setSuccessLink(
+        auditHref
+          ? {
+              href: auditHref,
+              label: "View audit transaction on HashScan",
+            }
+          : null
+      );
       toast({
         variant: "success",
         message: `Listing created at ${askNum.toFixed(2)} ℏ. Switch to the other person to complete the handoff.`,
-        link:
-          typeof data.auditTxId === "string" && data.auditTxId.length > 0
-            ? {
-                href:
-                  typeof data.hashscanUrl === "string" &&
-                  data.hashscanUrl.length > 0
-                    ? data.hashscanUrl
-                    : getHashscanTxUrl(data.auditTxId),
-                label: "View audit transaction on HashScan",
-              }
-            : undefined,
+        link: auditHref
+          ? {
+              href: auditHref,
+              label: "View audit transaction on HashScan",
+            }
+          : undefined,
       });
       router.refresh();
+      return true;
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
+      return false;
     } finally {
       setLoading(null);
     }
   }
 
-  async function buy() {
+  async function buy(): Promise<boolean> {
     if (actor !== "guestA" && actor !== "guestB") {
       setErr("Switch to the person who is buying this pass.");
-      return;
+      return false;
     }
     setLoading("buy");
+    setSuccess(null);
+    setSuccessLink(null);
     setErr(null);
     try {
       const res = await fetch("/api/resale-buy", {
@@ -185,26 +214,40 @@ export function ResaleClient({
       const data = await res.json();
       if (!data.ok) {
         setErr(data.error || res.statusText);
-        return;
+        return false;
       }
+      const txHref =
+        typeof data.hashscanUrl === "string" && data.hashscanUrl.length > 0
+          ? data.hashscanUrl
+          : typeof data.txId === "string" && data.txId.length > 0
+            ? getHashscanTxUrl(data.txId)
+            : null;
+      setSuccess(
+        `${demoPersonLabel(actor)} bought Ref #${serial}. The provider dashboard and My passes will now show the new holder.`
+      );
+      setSuccessLink(
+        txHref
+          ? {
+              href: txHref,
+              label: "View transaction on HashScan",
+            }
+          : null
+      );
       toast({
         variant: "success",
         message: "Purchased. This pass now belongs to the buyer.",
-        link:
-          typeof data.txId === "string" && data.txId.length > 0
-            ? {
-                href:
-                  typeof data.hashscanUrl === "string" &&
-                  data.hashscanUrl.length > 0
-                    ? data.hashscanUrl
-                    : getHashscanTxUrl(data.txId),
-                label: "View transaction on HashScan",
-              }
-            : undefined,
+        link: txHref
+          ? {
+              href: txHref,
+              label: "View transaction on HashScan",
+            }
+          : undefined,
       });
       router.refresh();
+      return true;
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
+      return false;
     } finally {
       setLoading(null);
     }
@@ -224,6 +267,15 @@ export function ResaleClient({
         description="Switch between Person A and Person B to show the seller side and the buyer side of the resale flow."
         onChange={setActor}
       />
+      <p className="text-sm text-slate-600">
+        Person A and Person B are demo customer identities, not real sign-ins.{" "}
+        <Link
+          href="/demo-help"
+          className={cn(getButtonClassName("textLink"), "min-h-0 px-0 py-0 text-sm")}
+        >
+          How this demo works
+        </Link>
+      </p>
       {mirrorHint ? (
         <p
           className={cn(
@@ -302,7 +354,10 @@ export function ResaleClient({
             loadingLabel="Listing…"
             disabled={listDisabled}
             className="w-fit"
-            onClick={() => createListing()}
+            onClick={() => {
+              setErr(null);
+              setConfirmAction("list");
+            }}
           >
             List this pass
           </Button>
@@ -319,13 +374,21 @@ export function ResaleClient({
             loadingLabel="Buying…"
             disabled={buyDisabled}
             className="w-fit"
-            onClick={() => buy()}
+            onClick={() => {
+              setErr(null);
+              setConfirmAction("buy");
+            }}
           >
             Buy this pass
           </Button>
         </div>
       </div>
-      <LiveFeedback className="space-y-2" success={null} error={err} />
+      <LiveFeedback
+        className="space-y-2"
+        success={success}
+        successLink={successLink}
+        error={err}
+      />
       {tokenId ? (
         <div
           className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur supports-[backdrop-filter]:bg-white/85 md:hidden"
@@ -340,7 +403,10 @@ export function ResaleClient({
               loadingLabel="Listing…"
               disabled={listDisabled}
               className="min-w-0 flex-1"
-              onClick={() => createListing()}
+              onClick={() => {
+                setErr(null);
+                setConfirmAction("list");
+              }}
             >
               List
             </Button>
@@ -351,13 +417,68 @@ export function ResaleClient({
               loadingLabel="Buying…"
               disabled={buyDisabled}
               className="min-w-0 flex-1"
-              onClick={() => buy()}
+              onClick={() => {
+                setErr(null);
+                setConfirmAction("buy");
+              }}
             >
               Buy
             </Button>
           </div>
         </div>
       ) : null}
+      <ConfirmDialog
+        open={confirmAction === "list"}
+        title="Review this resale listing"
+        description="Check the seller, ask, and fee preview before you list this pass."
+        details={[
+          { label: "Seller", value: actor === "guestA" ? "Person A" : "Person B" },
+          { label: "Pass", value: `${slotTitle} · Ref #${serial}` },
+          { label: "Ask", value: `${askNum.toFixed(2)} ℏ` },
+          { label: "Provider fee preview", value: `${royalty.toFixed(2)} ℏ` },
+        ]}
+        warning="Listing a pass is the seller's approval to move it. There is no separate second approval step in this demo."
+        confirmLabel="List this pass"
+        loading={loading === "list"}
+        loadingLabel="Listing…"
+        onClose={() => {
+          if (loading == null) setConfirmAction(null);
+        }}
+        onConfirm={() => {
+          void createListing().then((ok) => {
+            if (ok) setConfirmAction(null);
+          });
+        }}
+      />
+      <ConfirmDialog
+        open={confirmAction === "buy"}
+        title="Review this purchase"
+        description="Check the buyer, the listed ask, and the role switch before you buy this pass."
+        details={[
+          { label: "Buyer", value: actor === "guestA" ? "Person A" : "Person B" },
+          { label: "Pass", value: `${slotTitle} · Ref #${serial}` },
+          {
+            label: "Listed ask",
+            value: `${initialListing?.askPriceHbar ?? askNum} ℏ`,
+          },
+          {
+            label: "Provider fee preview",
+            value: `${calcRoyalty(initialListing?.askPriceHbar ?? askNum).toFixed(2)} ℏ`,
+          },
+        ]}
+        warning="Buying transfers the pass to the buyer immediately in this demo. There is no extra approval step after purchase."
+        confirmLabel="Buy this pass"
+        loading={loading === "buy"}
+        loadingLabel="Buying…"
+        onClose={() => {
+          if (loading == null) setConfirmAction(null);
+        }}
+        onConfirm={() => {
+          void buy().then((ok) => {
+            if (ok) setConfirmAction(null);
+          });
+        }}
+      />
     </div>
   );
 }

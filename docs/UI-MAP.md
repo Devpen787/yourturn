@@ -24,11 +24,15 @@ Update **`docs/UI-MAP.md` in the same PR** when you change any of the following 
 | Route | Server module | Renders | Client / child UI | User actions (primary) | APIs invoked from browser |
 |-------|----------------|---------|-------------------|-------------------------|---------------------------|
 | `/` | `app/page.tsx` | Marketing home | — (Server Component) | Navigate via links | — |
-| `/slots` | `app/slots/page.tsx` | Customer browse list | `SlotsClient` | Switch between Person A / Person B, book an AVAILABLE slot | `POST /api/book` |
+| `/slots` | `app/slots/page.tsx` | Customer browse list | `SlotsClient` | Switch between Person A / Person B, read the demo-identity note, review and book an AVAILABLE slot | `POST /api/book` |
 | `/slots/[serial]` | `app/slots/[serial]/page.tsx` | Shared truth page: status, next step, proof | `SlotResaleCta` (link only) | Open resale when eligible | — |
 | `/my-bookings` | `app/my-bookings/page.tsx` | Customer pass hub | `MyBookingsClient` | Switch between Person A / Person B, open details / resale, refresh | — (`router.refresh()` only) |
-| `/resale/[serial]` | `app/resale/[serial]/page.tsx` | Customer resale handoff page | `ResaleClient` | Switch seller / buyer, list at ask, buy listing | `POST /api/resale-list`, `POST /api/resale-buy` |
-| `/issuer` | `app/issuer/page.tsx` | Provider dashboard shell | `IssuerPanel` | Init, mint, reset, freeze/unfreeze, mark used | `POST /api/init`, `POST /api/mint-slots`, `POST /api/reset-demo`, `POST /api/freeze`, `POST /api/unfreeze`, `POST /api/mark-used` |
+| `/resale/[serial]` | `app/resale/[serial]/page.tsx` | Customer resale handoff page | `ResaleClient` | Switch seller / buyer, read the demo-identity note, review and list at ask, review and buy listing | `POST /api/resale-list`, `POST /api/resale-buy` |
+| `/issuer` | `app/issuer/page.tsx` | Provider dashboard shell | `IssuerPanel` | Save business name + 3-session plan, init, mint, typed-confirm reset, confirm freeze, reopen, typed-confirm mark used | `POST /api/session-plan`, `POST /api/init`, `POST /api/mint-slots`, `POST /api/reset-demo`, `POST /api/freeze`, `POST /api/unfreeze`, `POST /api/mark-used` |
+| `/demo-help` | `app/demo-help/page.tsx` | In-app explanation of demo identities and confirm steps | — (Server Component) | Read how Person A / Person B / Provider map to the demo | — |
+| `/brand-lab` | `app/brand-lab/page.tsx` | Logo variants first, then internal UI kit + homepage composites | `BrandLabClient`, `BrandLabUiKit`, `BrandLabAgentPrototype` | Switch logo direction chips; preview buttons, feedback, toasts, ActorSelector; **assistant-style prototype** (scripted routing, not an LLM) calls `/api/agent/read` + `/api/agent/preview` when “Live API” is on | — |
+| `/brand-lab/assistant` | `app/brand-lab/assistant/page.tsx` | **Customer-only** conversation-shaped **prototype** (scripted routing, not an LLM); no internal column | `BrandLabAgentPrototype` (`mode="customerOnly"`) | Starter actions, preview/confirm cards; Person A + Live API defaults | — |
+| `/brandlab` | `app/brandlab/page.tsx` | Redirect → `/brand-lab` (typo alias) | — | — | — |
 
 Global chrome: `app/layout.tsx` + `components/SiteHeader.tsx` (header nav only; no API calls).
 
@@ -39,6 +43,7 @@ Global chrome: `app/layout.tsx` + `components/SiteHeader.tsx` (header nav only; 
 | `ActorSelector` | `components/ActorSelector.tsx` | Demo persona switcher; compact Person A / Person B toggle on customer routes, configurable full selector when needed | `/slots`, `/my-bookings`, `/resale/*` |
 | `SlotResaleCta` | `app/slots/[serial]/SlotResaleCta.tsx` | Link to `/resale/[serial]` | `/slots/[serial]` when resale allowed |
 | `SiteHeader` | `components/SiteHeader.tsx` | Global product nav and route highlighting | All routes via `app/layout.tsx` |
+| `BrandLabClient` | `components/brand-lab/BrandLabClient.tsx` | Mock surfaces + switchable SVG logo directions for design review | `/brand-lab` only |
 | `Button` | `components/ui/Button.tsx` | Shared action primitive with loading state and variants | Customer + provider action surfaces |
 | `LiveFeedback` | `components/ui/LiveFeedback.tsx` | Shared success/error messaging | `/slots`, `/resale/[serial]`, `/issuer` |
 | `Skeleton` | `components/ui/Skeleton.tsx` | Shared loading placeholder | Route-level `loading.tsx` files |
@@ -60,6 +65,7 @@ Global chrome: `app/layout.tsx` + `components/SiteHeader.tsx` (header nav only; 
 | API | Method | Purpose | Called from UI? |
 |-----|--------|---------|-----------------|
 | `/api/init` | POST | Create/store token + topic ids | Yes — Issuer |
+| `/api/session-plan` | POST | Save business name + 3 planned demo sessions used by mint/reset | Yes — Issuer |
 | `/api/mint-slots` | POST | Seed slots in Redis (+ mint NFTs per demo policy) | Yes — Issuer |
 | `/api/reset-demo` | POST | Reset demo state | Yes — Issuer |
 | `/api/book` | POST | Primary booking (`F1`) | Yes — Slots list |
@@ -80,9 +86,9 @@ Global chrome: `app/layout.tsx` + `components/SiteHeader.tsx` (header nav only; 
 | Flow | Meaning | Where it shows up | Notes |
 |------|---------|-------------------|--------|
 | **F1** Primary booking | Guest books AVAILABLE slot | `/slots` → `POST /api/book` | Holder + tx feedback in UI |
-| **F2** Resale + royalty | List and buy | `/resale/[serial]` | Royalty copy on page + `lib/domain/fees.ts` |
+| **F2** Resale + royalty | List and buy | `/resale/[serial]` | Seller and buyer both review a confirm dialog before the API call; royalty copy on page + `lib/domain/fees.ts` |
 | **F3** Freeze / unfreeze | Issuer blocks movement | `/issuer` | Mirror holder must match `holderActor` (API enforced) |
-| **F4** Mark used | Close lifecycle | `/issuer` → `POST /api/mark-used` | Guest views update via Mirror on refresh |
+| **F4** Mark used | Close lifecycle | `/issuer` → `POST /api/mark-used` | Typed confirm in provider dashboard; guest views update via Mirror on refresh |
 | **F7** Cancel / refund | Not in MVP | — | Listed deferred in `docs/TASKS.md` |
 
 ## Where customer and provider “meet”
@@ -140,12 +146,9 @@ Keep that split visible in copy and controls. If a customer page starts explaini
 ## Related docs
 
 - `docs/MARKET-VOCABULARY.md` — Web2 booking / class / ticket terminology vs our copy
-- `docs/PAGE-OVERVIEW.md` — per-route **purpose, buttons, copy role, clarity, Works/Partial/Review** (living audit)
-- `docs/REVIEW-CHECKLIST.md` — **single doc** to run through before demo, PR, or submission (product + flows + UX staging + gaps)
-- `docs/SCORECARD.md` — dated 1–5 scores; re-score after TX-LOG / major UX / deploy hardening
 - `docs/AGENT-INTEGRATION.md` — concrete backend and agent request / response examples for `/api/agent/*`
 - `docs/DEMO.md` — shipped walkthrough
-- `docs/PERSONAS-EXPECTATIONS.md` — each stakeholder’s expectations vs what is available
+- `docs/INTERNAL.md` — local-only audits and checklists (`docs/internal/`, gitignored)
 
 ## Trust reminder (demo)
 

@@ -90,13 +90,34 @@ export function MyBookingsClient({
         description="Switch between Person A and Person B to see each customer’s active passes and resale options."
         onChange={setActor}
       />
+      <p className="mb-3 text-sm text-slate-600">
+        Person A and Person B are demo customer identities, not real sign-ins.{" "}
+        <Link
+          href="/demo-help"
+          className={cn(getButtonClassName("textLink"), "min-h-0 px-0 py-0 text-sm")}
+        >
+          How this demo works
+        </Link>
+      </p>
       {!tokenId && (
         <p className="text-slate-600">The business needs to set up the demo before passes can appear here.</p>
       )}
       {tokenId && (
         <p className="mb-4 rounded border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-          This page shows the passes currently held by the selected person.
-          {" "}Selected account: <span className="font-mono text-xs">{accountId || "—"}</span>
+          Showing passes for{" "}
+          <strong>{actor === "guestA" ? "Person A" : "Person B"}</strong> in this
+          demo.{" "}
+          <span className="text-slate-500">
+            (Technical id:{" "}
+            <span className="font-mono text-xs">{accountId || "—"}</span>)
+          </span>
+        </p>
+      )}
+      {tokenId && (
+        <p className="mb-4 rounded border border-slate-200 bg-white p-3 text-sm text-slate-700">
+          Need the full lifecycle for a pass? Open{" "}
+          <strong>Session details</strong> on any row below to see the activity
+          history, current status, and proof links in one place.
         </p>
       )}
       {tokenId && held.length > 0 && (
@@ -205,7 +226,7 @@ export function MyBookingsClient({
                   )}
                   href={`/slots/${r.serial}`}
                 >
-                  View session details
+                  Session details
                 </Link>
               </li>
             ))}

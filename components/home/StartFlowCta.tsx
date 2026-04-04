@@ -12,7 +12,7 @@ export function StartFlowCta() {
             Find it, book it, keep track of it.
           </h2>
           <p className="mt-3 text-base leading-7 text-slate-700">
-            Browse a session, confirm the booking, then manage the pass from one
+            Browse a session, review the booking, then manage the pass from one
             booking hub.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">

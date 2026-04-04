@@ -2,15 +2,19 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useToast } from "@/components/providers/ToastProvider";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { LiveFeedback } from "@/components/ui/LiveFeedback";
 import { getButtonClassName } from "@/components/ui/button-classes";
+import type { DemoSlotSeed } from "@/lib/types/demo-slot";
 
 type Props = {
   tokenId: string | null;
   topicId: string | null;
   tokenExists: boolean;
   slotsCount: number;
+  demoPlan: DemoSlotSeed[];
   rows: {
     serial: number;
     title: string;
@@ -20,6 +24,18 @@ type Props = {
     listingActive: boolean;
   }[];
 };
+
+type DemoPlanDraft = {
+  slotId: string;
+  title: string;
+  startTime: string;
+  endTime: string;
+  location: string;
+  primaryPriceHbar: string;
+  resaleAllowed: boolean;
+};
+
+type ConfirmAction = "reset" | "pause" | "markUsed" | null;
 
 function statusTone(status: string): string {
   if (status === "AVAILABLE") return "bg-slate-100 text-slate-800";
@@ -41,42 +57,123 @@ function holderLabel(
   return holderAccountId;
 }
 
+function formatDateTimeLocalInput(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+    date.getDate()
+  )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function parseLocalInputToIso(value: string): string | null {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
+}
+
+function formatScheduleWindow(startTime: string, endTime: string): string {
+  const start = new Date(startTime);
+  const end = new Date(endTime);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return "Choose a valid date and time";
+  }
+  const day = new Intl.DateTimeFormat("en", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  }).format(start);
+  const startLabel = new Intl.DateTimeFormat("en", {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(start);
+  const endLabel = new Intl.DateTimeFormat("en", {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(end);
+  return `${day} · ${startLabel}–${endLabel}`;
+}
+
+function formatDraftRows(plan: DemoSlotSeed[]): DemoPlanDraft[] {
+  return plan.map((slot) => ({
+    slotId: slot.slotId,
+    title: slot.title,
+    startTime: formatDateTimeLocalInput(slot.startTime),
+    endTime: formatDateTimeLocalInput(slot.endTime),
+    location: slot.location,
+    primaryPriceHbar: String(slot.primaryPriceHbar),
+    resaleAllowed: slot.resaleAllowed,
+  }));
+}
+
 export function IssuerPanel({
   tokenId,
   topicId,
   tokenExists,
   slotsCount,
+  demoPlan,
   rows,
 }: Props) {
   const router = useRouter();
-  const [msg, setMsg] = useState<string | null>(null);
+  const toast = useToast();
+  const [success, setSuccess] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
-  const [freezeSerial, setFreezeSerial] = useState("1");
-  const [freezeHolder, setFreezeHolder] = useState<"guestA" | "guestB">(
-    "guestB"
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
+  const [issuerName, setIssuerName] = useState(
+    demoPlan[0]?.issuerName ?? "Demo Issuer"
   );
-  const [burnSerial, setBurnSerial] = useState("1");
+  const [planRows, setPlanRows] = useState<DemoPlanDraft[]>(
+    formatDraftRows(demoPlan)
+  );
+  const defaultSerial = rows[0] ? String(rows[0].serial) : "1";
+  const [freezeSerial, setFreezeSerial] = useState(defaultSerial);
+  const [freezeHolder, setFreezeHolder] = useState<"guestA" | "guestB">(
+    rows[0]?.holderActor ?? "guestB"
+  );
+  const [burnSerial, setBurnSerial] = useState(defaultSerial);
   const selectedFreezeRow =
     rows.find((row) => row.serial === Number(freezeSerial)) ?? null;
   const selectedBurnRow =
     rows.find((row) => row.serial === Number(burnSerial)) ?? null;
   const canFreezeHolder = selectedFreezeRow?.holderActor != null;
+  const freezePersonMatchesHolder =
+    !selectedFreezeRow?.holderActor ||
+    freezeHolder === selectedFreezeRow.holderActor;
+  const inventoryCounts = rows.reduce(
+    (acc, row) => {
+      acc.total += 1;
+      if (row.status === "AVAILABLE") acc.available += 1;
+      if (row.status === "HELD") acc.held += 1;
+      if (row.status === "FROZEN") acc.frozen += 1;
+      if (row.status === "USED") acc.used += 1;
+      return acc;
+    },
+    { total: 0, available: 0, held: 0, frozen: 0, used: 0 }
+  );
+
+  const holderActorForFreezeSerial =
+    rows.find((r) => r.serial === Number(freezeSerial))?.holderActor ?? null;
 
   useEffect(() => {
-    if (selectedFreezeRow?.holderActor) {
-      setFreezeHolder(selectedFreezeRow.holderActor);
+    if (holderActorForFreezeSerial) {
+      setFreezeHolder(holderActorForFreezeSerial);
     }
-  }, [selectedFreezeRow]);
+  }, [freezeSerial, holderActorForFreezeSerial]);
+
+  useEffect(() => {
+    setIssuerName(demoPlan[0]?.issuerName ?? "Demo Issuer");
+    setPlanRows(formatDraftRows(demoPlan));
+  }, [demoPlan]);
 
   async function run(
     label: string,
     url: string,
     body?: object
-  ): Promise<void> {
+  ): Promise<boolean> {
     setLoading(label);
+    setSuccess(null);
     setErr(null);
-    setMsg(null);
     try {
       const res = await fetch(url, {
         method: "POST",
@@ -86,9 +183,124 @@ export function IssuerPanel({
       const data = await res.json();
       if (!data.ok) {
         setErr(data.error || res.statusText);
+        return false;
+      }
+      if (label === "Set up business") {
+        setSuccess(
+          "Business setup is ready. You can now create live demo sessions from the saved session plan."
+        );
+      } else if (label === "Create demo sessions") {
+        setSuccess(
+          "Live demo sessions created from the saved plan. Customers can now browse and book them."
+        );
+      } else if (label === "Start over") {
+        setSuccess(
+          "Live demo sessions were refreshed from the saved plan. Listings were cleared and the current schedule was reapplied."
+        );
+      } else if (label === "Pause pass") {
+        setSuccess(
+          `Ref #${freezeSerial} is now paused. It cannot move until you reopen it.`
+        );
+      } else if (label === "Reopen pass") {
+        setSuccess(
+          `Ref #${freezeSerial} is live again and can move under the saved provider rules.`
+        );
+      } else if (label === "Check in") {
+        setSuccess(
+          `Ref #${burnSerial} was checked in and closed. It can no longer be used again.`
+        );
+      } else {
+        setSuccess(`${label} completed.`);
+      }
+      toast({ variant: "success", message: `${label} OK` });
+      router.refresh();
+      return true;
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+      return false;
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  function updatePlanRow(
+    index: number,
+    patch: Partial<DemoPlanDraft>
+  ): void {
+    setPlanRows((prev) =>
+      prev.map((row, rowIndex) =>
+        rowIndex === index ? { ...row, ...patch } : row
+      )
+    );
+  }
+
+  async function savePlan() {
+    const trimmedIssuerName = issuerName.trim();
+    if (!trimmedIssuerName) {
+      setErr("Enter a business name before saving the session plan.");
+      return;
+    }
+    if (planRows.length !== 3) {
+      setErr("The demo currently expects exactly three planned sessions.");
+      return;
+    }
+
+    const normalizedSlots = [];
+    for (const row of planRows) {
+      const title = row.title.trim();
+      const location = row.location.trim();
+      const startTime = parseLocalInputToIso(row.startTime);
+      const endTime = parseLocalInputToIso(row.endTime);
+      const price = Number(row.primaryPriceHbar);
+      if (!title || !location || !startTime || !endTime) {
+        setErr("Complete every title, date, time, and location before saving.");
         return;
       }
-      setMsg(`${label} OK`);
+      if (!Number.isFinite(price) || price <= 0) {
+        setErr("Each planned session needs a positive price.");
+        return;
+      }
+      if (new Date(endTime).getTime() <= new Date(startTime).getTime()) {
+        setErr("Each session must end after it starts.");
+        return;
+      }
+      normalizedSlots.push({
+        slotId: row.slotId,
+        title,
+        startTime,
+        endTime,
+        location,
+        issuerName: trimmedIssuerName,
+        primaryPriceHbar: price,
+        resaleAllowed: row.resaleAllowed,
+      });
+    }
+
+    setLoading("Save session plan");
+    setSuccess(null);
+    setErr(null);
+    try {
+      const res = await fetch("/api/session-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          issuerName: trimmedIssuerName,
+          slots: normalizedSlots,
+        }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        setErr(data.error || res.statusText);
+        return;
+      }
+      toast({
+        variant: "success",
+        message:
+          "Session plan saved. Create demo sessions or start over to apply it to the live demo.",
+      });
+      setSuccess(
+        "Session plan saved. Create demo sessions or start over to apply these changes to the live demo inventory."
+      );
       router.refresh();
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
@@ -98,7 +310,9 @@ export function IssuerPanel({
   }
 
   function setSerialAndRecommendedHolder(serial: number): void {
-    setFreezeSerial(String(serial));
+    const s = String(serial);
+    setFreezeSerial(s);
+    setBurnSerial(s);
     const row = rows.find((item) => item.serial === serial);
     if (row?.holderActor) setFreezeHolder(row.holderActor);
   }
@@ -125,6 +339,244 @@ export function IssuerPanel({
         Use this space to set up sessions, keep track of who holds each pass,
         pause movement when needed, and check people in.
       </p>
+      <section className="mb-6 grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,0.9fr)]">
+        <div className="rounded border border-slate-200 bg-white p-4 text-sm">
+          <h2 className="font-medium text-slate-900">Upcoming sessions</h2>
+          <p className="mt-1 max-w-2xl text-slate-600">
+            This is the customer-facing schedule the demo will mint from. Save the
+            session plan before creating or restarting the live demo passes.
+          </p>
+          <div className="mt-4 grid gap-3">
+            {planRows.map((row, index) => {
+              const startIso = parseLocalInputToIso(row.startTime);
+              const endIso = parseLocalInputToIso(row.endTime);
+              return (
+                <div
+                  key={`preview-${row.slotId}`}
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="font-medium text-slate-900">
+                        {row.title.trim() || `Session ${index + 1}`}
+                      </p>
+                      <p className="mt-1 text-slate-600">
+                        {startIso && endIso
+                          ? formatScheduleWindow(startIso, endIso)
+                          : "Choose a valid date and time"}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-slate-700">
+                      {row.primaryPriceHbar || "—"}ℏ
+                    </span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                    <span>{row.location.trim() || "Add a location"}</span>
+                    <span aria-hidden>·</span>
+                    <span>
+                      {row.resaleAllowed
+                        ? "Resale allowed"
+                        : "No resale on this pass"}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        <div className="rounded border border-slate-200 bg-white p-4 text-sm">
+          <h2 className="font-medium text-slate-900">Live inventory snapshot</h2>
+          <p className="mt-1 text-slate-600">
+            Quick read on what customers can still book, what is already held,
+            and what is finished.
+          </p>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                Total live
+              </p>
+              <p className="mt-1 text-2xl font-semibold text-slate-900">
+                {inventoryCounts.total}
+              </p>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                Bookable now
+              </p>
+              <p className="mt-1 text-2xl font-semibold text-slate-900">
+                {inventoryCounts.available}
+              </p>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                Held
+              </p>
+              <p className="mt-1 text-2xl font-semibold text-slate-900">
+                {inventoryCounts.held}
+              </p>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                Paused
+              </p>
+              <p className="mt-1 text-2xl font-semibold text-slate-900">
+                {inventoryCounts.frozen}
+              </p>
+            </div>
+          </div>
+          <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Checked in / finished
+            </p>
+            <p className="mt-1 text-2xl font-semibold text-slate-900">
+              {inventoryCounts.used}
+            </p>
+          </div>
+        </div>
+      </section>
+      <section className="mb-6 rounded border border-slate-200 bg-white p-4 text-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="font-medium text-slate-900">
+              Business setup and session plan
+            </h2>
+            <p className="mt-1 max-w-2xl text-slate-600">
+              Shape the three demo sessions here: service name, time, location,
+              price, and whether the pass can be resold. These settings are what
+              <strong> Create demo sessions </strong>
+              mints, and what
+              <strong> Start over </strong>
+              reapplies to the current demo serials.
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+          <label className="grid gap-1">
+            <span className="font-medium text-slate-800">Business name</span>
+            <input
+              className="min-h-[44px] rounded-lg border border-slate-300 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+              value={issuerName}
+              onChange={(e) => setIssuerName(e.target.value)}
+              placeholder="Demo Issuer"
+            />
+          </label>
+          <Button
+            type="button"
+            variant="secondary"
+            loading={loading === "Save session plan"}
+            loadingLabel="Saving…"
+            disabled={!!loading}
+            className="w-fit"
+            onClick={savePlan}
+          >
+            Save session plan
+          </Button>
+        </div>
+        <div className="mt-4 grid gap-4 lg:grid-cols-3">
+          {planRows.map((row, index) => (
+            <div
+              key={row.slotId}
+              className="rounded-xl border border-slate-200 bg-slate-50 p-4"
+            >
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <p className="font-medium text-slate-900">
+                  Session {index + 1}
+                </p>
+                <span className="text-xs text-slate-500">{row.slotId}</span>
+              </div>
+              <div className="grid gap-3">
+                <label className="grid gap-1">
+                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                    Service
+                  </span>
+                  <input
+                    className="min-h-[44px] rounded-lg border border-slate-300 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+                    value={row.title}
+                    onChange={(e) =>
+                      updatePlanRow(index, { title: e.target.value })
+                    }
+                  />
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                    Starts
+                  </span>
+                  <input
+                    type="datetime-local"
+                    className="min-h-[44px] rounded-lg border border-slate-300 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+                    value={row.startTime}
+                    onChange={(e) =>
+                      updatePlanRow(index, { startTime: e.target.value })
+                    }
+                  />
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                    Ends
+                  </span>
+                  <input
+                    type="datetime-local"
+                    className="min-h-[44px] rounded-lg border border-slate-300 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+                    value={row.endTime}
+                    onChange={(e) =>
+                      updatePlanRow(index, { endTime: e.target.value })
+                    }
+                  />
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                    Location
+                  </span>
+                  <input
+                    className="min-h-[44px] rounded-lg border border-slate-300 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+                    value={row.location}
+                    onChange={(e) =>
+                      updatePlanRow(index, { location: e.target.value })
+                    }
+                  />
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                    Price (ℏ)
+                  </span>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    className="min-h-[44px] rounded-lg border border-slate-300 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+                    value={row.primaryPriceHbar}
+                    onChange={(e) =>
+                      updatePlanRow(index, {
+                        primaryPriceHbar: e.target.value,
+                      })
+                    }
+                  />
+                </label>
+                <label className="flex min-h-[44px] items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2">
+                  <span>
+                    <span className="block text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Resale
+                    </span>
+                    <span className="block text-sm text-slate-700">
+                      Allow this pass to move under provider rules
+                    </span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4"
+                    checked={row.resaleAllowed}
+                    onChange={(e) =>
+                      updatePlanRow(index, {
+                        resaleAllowed: e.target.checked,
+                      })
+                    }
+                  />
+                </label>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
       <div className="mb-4 rounded border border-slate-200 bg-white p-4 text-sm">
         <p>
           <span className="font-medium">Sessions created:</span> {slotsCount}
@@ -159,11 +611,7 @@ export function IssuerPanel({
           <li>Use the session table below to confirm the current holder and status before taking action.</li>
         </ul>
       </div>
-      <LiveFeedback
-        className="mb-2 space-y-2"
-        success={msg}
-        error={err}
-      />
+      <LiveFeedback className="mb-2 space-y-2" success={success} error={err} />
       <div className="flex flex-wrap gap-2">
         <Button
           type="button"
@@ -193,7 +641,7 @@ export function IssuerPanel({
           loading={loading === "Start over"}
           loadingLabel="Resetting…"
           disabled={!!loading}
-          onClick={() => run("Start over", "/api/reset-demo")}
+          onClick={() => setConfirmAction("reset")}
         >
           Start over
         </Button>
@@ -298,19 +746,29 @@ export function IssuerPanel({
             This pass is not currently held by a customer. Pause or reopen only applies when a customer is the live holder.
           </p>
         )}
+        {canFreezeHolder && !freezePersonMatchesHolder && (
+          <p className="mb-2 rounded bg-amber-50 p-2 text-sm text-amber-900">
+            The <strong>Person</strong> dropdown must match the current holder (
+            <strong>
+              {holderLabel(
+                selectedFreezeRow!.status,
+                selectedFreezeRow!.holderActor,
+                selectedFreezeRow!.holderAccountId
+              )}
+            </strong>
+            ) before pause or reopen will succeed.
+          </p>
+        )}
         <div className="flex flex-wrap gap-2">
           <Button
             type="button"
             variant="amber"
             loading={loading === "Pause pass"}
             loadingLabel="Pausing…"
-            disabled={!!loading || !canFreezeHolder}
-            onClick={() =>
-              run("Pause pass", "/api/freeze", {
-                serial: Number(freezeSerial),
-                holderActor: freezeHolder,
-              })
+            disabled={
+              !!loading || !canFreezeHolder || !freezePersonMatchesHolder
             }
+            onClick={() => setConfirmAction("pause")}
           >
             Pause pass
           </Button>
@@ -319,7 +777,9 @@ export function IssuerPanel({
             variant="muted"
             loading={loading === "Reopen pass"}
             loadingLabel="Reopening…"
-            disabled={!!loading || !canFreezeHolder}
+            disabled={
+              !!loading || !canFreezeHolder || !freezePersonMatchesHolder
+            }
             onClick={() =>
               run("Reopen pass", "/api/unfreeze", {
                 serial: Number(freezeSerial),
@@ -364,13 +824,110 @@ export function IssuerPanel({
           loading={loading === "Check in"}
           loadingLabel="Checking in…"
           disabled={!!loading || !selectedBurnRow}
-          onClick={() =>
-            run("Check in", "/api/mark-used", { serial: Number(burnSerial) })
-          }
+          onClick={() => setConfirmAction("markUsed")}
         >
           Check in / mark used
         </Button>
       </section>
+      <ConfirmDialog
+        open={confirmAction === "reset"}
+        title="Start over?"
+        description="This refreshes the live demo sessions from the saved session plan and clears any active listings."
+        details={[
+          { label: "Business", value: issuerName || "Demo Issuer" },
+          { label: "Live sessions", value: inventoryCounts.total },
+          { label: "What resets", value: "Listings and current demo schedule" },
+        ]}
+        warning="This affects the shared demo state right away. Type START OVER to continue."
+        requireText="START OVER"
+        requireTextLabel="Type START OVER to confirm"
+        confirmLabel="Start over"
+        loading={loading === "Start over"}
+        loadingLabel="Resetting…"
+        onClose={() => {
+          if (loading == null) setConfirmAction(null);
+        }}
+        onConfirm={() => {
+          void run("Start over", "/api/reset-demo").then((ok) => {
+            if (ok) setConfirmAction(null);
+          });
+        }}
+      />
+      <ConfirmDialog
+        open={confirmAction === "pause"}
+        title="Pause this pass?"
+        description="Pausing prevents this pass from moving until you reopen it."
+        details={[
+          { label: "Reference", value: `#${freezeSerial}` },
+          {
+            label: "Current holder",
+            value: selectedFreezeRow
+              ? holderLabel(
+                  selectedFreezeRow.status,
+                  selectedFreezeRow.holderActor,
+                  selectedFreezeRow.holderAccountId
+                )
+              : "Unknown",
+          },
+          {
+            label: "Current status",
+            value: selectedFreezeRow?.status ?? "Unknown",
+          },
+        ]}
+        warning="Use pause only when you need to stop a transfer or check-in temporarily."
+        confirmLabel="Pause pass"
+        loading={loading === "Pause pass"}
+        loadingLabel="Pausing…"
+        onClose={() => {
+          if (loading == null) setConfirmAction(null);
+        }}
+        onConfirm={() => {
+          void run("Pause pass", "/api/freeze", {
+            serial: Number(freezeSerial),
+            holderActor: freezeHolder,
+          }).then((ok) => {
+            if (ok) setConfirmAction(null);
+          });
+        }}
+      />
+      <ConfirmDialog
+        open={confirmAction === "markUsed"}
+        title="Check in and close this pass?"
+        description="This is the final redemption step. The pass will be checked in and cannot be used again."
+        details={[
+          { label: "Reference", value: `#${burnSerial}` },
+          {
+            label: "Current holder",
+            value: selectedBurnRow
+              ? holderLabel(
+                  selectedBurnRow.status,
+                  selectedBurnRow.holderActor,
+                  selectedBurnRow.holderAccountId
+                )
+              : "Unknown",
+          },
+          {
+            label: "Current status",
+            value: selectedBurnRow?.status ?? "Unknown",
+          },
+        ]}
+        warning="Type the pass reference number to confirm this irreversible check-in."
+        requireText={burnSerial}
+        requireTextLabel={`Type ${burnSerial} to confirm`}
+        confirmLabel="Check in / mark used"
+        loading={loading === "Check in"}
+        loadingLabel="Checking in…"
+        onClose={() => {
+          if (loading == null) setConfirmAction(null);
+        }}
+        onConfirm={() => {
+          void run("Check in", "/api/mark-used", {
+            serial: Number(burnSerial),
+          }).then((ok) => {
+            if (ok) setConfirmAction(null);
+          });
+        }}
+      />
     </div>
   );
 }

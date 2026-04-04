@@ -46,10 +46,10 @@
 | Item | Detail |
 |------|--------|
 | **Purpose** | See sessions, status, **F1** book. |
-| **Controls** | Customer-only compact `ActorSelector` (Person A / Person B); per row: **Session details** → `/slots/[serial]`, **Book** (only if `AVAILABLE`); empty state → **Open provider dashboard**; summary tile **Paused** = movement on hold. |
-| **Copy role** | Explains AVAILABLE vs later states; readable session times, status hints + “Next step”, aggregate counts (Available / Held / Paused / Used). |
+| **Controls** | Customer-only compact `ActorSelector` (Person A / Person B); short demo-identity note linking to `/demo-help`; per row: **Session details** → `/slots/[serial]`, **Book** (only if `AVAILABLE`) opens a review dialog before the API call; empty state → **Open provider dashboard**; summary tile **Paused** = movement on hold. |
+| **Copy role** | Explains AVAILABLE vs later states; readable session times, status hints + “Next step”, aggregate counts (Available / Held / Paused / Used), and explicit note that bookings are final in this demo. |
 | **Purpose clear?** | **Yes** for booking; explains issuer prerequisite when empty. |
-| **Status** | **Works**; success/error lines after `POST /api/book`; Mirror lag may need refresh — **Partial** UX. |
+| **Status** | **Works**; success/error lines after `POST /api/book` now stay visible in-page with a HashScan link instead of relying on toast alone. Mirror lag may still need refresh — **Partial** UX. |
 
 ---
 
@@ -70,8 +70,8 @@
 | Item | Detail |
 |------|--------|
 | **Purpose** | Passes held by **selected guest** (Mirror-backed); links to detail / resale. |
-| **Controls** | Customer-only `ActorSelector` (Person A / Person B); per held row: **Session details**, **Sell pass** (if allowed + HELD); **Refresh** (router.refresh); empty state → **Browse sessions**. |
-| **Copy role** | “What you can do next”; status copy for HELD/FROZEN/USED; **Ref #** on rows; **Recently finished in this demo** clearly labelled as shared demo history for USED. |
+| **Controls** | Customer-only `ActorSelector` (Person A / Person B); short demo-identity note linking to `/demo-help`; per held row: **Session details**, **Sell pass** (if allowed + HELD); **Refresh** (router.refresh); empty state → **Browse sessions**. |
+| **Copy role** | “What you can do next”; status copy for HELD/FROZEN/USED; **Ref #** on rows; explicit note that **Session details** is where the full lifecycle history and proof links live; **Recently finished in this demo** clearly labelled as shared demo history for USED. |
 | **Purpose clear?** | **Yes** for demo; explains Mirror-derived view. |
 | **Status** | **Works**; token missing → init message. The finished-history section is honest about being shared demo history rather than filtered personal history — **Works**. |
 
@@ -82,10 +82,10 @@
 | Item | Detail |
 |------|--------|
 | **Purpose** | **F2** — list at ask, buy listing; explain royalty handoff. |
-| **Controls** | Link back to session; customer-only `ActorSelector` (seller / buyer); **Ask** input; **List this pass**; **Buy this pass** (disabled unless listing active); success/error blocks. |
-| **Copy role** | Resale vs free transfer clarified; fixed **10%** **provider fee on resale**; estimate disclaimer. |
+| **Controls** | Link back to session; customer-only `ActorSelector` (seller / buyer); short demo-identity note linking to `/demo-help`; **Ask** input; **List this pass** and **Buy this pass** both open review dialogs before the API call; success/error blocks. |
+| **Copy role** | Resale vs free transfer clarified; fixed **10%** **provider fee on resale**; estimate disclaimer; explicitly states that listing is the seller approval and buying transfers immediately. |
 | **Purpose clear?** | **Yes** for demo roles; buyer must understand **actor = payer**. |
-| **Status** | **Works** when token + listing state correct; **Partial** if users expect marketplace discovery. |
+| **Status** | **Works** when token + listing state correct; listing and buy confirmations now stay visible in-page with proof links. **Partial** if users expect marketplace discovery. |
 
 ---
 
@@ -93,11 +93,11 @@
 
 | Item | Detail |
 |------|--------|
-| **Purpose** | Separate provider dashboard: set up the business, inspect live sessions, **F3** pause/reopen pass, **F4** check-in / mark used. |
-| **Controls** | Provider banner; **Set up business**, **Create demo sessions**, **Start over**; table column **Ref**, **Use this pass**; pause: **Ref #** + Person, **Pause pass** / **Reopen pass**; check-in: **Ref #**, **Check in / mark used**; **System details** disclosure for token/topic ids. |
-| **Copy role** | Business view, session count first; system ids moved behind a disclosure; **How this dashboard works** bullets; plain-language pause and check-in. |
-| **Purpose clear?** | **Yes** for operators; dense — **Partial** for first-time readers (everything on one page). |
-| **Status** | **Works**; API errors shown inline; holder mismatch → 409 message — **Works**. |
+| **Purpose** | Separate provider dashboard: define the business-facing demo sessions, set up the business, inspect live sessions, **F3** pause/reopen pass, **F4** check-in / mark used. |
+| **Controls** | Provider banner; **Upcoming sessions** preview; **Live inventory snapshot**; **Business name** field; 3 editable session cards (**Service**, **Starts**, **Ends**, **Location**, **Price**, **Resale**); **Save session plan**; **Set up business**, **Create demo sessions**, **Start over** (typed confirm); table column **Ref**, **Use this pass**; pause: **Ref #** + Person, **Pause pass** (confirm) / **Reopen pass**; check-in: **Ref #**, **Check in / mark used** (typed confirm); **System details** disclosure for token/topic ids. |
+| **Copy role** | Business view first; session-planning language is plain English; upcoming schedule and inventory counts make the page read more like a dashboard; destructive actions now explain what is irreversible before commit; system ids stay behind a disclosure; **How this dashboard works** bullets keep pause and check-in grounded in provider tasks. |
+| **Purpose clear?** | **Yes** for operators; still dense because setup, live oversight, and redemption all share one page — **Partial**. |
+| **Status** | **Works**; saving the session plan persists through `/api/session-plan`, and **Create demo sessions** / **Start over** now pull from that saved plan. Provider actions also leave a durable in-page confirmation instead of only a toast. Holder mismatch still returns inline API feedback — **Works**. |
 
 ---
 
@@ -107,6 +107,18 @@
 |---------|--------|
 | `POST /api/agent/*` | Agent integration — see `docs/AGENT-INTEGRATION.md`, `docs/UI-MAP.md`. |
 | `POST /api/associate`, `GET /api/mirror` | Tooling / debug, not linked from shipped consumer UI. |
+
+---
+
+## `/demo-help` — Demo explainer
+
+| Item | Detail |
+|------|--------|
+| **Purpose** | Explain Person A / Person B / Provider, which actions require confirmation, and current demo limits. |
+| **Controls** | Static read-only help page linked from customer surfaces. |
+| **Copy role** | Keeps demo-identity disclosure inside the app instead of expecting technical context from README alone. |
+| **Purpose clear?** | **Yes**. |
+| **Status** | **Works**. |
 
 ---
 
@@ -133,6 +145,7 @@
 ## Changelog
 
 - **2026-04-05:** Compact customer switcher on browse / passes / resale, softer provider nav, readable session times on browse/detail, and provider system ids moved behind disclosure.
+- **2026-04-05:** Provider dashboard gained editable business setup and a saved 3-session plan; mint/reset now follow that saved plan instead of only file-seeded defaults.
 - **2026-04-05:** Split the app more clearly into customer surfaces, a shared truth page, and a provider dashboard; actor switcher now stays on customer routes only.
 - **2026-04-05:** Synced with market-vocab copy pass: session details, Ref #, provider dashboard labels, Sell pass, PAGE-OVERVIEW control rows updated.
 - **2026-04-05:** Initial page overview (home split into `components/home/*`; issuer “Redeem / mark used” label).

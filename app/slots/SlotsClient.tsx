@@ -1,13 +1,16 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ActorSelector, type ActorValue } from "@/components/ActorSelector";
+import { useToast } from "@/components/providers/ToastProvider";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { LiveFeedback } from "@/components/ui/LiveFeedback";
 import { getButtonClassName } from "@/components/ui/button-classes";
 import { cn } from "@/lib/cn";
+import { getHashscanTxUrl } from "@/lib/hedera/hashscan";
 
 export type SlotRow = {
   serial: number;
@@ -47,7 +50,7 @@ function statusHint(status: string): string {
 
 function nextStepHint(status: string): string {
   if (status === "AVAILABLE") {
-    return "Choose the person who is booking and confirm this session.";
+    return "Choose the person who is booking, review the session, and book it if it still works for them.";
   }
   if (status === "HELD") {
     return "Open details to see who holds the pass now and whether it can be resold.";
@@ -63,23 +66,54 @@ function nextStepHint(status: string): string {
 
 export function SlotsClient({ rows }: { rows: SlotRow[] }) {
   const router = useRouter();
+  const toast = useToast();
   const [actor, setActor] = useState<ActorValue>("guestA");
-  const [msg, setMsg] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [successLink, setSuccessLink] = useState<{
+    href: string;
+    label: string;
+  } | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState<number | null>(null);
-  const availableCount = rows.filter((row) => row.status === "AVAILABLE").length;
-  const heldCount = rows.filter((row) => row.status === "HELD").length;
-  const frozenCount = rows.filter((row) => row.status === "FROZEN").length;
-  const usedCount = rows.filter((row) => row.status === "USED").length;
+  const [optimisticHeldSerial, setOptimisticHeldSerial] = useState<number | null>(
+    null
+  );
+  const [pendingBooking, setPendingBooking] = useState<SlotRow | null>(null);
 
-  async function book(serial: number) {
+  useEffect(() => {
+    if (optimisticHeldSerial == null) return;
+    const row = rows.find((r) => r.serial === optimisticHeldSerial);
+    if (row && row.status !== "AVAILABLE") {
+      setOptimisticHeldSerial(null);
+    }
+  }, [rows, optimisticHeldSerial]);
+
+  function effectiveStatus(row: SlotRow): string {
+    if (optimisticHeldSerial === row.serial && row.status === "AVAILABLE") {
+      return "HELD";
+    }
+    return row.status;
+  }
+
+  const availableCount = rows.filter(
+    (row) => effectiveStatus(row) === "AVAILABLE"
+  ).length;
+  const heldCount = rows.filter((row) => effectiveStatus(row) === "HELD").length;
+  const frozenCount = rows.filter(
+    (row) => effectiveStatus(row) === "FROZEN"
+  ).length;
+  const usedCount = rows.filter((row) => effectiveStatus(row) === "USED").length;
+
+  async function book(serial: number): Promise<boolean> {
     if (actor !== "guestA" && actor !== "guestB") {
       setErr("Switch to Person A or Person B before booking.");
-      return;
+      return false;
     }
     setLoading(serial);
+    setSuccess(null);
+    setSuccessLink(null);
     setErr(null);
-    setMsg(null);
+    setOptimisticHeldSerial(serial);
     try {
       const res = await fetch("/api/book", {
         method: "POST",
@@ -88,13 +122,42 @@ export function SlotsClient({ rows }: { rows: SlotRow[] }) {
       });
       const data = await res.json();
       if (!data.ok) {
+        setOptimisticHeldSerial(null);
         setErr(data.error || res.statusText);
-        return;
+        return false;
       }
-      setMsg(`Booked. Confirmation tx: ${data.txId}`);
+      const personLabel = actor === "guestA" ? "Person A" : "Person B";
+      const txHref =
+        typeof data.txId === "string" && data.txId.length > 0
+          ? getHashscanTxUrl(data.txId)
+          : null;
+      setSuccess(
+        `${personLabel} booked Ref #${serial}. The pass is now active and will appear in My passes and the provider dashboard.`
+      );
+      setSuccessLink(
+        txHref
+          ? {
+              href: txHref,
+              label: "View transaction on HashScan",
+            }
+          : null
+      );
+      toast({
+        variant: "success",
+        message: "Booked. Confirmation is on-chain.",
+        link: txHref
+          ? {
+              href: txHref,
+              label: "View transaction on HashScan",
+            }
+          : undefined,
+      });
       router.refresh();
+      return true;
     } catch (e) {
+      setOptimisticHeldSerial(null);
       setErr(e instanceof Error ? e.message : String(e));
+      return false;
     } finally {
       setLoading(null);
     }
@@ -110,9 +173,19 @@ export function SlotsClient({ rows }: { rows: SlotRow[] }) {
         description="Switch between Person A and Person B to see the booking experience from each customer side of the demo."
         onChange={setActor}
       />
+      <p className="mb-3 text-sm text-slate-600">
+        Person A and Person B are demo customer identities, not real sign-ins.{" "}
+        <Link
+          href="/demo-help"
+          className={cn(getButtonClassName("textLink"), "min-h-0 px-0 py-0 text-sm")}
+        >
+          How this demo works
+        </Link>
+      </p>
       <LiveFeedback
         className="mb-2 space-y-2"
-        success={msg}
+        success={success}
+        successLink={successLink}
         error={err}
       />
       <p className="mb-4 rounded border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
@@ -144,60 +217,66 @@ export function SlotsClient({ rows }: { rows: SlotRow[] }) {
         </div>
       )}
       <ul className="space-y-3">
-        {rows.map((r) => (
-          <li
-            key={r.serial}
-            className="rounded border border-slate-200 bg-white p-4 text-sm"
-          >
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <div className="font-medium">{r.title}</div>
-                <div className="text-slate-600">
-                  {formatDateTime(r.startTime)} → {formatDateTime(r.endTime)}
+        {rows.map((r) => {
+          const displayStatus = effectiveStatus(r);
+          return (
+            <li
+              key={r.serial}
+              className="rounded border border-slate-200 bg-white p-4 text-sm"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="font-medium">{r.title}</div>
+                  <div className="text-slate-600">
+                    {formatDateTime(r.startTime)} → {formatDateTime(r.endTime)}
+                  </div>
                 </div>
-              </div>
-              <span
-                className={`inline-flex rounded px-2 py-1 text-xs font-medium ${statusTone(
-                  r.status
-                )}`}
-              >
-                {r.status}
-              </span>
-            </div>
-            <div className="mt-1">
-              Ref <strong>#{r.serial}</strong> · Price:{" "}
-              <strong>{r.primaryPriceHbar} ℏ</strong>
-            </div>
-            <div className="mt-1 text-slate-600">{statusHint(r.status)}</div>
-            <div className="mt-2 rounded bg-slate-50 p-3 text-slate-700">
-              <span className="font-medium text-slate-900">Next step:</span>{" "}
-              {nextStepHint(r.status)}
-            </div>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <Link
-                className={cn(
-                  getButtonClassName("textLink"),
-                  "min-h-[44px] min-w-0 px-1 py-2.5"
-                )}
-                href={`/slots/${r.serial}`}
-              >
-                Session details
-              </Link>
-              {r.status === "AVAILABLE" && (
-                <Button
-                  type="button"
-                  loading={loading === r.serial}
-                  loadingLabel="Booking…"
-                  disabled={loading !== null && loading !== r.serial}
-                  className="min-w-[5.5rem] px-3"
-                  onClick={() => book(r.serial)}
+                <span
+                  className={`inline-flex rounded px-2 py-1 text-xs font-medium ${statusTone(
+                    displayStatus
+                  )}`}
                 >
-                  Book
-                </Button>
-              )}
-            </div>
-          </li>
-        ))}
+                  {displayStatus}
+                </span>
+              </div>
+              <div className="mt-1">
+                Ref <strong>#{r.serial}</strong> · Price:{" "}
+                <strong>{r.primaryPriceHbar} ℏ</strong>
+              </div>
+              <div className="mt-1 text-slate-600">{statusHint(displayStatus)}</div>
+              <div className="mt-2 rounded bg-slate-50 p-3 text-slate-700">
+                <span className="font-medium text-slate-900">Next step:</span>{" "}
+                {nextStepHint(displayStatus)}
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <Link
+                  className={cn(
+                    getButtonClassName("textLink"),
+                    "min-h-[44px] min-w-0 px-1 py-2.5"
+                  )}
+                  href={`/slots/${r.serial}`}
+                >
+                  Session details
+                </Link>
+                {displayStatus === "AVAILABLE" && (
+                  <Button
+                    type="button"
+                    loading={loading === r.serial}
+                    loadingLabel="Booking…"
+                    disabled={loading !== null && loading !== r.serial}
+                    className="min-w-[5.5rem] px-3"
+                    onClick={() => {
+                      setErr(null);
+                      setPendingBooking(r);
+                    }}
+                  >
+                    Book
+                  </Button>
+                )}
+              </div>
+            </li>
+          );
+        })}
       </ul>
       {rows.length === 0 && (
         <div className="rounded border border-slate-200 bg-white p-4 text-slate-600">
@@ -213,6 +292,40 @@ export function SlotsClient({ rows }: { rows: SlotRow[] }) {
           </Link>
         </div>
       )}
+      <ConfirmDialog
+        open={pendingBooking != null}
+        title="Review this booking"
+        description="Make sure the session, customer, and price are right before you commit the booking."
+        details={
+          pendingBooking
+            ? [
+                { label: "Customer", value: actor === "guestA" ? "Person A" : "Person B" },
+                { label: "Session", value: pendingBooking.title },
+                {
+                  label: "Time",
+                  value: `${formatDateTime(pendingBooking.startTime)} – ${formatDateTime(
+                    pendingBooking.endTime
+                  )}`,
+                },
+                { label: "Price", value: `${pendingBooking.primaryPriceHbar} ℏ` },
+                { label: "Reference", value: `#${pendingBooking.serial}` },
+              ]
+            : []
+        }
+        warning="Bookings are final in this demo. There is no cancel or refund flow yet."
+        confirmLabel="Book this session"
+        loading={pendingBooking != null && loading === pendingBooking.serial}
+        loadingLabel="Booking…"
+        onClose={() => {
+          if (loading == null) setPendingBooking(null);
+        }}
+        onConfirm={() => {
+          if (!pendingBooking) return;
+          void book(pendingBooking.serial).then((ok) => {
+            if (ok) setPendingBooking(null);
+          });
+        }}
+      />
     </div>
   );
 }

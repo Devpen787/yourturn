@@ -49,7 +49,7 @@ function nextStepSummary(
   listingActive: boolean
 ): string {
   if (status === "AVAILABLE") {
-    return "Go back to the sessions page and book this session.";
+    return "Go back to the sessions page, review the booking, and book this session.";
   }
   if (status === "HELD" && listingActive) {
     return "This pass already has an active listing. The next buyer can take over from the resale page.";
