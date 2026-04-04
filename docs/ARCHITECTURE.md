@@ -23,6 +23,7 @@ Planned refactor: extract **`BookingPort`** + core domain types so product and c
 
 ## Current user-facing boundary
 
+- **Route / component / API index:** `docs/UI-MAP.md` (keep updated when adding pages or client actions)
 - Hero customer is SMB scheduled services and classes, not generic event ticketing
 - Agent is a schedule-and-budget helper, not an autonomous wallet actor
 - The app should explain booking rights in plain language first; Hedera infrastructure is the enforcement layer

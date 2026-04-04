@@ -58,7 +58,7 @@ The following already exist in-repo: **F1** primary book, **F2** resale (royalty
 ## Phase 6: polish and submission proof
 
 - [ ] Tighten holder status language and issuer copy
-- [ ] Finalize `docs/DEMO.md` against the actual shipped flow
+- [x] Finalize `docs/DEMO.md` against the actual shipped flow (see `docs/UI-MAP.md` for route/API map)
 - [x] README run steps (baseline) — proof links still TBD
 - [ ] Capture demo URL, Hashscan links, and testnet ids
 
