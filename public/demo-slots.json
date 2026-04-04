@@ -1,0 +1,32 @@
+[
+  {
+    "slotId": "slot-001",
+    "title": "Office Hours",
+    "startTime": "2026-04-04T14:00:00Z",
+    "endTime": "2026-04-04T14:20:00Z",
+    "location": "Booth A",
+    "issuerName": "Demo Issuer",
+    "primaryPriceHbar": 10,
+    "resaleAllowed": true
+  },
+  {
+    "slotId": "slot-002",
+    "title": "Office Hours",
+    "startTime": "2026-04-04T14:20:00Z",
+    "endTime": "2026-04-04T14:40:00Z",
+    "location": "Booth A",
+    "issuerName": "Demo Issuer",
+    "primaryPriceHbar": 12,
+    "resaleAllowed": true
+  },
+  {
+    "slotId": "slot-003",
+    "title": "Office Hours",
+    "startTime": "2026-04-04T14:40:00Z",
+    "endTime": "2026-04-04T15:00:00Z",
+    "location": "Booth A",
+    "issuerName": "Demo Issuer",
+    "primaryPriceHbar": 15,
+    "resaleAllowed": true
+  }
+]
