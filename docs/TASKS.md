@@ -4,7 +4,7 @@ This is the living implementation checklist. It is ordered by dependency, not by
 
 ## Status: merged Next.js MVP on `main` (Apr 2026)
 
-The following already exist in-repo: **F1** primary book, **F2** resale + royalty split, **F3** freeze/unfreeze, **F4** mark used (burn), HCS lifecycle messages, Redis slot/listing state, demo UI (`/issuer`, `/slots`, `/resale/...`). *Still open:* `BookingPort` + tighter alignment of this file with shipped code, hero copy, `docs/TX-LOG.md` entries, and `docs/DEMO.md` vs actual flow.
+The following already exist in-repo: **F1** primary book, **F2** resale (royalty via **HTS `CustomRoyaltyFee` only** — no manual double split), **F3** freeze/unfreeze (Mirror holder + `holderActor` must match), **F4** mark used (guest → treasury transfer then burn when needed), HCS lifecycle messages, Redis slot/listing state, demo UI (`/issuer`, `/slots`, `/resale/...`). *Still open:* testnet proof lines in `docs/TX-LOG.md`, `BookingPort`, product UX clarity (issuer/holder/resale copy), hero + `docs/DEMO.md`, submission links in `README`. **See `AGENTS.md` → “Rolling: what to do next” for parallel ownership.**
 
 ## Phase 0: lock the build target
 

@@ -1,18 +1,42 @@
-# Transaction Log
+# Transaction log (Hedera testnet proof)
 
-Record only real Hedera testnet proof here. Do not mix mock-only outputs into this file.
+Record **only** real testnet transactions here. Replace `_TBD_` after you run the demo flows.  
+HashScan base (default): `https://hashscan.io/testnet`
 
-## Hedera
+## Network & resources
 
-- Token ID:
-- Treasury account:
-- Mirror links:
-- Optional HCS topic:
+| Field | Value |
+|--------|--------|
+| Network | `testnet` |
+| Token ID | _TBD_ (also `bookedrights:tokenId` in Redis after `/api/init`) |
+| HCS topic ID | _TBD_ (also `bookedrights:topicId` in Redis) |
+| Treasury account | _TBD_ (`HEDERA_TREASURY_ID`) |
+| Fee collector (royalty) | _TBD_ (`HEDERA_FEE_COLLECTOR_ID`) |
+| Guest A | _TBD_ (`HEDERA_GUEST_A_ID`) |
+| Guest B | _TBD_ (`HEDERA_GUEST_B_ID`) |
 
-## Demo transactions
+**Mirror (read-only):** `https://testnet.mirrornode.hedera.com/api/v1`
 
-- F1 primary booking:
-- F2 transfer / resale:
-- F3 freeze:
-- F4 mark used:
-- F7 refund:
+## Flow proofs (paste tx id + HashScan link)
+
+| Flow | Tx ID | HashScan / notes |
+|------|--------|------------------|
+| **F1** Primary book (`POST /api/book`) | _TBD_ | _TBD_ |
+| **F2** Resale buy (`POST /api/resale-buy`) | _TBD_ | _TBD_ — confirm **single** issuer royalty (HTS `CustomRoyaltyFee`); no double HBAR split in app |
+| **F3** Freeze (`POST /api/freeze`) | _TBD_ | _TBD_ |
+| **F3** Unfreeze (`POST /api/unfreeze`) | _TBD_ | _TBD_ |
+| **F4** Mark used / burn (`POST /api/mark-used`) | _TBD_ | _TBD_ — if guest held NFT, expect **transfer → treasury** then **burn** (two steps server-side) |
+
+## Optional
+
+| Item | Link / id |
+|------|-----------|
+| Token on HashScan | _TBD_ |
+| Topic on HashScan | _TBD_ |
+| **F7** refund (if built) | _TBD_ |
+
+## How to capture
+
+1. After each successful API action, copy **`txId`** from the JSON response (or issuer UI message) if returned.  
+2. Open HashScan: `https://hashscan.io/testnet/transaction/<tx-id-with-dashes>` (replace `@` in id with `-` if needed).  
+3. Paste one row per meaningful proof transaction.
