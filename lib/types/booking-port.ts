@@ -96,7 +96,11 @@ export interface BookingPort {
   confirmCreateListing(input: {
     previewId: string;
     approval: ApprovalProof;
-  }): Promise<{ listing: ResaleListingView }>;
+  }): Promise<{
+    listing: ResaleListingView;
+    auditTxId: string;
+    hashscanUrl: string;
+  }>;
 
   previewBuyListing(input: {
     buyer: BookingActorRef;

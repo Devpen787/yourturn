@@ -86,6 +86,16 @@ export function ResaleClient({
     return null;
   }, [currentStatus, resaleAllowed]);
 
+  const canShowSellerControls =
+    currentStatus === "HELD" &&
+    resaleAllowed &&
+    !initialListing?.active;
+  const canShowBuyerControls =
+    !!initialListing?.active &&
+    currentStatus !== "USED" &&
+    currentStatus !== "FROZEN";
+  const showActionSurface = canShowSellerControls || canShowBuyerControls;
+
   const listDisabled = !!loading || !tokenId || !!resaleBlockedMessage || listPersonaMismatch;
   const buyDisabled =
     !!loading ||
@@ -320,71 +330,83 @@ export function ResaleClient({
             </p>
           </div>
         )}
-        <div className="mt-4 grid gap-2 border-t border-slate-100 pt-4">
-          <p className="font-medium">Current holder lists the pass</p>
-          <p className="text-xs text-slate-600">
-            The holder sets the resale ask under provider rules. They may list above
-            cost, at cost, or below cost.
-          </p>
-          <label
-            className="flex flex-wrap items-center gap-2"
-            htmlFor={askFieldId}
-          >
-            <span className="font-medium text-slate-800">Ask (ℏ)</span>
-            <input
-              id={askFieldId}
-              className={cn(
-                "min-h-[44px] w-28 rounded-lg border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2",
-                askInvalid ? "border-red-400 bg-red-50/40" : "border-slate-300"
-              )}
-              type="text"
-              inputMode="decimal"
-              autoComplete="off"
-              aria-invalid={askInvalid}
-              aria-describedby={feeHintId}
-              value={ask}
-              onChange={(e) => setAsk(e.target.value)}
-            />
-          </label>
-          <p id={feeHintId} className="text-xs text-slate-600">
-            Provider fee on resale (10% preview): {royalty.toFixed(2)} ℏ. Confirm
-            final amounts on the completed resale transaction.
-          </p>
-          <Button
-            type="button"
-            variant="primary"
-            loading={loading === "list"}
-            loadingLabel="Listing…"
-            disabled={listDisabled}
-            className="w-fit"
-            onClick={() => {
-              setErr(null);
-              setConfirmAction("list");
-            }}
-          >
-            List this pass
-          </Button>
-        </div>
-        <div className="mt-6 grid gap-2 border-t border-slate-100 pt-4">
-          <p className="font-medium">Another person buys the listed pass</p>
-          <p className="text-xs text-slate-600">
-            Buying this listing transfers the pass to the new holder under provider policy.
-          </p>
-          <Button
-            type="button"
-            variant="primarySuccess"
-            loading={loading === "buy"}
-            loadingLabel="Buying…"
-            disabled={buyDisabled}
-            className="w-fit"
-            onClick={() => {
-              setErr(null);
-              setConfirmAction("buy");
-            }}
-          >
-            Buy this pass
-          </Button>
-        </div>
+        {showActionSurface ? (
+          <>
+            {canShowSellerControls ? (
+              <div className="mt-4 grid gap-2 border-t border-slate-100 pt-4">
+                <p className="font-medium">Current holder lists the pass</p>
+                <p className="text-xs text-slate-600">
+                  The holder sets the resale ask under provider rules. They may list above
+                  cost, at cost, or below cost.
+                </p>
+                <label
+                  className="flex flex-wrap items-center gap-2"
+                  htmlFor={askFieldId}
+                >
+                  <span className="font-medium text-slate-800">Ask (ℏ)</span>
+                  <input
+                    id={askFieldId}
+                    className={cn(
+                      "min-h-[44px] w-28 rounded-lg border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2",
+                      askInvalid ? "border-red-400 bg-red-50/40" : "border-slate-300"
+                    )}
+                    type="text"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    aria-invalid={askInvalid}
+                    aria-describedby={feeHintId}
+                    value={ask}
+                    onChange={(e) => setAsk(e.target.value)}
+                  />
+                </label>
+                <p id={feeHintId} className="text-xs text-slate-600">
+                  Provider fee on resale (10% preview): {royalty.toFixed(2)} ℏ. Confirm
+                  final amounts on the completed resale transaction.
+                </p>
+                <Button
+                  type="button"
+                  variant="primary"
+                  loading={loading === "list"}
+                  loadingLabel="Listing…"
+                  disabled={listDisabled}
+                  className="w-fit"
+                  onClick={() => {
+                    setErr(null);
+                    setConfirmAction("list");
+                  }}
+                >
+                  List this pass
+                </Button>
+              </div>
+            ) : null}
+            {canShowBuyerControls ? (
+              <div className="mt-6 grid gap-2 border-t border-slate-100 pt-4">
+                <p className="font-medium">Another person buys the listed pass</p>
+                <p className="text-xs text-slate-600">
+                  Buying this listing transfers the pass to the new holder under provider policy.
+                </p>
+                <Button
+                  type="button"
+                  variant="primarySuccess"
+                  loading={loading === "buy"}
+                  loadingLabel="Buying…"
+                  disabled={buyDisabled}
+                  className="w-fit"
+                  onClick={() => {
+                    setErr(null);
+                    setConfirmAction("buy");
+                  }}
+                >
+                  Buy this pass
+                </Button>
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <div className="mt-4 rounded border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+            This page is now read-only because the pass is not in a live resale state.
+          </div>
+        )}
       </div>
       <LiveFeedback
         className="space-y-2"
@@ -392,7 +414,7 @@ export function ResaleClient({
         successLink={successLink}
         error={err}
       />
-      {tokenId ? (
+      {tokenId && showActionSurface ? (
         <div
           className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur supports-[backdrop-filter]:bg-white/85 md:hidden"
           role="region"
