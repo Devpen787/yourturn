@@ -204,7 +204,10 @@ export default async function SlotDetailPage({
     >
       <Link
         href="/slots"
-        className="inline-flex min-h-[44px] items-center rounded-md text-blue-700 underline decoration-blue-700/40 underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+        className={cn(
+          getButtonClassName("textLink"),
+          "inline-flex min-h-[44px] items-center"
+        )}
       >
         ← All sessions
       </Link>
@@ -263,7 +266,10 @@ export default async function SlotDetailPage({
         </p>
         <div className="mt-3 flex flex-wrap gap-3">
           <a
-            className="inline-flex min-h-[44px] items-center rounded-md text-blue-700 underline decoration-blue-700/40 underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+            className={cn(
+              getButtonClassName("textLink"),
+              "inline-flex min-h-[44px] items-center"
+            )}
             href={getHashscanTokenUrl(tokenId)}
             target="_blank"
             rel="noreferrer"
@@ -273,7 +279,10 @@ export default async function SlotDetailPage({
           </a>
           {topicId && (
             <a
-              className="inline-flex min-h-[44px] items-center rounded-md text-blue-700 underline decoration-blue-700/40 underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+              className={cn(
+                getButtonClassName("textLink"),
+                "inline-flex min-h-[44px] items-center"
+              )}
               href={getHashscanTopicUrl(topicId)}
               target="_blank"
               rel="noreferrer"
@@ -286,7 +295,7 @@ export default async function SlotDetailPage({
       </section>
       {meta && (
         <details className="group mt-6 rounded border border-slate-200 bg-white p-4">
-          <summary className="flex cursor-pointer list-none items-center gap-2 font-medium text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden">
+          <summary className="flex cursor-pointer list-none items-center gap-2 font-medium text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden">
             <span
               className="inline-block text-slate-500 transition-transform duration-200 group-open:rotate-90 motion-reduce:transition-none"
               aria-hidden
@@ -318,7 +327,7 @@ export default async function SlotDetailPage({
                   {formatSlotDateTime(event.timestamp)}
                 </p>
                 <details className="mt-2 text-xs text-slate-600">
-                  <summary className="cursor-pointer font-medium text-slate-700">
+                  <summary className="cursor-pointer rounded-md font-medium text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus focus-visible:ring-offset-2">
                     Raw event details
                   </summary>
                   <pre className="mt-2 overflow-x-auto rounded bg-white p-2 text-[11px] text-slate-700">
