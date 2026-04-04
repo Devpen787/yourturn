@@ -11,7 +11,9 @@
 
 Runnable app is **Next.js 14** (not Vite): server `POST /api/*` routes call `@hashgraph/sdk` with `runtime = "nodejs"`. **Upstash Redis** holds slot/listing records; **Mirror REST** is the read path. See `README.md` and `docs/booked-rights-build-spec.txt` for detail.
 
-Planned refactor: extract **`BookingPort`** + core domain types so product and chain tracks share a stable contract (`docs/TASKS.md` Phase 1).
+Current implementation boundary: `lib/adapters/booking-port.ts` provides a server-side **`BookingPort`** with read methods plus preview/confirm write actions for `F1`, `F2`, `F3`, and `F4`. API routes now execute through that adapter so product flows and future agent work can share one contract. An agent-safe integration surface now exists under `app/api/agent/*`: reads, previews, confirms, and delegated approval grants.
+
+For exact request and response shapes, use `docs/AGENT-INTEGRATION.md`.
 
 ## Product shape
 
@@ -61,7 +63,8 @@ The agent layer may not:
 - `src/lib/mirror-client.ts`
   - Mirror reads for listings, holders, balances, and transaction visibility
 - `src/adapters/booking-port.ts`
-  - stable boundary between product flows and implementation
+  - stable boundary between product flows, agent orchestration, and implementation
+  - read methods plus preview/confirm action model for value-moving or issuer actions
 - `src/features/guest/`
   - primary booking
   - resale or transfer
@@ -88,7 +91,8 @@ The agent layer may not:
 - policy math stays pure and testable
 - Mirror reads are read-only and can lag; signed transactions remain the source of truth for value movement
 - secrets and operator keys stay out of the frontend bundle
-- any agent flow must stop at preview until a human approves the transaction
+- any agent flow must stop at preview until a human approves the transaction; `BookingPort` is the first server-side contract for that boundary
+- delegated approval for agent confirms is represented by a scoped, signed approval grant minted by trusted backend code, not by raw demo-actor strings alone
 - do not let a DB-backed booking app become the source of truth for booking ownership or transfer state
 
 ## Reference triage

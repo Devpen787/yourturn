@@ -143,27 +143,27 @@ export function IssuerPanel({
           type="button"
           className="rounded bg-slate-800 px-3 py-2 text-sm text-white disabled:opacity-50"
           disabled={!!loading}
-          onClick={() => run("Initialize", "/api/init")}
+          onClick={() => run("Set up business", "/api/init")}
         >
-          {loading === "Initialize" ? "…" : "Set up business"}
+          {loading === "Set up business" ? "…" : "Set up business"}
         </button>
         <button
           type="button"
           className="rounded bg-slate-800 px-3 py-2 text-sm text-white disabled:opacity-50"
           disabled={!!loading}
           onClick={() =>
-            run("Mint Demo Slots", "/api/mint-slots", { reseed: false })
+            run("Create demo sessions", "/api/mint-slots", { reseed: false })
           }
         >
-          {loading === "Mint Demo Slots" ? "…" : "Create demo sessions"}
+          {loading === "Create demo sessions" ? "…" : "Create demo sessions"}
         </button>
         <button
           type="button"
           className="rounded border border-slate-300 bg-white px-3 py-2 text-sm disabled:opacity-50"
           disabled={!!loading}
-          onClick={() => run("Reset Demo", "/api/reset-demo")}
+          onClick={() => run("Start over", "/api/reset-demo")}
         >
-          {loading === "Reset Demo" ? "…" : "Start over"}
+          {loading === "Start over" ? "…" : "Start over"}
         </button>
       </div>
       <section className="mt-8 border-t border-slate-200 pt-6">
@@ -172,7 +172,7 @@ export function IssuerPanel({
           <table className="min-w-full text-left text-sm">
             <thead className="bg-slate-50 text-slate-700">
               <tr>
-                <th className="px-3 py-2 font-medium">Pass</th>
+                <th className="px-3 py-2 font-medium">Ref</th>
                 <th className="px-3 py-2 font-medium">Title</th>
                 <th className="px-3 py-2 font-medium">Status</th>
                 <th className="px-3 py-2 font-medium">Current holder</th>
@@ -183,7 +183,7 @@ export function IssuerPanel({
             <tbody>
               {rows.map((row) => (
                 <tr key={row.serial} className="border-t border-slate-100 align-top">
-                  <td className="px-3 py-2 font-medium">#{row.serial}</td>
+                  <td className="px-3 py-2 font-medium">Ref #{row.serial}</td>
                   <td className="px-3 py-2">{row.title}</td>
                   <td className="px-3 py-2">
                     <span className={`inline-flex rounded px-2 py-1 text-xs font-medium ${statusTone(row.status)}`}>
@@ -231,7 +231,7 @@ export function IssuerPanel({
         </p>
         <div className="mb-2 flex flex-wrap items-center gap-2 text-sm">
           <label>
-            Serial{" "}
+            Ref #{" "}
             <input
               className="ml-1 w-16 rounded border border-slate-300 px-1"
               value={freezeSerial}
@@ -269,26 +269,26 @@ export function IssuerPanel({
             className="rounded bg-amber-700 px-3 py-2 text-sm text-white disabled:opacity-50"
             disabled={!!loading || !canFreezeHolder}
             onClick={() =>
-              run("Freeze", "/api/freeze", {
+              run("Pause pass", "/api/freeze", {
                 serial: Number(freezeSerial),
                 holderActor: freezeHolder,
               })
             }
           >
-            Pause pass
+            {loading === "Pause pass" ? "…" : "Pause pass"}
           </button>
           <button
             type="button"
             className="rounded bg-slate-600 px-3 py-2 text-sm text-white disabled:opacity-50"
             disabled={!!loading || !canFreezeHolder}
             onClick={() =>
-              run("Unfreeze", "/api/unfreeze", {
+              run("Reopen pass", "/api/unfreeze", {
                 serial: Number(freezeSerial),
                 holderActor: freezeHolder,
               })
             }
           >
-            Reopen pass
+            {loading === "Reopen pass" ? "…" : "Reopen pass"}
           </button>
         </div>
       </section>
@@ -311,7 +311,7 @@ export function IssuerPanel({
         </p>
         <div className="mb-2 flex flex-wrap items-center gap-2 text-sm">
           <label>
-            Pass{" "}
+            Ref #{" "}
             <input
               className="ml-1 w-16 rounded border border-slate-300 px-1"
               value={burnSerial}
@@ -324,10 +324,10 @@ export function IssuerPanel({
           className="rounded bg-red-700 px-3 py-2 text-sm text-white disabled:opacity-50"
           disabled={!!loading || !selectedBurnRow}
           onClick={() =>
-            run("Mark used", "/api/mark-used", { serial: Number(burnSerial) })
+            run("Check in", "/api/mark-used", { serial: Number(burnSerial) })
           }
         >
-          Check in / mark used
+          {loading === "Check in" ? "…" : "Check in / mark used"}
         </button>
       </section>
     </div>

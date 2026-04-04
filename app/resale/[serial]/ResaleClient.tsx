@@ -103,7 +103,9 @@ export function ResaleClient({
       <div className="rounded border border-slate-200 bg-white p-4">
         <h2 className="font-medium">{slotTitle}</h2>
         {!tokenId && (
-          <p className="mt-2 text-amber-800">Token not initialized.</p>
+          <p className="mt-2 text-amber-800">
+            Demo not ready yet — open provider tools and run setup first.
+          </p>
         )}
         {initialListing?.active && (
           <div className="mt-2 rounded border border-emerald-200 bg-emerald-50 p-3 text-emerald-950">
@@ -112,7 +114,7 @@ export function ResaleClient({
               <strong>{initialListing.askPriceHbar} ℏ</strong>
             </p>
             <p className="mt-1 text-sm">
-              Seller account ID:{" "}
+              Listed by (seller account):{" "}
               <span className="font-mono text-xs">{initialListing.sellerAccountId}</span>
             </p>
             <p className="mt-2 text-sm">
@@ -139,8 +141,8 @@ export function ResaleClient({
             />
           </label>
           <p className="text-xs text-slate-600">
-            Provider royalty preview at 10%: {royalty.toFixed(2)} ℏ. Final settlement
-            should be checked from the resale transaction result.
+            Provider fee on resale (10% preview): {royalty.toFixed(2)} ℏ. Confirm
+            final amounts on the completed resale transaction.
           </p>
           <button
             type="button"

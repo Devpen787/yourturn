@@ -61,7 +61,7 @@ export default async function SlotDetailPage({
 }) {
   const serial = Number(params.serial);
   if (!Number.isFinite(serial) || serial < 1) {
-    return <p>Invalid serial</p>;
+    return <p>Invalid session link.</p>;
   }
   let tokenId: string | null = null;
   let topicId: string | null = null;
@@ -105,10 +105,10 @@ export default async function SlotDetailPage({
   return (
     <div className="text-sm">
       <Link href="/slots" className="text-blue-700 underline">
-        ← All slots
+        ← All sessions
       </Link>
       <h1 className="mt-2 text-xl font-semibold">
-        {slot?.title ?? `Serial #${serial}`}
+        {slot?.title ?? `Session ref #${serial}`}
       </h1>
       <p className="mt-1 text-slate-600">
         Everything about this session pass in one place: status, next step, and proof links.

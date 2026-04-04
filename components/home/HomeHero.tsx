@@ -14,8 +14,8 @@ export function HomeHero() {
           </h1>
           <p className="mt-5 max-w-xl text-base leading-7 text-slate-300 md:text-lg">
             For studios, therapists, and coaching-led services where a missed
-            slot still matters. Customers hold the booking like a pass.
-            Providers keep the rules around movement, redemption, and resale.
+            session still matters. Customers hold the reservation like a pass.
+            Providers keep the rules around check-in, pausing movement, and resale.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
@@ -51,7 +51,8 @@ export function HomeHero() {
             </p>
             <p className="mt-4 text-xl font-semibold">Active booking</p>
             <p className="mt-2 text-sm text-slate-600">
-              See status, transfer options, and what happens next in one place.
+              See status, resale when your provider allows it, and what happens
+              next in one place.
             </p>
             <div className="mt-6 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-900">
               Ready to use

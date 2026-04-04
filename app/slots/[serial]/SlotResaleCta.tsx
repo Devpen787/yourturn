@@ -8,7 +8,7 @@ export function SlotResaleCta({ serial }: { serial: number }) {
       href={`/resale/${serial}`}
       className="inline-block rounded bg-slate-800 px-3 py-2 text-white"
     >
-      List for resale
+      Sell pass
     </Link>
   );
 }

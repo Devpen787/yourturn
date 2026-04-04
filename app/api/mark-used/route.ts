@@ -1,16 +1,5 @@
 import { NextResponse } from "next/server";
-import { submitLifecycleEvent } from "@/lib/hedera/consensus";
-import {
-  getActorCredentials,
-  tryResolveGuestActor,
-} from "@/lib/hedera/client";
-import {
-  burnUsedSlot,
-  getTreasuryIdString,
-  transferNftFromHolderToTreasury,
-} from "@/lib/hedera/token";
-import { readSlotChainState } from "@/lib/server/slotChain";
-import { getStoredTokenId, getStoredTopicId } from "@/lib/store/ids";
+import { bookingPort, BookingPortError } from "@/lib/adapters/booking-port";
 import { fail, markUsedBodySchema } from "@/lib/validation/api";
 
 export const runtime = "nodejs";
@@ -24,70 +13,23 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-    const tokenId = await getStoredTokenId();
-    const topicId = await getStoredTopicId();
-    if (!tokenId || !topicId) {
-      return NextResponse.json(
-        fail("Run /api/init first", "NOT_FOUND"),
-        { status: 400 }
-      );
-    }
-    const serial = parsed.data.serial;
-    const treasury = getTreasuryIdString();
-    const chain = await readSlotChainState({
-      tokenId,
-      serial,
-      treasuryAccountId: treasury,
+    const preview = await bookingPort.previewMarkUsed({
+      issuer: { kind: "demoActor", id: "issuer" },
+      serial: parsed.data.serial,
     });
-    if (chain.status === "USED") {
-      return NextResponse.json(
-        fail("Serial is already burned (USED)", "CONFLICT"),
-        { status: 409 }
-      );
-    }
-    if (chain.status === "FROZEN") {
-      return NextResponse.json(
-        fail(
-          "Cannot mark used while holder is frozen: unfreeze first so the NFT can move to treasury for burn.",
-          "CONFLICT"
-        ),
-        { status: 409 }
-      );
-    }
-    if (chain.status === "HELD") {
-      const holder = chain.holderAccountId;
-      if (!holder) {
-        return NextResponse.json(fail("Mirror missing holder", "INTERNAL_ERROR"), {
-          status: 500,
-        });
-      }
-      const guest = tryResolveGuestActor(holder);
-      if (!guest) {
-        return NextResponse.json(
-          fail(
-            "Holder is not Guest A or B; this MVP cannot server-sign return-to-treasury for that account.",
-            "CONFLICT"
-          ),
-          { status: 409 }
-        );
-      }
-      const { privateKey } = getActorCredentials(guest);
-      await transferNftFromHolderToTreasury({
-        holderAccountId: holder,
-        holderPrivateKey: privateKey.toString(),
-        serial,
-        tokenIdStr: tokenId,
-      });
-    }
-    await burnUsedSlot({ serial, tokenIdStr: tokenId });
-    await submitLifecycleEvent(topicId, {
-      eventType: "USED",
-      tokenId,
-      serial,
-      timestamp: new Date().toISOString(),
+    const result = await bookingPort.confirmMarkUsed({
+      previewId: preview.previewId,
+      approval: {
+        approvedBy: "issuer",
+        approvedAt: new Date().toISOString(),
+        source: "ui_click",
+      },
     });
-    return NextResponse.json({ ok: true as const });
+    return NextResponse.json(result);
   } catch (e) {
+    if (e instanceof BookingPortError) {
+      return NextResponse.json(fail(e.message, e.code), { status: e.status });
+    }
     const msg = e instanceof Error ? e.message : String(e);
     return NextResponse.json(fail(msg, "HEDERA_TX_ERROR"), { status: 500 });
   }

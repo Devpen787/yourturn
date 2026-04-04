@@ -8,8 +8,8 @@ const pillars = [
     body: "What you hold stays visible as a live pass with clear status, rules, and next steps.",
   },
   {
-    label: "Pass it on when allowed",
-    body: "If plans change, transfer or resell without breaking the provider's policy or economics.",
+    label: "Sell to someone else when allowed",
+    body: "If plans change, list your pass for resale under the provider’s rules — the same pattern fans know from ticket resale, built for classes and sessions.",
   },
 ];
 

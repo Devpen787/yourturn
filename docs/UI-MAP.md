@@ -56,6 +56,10 @@ Global chrome: `app/layout.tsx` (header nav only; no API calls).
 | `/api/mark-used` | POST | Mark used / burn path (`F4`) | Yes — Issuer |
 | `/api/associate` | POST | Associate token to guest (same tx path as book can do inline) | **No** — manual / tooling; booking path may associate inside `POST /api/book` |
 | `/api/mirror` | GET | Mirror debug / reads by query | **No** — tooling / scripts |
+| `/api/agent/read` | POST | Agent-safe read surface over `BookingPort` (`listSlots`, `getSlot`, holdings, listings, lifecycle) | **No** — external agent / backend integration |
+| `/api/agent/preview` | POST | Agent preview surface over `BookingPort` for `F1` / `F2` / `F3` / `F4` | **No** — external agent / backend integration |
+| `/api/agent/confirm` | POST | Agent confirm surface; requires preview token + delegated approval grant | **No** — external agent / backend integration |
+| `/api/agent/approval-grant` | POST | Mint scoped delegated approval grants; trusted backend only via secret header | **No** — backend tooling only |
 
 ## Spec flows (`docs/SPEC.md`) vs shipped UI
 
@@ -107,11 +111,17 @@ Use when auditing “are we missing something?”
 | F7 cancel / refund | Not built — see `docs/TASKS.md` |
 | `POST /api/associate` in UI | Not linked — optional explicit associate for demos/debug |
 | `GET /api/mirror` | Not linked from app — intentional tooling |
-| Real tx proof lines | Fill `docs/TX-LOG.md` when running testnet proofs |
+| `/api/agent/*` | Not linked from app — intentional agent/backend integration surface |
+| Real tx proof lines | See `docs/TX-LOG.md`; re-run and extend after new testnet proof |
 | Component inventory | This file — update when adding routes or `*Client.tsx` |
 
 ## Related docs
 
+- `docs/MARKET-VOCABULARY.md` — Web2 booking / class / ticket terminology vs our copy
+- `docs/PAGE-OVERVIEW.md` — per-route **purpose, buttons, copy role, clarity, Works/Partial/Review** (living audit)
+- `docs/REVIEW-CHECKLIST.md` — **single doc** to run through before demo, PR, or submission (product + flows + UX staging + gaps)
+- `docs/SCORECARD.md` — dated 1–5 scores; re-score after TX-LOG / major UX / deploy hardening
+- `docs/AGENT-INTEGRATION.md` — concrete backend and agent request / response examples for `/api/agent/*`
 - `docs/DEMO.md` — shipped walkthrough
 - `docs/PERSONAS-EXPECTATIONS.md` — each stakeholder’s expectations vs what is available
 

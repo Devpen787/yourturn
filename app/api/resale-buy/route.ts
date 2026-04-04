@@ -1,31 +1,8 @@
 import { NextResponse } from "next/server";
-import { submitLifecycleEvent } from "@/lib/hedera/consensus";
-import { getActorCredentials } from "@/lib/hedera/client";
-import { getHashscanTxUrl } from "@/lib/hedera/hashscan";
-import { isTokenAssociatedWithAccount } from "@/lib/hedera/mirror";
-import {
-  associateTokenToAccount,
-  resaleTransfer,
-} from "@/lib/hedera/token";
-import { getStoredTokenId, getStoredTopicId } from "@/lib/store/ids";
-import {
-  deactivateListing,
-  getActiveListingForSerial,
-} from "@/lib/store/listings";
-import { updateSlotListingActive } from "@/lib/store/slots";
+import { bookingPort, BookingPortError } from "@/lib/adapters/booking-port";
 import { fail, resaleBuyBodySchema } from "@/lib/validation/api";
 
 export const runtime = "nodejs";
-
-function credentialsForSellerAccount(sellerAccountId: string): ReturnType<
-  typeof getActorCredentials
-> | null {
-  const a = process.env.HEDERA_GUEST_A_ID;
-  const b = process.env.HEDERA_GUEST_B_ID;
-  if (sellerAccountId === a) return getActorCredentials("guestA");
-  if (sellerAccountId === b) return getActorCredentials("guestB");
-  return null;
-}
 
 export async function POST(req: Request) {
   try {
@@ -36,71 +13,23 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-    const { actor, serial } = parsed.data;
-    const tokenId = await getStoredTokenId();
-    const topicId = await getStoredTopicId();
-    if (!tokenId || !topicId) {
-      return NextResponse.json(
-        fail("Run /api/init first", "NOT_FOUND"),
-        { status: 400 }
-      );
-    }
-    const listing = await getActiveListingForSerial(serial);
-    if (!listing || !listing.active) {
-      return NextResponse.json(
-        fail("No active listing for this serial", "NOT_FOUND"),
-        { status: 404 }
-      );
-    }
-    const buyer = getActorCredentials(actor);
-    const buyerAcc = buyer.accountId.toString();
-    if (buyerAcc === listing.sellerAccountId) {
-      return NextResponse.json(
-        fail("Buyer cannot be the seller", "CONFLICT"),
-        { status: 409 }
-      );
-    }
-    const sellerCreds = credentialsForSellerAccount(listing.sellerAccountId);
-    if (!sellerCreds) {
-      return NextResponse.json(
-        fail("Seller is not a demo guest account", "INTERNAL_ERROR"),
-        { status: 500 }
-      );
-    }
-    if (!(await isTokenAssociatedWithAccount(buyerAcc, tokenId))) {
-      await associateTokenToAccount(
-        buyerAcc,
-        buyer.privateKey.toString(),
-        tokenId
-      );
-    }
-    const txId = await resaleTransfer({
-      sellerAccountId: listing.sellerAccountId,
-      sellerPrivateKey: sellerCreds.privateKey.toString(),
-      buyerAccountId: buyerAcc,
-      buyerPrivateKey: buyer.privateKey.toString(),
-      serial,
-      askPriceHbar: listing.askPriceHbar,
-      tokenIdStr: tokenId,
+    const preview = await bookingPort.previewBuyListing({
+      buyer: { kind: "demoActor", id: parsed.data.actor },
+      serial: parsed.data.serial,
     });
-    await deactivateListing(serial);
-    await updateSlotListingActive(serial, false);
-    await submitLifecycleEvent(topicId, {
-      eventType: "RESOLD",
-      tokenId,
-      serial,
-      from: listing.sellerAccountId,
-      to: buyerAcc,
-      priceHbar: listing.askPriceHbar,
-      txId,
-      timestamp: new Date().toISOString(),
+    const result = await bookingPort.confirmBuyListing({
+      previewId: preview.previewId,
+      approval: {
+        approvedBy: parsed.data.actor,
+        approvedAt: new Date().toISOString(),
+        source: "ui_click",
+      },
     });
-    return NextResponse.json({
-      ok: true as const,
-      txId,
-      hashscanUrl: getHashscanTxUrl(txId),
-    });
+    return NextResponse.json({ ok: true as const, ...result });
   } catch (e) {
+    if (e instanceof BookingPortError) {
+      return NextResponse.json(fail(e.message, e.code), { status: e.status });
+    }
     const msg = e instanceof Error ? e.message : String(e);
     return NextResponse.json(fail(msg, "HEDERA_TX_ERROR"), { status: 500 });
   }

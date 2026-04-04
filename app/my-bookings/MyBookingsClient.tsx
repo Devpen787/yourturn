@@ -99,7 +99,7 @@ export function MyBookingsClient({
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="font-medium">
-                #{r.serial} — {r.title}
+                Ref #{r.serial} — {r.title}
               </div>
               <span
                 className={`inline-flex rounded px-2 py-1 text-xs font-medium ${statusTone(
@@ -119,14 +119,14 @@ export function MyBookingsClient({
                 className="text-blue-700 underline"
                 href={`/slots/${r.serial}`}
               >
-                Details
+                Session details
               </Link>
               {r.canResell && r.status === "HELD" && (
                 <Link
                   className="rounded bg-slate-800 px-2 py-1 text-white no-underline"
                   href={`/resale/${r.serial}`}
                 >
-                  Resell
+                  Sell pass
                 </Link>
               )}
             </div>
@@ -158,7 +158,7 @@ export function MyBookingsClient({
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="font-medium">
-                    #{r.serial} — {r.title}
+                    Ref #{r.serial} — {r.title}
                   </div>
                   <span
                     className={`inline-flex rounded px-2 py-1 text-xs font-medium ${statusTone(
@@ -173,7 +173,7 @@ export function MyBookingsClient({
                   className="mt-2 inline-flex text-blue-700 underline"
                   href={`/slots/${r.serial}`}
                 >
-                  View details
+                  View session details
                 </Link>
               </li>
             ))}

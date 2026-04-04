@@ -14,6 +14,8 @@ Use short dated bullets only. If a decision changes, add a new bullet instead of
 - `2026-04-04`: Strong next layer = `F3` freeze or unfreeze and `F7` cancel or refund.
 - `2026-04-04`: Rebook remains an important product rule, but it is not currently inside the minimum must-ship slice.
 - `2026-04-04`: Agent is a schedule-and-budget helper for booking, resale, and rebooking; no autonomous signing.
+- `2026-04-04`: Machine-facing booking actions now converge behind an initial `BookingPort` with preview → confirm semantics so future agent flows can stop at explicit approval instead of calling raw route logic directly.
+- `2026-04-04`: Agent/backend confirms should use delegated approval grants scoped by action, actor, serial, and expiry; grant minting is a trusted-backend concern, not a public customer flow.
 - `2026-04-04` (chain): F2 resale must not manually split HBAR to fee collector when `CustomRoyaltyFee` is on the token — that double-charges royalty; resale atomic transfer is buyer→seller full ask + NFT leg only; HTS collects royalty.
 - `2026-04-04` (chain): `TokenBurnTransaction` only burns NFT serials **in treasury**; mark-used must **transfer guest→treasury** then burn when a guest holds the serial.
 - `2026-04-04` (chain): Freeze/unfreeze target account is **Mirror holder** for the serial; `holderActor` is validated against Mirror and must match (prevents freezing the wrong demo account).

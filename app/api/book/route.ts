@@ -1,17 +1,5 @@
 import { NextResponse } from "next/server";
-import { canBook } from "@/lib/domain/guards";
-import { submitLifecycleEvent } from "@/lib/hedera/consensus";
-import { getHashscanTxUrl } from "@/lib/hedera/hashscan";
-import { isTokenAssociatedWithAccount } from "@/lib/hedera/mirror";
-import { getActorCredentials } from "@/lib/hedera/client";
-import {
-  associateTokenToAccount,
-  getTreasuryIdString,
-  primaryBookTransfer,
-} from "@/lib/hedera/token";
-import { readSlotChainState } from "@/lib/server/slotChain";
-import { getStoredTokenId, getStoredTopicId } from "@/lib/store/ids";
-import { getSlotBySerial } from "@/lib/store/slots";
+import { bookingPort, BookingPortError } from "@/lib/adapters/booking-port";
 import { bookBodySchema, fail } from "@/lib/validation/api";
 
 export const runtime = "nodejs";
@@ -25,61 +13,23 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-    const { actor, serial } = parsed.data;
-    const tokenId = await getStoredTokenId();
-    const topicId = await getStoredTopicId();
-    if (!tokenId || !topicId) {
-      return NextResponse.json(
-        fail("Run /api/init first", "NOT_FOUND"),
-        { status: 400 }
-      );
-    }
-    const treasury = getTreasuryIdString();
-    const chain = await readSlotChainState({
-      tokenId,
-      serial,
-      treasuryAccountId: treasury,
+    const preview = await bookingPort.previewBook({
+      buyer: { kind: "demoActor", id: parsed.data.actor },
+      serial: parsed.data.serial,
     });
-    if (!canBook(chain.status)) {
-      return NextResponse.json(
-        fail("Slot is not available for booking", "CONFLICT"),
-        { status: 409 }
-      );
-    }
-    const slot = await getSlotBySerial(serial);
-    if (!slot) {
-      return NextResponse.json(fail("Unknown serial", "NOT_FOUND"), {
-        status: 404,
-      });
-    }
-    const buyer = getActorCredentials(actor);
-    const acc = buyer.accountId.toString();
-    if (!(await isTokenAssociatedWithAccount(acc, tokenId))) {
-      await associateTokenToAccount(acc, buyer.privateKey.toString(), tokenId);
-    }
-    const txId = await primaryBookTransfer({
-      buyerAccountId: acc,
-      buyerPrivateKey: buyer.privateKey.toString(),
-      serial,
-      priceHbar: slot.primaryPriceHbar,
-      tokenIdStr: tokenId,
+    const result = await bookingPort.confirmBook({
+      previewId: preview.previewId,
+      approval: {
+        approvedBy: parsed.data.actor,
+        approvedAt: new Date().toISOString(),
+        source: "ui_click",
+      },
     });
-    await submitLifecycleEvent(topicId, {
-      eventType: "BOOKED",
-      tokenId,
-      serial,
-      from: treasury,
-      to: acc,
-      priceHbar: slot.primaryPriceHbar,
-      txId,
-      timestamp: new Date().toISOString(),
-    });
-    return NextResponse.json({
-      ok: true as const,
-      txId,
-      hashscanUrl: getHashscanTxUrl(txId),
-    });
+    return NextResponse.json({ ok: true as const, ...result });
   } catch (e) {
+    if (e instanceof BookingPortError) {
+      return NextResponse.json(fail(e.message, e.code), { status: e.status });
+    }
     const msg = e instanceof Error ? e.message : String(e);
     return NextResponse.json(fail(msg, "HEDERA_TX_ERROR"), { status: 500 });
   }

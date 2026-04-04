@@ -35,7 +35,7 @@ function nextStepHint(status: string): string {
     return "Choose the person who is booking and confirm this session.";
   }
   if (status === "HELD") {
-    return "Open details to see who holds the pass now and whether it can be passed on.";
+    return "Open details to see who holds the pass now and whether it can be resold.";
   }
   if (status === "FROZEN") {
     return "This pass cannot move until the provider reopens it.";
@@ -43,7 +43,7 @@ function nextStepHint(status: string): string {
   if (status === "USED") {
     return "This pass has already been used. The provider can create a fresh session for another run.";
   }
-  return "Open details to inspect the current booking-right state.";
+  return "Open details to see the current booking status.";
 }
 
 export function SlotsClient({ rows }: { rows: SlotRow[] }) {
@@ -116,7 +116,12 @@ export function SlotsClient({ rows }: { rows: SlotRow[] }) {
             <p className="mt-2 text-2xl font-semibold text-slate-900">{heldCount}</p>
           </div>
           <div className="rounded border border-slate-200 bg-white p-3">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Frozen</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Paused
+            </p>
+            <p className="mt-1 text-[10px] font-normal normal-case tracking-normal text-slate-500">
+              Movement on hold by provider
+            </p>
             <p className="mt-2 text-2xl font-semibold text-slate-900">{frozenCount}</p>
           </div>
           <div className="rounded border border-slate-200 bg-white p-3">
@@ -147,7 +152,7 @@ export function SlotsClient({ rows }: { rows: SlotRow[] }) {
               </span>
             </div>
             <div className="mt-1">
-              Serial <strong>#{r.serial}</strong> · Price:{" "}
+              Ref <strong>#{r.serial}</strong> · Price:{" "}
               <strong>{r.primaryPriceHbar} ℏ</strong>
             </div>
             <div className="mt-1 text-slate-600">{statusHint(r.status)}</div>
@@ -160,7 +165,7 @@ export function SlotsClient({ rows }: { rows: SlotRow[] }) {
                 className="text-blue-700 underline"
                 href={`/slots/${r.serial}`}
               >
-                Details
+                Session details
               </Link>
               {r.status === "AVAILABLE" && (
                 <button

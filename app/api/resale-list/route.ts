@@ -1,15 +1,5 @@
 import { NextResponse } from "next/server";
-import { canResell } from "@/lib/domain/guards";
-import { submitLifecycleEvent } from "@/lib/hedera/consensus";
-import { getActorCredentials } from "@/lib/hedera/client";
-import { readSlotChainState } from "@/lib/server/slotChain";
-import { getStoredTokenId, getStoredTopicId } from "@/lib/store/ids";
-import {
-  addListing,
-  getActiveListingForSerial,
-} from "@/lib/store/listings";
-import { getSlotBySerial, updateSlotListingActive } from "@/lib/store/slots";
-import { getTreasuryIdString } from "@/lib/hedera/token";
+import { bookingPort, BookingPortError } from "@/lib/adapters/booking-port";
 import { fail, resaleListBodySchema } from "@/lib/validation/api";
 
 export const runtime = "nodejs";
@@ -23,76 +13,32 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-    const { actor, serial, askPriceHbar } = parsed.data;
-    const tokenId = await getStoredTokenId();
-    const topicId = await getStoredTopicId();
-    if (!tokenId || !topicId) {
-      return NextResponse.json(
-        fail("Run /api/init first", "NOT_FOUND"),
-        { status: 400 }
-      );
-    }
-    const cred = getActorCredentials(actor);
-    const acc = cred.accountId.toString();
-    const treasury = getTreasuryIdString();
-    const chain = await readSlotChainState({
-      tokenId,
-      serial,
-      treasuryAccountId: treasury,
+    const preview = await bookingPort.previewCreateListing({
+      seller: { kind: "demoActor", id: parsed.data.actor },
+      serial: parsed.data.serial,
+      askPriceHbar: parsed.data.askPriceHbar,
     });
-    const slot = await getSlotBySerial(serial);
-    if (!slot) {
-      return NextResponse.json(fail("Unknown serial", "NOT_FOUND"), {
-        status: 404,
-      });
-    }
-    if (chain.holderAccountId !== acc) {
-      return NextResponse.json(
-        fail("Only the current holder can list", "CONFLICT"),
-        { status: 409 }
-      );
-    }
-    if (!canResell({ status: chain.status, resaleAllowed: slot.resaleAllowed })) {
-      return NextResponse.json(
-        fail("Slot cannot be listed for resale", "CONFLICT"),
-        { status: 409 }
-      );
-    }
-    const existing = await getActiveListingForSerial(serial);
-    if (existing) {
-      return NextResponse.json(
-        fail("An active listing already exists for this serial", "CONFLICT"),
-        { status: 409 }
-      );
-    }
-    const listing = {
-      tokenId,
-      serial,
-      sellerAccountId: acc,
-      askPriceHbar,
-      active: true,
-      createdAt: new Date().toISOString(),
-    };
-    await addListing(listing);
-    await updateSlotListingActive(serial, true);
-    await submitLifecycleEvent(topicId, {
-      eventType: "LISTED",
-      tokenId,
-      serial,
-      from: acc,
-      priceHbar: askPriceHbar,
-      timestamp: new Date().toISOString(),
+    const result = await bookingPort.confirmCreateListing({
+      previewId: preview.previewId,
+      approval: {
+        approvedBy: parsed.data.actor,
+        approvedAt: new Date().toISOString(),
+        source: "ui_click",
+      },
     });
     return NextResponse.json({
       ok: true as const,
       listing: {
-        serial: listing.serial,
-        sellerAccountId: listing.sellerAccountId,
-        askPriceHbar: listing.askPriceHbar,
-        active: listing.active,
+        serial: result.listing.serial,
+        sellerAccountId: result.listing.sellerAccountId,
+        askPriceHbar: result.listing.askPriceHbar,
+        active: result.listing.active,
       },
     });
   } catch (e) {
+    if (e instanceof BookingPortError) {
+      return NextResponse.json(fail(e.message, e.code), { status: e.status });
+    }
     const msg = e instanceof Error ? e.message : String(e);
     return NextResponse.json(fail(msg, "HEDERA_TX_ERROR"), { status: 500 });
   }
