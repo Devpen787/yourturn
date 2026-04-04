@@ -12,12 +12,46 @@ import { SlotResaleCta } from "./SlotResaleCta";
 
 export const dynamic = "force-dynamic";
 
+function statusTone(status: string): string {
+  if (status === "AVAILABLE") return "bg-slate-100 text-slate-800";
+  if (status === "HELD") return "bg-blue-50 text-blue-900";
+  if (status === "FROZEN") return "bg-amber-50 text-amber-900";
+  if (status === "USED") return "bg-emerald-50 text-emerald-900";
+  return "bg-slate-100 text-slate-800";
+}
+
 function statusSummary(status: string): string {
   if (status === "AVAILABLE") return "The booking right is still with treasury and can be booked.";
   if (status === "HELD") return "A guest currently holds this booking right and can use it or resell it if policy allows.";
   if (status === "FROZEN") return "The issuer has frozen this booking right, so it cannot move until it is unfrozen.";
   if (status === "USED") return "This booking right has already been used and its lifecycle is closed.";
   return "Status unavailable.";
+}
+
+function nextStepSummary(
+  status: string,
+  showResell: boolean,
+  listingActive: boolean
+): string {
+  if (status === "AVAILABLE") {
+    return "Go back to the slot list and book this service slot from a guest account.";
+  }
+  if (status === "HELD" && listingActive) {
+    return "This booking right already has an active resale listing. Open the resale page to review it.";
+  }
+  if (status === "HELD" && showResell) {
+    return "If the current holder cannot attend, they can open the resale page and list this slot under issuer rules.";
+  }
+  if (status === "HELD") {
+    return "This booking right is active and ready to be used for the scheduled session.";
+  }
+  if (status === "FROZEN") {
+    return "No movement is possible until the issuer unfreezes this booking right.";
+  }
+  if (status === "USED") {
+    return "This lifecycle is complete. Use the issuer console for a new slot if you want another demo run.";
+  }
+  return "Refresh after the latest Mirror state lands.";
 }
 
 export default async function SlotDetailPage({
@@ -73,21 +107,49 @@ export default async function SlotDetailPage({
       <Link href="/slots" className="text-blue-700 underline">
         ← All slots
       </Link>
-      <h1 className="mt-2 text-xl font-semibold">Serial #{serial}</h1>
+      <h1 className="mt-2 text-xl font-semibold">
+        {slot?.title ?? `Serial #${serial}`}
+      </h1>
+      <p className="mt-1 text-slate-600">
+        Serial #{serial} detail view for the current booking-right lifecycle.
+      </p>
       <div className="mt-4 space-y-2 rounded border border-slate-200 bg-white p-4">
-        <p>
-          <span className="font-medium">Status:</span> {chain.status}
+        <p className="flex flex-wrap items-center gap-2">
+          <span className="font-medium">Status:</span>
+          <span
+            className={`inline-flex rounded px-2 py-1 text-xs font-medium ${statusTone(
+              chain.status
+            )}`}
+          >
+            {chain.status}
+          </span>
         </p>
         <p className="text-slate-600">{statusSummary(chain.status)}</p>
+        <p className="rounded bg-slate-50 p-3 text-slate-700">
+          <span className="font-medium text-slate-900">Next step:</span>{" "}
+          {nextStepSummary(chain.status, !!showResell, !!listing?.active)}
+        </p>
         <p>
           <span className="font-medium">Holder:</span>{" "}
           {chain.holderAccountId || "—"}
         </p>
         {slot && (
-          <p>
-            <span className="font-medium">Primary price:</span>{" "}
-            {slot.primaryPriceHbar} ℏ
-          </p>
+          <div className="grid gap-2 md:grid-cols-2">
+            <p>
+              <span className="font-medium">Primary price:</span>{" "}
+              {slot.primaryPriceHbar} ℏ
+            </p>
+            <p>
+              <span className="font-medium">Start:</span> {slot.startTime}
+            </p>
+            <p>
+              <span className="font-medium">End:</span> {slot.endTime}
+            </p>
+            <p>
+              <span className="font-medium">Resale allowed:</span>{" "}
+              {slot.resaleAllowed ? "Yes" : "No"}
+            </p>
+          </div>
         )}
         {meta && (
           <pre className="mt-2 overflow-x-auto rounded bg-slate-100 p-2 text-xs">
