@@ -110,7 +110,7 @@ export async function getTopicMessages(topicId: string): Promise<{
   messages?: MirrorTopicMessage[];
 }> {
   const data = await mirrorFetch<{ messages?: MirrorTopicMessage[] }>(
-    `/topics/${topicId}/messages`
+    `/topics/${topicId}/messages?limit=100&order=desc`
   );
   return data ?? { messages: [] };
 }

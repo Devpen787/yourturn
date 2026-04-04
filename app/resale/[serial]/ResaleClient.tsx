@@ -3,29 +3,42 @@
 import { useRouter } from "next/navigation";
 import { useId, useMemo, useState } from "react";
 import { ActorSelector, type ActorValue } from "@/components/ActorSelector";
+import { useToast } from "@/components/providers/ToastProvider";
 import { calcRoyalty } from "@/lib/domain/fees";
+import type { SlotStatus } from "@/lib/domain/guards";
 import type { ResaleListing } from "@/lib/types/listing";
 import { Button } from "@/components/ui/Button";
 import { LiveFeedback } from "@/components/ui/LiveFeedback";
 import { cn } from "@/lib/cn";
+import { getHashscanTxUrl } from "@/lib/hedera/hashscan";
+
+function demoPersonLabel(actor: "guestA" | "guestB"): string {
+  return actor === "guestA" ? "Person A" : "Person B";
+}
 
 export function ResaleClient({
   serial,
   tokenId,
+  mirrorHolderActor,
   initialListing,
+  currentStatus,
+  resaleAllowed,
   slotTitle,
 }: {
   serial: number;
   tokenId: string | null;
+  mirrorHolderActor: "guestA" | "guestB" | null;
   initialListing: ResaleListing | null;
+  currentStatus: SlotStatus | null;
+  resaleAllowed: boolean;
   slotTitle: string;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [actor, setActor] = useState<ActorValue>("guestA");
   const [ask, setAsk] = useState(
     initialListing?.askPriceHbar?.toString() ?? "20"
   );
-  const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
   const askFieldId = useId();
@@ -38,6 +51,75 @@ export function ResaleClient({
     return !Number.isFinite(askNum) || askNum <= 0;
   }, [ask, askNum]);
 
+  const listPersonaMismatch =
+    !!tokenId &&
+    mirrorHolderActor != null &&
+    actor !== mirrorHolderActor;
+  const buyPersonaBlocksPurchase =
+    !!initialListing?.active &&
+    mirrorHolderActor != null &&
+    actor === mirrorHolderActor;
+  const resaleBlockedMessage = useMemo(() => {
+    if (!resaleAllowed) {
+      return "This session is not set up for resale under provider rules.";
+    }
+    if (currentStatus === "AVAILABLE") {
+      return "No customer holds this pass yet, so there is nothing to resell.";
+    }
+    if (currentStatus === "FROZEN") {
+      return "The provider has paused this pass. It cannot be listed or bought until it is reopened.";
+    }
+    if (currentStatus === "USED") {
+      return "This pass has already been checked in and closed. It cannot be resold.";
+    }
+    return null;
+  }, [currentStatus, resaleAllowed]);
+
+  const listDisabled = !!loading || !tokenId || !!resaleBlockedMessage || listPersonaMismatch;
+  const buyDisabled =
+    !!loading ||
+    !tokenId ||
+    !!resaleBlockedMessage ||
+    !initialListing?.active ||
+    buyPersonaBlocksPurchase;
+
+  const mirrorHint =
+    !tokenId || mirrorHolderActor == null
+      ? null
+      : listPersonaMismatch
+        ? {
+            tone: "warn" as const,
+            text: (
+              <>
+                Switch to <strong>{demoPersonLabel(mirrorHolderActor)}</strong>{" "}
+                before listing — the API only accepts the current on-chain holder
+                as seller.
+              </>
+            ),
+          }
+        : buyPersonaBlocksPurchase
+          ? {
+              tone: "warn" as const,
+              text: (
+                <>
+                  The listed seller is{" "}
+                  <strong>{demoPersonLabel(mirrorHolderActor)}</strong>. Switch to
+                  the buyer (the other person) to complete the purchase.
+                </>
+              ),
+            }
+          : {
+              tone: "info" as const,
+              text: (
+                <>
+                  Mirror shows this pass is held by{" "}
+                  <strong>{demoPersonLabel(mirrorHolderActor)}</strong>. Match the
+                  selector when listing; use the other person to buy an active
+                  listing.
+                </>
+              ),
+            };
+
   async function createListing() {
     if (actor !== "guestA" && actor !== "guestB") {
       setErr("Switch to the person who currently holds this pass before listing it.");
@@ -49,7 +131,6 @@ export function ResaleClient({
     }
     setLoading("list");
     setErr(null);
-    setMsg(null);
     try {
       const res = await fetch("/api/resale-list", {
         method: "POST",
@@ -65,9 +146,21 @@ export function ResaleClient({
         setErr(data.error || res.statusText);
         return;
       }
-      setMsg(
-        `Listing created at ${askNum.toFixed(2)} ℏ. Switch to the other person to complete the handoff.`
-      );
+      toast({
+        variant: "success",
+        message: `Listing created at ${askNum.toFixed(2)} ℏ. Switch to the other person to complete the handoff.`,
+        link:
+          typeof data.auditTxId === "string" && data.auditTxId.length > 0
+            ? {
+                href:
+                  typeof data.hashscanUrl === "string" &&
+                  data.hashscanUrl.length > 0
+                    ? data.hashscanUrl
+                    : getHashscanTxUrl(data.auditTxId),
+                label: "View audit transaction on HashScan",
+              }
+            : undefined,
+      });
       router.refresh();
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
@@ -83,7 +176,6 @@ export function ResaleClient({
     }
     setLoading("buy");
     setErr(null);
-    setMsg(null);
     try {
       const res = await fetch("/api/resale-buy", {
         method: "POST",
@@ -95,9 +187,21 @@ export function ResaleClient({
         setErr(data.error || res.statusText);
         return;
       }
-      setMsg(
-        `Purchased. This pass now belongs to the buyer. Tx: ${data.txId}`
-      );
+      toast({
+        variant: "success",
+        message: "Purchased. This pass now belongs to the buyer.",
+        link:
+          typeof data.txId === "string" && data.txId.length > 0
+            ? {
+                href:
+                  typeof data.hashscanUrl === "string" &&
+                  data.hashscanUrl.length > 0
+                    ? data.hashscanUrl
+                    : getHashscanTxUrl(data.txId),
+                label: "View transaction on HashScan",
+              }
+            : undefined,
+      });
       router.refresh();
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
@@ -107,7 +211,12 @@ export function ResaleClient({
   }
 
   return (
-    <div className="mt-4 space-y-4">
+    <div
+      className={cn(
+        "mt-4 space-y-4",
+        tokenId && "pb-28 md:pb-4"
+      )}
+    >
       <ActorSelector
         pageDefault="guestA"
         allowedActors={["guestA", "guestB"]}
@@ -115,6 +224,24 @@ export function ResaleClient({
         description="Switch between Person A and Person B to show the seller side and the buyer side of the resale flow."
         onChange={setActor}
       />
+      {mirrorHint ? (
+        <p
+          className={cn(
+            "rounded border p-3 text-sm",
+            mirrorHint.tone === "warn"
+              ? "border-amber-200 bg-amber-50 text-amber-950"
+              : "border-slate-200 bg-slate-50 text-slate-700"
+          )}
+          role={mirrorHint.tone === "warn" ? "status" : undefined}
+        >
+          {mirrorHint.text}
+        </p>
+      ) : null}
+      {resaleBlockedMessage ? (
+        <p className="rounded border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+          {resaleBlockedMessage}
+        </p>
+      ) : null}
       <div className="rounded border border-slate-200 bg-white p-4">
         <h2 className="font-medium">{slotTitle}</h2>
         {!tokenId && (
@@ -173,7 +300,7 @@ export function ResaleClient({
             variant="primary"
             loading={loading === "list"}
             loadingLabel="Listing…"
-            disabled={!!loading || !tokenId}
+            disabled={listDisabled}
             className="w-fit"
             onClick={() => createListing()}
           >
@@ -190,7 +317,7 @@ export function ResaleClient({
             variant="primarySuccess"
             loading={loading === "buy"}
             loadingLabel="Buying…"
-            disabled={!!loading || !tokenId || !initialListing?.active}
+            disabled={buyDisabled}
             className="w-fit"
             onClick={() => buy()}
           >
@@ -198,7 +325,39 @@ export function ResaleClient({
           </Button>
         </div>
       </div>
-      <LiveFeedback className="space-y-2" success={msg} error={err} />
+      <LiveFeedback className="space-y-2" success={null} error={err} />
+      {tokenId ? (
+        <div
+          className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur supports-[backdrop-filter]:bg-white/85 md:hidden"
+          role="region"
+          aria-label="Resale actions"
+        >
+          <div className="mx-auto flex max-w-lg gap-2">
+            <Button
+              type="button"
+              variant="primary"
+              loading={loading === "list"}
+              loadingLabel="Listing…"
+              disabled={listDisabled}
+              className="min-w-0 flex-1"
+              onClick={() => createListing()}
+            >
+              List
+            </Button>
+            <Button
+              type="button"
+              variant="primarySuccess"
+              loading={loading === "buy"}
+              loadingLabel="Buying…"
+              disabled={buyDisabled}
+              className="min-w-0 flex-1"
+              onClick={() => buy()}
+            >
+              Buy
+            </Button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

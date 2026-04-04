@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { getTreasuryIdString } from "@/lib/hedera/token";
+import { readSlotChainState } from "@/lib/server/slotChain";
 import { getButtonClassName } from "@/components/ui/button-classes";
 import { cn } from "@/lib/cn";
+import type { SlotStatus } from "@/lib/domain/guards";
 import { getStoredTokenId } from "@/lib/store/ids";
 import { getActiveListingForSerial } from "@/lib/store/listings";
 import { getSlotBySerial } from "@/lib/store/slots";
@@ -35,7 +38,29 @@ export default async function ResalePage({
   } catch {
     slot = undefined;
   }
-  const previewAsk = listing?.askPriceHbar ?? slot?.primaryPriceHbar ?? 20;
+  let mirrorHolderActor: "guestA" | "guestB" | null = null;
+  let chainStatus: SlotStatus | null = null;
+  const guestAId = process.env.HEDERA_GUEST_A_ID ?? "";
+  const guestBId = process.env.HEDERA_GUEST_B_ID ?? "";
+  if (tokenId) {
+    try {
+      const chain = await readSlotChainState({
+        tokenId,
+        serial,
+        treasuryAccountId: getTreasuryIdString(),
+      });
+      chainStatus = chain.status;
+      const holder = chain.holderAccountId;
+      mirrorHolderActor =
+        holder === guestAId
+          ? "guestA"
+          : holder === guestBId
+            ? "guestB"
+            : null;
+    } catch {
+      mirrorHolderActor = null;
+    }
+  }
 
   return (
     <div className="text-sm">
@@ -61,13 +86,16 @@ export default async function ResalePage({
       <p className="mt-2 rounded border border-slate-200 bg-slate-50 p-3 text-slate-700">
         <span className="font-medium text-slate-900">Important:</span> the app can
         preview the provider fee, but final amounts should be verified from the
-        resale transaction and HashScan. Treat a <strong>{previewAsk} ℏ</strong> ask
-        as an estimate, not a guaranteed payout.
+        resale transaction and HashScan. Treat the resale ask as an estimate, not a
+        guaranteed payout.
       </p>
       <ResaleClient
         serial={serial}
         tokenId={tokenId}
+        mirrorHolderActor={mirrorHolderActor}
         initialListing={listing ?? null}
+        currentStatus={chainStatus}
+        resaleAllowed={slot?.resaleAllowed ?? false}
         slotTitle={slot?.title ?? `Pass ${serial}`}
       />
     </div>

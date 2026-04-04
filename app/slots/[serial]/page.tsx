@@ -10,6 +10,8 @@ import { readSlotChainState } from "@/lib/server/slotChain";
 import { getStoredTokenId, getStoredTopicId } from "@/lib/store/ids";
 import { getActiveListingForSerial } from "@/lib/store/listings";
 import { getSlotBySerial } from "@/lib/store/slots";
+import type { LifecycleEvent } from "@/lib/types/event";
+import { SlotDetailStickyBar } from "@/components/SlotDetailStickyBar";
 import { SlotResaleCta } from "./SlotResaleCta";
 
 export const dynamic = "force-dynamic";
@@ -81,6 +83,65 @@ function holderSummary(
   return holderAccountId;
 }
 
+function actorLabel(
+  accountId: string | undefined,
+  guestAId: string,
+  guestBId: string,
+  treasuryId: string
+): string {
+  if (!accountId) return "Unknown account";
+  if (accountId === guestAId) return "Person A";
+  if (accountId === guestBId) return "Person B";
+  if (accountId === treasuryId) return "Business inventory";
+  return accountId;
+}
+
+function eventSummary(
+  event: LifecycleEvent,
+  guestAId: string,
+  guestBId: string,
+  treasuryId: string
+): string {
+  if (event.eventType === "BOOKED") {
+    return `${actorLabel(event.to, guestAId, guestBId, treasuryId)} booked this session${
+      event.priceHbar != null ? ` for ${event.priceHbar} ℏ` : ""
+    }.`;
+  }
+  if (event.eventType === "LISTED") {
+    return `${actorLabel(event.from, guestAId, guestBId, treasuryId)} listed this pass${
+      event.priceHbar != null ? ` at ${event.priceHbar} ℏ` : ""
+    }.`;
+  }
+  if (event.eventType === "RESOLD") {
+    return `${actorLabel(event.to, guestAId, guestBId, treasuryId)} took over the pass from ${actorLabel(
+      event.from,
+      guestAId,
+      guestBId,
+      treasuryId
+    )}${event.priceHbar != null ? ` for ${event.priceHbar} ℏ` : ""}.`;
+  }
+  if (event.eventType === "FROZEN") {
+    return `The provider paused this pass for ${actorLabel(
+      event.to,
+      guestAId,
+      guestBId,
+      treasuryId
+    )}.`;
+  }
+  if (event.eventType === "UNFROZEN") {
+    return `The provider reopened this pass for ${actorLabel(
+      event.to,
+      guestAId,
+      guestBId,
+      treasuryId
+    )}.`;
+  }
+  if (event.eventType === "USED") {
+    return "The provider checked this pass in and closed it.";
+  }
+  return event.eventType;
+}
+
 export default async function SlotDetailPage({
   params,
 }: {
@@ -136,24 +197,32 @@ export default async function SlotDetailPage({
     : null;
   const listing = await getActiveListingForSerial(serial);
   const messages = topicId ? await getTopicMessages(topicId) : { messages: [] };
-  const events =
-    messages.messages?.filter((m) => {
-      try {
-        const j = JSON.parse(
-          Buffer.from(m.message, "base64").toString("utf8")
-        ) as { serial?: number };
-        return j.serial === serial;
-      } catch {
-        return false;
-      }
-    }) ?? [];
+  const lifecycleEvents =
+    messages.messages
+      ?.flatMap((m) => {
+        try {
+          const decoded = JSON.parse(
+            Buffer.from(m.message, "base64").toString("utf8")
+          ) as LifecycleEvent;
+          if (decoded.serial !== serial) return [];
+          return [{ raw: m, event: decoded }];
+        } catch {
+          return [];
+        }
+      })
+      .reverse() ?? [];
 
   const showResell =
     slot &&
     canResell({ status: chain.status, resaleAllowed: slot.resaleAllowed });
 
   return (
-    <div className="text-sm">
+    <div
+      className={cn(
+        "text-sm",
+        showResell && "pb-24 md:pb-0"
+      )}
+    >
       <Link
         href="/slots"
         className="inline-flex min-h-[44px] items-center rounded-md text-blue-700 underline decoration-blue-700/40 underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
@@ -268,21 +337,39 @@ export default async function SlotDetailPage({
           </pre>
         </details>
       )}
-      <section className="mt-6">
-        <h2 className="font-medium">Audit trail (optional)</h2>
-        <p className="mt-1 text-xs text-slate-600">
-          This is optional proof detail. The live pass status above is the easiest thing to follow during the demo.
+      <SlotDetailStickyBar serial={serial} showResell={!!showResell} />
+      <section className="mt-6 rounded border border-slate-200 bg-white p-4">
+        <h2 className="font-medium text-slate-900">Pass history (optional)</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          This is the lifecycle trail behind the current status above. Open the raw
+          event details only if you want the technical proof.
         </p>
-        <ul className="mt-2 space-y-1 text-xs">
-          {events.map((m) => (
-            <li key={m.consensus_timestamp} className="font-mono">
-              {Buffer.from(m.message, "base64").toString("utf8")}
-            </li>
-          ))}
-          {events.length === 0 && (
-            <li className="text-slate-500">No events for this serial yet.</li>
-          )}
-        </ul>
+        {lifecycleEvents.length > 0 ? (
+          <ul className="mt-3 space-y-3">
+            {lifecycleEvents.map(({ raw, event }) => (
+              <li key={raw.consensus_timestamp} className="rounded border border-slate-200 bg-slate-50 p-3">
+                <p className="text-sm text-slate-900">
+                  {eventSummary(event, guestAId, guestBId, treasury)}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  {formatDateTime(event.timestamp)}
+                </p>
+                <details className="mt-2 text-xs text-slate-600">
+                  <summary className="cursor-pointer font-medium text-slate-700">
+                    Raw event details
+                  </summary>
+                  <pre className="mt-2 overflow-x-auto rounded bg-white p-2 text-[11px] text-slate-700">
+                    {JSON.stringify(event, null, 2)}
+                  </pre>
+                </details>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-3 text-sm text-slate-500">
+            No lifecycle events have been recorded for this pass yet.
+          </p>
+        )}
       </section>
     </div>
   );
