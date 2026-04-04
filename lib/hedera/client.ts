@@ -65,3 +65,21 @@ export function getFeeCollectorAccountId(): AccountId {
   if (!id) throw new Error("HEDERA_FEE_COLLECTOR_ID is required");
   return AccountId.fromString(id);
 }
+
+/** Compare Hedera account ids from Mirror vs env (normalizes shard.realm.num). */
+export function accountsEqual(a: string, b: string): boolean {
+  try {
+    return AccountId.fromString(a).equals(AccountId.fromString(b));
+  } catch {
+    return a.trim() === b.trim();
+  }
+}
+
+/** Map a guest account id to demo actor, or null if not Guest A/B. */
+export function tryResolveGuestActor(accountIdStr: string): "guestA" | "guestB" | null {
+  const a = process.env.HEDERA_GUEST_A_ID?.trim();
+  const b = process.env.HEDERA_GUEST_B_ID?.trim();
+  if (a && accountsEqual(accountIdStr, a)) return "guestA";
+  if (b && accountsEqual(accountIdStr, b)) return "guestB";
+  return null;
+}

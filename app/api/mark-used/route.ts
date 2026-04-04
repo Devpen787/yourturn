@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
 import { submitLifecycleEvent } from "@/lib/hedera/consensus";
-import { burnUsedSlot } from "@/lib/hedera/token";
+import {
+  getActorCredentials,
+  tryResolveGuestActor,
+} from "@/lib/hedera/client";
+import {
+  burnUsedSlot,
+  getTreasuryIdString,
+  transferNftFromHolderToTreasury,
+} from "@/lib/hedera/token";
+import { readSlotChainState } from "@/lib/server/slotChain";
 import { getStoredTokenId, getStoredTopicId } from "@/lib/store/ids";
 import { fail, markUsedBodySchema } from "@/lib/validation/api";
 
@@ -23,11 +32,58 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-    await burnUsedSlot({ serial: parsed.data.serial, tokenIdStr: tokenId });
+    const serial = parsed.data.serial;
+    const treasury = getTreasuryIdString();
+    const chain = await readSlotChainState({
+      tokenId,
+      serial,
+      treasuryAccountId: treasury,
+    });
+    if (chain.status === "USED") {
+      return NextResponse.json(
+        fail("Serial is already burned (USED)", "CONFLICT"),
+        { status: 409 }
+      );
+    }
+    if (chain.status === "FROZEN") {
+      return NextResponse.json(
+        fail(
+          "Cannot mark used while holder is frozen: unfreeze first so the NFT can move to treasury for burn.",
+          "CONFLICT"
+        ),
+        { status: 409 }
+      );
+    }
+    if (chain.status === "HELD") {
+      const holder = chain.holderAccountId;
+      if (!holder) {
+        return NextResponse.json(fail("Mirror missing holder", "INTERNAL_ERROR"), {
+          status: 500,
+        });
+      }
+      const guest = tryResolveGuestActor(holder);
+      if (!guest) {
+        return NextResponse.json(
+          fail(
+            "Holder is not Guest A or B; this MVP cannot server-sign return-to-treasury for that account.",
+            "CONFLICT"
+          ),
+          { status: 409 }
+        );
+      }
+      const { privateKey } = getActorCredentials(guest);
+      await transferNftFromHolderToTreasury({
+        holderAccountId: holder,
+        holderPrivateKey: privateKey.toString(),
+        serial,
+        tokenIdStr: tokenId,
+      });
+    }
+    await burnUsedSlot({ serial, tokenIdStr: tokenId });
     await submitLifecycleEvent(topicId, {
       eventType: "USED",
       tokenId,
-      serial: parsed.data.serial,
+      serial,
       timestamp: new Date().toISOString(),
     });
     return NextResponse.json({ ok: true as const });

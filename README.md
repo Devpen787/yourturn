@@ -45,7 +45,7 @@ Copy `.env.example` → `.env.local` (Hedera accounts, Upstash Redis, optional r
 
 ### Implementation notes
 
-- **Royalty:** numerator **1** / denominator **10** (10%), no fallback fee — `lib/domain/fees.ts`, token create in `lib/hedera/token.ts`  
+- **Royalty:** numerator **1** / denominator **10** (10%), no fallback fee — enforced by **HTS `CustomRoyaltyFee`** on resale (buyer pays seller full ask + NFT transfer in one tx); `lib/domain/fees.ts` is for **UI preview** only  
 - **Redis keys:** `bookedrights:tokenId`, `bookedrights:topicId`, `bookedrights:slots`, `bookedrights:listings`  
 - **Node:** `pino@8.17.2` override for Node 18 `next build`; Node 20+ recommended  
 

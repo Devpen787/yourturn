@@ -16,7 +16,6 @@ import {
   TransferTransaction,
 } from "@hashgraph/sdk";
 import { buildNftMetadataBlob, type ImmutableSlotMetadata } from "@/lib/domain/metadata";
-import { calcRoyalty, calcSellerNet } from "@/lib/domain/fees";
 import {
   getActorCredentials,
   getClient,
@@ -122,6 +121,11 @@ export async function primaryBookTransfer(args: {
   return response.transactionId.toString();
 }
 
+/**
+ * Secondary sale: buyer pays seller the full ask in one HBAR leg; NFT seller→buyer.
+ * Issuer royalty is enforced by HTS `CustomRoyaltyFee` on the token (1/10 → fee collector),
+ * not by a second manual HBAR split (which would double-charge with the custom fee).
+ */
 export async function resaleTransfer(args: {
   sellerAccountId: string;
   sellerPrivateKey: string;
@@ -137,14 +141,10 @@ export async function resaleTransfer(args: {
   const sellerKey = PrivateKey.fromString(args.sellerPrivateKey);
   const buyerKey = PrivateKey.fromString(args.buyerPrivateKey);
   const tokenId = TokenId.fromString(args.tokenIdStr);
-  const feeCollector = getFeeCollectorAccountId();
   const ask = Hbar.from(args.askPriceHbar, HbarUnit.Hbar);
-  const royalty = Hbar.from(calcRoyalty(args.askPriceHbar), HbarUnit.Hbar);
-  const sellerNet = Hbar.from(calcSellerNet(args.askPriceHbar), HbarUnit.Hbar);
   const tx = await new TransferTransaction()
     .addHbarTransfer(buyerId, ask.negated())
-    .addHbarTransfer(sellerId, sellerNet)
-    .addHbarTransfer(feeCollector, royalty)
+    .addHbarTransfer(sellerId, ask)
     .addNftTransfer(tokenId, args.serial, sellerId, buyerId)
     .freezeWith(client);
   let signed = await tx.sign(sellerKey);
@@ -188,6 +188,10 @@ export async function unfreezeHolder(args: {
   await response.getReceipt(client);
 }
 
+/**
+ * Burns one NFT serial. Hedera only burns NFTs **held by the treasury** (supply key signs).
+ * If a guest holds the serial, call `transferNftFromHolderToTreasury` first.
+ */
 export async function burnUsedSlot(args: {
   serial: number;
   tokenIdStr: string;
@@ -200,6 +204,25 @@ export async function burnUsedSlot(args: {
     .setSerials([args.serial])
     .freezeWith(client);
   const signed = await tx.sign(treasury.privateKey);
+  const response = await signed.execute(client);
+  await response.getReceipt(client);
+}
+
+export async function transferNftFromHolderToTreasury(args: {
+  holderAccountId: string;
+  holderPrivateKey: string;
+  serial: number;
+  tokenIdStr: string;
+}): Promise<void> {
+  const client = getClient();
+  const treasury = getActorCredentials("issuer");
+  const holderId = AccountId.fromString(args.holderAccountId);
+  const holderKey = PrivateKey.fromString(args.holderPrivateKey);
+  const tokenId = TokenId.fromString(args.tokenIdStr);
+  const tx = await new TransferTransaction()
+    .addNftTransfer(tokenId, args.serial, holderId, treasury.accountId)
+    .freezeWith(client);
+  const signed = await tx.sign(holderKey);
   const response = await signed.execute(client);
   await response.getReceipt(client);
 }

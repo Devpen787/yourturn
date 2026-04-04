@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { submitLifecycleEvent } from "@/lib/hedera/consensus";
-import { unfreezeHolder } from "@/lib/hedera/token";
-import { getActorCredentials } from "@/lib/hedera/client";
+import {
+  accountsEqual,
+  getActorCredentials,
+} from "@/lib/hedera/client";
+import { getTreasuryIdString, unfreezeHolder } from "@/lib/hedera/token";
+import { getNftBySerial } from "@/lib/hedera/mirror";
 import { getStoredTokenId, getStoredTopicId } from "@/lib/store/ids";
 import { fail, unfreezeBodySchema } from "@/lib/validation/api";
 
@@ -24,16 +28,44 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-    const holder = getActorCredentials(parsed.data.holderActor);
+    const { serial, holderActor } = parsed.data;
+    const treasury = getTreasuryIdString();
+    const nft = await getNftBySerial(tokenId, serial);
+    if (!nft || nft.deleted) {
+      return NextResponse.json(
+        fail("Serial not found or already burned", "NOT_FOUND"),
+        { status: 404 }
+      );
+    }
+    const mirrorHolder = nft.account_id;
+    if (!mirrorHolder || accountsEqual(mirrorHolder, treasury)) {
+      return NextResponse.json(
+        fail(
+          "Cannot unfreeze: NFT is with treasury (slot AVAILABLE); there is no guest holder.",
+          "CONFLICT"
+        ),
+        { status: 409 }
+      );
+    }
+    const selected = getActorCredentials(holderActor).accountId.toString();
+    if (!accountsEqual(mirrorHolder, selected)) {
+      return NextResponse.json(
+        fail(
+          `holderActor (${holderActor}) does not match Mirror holder for serial ${serial}. Mirror holder: ${mirrorHolder}.`,
+          "CONFLICT"
+        ),
+        { status: 409 }
+      );
+    }
     await unfreezeHolder({
-      holderAccountId: holder.accountId.toString(),
+      holderAccountId: mirrorHolder,
       tokenIdStr: tokenId,
     });
     await submitLifecycleEvent(topicId, {
       eventType: "UNFROZEN",
       tokenId,
-      serial: parsed.data.serial,
-      to: holder.accountId.toString(),
+      serial,
+      to: mirrorHolder,
       timestamp: new Date().toISOString(),
     });
     return NextResponse.json({ ok: true as const });
