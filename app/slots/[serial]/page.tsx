@@ -21,10 +21,10 @@ function statusTone(status: string): string {
 }
 
 function statusSummary(status: string): string {
-  if (status === "AVAILABLE") return "The booking right is still with treasury and can be booked.";
-  if (status === "HELD") return "A guest currently holds this booking right and can use it or resell it if policy allows.";
-  if (status === "FROZEN") return "The issuer has frozen this booking right, so it cannot move until it is unfrozen.";
-  if (status === "USED") return "This booking right has already been used and its lifecycle is closed.";
+  if (status === "AVAILABLE") return "This session is still open and can be booked.";
+  if (status === "HELD") return "Someone currently holds this pass and can use it or resell it if the provider allows it.";
+  if (status === "FROZEN") return "The provider has paused this pass, so it cannot move until it is reopened.";
+  if (status === "USED") return "This pass has already been checked in and is now closed.";
   return "Status unavailable.";
 }
 
@@ -34,24 +34,24 @@ function nextStepSummary(
   listingActive: boolean
 ): string {
   if (status === "AVAILABLE") {
-    return "Go back to the slot list and book this service slot from a guest account.";
+    return "Go back to the sessions page and book this session.";
   }
   if (status === "HELD" && listingActive) {
-    return "This booking right already has an active resale listing. The next buyer can take over from the resale page.";
+    return "This pass already has an active listing. The next buyer can take over from the resale page.";
   }
   if (status === "HELD" && showResell) {
-    return "If the current holder cannot attend, they can open the resale page, list the pass under issuer rules, and let another buyer take over.";
+    return "If the current holder cannot attend, they can list this pass for sale and let another buyer take over.";
   }
   if (status === "HELD") {
-    return "This booking right is active and ready for redemption at the scheduled session.";
+    return "This pass is active and ready to be checked in when the session starts.";
   }
   if (status === "FROZEN") {
-    return "No movement is possible until the issuer unfreezes this booking right.";
+    return "Nothing can move until the provider reopens this pass.";
   }
   if (status === "USED") {
-    return "This lifecycle is complete. Use the issuer console for a new slot if you want another demo run.";
+    return "This pass is finished. The provider can create a fresh session if they want to run the demo again.";
   }
-  return "Refresh after the latest Mirror state lands.";
+  return "Refresh in a moment if the latest update has not appeared yet.";
 }
 
 export default async function SlotDetailPage({
@@ -111,7 +111,7 @@ export default async function SlotDetailPage({
         {slot?.title ?? `Serial #${serial}`}
       </h1>
       <p className="mt-1 text-slate-600">
-        Serial #{serial} detail view for the current booking-right lifecycle.
+        Everything about this session pass in one place: status, next step, and proof links.
       </p>
       <div className="mt-4 space-y-2 rounded border border-slate-200 bg-white p-4">
         <p className="flex flex-wrap items-center gap-2">
@@ -130,7 +130,7 @@ export default async function SlotDetailPage({
           {nextStepSummary(chain.status, !!showResell, !!listing?.active)}
         </p>
         <p>
-          <span className="font-medium">Holder:</span>{" "}
+          <span className="font-medium">Current holder:</span>{" "}
           {chain.holderAccountId || "—"}
         </p>
         {slot && (
@@ -154,7 +154,7 @@ export default async function SlotDetailPage({
       </div>
       {listing?.active && (
         <p className="mt-4 rounded bg-amber-50 p-2">
-          Active resale listing: {listing.askPriceHbar} ℏ. The next buyer can take over here —{" "}
+          Active resale listing: {listing.askPriceHbar} ℏ. A new buyer can take over here —{" "}
           <Link href={`/resale/${serial}`} className="underline">
             resale page
           </Link>
@@ -168,7 +168,7 @@ export default async function SlotDetailPage({
       <section className="mt-6 rounded border border-slate-200 bg-white p-4">
         <h2 className="font-medium text-slate-900">Proof links</h2>
         <p className="mt-1 text-sm text-slate-600">
-          Use these when you want to verify the token or audit trail outside the app.
+          Use these if you want to verify the pass or audit trail outside the app.
         </p>
         <div className="mt-3 flex flex-wrap gap-3">
           <a
@@ -194,7 +194,7 @@ export default async function SlotDetailPage({
       {meta && (
         <details className="mt-6 rounded border border-slate-200 bg-white p-4">
           <summary className="cursor-pointer font-medium text-slate-900">
-            Technical metadata
+            Technical details
           </summary>
           <pre className="mt-3 overflow-x-auto rounded bg-slate-100 p-2 text-xs">
             {JSON.stringify(meta, null, 2)}
@@ -202,9 +202,9 @@ export default async function SlotDetailPage({
         </details>
       )}
       <section className="mt-6">
-        <h2 className="font-medium">Lifecycle messages (HCS)</h2>
+        <h2 className="font-medium">Technical audit trail</h2>
         <p className="mt-1 text-xs text-slate-600">
-          Use this as an audit trail. Hedera state still determines the current holder and status.
+          This is optional proof detail. The live pass status above is the easiest thing to follow during the demo.
         </p>
         <ul className="mt-2 space-y-1 text-xs">
           {events.map((m) => (

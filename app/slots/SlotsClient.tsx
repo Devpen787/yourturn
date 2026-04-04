@@ -24,24 +24,24 @@ function statusTone(status: string): string {
 
 function statusHint(status: string): string {
   if (status === "AVAILABLE") return "Ready to book";
-  if (status === "HELD") return "Already booked by a guest";
-  if (status === "FROZEN") return "Booked and temporarily blocked";
-  if (status === "USED") return "Already used";
+  if (status === "HELD") return "Already booked";
+  if (status === "FROZEN") return "Temporarily paused";
+  if (status === "USED") return "Already checked in";
   return status;
 }
 
 function nextStepHint(status: string): string {
   if (status === "AVAILABLE") {
-    return "Choose a guest actor and book this slot from the demo wallet flow.";
+    return "Choose the person who is booking and confirm this session.";
   }
   if (status === "HELD") {
-    return "Open details to inspect the holder state or move to resale if issuer rules allow it.";
+    return "Open details to see who holds the pass now and whether it can be passed on.";
   }
   if (status === "FROZEN") {
-    return "This slot cannot move until the issuer unfreezes the current holder.";
+    return "This pass cannot move until the provider reopens it.";
   }
   if (status === "USED") {
-    return "Lifecycle is complete. Use the issuer console to seed a fresh slot for another demo pass.";
+    return "This pass has already been used. The provider can create a fresh session for another run.";
   }
   return "Open details to inspect the current booking-right state.";
 }
@@ -59,7 +59,7 @@ export function SlotsClient({ rows }: { rows: SlotRow[] }) {
 
   async function book(serial: number) {
     if (actor !== "guestA" && actor !== "guestB") {
-      setErr("Select guestA or guestB to book");
+      setErr("Switch to Person A or Person B before booking.");
       return;
     }
     setLoading(serial);
@@ -76,7 +76,7 @@ export function SlotsClient({ rows }: { rows: SlotRow[] }) {
         setErr(data.error || res.statusText);
         return;
       }
-      setMsg(`Booked serial ${serial}. Tx: ${data.txId}`);
+      setMsg(`Booked. Confirmation tx: ${data.txId}`);
       router.refresh();
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
@@ -87,8 +87,13 @@ export function SlotsClient({ rows }: { rows: SlotRow[] }) {
 
   return (
     <div>
-      <h1 className="mb-2 text-xl font-semibold">Public slots</h1>
+      <h1 className="mb-2 text-xl font-semibold">Available sessions</h1>
       <ActorSelector pageDefault="guestA" onChange={setActor} />
+      {actor === "issuer" && (
+        <p className="mb-2 rounded bg-amber-50 p-2 text-sm text-amber-900">
+          Switch from Provider to Person A or Person B to book a session.
+        </p>
+      )}
       {msg && (
         <p className="mb-2 rounded bg-emerald-50 p-2 text-sm text-emerald-900">
           {msg}
@@ -98,7 +103,7 @@ export function SlotsClient({ rows }: { rows: SlotRow[] }) {
         <p className="mb-2 rounded bg-red-50 p-2 text-sm text-red-800">{err}</p>
       )}
       <p className="mb-4 rounded border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-        A slot is bookable only while it is <strong>AVAILABLE</strong>. After booking, the right moves to a guest and may later be resold, frozen, or marked used under issuer rules.
+        A session can only be booked while it is <strong>AVAILABLE</strong>. After booking, the pass moves to the customer who bought it and may later be resold, paused, or checked in under provider rules.
       </p>
       {rows.length > 0 && (
         <div className="mb-4 grid gap-3 md:grid-cols-4">
@@ -173,9 +178,9 @@ export function SlotsClient({ rows }: { rows: SlotRow[] }) {
       </ul>
       {rows.length === 0 && (
         <div className="rounded border border-slate-200 bg-white p-4 text-slate-600">
-          <p>No slots are seeded yet. The issuer must initialize the app and mint demo slots first.</p>
+          <p>No sessions are live yet. The provider needs to set up the demo first.</p>
           <Link href="/issuer" className="mt-3 inline-flex text-blue-700 underline">
-            Open issuer setup
+            Open provider dashboard
           </Link>
         </div>
       )}

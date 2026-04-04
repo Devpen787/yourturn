@@ -5,9 +5,9 @@ import { useEffect, useState } from "react";
 const STORAGE_KEY = "bookedrights:selectedActor";
 const ACTOR_META = {
   issuer: {
-    label: "Issuer",
+    label: "Provider",
     description:
-      "Use for setup, holder checks, freeze or unfreeze, and redeem or mark-used actions.",
+      "Use for setup, approvals, pause or reopen actions, and check-in.",
   },
   guestA: {
     label: "Person A",
@@ -33,7 +33,21 @@ export function ActorSelector({ pageDefault, onChange }: Props) {
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY) as ActorValue | null;
-    if (saved === "issuer" || saved === "guestA" || saved === "guestB") {
+    if (
+      pageDefault === "issuer" &&
+      (saved === "guestA" || saved === "guestB")
+    ) {
+      setActor(pageDefault);
+      localStorage.setItem(STORAGE_KEY, pageDefault);
+      onChange?.(pageDefault);
+    } else if (
+      pageDefault !== "issuer" &&
+      saved === "issuer"
+    ) {
+      setActor(pageDefault);
+      localStorage.setItem(STORAGE_KEY, pageDefault);
+      onChange?.(pageDefault);
+    } else if (saved === "issuer" || saved === "guestA" || saved === "guestB") {
       setActor(saved);
       onChange?.(saved);
     } else {
@@ -53,11 +67,10 @@ export function ActorSelector({ pageDefault, onChange }: Props) {
     <div className="mb-4 rounded border border-slate-200 bg-white p-4 text-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="font-medium text-slate-900">Demo actor</p>
+          <p className="font-medium text-slate-900">Viewing as</p>
           <p className="mt-1 max-w-2xl text-slate-600">
-            Switch which demo participant the UI is acting as. This is a demo
-            control, not real sign-in, wallet authentication, or a security
-            boundary.
+            Choose whose side of the story you want to see in this demo. This
+            switch is only for the demo, not a real sign-in flow.
           </p>
         </div>
         <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">

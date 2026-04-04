@@ -31,7 +31,7 @@ export function ResaleClient({
 
   async function createListing() {
     if (actor !== "guestA" && actor !== "guestB") {
-      setErr("Select Person A or Person B as the current seller");
+      setErr("Switch to the person who currently holds this pass before listing it.");
       return;
     }
     if (!Number.isFinite(askNum) || askNum <= 0) {
@@ -57,7 +57,7 @@ export function ResaleClient({
         return;
       }
       setMsg(
-        `Listing created at ${askNum.toFixed(2)} ℏ. Switch to the other person to complete the resale handoff.`
+        `Listing created at ${askNum.toFixed(2)} ℏ. Switch to the other person to complete the handoff.`
       );
       router.refresh();
     } catch (e) {
@@ -69,7 +69,7 @@ export function ResaleClient({
 
   async function buy() {
     if (actor !== "guestA" && actor !== "guestB") {
-      setErr("Select Person A or Person B as the buyer");
+      setErr("Switch to the person who is buying this pass.");
       return;
     }
     setLoading("buy");
@@ -87,7 +87,7 @@ export function ResaleClient({
         return;
       }
       setMsg(
-        `Purchased. The buyer is now the current holder. Tx: ${data.txId}`
+        `Purchased. This pass now belongs to the buyer. Tx: ${data.txId}`
       );
       router.refresh();
     } catch (e) {
@@ -112,19 +112,19 @@ export function ResaleClient({
               <strong>{initialListing.askPriceHbar} ℏ</strong>
             </p>
             <p className="mt-1 text-sm">
-              Seller account:{" "}
+              Seller account ID:{" "}
               <span className="font-mono text-xs">{initialListing.sellerAccountId}</span>
             </p>
             <p className="mt-2 text-sm">
               The seller has already approved this move by creating the listing.
-              The other person can now buy it and become the new current holder.
+              Another buyer can now take over the pass.
             </p>
           </div>
         )}
         <div className="mt-4 grid gap-2 border-t border-slate-100 pt-4">
-          <p className="font-medium">Current holder creates the listing</p>
+          <p className="font-medium">Current holder lists the pass</p>
           <p className="text-xs text-slate-600">
-            The holder sets the resale ask under issuer rules. They may list above
+            The holder sets the resale ask under provider rules. They may list above
             cost, at cost, or below cost.
           </p>
           <label className="flex items-center gap-2">
@@ -139,7 +139,7 @@ export function ResaleClient({
             />
           </label>
           <p className="text-xs text-slate-600">
-            Issuer royalty preview at 10%: {royalty.toFixed(2)} ℏ. Final settlement
+            Provider royalty preview at 10%: {royalty.toFixed(2)} ℏ. Final settlement
             should be checked from the resale transaction result.
           </p>
           <button
@@ -148,14 +148,13 @@ export function ResaleClient({
             disabled={!!loading || !tokenId}
             onClick={() => createListing()}
           >
-            {loading === "list" ? "…" : "Create listing"}
+            {loading === "list" ? "…" : "List this pass"}
           </button>
         </div>
         <div className="mt-6 grid gap-2 border-t border-slate-100 pt-4">
-          <p className="font-medium">Other person buys the listed pass</p>
+          <p className="font-medium">Another person buys the listed pass</p>
           <p className="text-xs text-slate-600">
-            Buying this listing transfers the booking right to the new holder
-            under issuer policy.
+            Buying this listing transfers the pass to the new holder under provider policy.
           </p>
           <button
             type="button"
@@ -163,7 +162,7 @@ export function ResaleClient({
             disabled={!!loading || !tokenId || !initialListing?.active}
             onClick={() => buy()}
           >
-            {loading === "buy" ? "…" : "Buy listed pass"}
+            {loading === "buy" ? "…" : "Buy this pass"}
           </button>
         </div>
       </div>

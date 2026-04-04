@@ -32,9 +32,10 @@ function holderLabel(
   holderActor: "guestA" | "guestB" | null,
   holderAccountId: string | null
 ): string {
-  if (holderActor) return holderActor;
-  if (status === "USED") return "used / burned";
-  if (!holderAccountId) return "treasury inventory";
+  if (holderActor === "guestA") return "Person A";
+  if (holderActor === "guestB") return "Person B";
+  if (status === "USED") return "Checked in / closed";
+  if (!holderAccountId) return "Still available";
   return holderAccountId;
 }
 
@@ -102,31 +103,31 @@ export function IssuerPanel({
 
   return (
     <div>
-      <h1 className="mb-2 text-xl font-semibold">Issuer console</h1>
+      <h1 className="mb-2 text-xl font-semibold">Provider dashboard</h1>
       <ActorSelector pageDefault="issuer" />
       <p className="mb-4 text-sm text-slate-600">
-        Operator-only demo controls for seeding inventory, managing booking-right
-        lifecycle, and verifying issuer actions.
+        Use this space to set up sessions, keep track of who holds each pass,
+        pause movement when needed, and check people in.
       </p>
       <div className="mb-4 space-y-1 rounded border border-slate-200 bg-white p-4 text-sm">
         <p>
-          <span className="font-medium">Token ID:</span>{" "}
+          <span className="font-medium">Pass token:</span>{" "}
           {tokenId || "—"}{" "}
           {tokenExists ? "(mirror: exists)" : tokenId ? "(mirror: missing)" : ""}
         </p>
         <p>
-          <span className="font-medium">Topic ID:</span> {topicId || "—"}
+          <span className="font-medium">Audit topic:</span> {topicId || "—"}
         </p>
         <p>
-          <span className="font-medium">Seeded slots:</span> {slotsCount}
+          <span className="font-medium">Sessions created:</span> {slotsCount}
         </p>
       </div>
       <div className="mb-4 rounded border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-        <p className="font-medium text-slate-900">Issuer action rules</p>
+        <p className="font-medium text-slate-900">How this dashboard works</p>
         <ul className="mt-2 list-disc space-y-1 pl-5">
-          <li>Freeze or unfreeze only works when the selected holder matches the current Mirror holder.</li>
-          <li>Redeem or mark used is the live check-in step. It will return a guest-held NFT to treasury first, then burn it.</li>
-          <li>Use the slot table below to confirm holder and status before taking action.</li>
+          <li>Pause or reopen only works when the selected person matches the current holder.</li>
+          <li>Check in / mark used is the live redemption step. If a customer still holds the pass, it is returned first and then closed.</li>
+          <li>Use the session table below to confirm the current holder and status before taking action.</li>
         </ul>
       </div>
       {msg && (
@@ -144,7 +145,7 @@ export function IssuerPanel({
           disabled={!!loading}
           onClick={() => run("Initialize", "/api/init")}
         >
-          {loading === "Initialize" ? "…" : "Initialize"}
+          {loading === "Initialize" ? "…" : "Set up business"}
         </button>
         <button
           type="button"
@@ -154,7 +155,7 @@ export function IssuerPanel({
             run("Mint Demo Slots", "/api/mint-slots", { reseed: false })
           }
         >
-          {loading === "Mint Demo Slots" ? "…" : "Mint Demo Slots"}
+          {loading === "Mint Demo Slots" ? "…" : "Create demo sessions"}
         </button>
         <button
           type="button"
@@ -162,21 +163,21 @@ export function IssuerPanel({
           disabled={!!loading}
           onClick={() => run("Reset Demo", "/api/reset-demo")}
         >
-          {loading === "Reset Demo" ? "…" : "Reset Demo"}
+          {loading === "Reset Demo" ? "…" : "Start over"}
         </button>
       </div>
       <section className="mt-8 border-t border-slate-200 pt-6">
-        <h2 className="mb-2 font-medium">Current slots</h2>
+        <h2 className="mb-2 font-medium">Live sessions</h2>
         <div className="overflow-x-auto rounded border border-slate-200 bg-white">
           <table className="min-w-full text-left text-sm">
             <thead className="bg-slate-50 text-slate-700">
               <tr>
-                <th className="px-3 py-2 font-medium">Serial</th>
+                <th className="px-3 py-2 font-medium">Pass</th>
                 <th className="px-3 py-2 font-medium">Title</th>
                 <th className="px-3 py-2 font-medium">Status</th>
-                <th className="px-3 py-2 font-medium">Holder</th>
-                <th className="px-3 py-2 font-medium">Listing</th>
-                <th className="px-3 py-2 font-medium">Use for actions</th>
+                <th className="px-3 py-2 font-medium">Current holder</th>
+                <th className="px-3 py-2 font-medium">Resale</th>
+                <th className="px-3 py-2 font-medium">Choose</th>
               </tr>
             </thead>
             <tbody>
@@ -199,7 +200,7 @@ export function IssuerPanel({
                       className="rounded border border-slate-300 px-2 py-1 text-xs"
                       onClick={() => setSerialAndRecommendedHolder(row.serial)}
                     >
-                      Select serial
+                      Use this pass
                     </button>
                   </td>
                 </tr>
@@ -207,7 +208,7 @@ export function IssuerPanel({
               {rows.length === 0 && (
                 <tr>
                   <td className="px-3 py-3 text-slate-500" colSpan={6}>
-                    No seeded slots yet. Initialize and mint demo slots first.
+                    No sessions are live yet. Set up the business and create demo sessions first.
                   </td>
                 </tr>
               )}
@@ -216,16 +217,16 @@ export function IssuerPanel({
         </div>
       </section>
       <section className="mt-8 border-t border-slate-200 pt-6">
-        <h2 className="mb-2 font-medium">Freeze / unfreeze holder</h2>
+        <h2 className="mb-2 font-medium">Pause or reopen a pass</h2>
         <p className="mb-2 text-sm text-slate-600">
-          Selected serial: <strong>{freezeSerial}</strong>
+          Selected pass: <strong>{freezeSerial}</strong>
           {selectedFreezeRow ? (
             <>
               {" "}· current status: <strong>{selectedFreezeRow.status}</strong>
               {" "}· current holder: <strong>{holderLabel(selectedFreezeRow.status, selectedFreezeRow.holderActor, selectedFreezeRow.holderAccountId)}</strong>
             </>
           ) : (
-            <> · serial not found in the current slot list</>
+            <> · this pass is not in the current session list</>
           )}
         </p>
         <div className="mb-2 flex flex-wrap items-center gap-2 text-sm">
@@ -238,7 +239,7 @@ export function IssuerPanel({
             />
           </label>
           <label className="ml-2">
-            Holder
+            Person
             <select
               className="ml-1 rounded border border-slate-300"
               value={freezeHolder}
@@ -246,20 +247,20 @@ export function IssuerPanel({
                 setFreezeHolder(e.target.value as "guestA" | "guestB")
               }
             >
-              <option value="guestA">guestA</option>
-              <option value="guestB">guestB</option>
+              <option value="guestA">Person A</option>
+              <option value="guestB">Person B</option>
             </select>
           </label>
         </div>
         {selectedFreezeRow?.holderActor && (
           <p className="mb-2 text-sm text-slate-600">
-            Auto-filled from current Mirror-backed holder:{" "}
-            <strong>{selectedFreezeRow.holderActor}</strong>
+            Suggested from the live holder on record:{" "}
+            <strong>{holderLabel(selectedFreezeRow.status, selectedFreezeRow.holderActor, selectedFreezeRow.holderAccountId)}</strong>
           </p>
         )}
         {!canFreezeHolder && selectedFreezeRow && (
           <p className="mb-2 rounded bg-amber-50 p-2 text-sm text-amber-900">
-            This serial does not currently map to a guest holder. Freeze or unfreeze only applies when a guest is the current Mirror holder.
+            This pass is not currently held by a customer. Pause or reopen only applies when a customer is the live holder.
           </p>
         )}
         <div className="flex flex-wrap gap-2">
@@ -274,7 +275,7 @@ export function IssuerPanel({
               })
             }
           >
-            Freeze
+            Pause pass
           </button>
           <button
             type="button"
@@ -287,30 +288,30 @@ export function IssuerPanel({
               })
             }
           >
-            Unfreeze
+            Reopen pass
           </button>
         </div>
       </section>
       <section className="mt-8 border-t border-slate-200 pt-6">
-        <h2 className="mb-2 font-medium">Redeem pass / mark used</h2>
+        <h2 className="mb-2 font-medium">Check in and close the pass</h2>
         <p className="mb-2 text-sm text-slate-600">
-          Selected serial: <strong>{burnSerial}</strong>
+          Selected pass: <strong>{burnSerial}</strong>
           {selectedBurnRow ? (
             <>
               {" "}· current status: <strong>{selectedBurnRow.status}</strong>
               {" "}· current holder: <strong>{holderLabel(selectedBurnRow.status, selectedBurnRow.holderActor, selectedBurnRow.holderAccountId)}</strong>
             </>
           ) : (
-            <> · serial not found in the current slot list</>
+            <> · this pass is not in the current session list</>
           )}
         </p>
         <p className="mb-2 text-sm text-slate-600">
-          Use this when the real-world session happens. If a guest currently holds
-          the booking right, the app will first return it to treasury and then burn it.
+          Use this when the session actually happens. If a customer still holds
+          the pass, the app will first return it and then close it so it cannot be used again.
         </p>
         <div className="mb-2 flex flex-wrap items-center gap-2 text-sm">
           <label>
-            Serial{" "}
+            Pass{" "}
             <input
               className="ml-1 w-16 rounded border border-slate-300 px-1"
               value={burnSerial}
@@ -326,7 +327,7 @@ export function IssuerPanel({
             run("Mark used", "/api/mark-used", { serial: Number(burnSerial) })
           }
         >
-          Redeem / mark used
+          Check in / mark used
         </button>
       </section>
     </div>

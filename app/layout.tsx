@@ -4,7 +4,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "YourTurn",
-  description: "Book, hold, and pass on scarce sessions under provider rules.",
+  description: "Book, keep, and pass on scarce sessions under provider rules.",
 };
 
 export default function RootLayout({
@@ -31,7 +31,7 @@ export default function RootLayout({
                 href="/issuer"
                 className="rounded-full border border-slate-300 px-3 py-1.5 text-slate-700 hover:border-slate-400 hover:text-slate-950"
               >
-                Provider tools
+                Provider dashboard
               </Link>
             </nav>
           </div>

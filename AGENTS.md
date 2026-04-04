@@ -22,6 +22,8 @@ Before making material changes, read these files in order:
 7. `docs/UI-MAP.md` — route / component / API index and flow diagram; **keep in sync** when pages or browser-invoked APIs change (see “After you finish a slice”)
 8. `docs/UI-RULES.md` — lightweight product/UI defaults; use as guidance, not a rigid constraint system
 9. `docs/TX-LOG.md`
+10. `docs/REVIEW-CHECKLIST.md` — **single master checklist** for product, flows, progressive disclosure, gaps, and demo/submission review (optional pass before ship)
+11. `docs/SCORECARD.md` — dated **1–5** health snapshot; re-score after `TX-LOG` proof or major scope/UX changes (optional)
 
 ---
 
@@ -56,14 +58,14 @@ Last updated: <ISO date>
 
 | Track | Owner (default) | Next concrete work | Typical paths | Notes |
 |-------|-----------------|-------------------|---------------|--------|
-| **Chain** | Sebastian | Run **testnet proof** for F2 resale: one tx, confirm **single royalty** (HTS custom fee only); paste tx id + HashScan into `docs/TX-LOG.md` | `docs/TX-LOG.md` (shared write — comment in issue first) | Code fix for double royalty is on `main` (~`e38d153`); proof still needed |
-| **Chain** | Sebastian | Optional: small **API response** improvements if product needs them (e.g. echo `mirrorHolder` on freeze error — already in message) | `app/api/*` | Coordinate if it changes contracts |
+| **Chain** | Sebastian | Investigate why slot detail can still show **no HCS events** even when lifecycle messages exist in Mirror | `lib/hedera/*`, `app/slots/[serial]/page.tsx` | Nice-to-have proof polish; do not destabilize core flow |
+| **Chain** | Sebastian | Optional: small **API response** improvements if product needs them (e.g. return tx ids on freeze / unfreeze / mark-used) | `app/api/*` | Coordinate if it changes contracts |
 | **Chain** | Sebastian | **BookingPort** + typed boundary (RFC or `lib/adapters/booking-port.ts`) | `lib/`, `docs/DECISIONS.md` | **Shared** — agree interface in an issue before coding |
 | **Product** | Partner | **Issuer / freeze UX:** show **current Mirror holder** for the serial (and match `holderActor` dropdown or auto-select) to avoid 409s | `app/issuer/*` | API now validates `holderActor` vs Mirror |
 | **Product** | Partner | **Holder & status clarity:** `/slots/[serial]`, `/my-bookings` — labels for AVAILABLE / HELD / FROZEN / USED, copy that matches chain | `app/slots/*`, `app/my-bookings/*`, `components/*` | No wallet scope |
-| **Product** | Partner | **Resale preview copy:** state that **10% royalty is enforced by HTS**; preview is approximate until testnet proof | `app/resale/*` | Align with `README` royalty line |
-| **Product** | Partner | **Hero demo copy** + lock scenario in `docs/DEMO.md` | `docs/DEMO.md`, optional `app/layout.tsx` copy | Coordinate one short hero string |
-| **Shared** | Either (schedule) | Fill **submission proof**: Vercel URL, token/topic ids, HashScan links in `README` + `docs/TX-LOG.md` | `README.md`, `docs/TX-LOG.md` | One PR or paired commit |
+| **Product** | Partner | Final **plain-English v1 polish** across browse, pass hub, resale, and provider screens | `app/*`, `components/*` | Avoid chain jargon and operator phrasing on customer paths |
+| **Product** | Partner | Keep `docs/DEMO.md`, `docs/REVIEW-CHECKLIST.md`, and persona copy aligned with the shipped UI language | `docs/DEMO.md`, `docs/REVIEW-CHECKLIST.md`, `docs/PERSONAS-EXPECTATIONS.md` | Product-facing docs should read like the app |
+| **Shared** | Either (schedule) | Fill the **submission package**: Vercel URL, final assets, prize selections, and review bundle | `README.md`, `docs/SUBMISSION.md`, `docs/TX-LOG.md` | One PR or paired commit |
 | **Shared** | Either (schedule) | Keep **`docs/DEMO.md`** + **`docs/UI-MAP.md`** aligned with shipped UI (happy path + route/API table) | `docs/DEMO.md`, `docs/UI-MAP.md` | Update `UI-MAP` in the same PR as route or client API changes |
 
 **Intentionally parallel:** Chain can run testnet proofs and BookingPort design while Product improves issuer/slots/resale UX — **no file overlap** if shared docs are coordinated via issues.
@@ -109,6 +111,10 @@ Next.js App Router lives under `app/`; Hedera + Mirror + domain under `lib/` (no
 | API / pages | `app/api/*`, `app/*/page.tsx`, `components/` |
 | UI / flow registry (living) | `docs/UI-MAP.md` (with `docs/DEMO.md` for walkthrough steps) |
 | Stakeholder expectations | `docs/PERSONAS-EXPECTATIONS.md` — update when a persona gains/loses a capability |
+| Market vocabulary | `docs/MARKET-VOCABULARY.md` — Web2 parallels (Calendly, ClassPass, tickets, Wallet pass) vs product copy |
+| Page-level UI audit | `docs/PAGE-OVERVIEW.md` — purpose, controls, copy, clarity, status per route; update when buttons/copy change |
+| Master review checklist | `docs/REVIEW-CHECKLIST.md` — consolidate checklist for reviews / demos; keep aligned with `UI-MAP` + `DEMO` |
+| Scorecard (dated) | `docs/SCORECARD.md` — high-level 1–5 scores; **re-score** after TX-LOG proof, major UX, or deploy hardening |
 | Chain + Mirror | `lib/hedera/*`, `lib/server/slotChain.ts` |
 | Domain (pure) | `lib/domain/*`, `lib/types/*` |
 | App state (Redis) | `lib/store/*` |

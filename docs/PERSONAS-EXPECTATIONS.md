@@ -1,8 +1,8 @@
 # Stakeholder expectations vs shipped app
 
-Use this when **sitting in each person’s seat**: what they reasonably expect, what the app delivers today, and what is **not** available. Pair with **`docs/UI-MAP.md`** (wiring) and **`docs/DEMO.md`** (happy path).
+Use this when **sitting in each person’s seat**: what they reasonably expect, what the app delivers today, and what is **not** available. Pair with **`docs/UI-MAP.md`** (wiring), **`docs/DEMO.md`** (happy path), and **`docs/REVIEW-CHECKLIST.md`** (single review pass).
 
-**Demo reality:** identities are **`guestA`**, **`guestB`**, and **`issuer`** chosen in the UI (`ActorSelector` + `localStorage`), not real wallet login. Chain truth is **Mirror + HTS**.
+**Demo reality:** the UI frames identities as **Person A**, **Person B**, and **Provider**. Under the hood they still map to **`guestA`**, **`guestB`**, and **`issuer`** in `ActorSelector` + `localStorage`, not real wallet login. Chain truth is **Mirror + HTS**.
 
 ---
 
@@ -32,7 +32,7 @@ Use this when **sitting in each person’s seat**: what they reasonably expect, 
 
 | Expectation | Met? | Where / how |
 |-------------|------|-------------|
-| Pick who they are in the demo | **Yes** | `ActorSelector` → guestA or guestB |
+| Pick who they are in the demo | **Yes** | `ActorSelector` → Person A or Person B |
 | Complete a booking in-app | **Yes** | `/slots` → Book on AVAILABLE row → `POST /api/book` |
 | See confirmation / tx id | **Yes** | Success message on `/slots` (tx id when API returns it) |
 | See the booking as “mine” afterward | **Yes** | `/my-bookings` filters rows where Mirror holder matches selected guest; `/slots/[serial]` shows holder + status **HELD** |
@@ -55,7 +55,7 @@ Use this when **sitting in each person’s seat**: what they reasonably expect, 
 | See everything they hold | **Yes** | `/my-bookings` for selected guest; active HELD/FROZEN rows |
 | Understand status (held, frozen, used) | **Partial** | Labels + short copy; TASKS still mention tightening language |
 | Resell if policy allows | **Yes** | Link to `/resale/[serial]` when `canResell`; list + buy on resale page (**F2**) |
-| See fee / royalty impact before selling | **Yes** | `/resale/[serial]` — 10% royalty copy + preview from `lib/domain/fees.ts` |
+| See fee / royalty impact before selling | **Yes** | `/resale/[serial]` — 10% royalty story and ask preview without overpromising seller proceeds |
 | Know when movement is blocked | **Yes** | **FROZEN** copy on hub and detail; issuer must unfreeze |
 | **Transfer or gift** without a listing (peer move) | **No** | Spec mentions transfer; **shipped path is resale** (list + buy). No separate “send to friend” flow. |
 | Cancel and get refund | **No** | **F7** not built. |
@@ -108,7 +108,7 @@ Use this when **sitting in each person’s seat**: what they reasonably expect, 
 | HTS + Mirror story | **Yes** | Implementation in `lib/hedera/*`, slot detail proof links |
 | No Solidity requirement | **Yes** | App matches “No Solidity Allowed” positioning |
 | Observable lifecycle | **Yes** | UI statuses + optional HCS messages on detail page |
-| **Recorded testnet tx ids** | **No (until filled)** | **`docs/TX-LOG.md`** still placeholders — must run flows and paste proof |
+| **Recorded testnet tx ids** | **Yes** | **`docs/TX-LOG.md`** now includes real F1 / F2 / F3 / F4 proof lines and HashScan links |
 | Clear demo script | **Yes** | **`docs/DEMO.md`** + **`docs/UI-MAP.md`** |
 
 ---
@@ -123,6 +123,7 @@ Use this when **sitting in each person’s seat**: what they reasonably expect, 
 | Initialise chain resources | **Yes** | `/issuer` or `POST /api/init` |
 | Debug Mirror reads | **Partial** | `GET /api/mirror` exists; **not linked from UI** |
 | Force token association | **Partial** | `POST /api/associate` exists; **not linked from UI** (book path can associate inline) |
+| Use a stable backend surface for agent integration | **Partial** | `app/api/agent/*` wraps `BookingPort` for reads, previews, confirms, and delegated approval grants |
 | Safe public exposure of init/mint/reset | **No** | Routes are **not** behind product auth — gate or restrict if deployed publicly |
 
 ---
@@ -133,7 +134,7 @@ Use this when **sitting in each person’s seat**: what they reasonably expect, 
 
 | Expectation | Met? |
 |-------------|------|
-| Agent suggests slots, compares options | **No** — deferred (`docs/TASKS.md`) |
+| Agent suggests slots, compares options | **Partial** — backend read / preview / confirm APIs now exist under `app/api/agent/*`, but no shipped user-facing assistant yet |
 | Agent signs or moves value alone | **No** — correctly out of scope by design |
 
 ---
@@ -147,7 +148,7 @@ Use this when **sitting in each person’s seat**: what they reasonably expect, 
 | Holder | Resell or understand blockers | Resale + frozen copy | **Gift/transfer** path, **F7** |
 | Secondary buyer | Buy listing | Buy flow | Listing **discovery** |
 | Issuer | Operate lifecycle | Init, mint, F3, F4, reset | Policy UI, **F7**, analytics |
-| Judge | Verify claims | Architecture + UI | **TX-LOG** proof lines |
+| Judge | Verify claims | Architecture + UI + TX proof | Submission bundle polish |
 | Operator | Run and debug | README + APIs | Protect operator APIs in prod |
 
 ---

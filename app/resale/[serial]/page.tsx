@@ -38,16 +38,17 @@ export default async function ResalePage({
   return (
     <div className="text-sm">
       <Link href={`/slots/${serial}`} className="text-blue-700 underline">
-        ← Slot #{serial}
+        ← Back to session
       </Link>
-      <h1 className="mt-2 text-xl font-semibold">Resale · Serial #{serial}</h1>
+      <h1 className="mt-2 text-xl font-semibold">Sell or buy this pass</h1>
       <p className="mt-2 text-slate-600">
-        This is the handoff step in the demo: Person A lists the booking right
-        and Person B becomes the new current holder by buying it under issuer rules.
+        This is where one customer passes the session on to another. Person A
+        lists the pass and Person B becomes the new holder by buying it under
+        provider rules.
       </p>
       <p className="mt-2 text-slate-600">
-        The current MVP uses a fixed <strong>10%</strong> issuer royalty on resale.
-        The holder chooses the ask and may resell above cost, at cost, or below cost.
+        The current MVP uses a fixed <strong>10%</strong> provider royalty on resale.
+        The current holder chooses the ask and may sell above cost, at cost, or below cost.
       </p>
       <p className="mt-2 rounded border border-slate-200 bg-slate-50 p-3 text-slate-700">
         <span className="font-medium text-slate-900">Important:</span> the app can
@@ -60,7 +61,7 @@ export default async function ResalePage({
         serial={serial}
         tokenId={tokenId}
         initialListing={listing ?? null}
-        slotTitle={slot?.title ?? `Serial ${serial}`}
+        slotTitle={slot?.title ?? `Pass ${serial}`}
       />
     </div>
   );
