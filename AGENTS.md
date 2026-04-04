@@ -19,7 +19,9 @@ Before making material changes, read these files in order:
 4. `docs/TASKS.md`
 5. `docs/ARCHITECTURE.md`
 6. `docs/DEMO.md`
-7. `docs/TX-LOG.md`
+7. `docs/UI-MAP.md` — route / component / API index and flow diagram; **keep in sync** when pages or browser-invoked APIs change (see “After you finish a slice”)
+8. `docs/UI-RULES.md` — lightweight product/UI defaults; use as guidance, not a rigid constraint system
+9. `docs/TX-LOG.md`
 
 ---
 
@@ -47,6 +49,7 @@ Last updated: <ISO date>
 
 - Set issue **Status: DONE** (or **READY_REVIEW** if PR open).
 - Update checkboxes in **`docs/TASKS.md`**.
+- If the slice added or changed **routes**, **`*Client.tsx` actions**, or **`app/api/*` used from the browser**, update **`docs/UI-MAP.md`** in the same PR (and **`docs/DEMO.md`** if the shipped happy path changed). Say so in the PR description (`Updated docs/UI-MAP.md` or why N/A).
 - Update the **[Rolling: what to do next](#rolling-what-to-do-next)** table below (remove done rows, add new ones). If you cannot edit `AGENTS.md`, put “Update AGENTS rolling table” in your PR description for the other person.
 
 ### Rolling: what to do next
@@ -61,7 +64,7 @@ Last updated: <ISO date>
 | **Product** | Partner | **Resale preview copy:** state that **10% royalty is enforced by HTS**; preview is approximate until testnet proof | `app/resale/*` | Align with `README` royalty line |
 | **Product** | Partner | **Hero demo copy** + lock scenario in `docs/DEMO.md` | `docs/DEMO.md`, optional `app/layout.tsx` copy | Coordinate one short hero string |
 | **Shared** | Either (schedule) | Fill **submission proof**: Vercel URL, token/topic ids, HashScan links in `README` + `docs/TX-LOG.md` | `README.md`, `docs/TX-LOG.md` | One PR or paired commit |
-| **Shared** | Either (schedule) | **`docs/DEMO.md`** step list = exact shipped UI flow | `docs/DEMO.md` | After product tweaks stabilize |
+| **Shared** | Either (schedule) | Keep **`docs/DEMO.md`** + **`docs/UI-MAP.md`** aligned with shipped UI (happy path + route/API table) | `docs/DEMO.md`, `docs/UI-MAP.md` | Update `UI-MAP` in the same PR as route or client API changes |
 
 **Intentionally parallel:** Chain can run testnet proofs and BookingPort design while Product improves issuer/slots/resale UX — **no file overlap** if shared docs are coordinated via issues.
 
@@ -104,6 +107,8 @@ Next.js App Router lives under `app/`; Hedera + Mirror + domain under `lib/` (no
 | Area | Paths |
 |------|--------|
 | API / pages | `app/api/*`, `app/*/page.tsx`, `components/` |
+| UI / flow registry (living) | `docs/UI-MAP.md` (with `docs/DEMO.md` for walkthrough steps) |
+| Stakeholder expectations | `docs/PERSONAS-EXPECTATIONS.md` — update when a persona gains/loses a capability |
 | Chain + Mirror | `lib/hedera/*`, `lib/server/slotChain.ts` |
 | Domain (pure) | `lib/domain/*`, `lib/types/*` |
 | App state (Redis) | `lib/store/*` |
@@ -193,3 +198,5 @@ Use WalletConnect or HashConnect only if wallet integration is actually in scope
 ## Documentation rule
 
 If you change product direction, scope, or implementation boundaries, update the relevant repo-local docs in the read order above instead of leaving the change only in chat.
+
+**Agents and contributors:** treat **`docs/UI-MAP.md`** as the canonical map from screens to APIs and spec flows (`F1`–`F7`). After material UI or client-visible API changes, read it and update it so flow review and “what’s missing?” checks stay trustworthy — without duplicating this in `README.md`.
