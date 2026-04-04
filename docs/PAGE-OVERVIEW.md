@@ -21,8 +21,8 @@
 | Item | Detail |
 |------|--------|
 | **Purpose** | Brand + navigation on every page. |
-| **Controls** | Links: **YourTurn** → `/`, **Browse** → `/slots`, **My passes** → `/my-bookings`, **Provider tools** → `/issuer`. |
-| **Copy role** | Consumer-first labels, with the provider dashboard kept as a separate secondary entry. |
+| **Controls** | Links: **YourTurn** → `/`, **Browse** → `/slots`, **My passes** → `/my-bookings`, **Provider dashboard** → `/issuer`. |
+| **Copy role** | Consumer-first labels, with the provider dashboard kept as a quieter secondary entry in the nav. |
 | **Purpose clear?** | **Yes** for demo: customer routes first, provider dashboard secondary. |
 | **Status** | **Works** as navigation. |
 
@@ -46,8 +46,8 @@
 | Item | Detail |
 |------|--------|
 | **Purpose** | See sessions, status, **F1** book. |
-| **Controls** | Customer-only `ActorSelector` (Person A / Person B); per row: **Session details** → `/slots/[serial]`, **Book** (only if `AVAILABLE`); empty state → **Open provider dashboard**; summary tile **Paused** = movement on hold. |
-| **Copy role** | Explains AVAILABLE vs later states; status hints + “Next step”; aggregate counts (Available / Held / Paused / Used). |
+| **Controls** | Customer-only compact `ActorSelector` (Person A / Person B); per row: **Session details** → `/slots/[serial]`, **Book** (only if `AVAILABLE`); empty state → **Open provider dashboard**; summary tile **Paused** = movement on hold. |
+| **Copy role** | Explains AVAILABLE vs later states; readable session times, status hints + “Next step”, aggregate counts (Available / Held / Paused / Used). |
 | **Purpose clear?** | **Yes** for booking; explains issuer prerequisite when empty. |
 | **Status** | **Works**; success/error lines after `POST /api/book`; Mirror lag may need refresh — **Partial** UX. |
 
@@ -59,9 +59,9 @@
 |------|--------|
 | **Purpose** | Truth panel for one serial: status, holder, policy fields, proof links, HCS filter, optional resale CTA. |
 | **Controls** | Link **← All sessions**; **Sell pass** (`SlotResaleCta` → `/resale/[serial]` when allowed); external **HashScan** token/topic; optional metadata `<details>`. |
-| **Copy role** | `statusSummary`, `nextStepSummary`; active listing banner; technical / audit sections labelled. |
-| **Purpose clear?** | **Yes** for lifecycle and next step; heavier for non-technical users at bottom. |
-| **Status** | **Works**; Redis/Mirror/token errors return plain `<p>` messages — **Partial** polish. |
+| **Copy role** | `statusSummary`, `nextStepSummary`; “Not booked yet” / Person A / Person B holder summary; readable start/end times; proof and audit sections clearly demoted as optional. |
+| **Purpose clear?** | **Yes** for lifecycle and next step; still heavier than the browse and pass-hub screens. |
+| **Status** | **Works**; Redis/Mirror/token errors return plain `<p>` messages and the audit trail can still show no events — **Partial** polish. |
 
 ---
 
@@ -94,8 +94,8 @@
 | Item | Detail |
 |------|--------|
 | **Purpose** | Separate provider dashboard: set up the business, inspect live sessions, **F3** pause/reopen pass, **F4** check-in / mark used. |
-| **Controls** | Provider banner; **Set up business**, **Create demo sessions**, **Start over**; table column **Ref**, **Use this pass**; pause: **Ref #** + Person, **Pause pass** / **Reopen pass**; check-in: **Ref #**, **Check in / mark used**. |
-| **Copy role** | Business view, pass token / audit topic / session count; **How this dashboard works** bullets; plain-language pause and check-in. |
+| **Controls** | Provider banner; **Set up business**, **Create demo sessions**, **Start over**; table column **Ref**, **Use this pass**; pause: **Ref #** + Person, **Pause pass** / **Reopen pass**; check-in: **Ref #**, **Check in / mark used**; **System details** disclosure for token/topic ids. |
+| **Copy role** | Business view, session count first; system ids moved behind a disclosure; **How this dashboard works** bullets; plain-language pause and check-in. |
 | **Purpose clear?** | **Yes** for operators; dense — **Partial** for first-time readers (everything on one page). |
 | **Status** | **Works**; API errors shown inline; holder mismatch → 409 message — **Works**. |
 
@@ -121,6 +121,7 @@
 
 ## Changelog
 
+- **2026-04-05:** Compact customer switcher on browse / passes / resale, softer provider nav, readable session times on browse/detail, and provider system ids moved behind disclosure.
 - **2026-04-05:** Split the app more clearly into customer surfaces, a shared truth page, and a provider dashboard; actor switcher now stays on customer routes only.
 - **2026-04-05:** Synced with market-vocab copy pass: session details, Ref #, provider dashboard labels, Sell pass, PAGE-OVERVIEW control rows updated.
 - **2026-04-05:** Initial page overview (home split into `components/home/*`; issuer “Redeem / mark used” label).

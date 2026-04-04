@@ -24,11 +24,11 @@ Update **`docs/UI-MAP.md` in the same PR** when you change any of the following 
 | Route | Server module | Renders | Client / child UI | User actions (primary) | APIs invoked from browser |
 |-------|----------------|---------|-------------------|-------------------------|---------------------------|
 | `/` | `app/page.tsx` | Marketing home | — (Server Component) | Navigate via links | — |
-| `/slots` | `app/slots/page.tsx` | Public slot list | `SlotsClient` | Choose guest actor, book an AVAILABLE slot | `POST /api/book` |
-| `/slots/[serial]` | `app/slots/[serial]/page.tsx` | Slot detail, status, HCS snippet | `SlotResaleCta` (link only) | Open resale when eligible | — |
-| `/my-bookings` | `app/my-bookings/page.tsx` | Hub for selected guest | `MyBookingsClient` | Switch actor, open details / resale, refresh | — (`router.refresh()` only) |
-| `/resale/[serial]` | `app/resale/[serial]/page.tsx` | Resale headline + fee copy | `ResaleClient` | List at ask, buy listing | `POST /api/resale-list`, `POST /api/resale-buy` |
-| `/issuer` | `app/issuer/page.tsx` | Issuer console shell | `IssuerPanel` | Init, mint, reset, freeze/unfreeze, mark used | `POST /api/init`, `POST /api/mint-slots`, `POST /api/reset-demo`, `POST /api/freeze`, `POST /api/unfreeze`, `POST /api/mark-used` |
+| `/slots` | `app/slots/page.tsx` | Customer browse list | `SlotsClient` | Switch between Person A / Person B, book an AVAILABLE slot | `POST /api/book` |
+| `/slots/[serial]` | `app/slots/[serial]/page.tsx` | Shared truth page: status, next step, proof | `SlotResaleCta` (link only) | Open resale when eligible | — |
+| `/my-bookings` | `app/my-bookings/page.tsx` | Customer pass hub | `MyBookingsClient` | Switch between Person A / Person B, open details / resale, refresh | — (`router.refresh()` only) |
+| `/resale/[serial]` | `app/resale/[serial]/page.tsx` | Customer resale handoff page | `ResaleClient` | Switch seller / buyer, list at ask, buy listing | `POST /api/resale-list`, `POST /api/resale-buy` |
+| `/issuer` | `app/issuer/page.tsx` | Provider dashboard shell | `IssuerPanel` | Init, mint, reset, freeze/unfreeze, mark used | `POST /api/init`, `POST /api/mint-slots`, `POST /api/reset-demo`, `POST /api/freeze`, `POST /api/unfreeze`, `POST /api/mark-used` |
 
 Global chrome: `app/layout.tsx` (header nav only; no API calls).
 
@@ -36,7 +36,7 @@ Global chrome: `app/layout.tsx` (header nav only; no API calls).
 
 | Component | File | Role | Used on |
 |-----------|------|------|---------|
-| `ActorSelector` | `components/ActorSelector.tsx` | Demo actor (`issuer` / `guestA` / `guestB`), persists choice in `localStorage` | `/slots`, `/my-bookings`, `/resale/*`, `/issuer` |
+| `ActorSelector` | `components/ActorSelector.tsx` | Demo persona switcher; compact Person A / Person B toggle on customer routes, configurable full selector when needed | `/slots`, `/my-bookings`, `/resale/*` |
 | `SlotResaleCta` | `app/slots/[serial]/SlotResaleCta.tsx` | Link to `/resale/[serial]` | `/slots/[serial]` when resale allowed |
 
 **Note:** `statusTone` / status copy helpers are duplicated across several files; consider one shared helper when touching styling (see prior review).
@@ -71,7 +71,7 @@ Global chrome: `app/layout.tsx` (header nav only; no API calls).
 | **F4** Mark used | Close lifecycle | `/issuer` → `POST /api/mark-used` | Guest views update via Mirror on refresh |
 | **F7** Cancel / refund | Not in MVP | — | Listed deferred in `docs/TASKS.md` |
 
-## Where guest and issuer “meet”
+## Where customer and provider “meet”
 
 Both rely on the **same** on-chain + Mirror-derived status for a serial:
 
@@ -98,8 +98,8 @@ flowchart LR
   M --> Chain
 ```
 
-- **Guest** drives: book, list resale, buy resale (and reads detail / hub).
-- **Issuer** drives: seed, freeze/unfreeze, mark used.
+- **Customer** drives: book, list resale, buy resale (and reads detail / hub).
+- **Provider** drives: seed, freeze/unfreeze, mark used.
 - **Convergence:** serial `N` has one lifecycle; pages re-read state after `router.refresh()` or navigation. There is no separate “guest DB” vs “issuer DB” for ownership — Redis holds slot **metadata**; holder truth is chain + Mirror.
 
 ## Gap and orphan checklist
@@ -114,6 +114,14 @@ Use when auditing “are we missing something?”
 | `/api/agent/*` | Not linked from app — intentional agent/backend integration surface |
 | Real tx proof lines | See `docs/TX-LOG.md`; re-run and extend after new testnet proof |
 | Component inventory | This file — update when adding routes or `*Client.tsx` |
+
+## Surface split
+
+- **Customer surfaces:** `/slots`, `/my-bookings`, `/resale/[serial]`
+- **Shared truth surface:** `/slots/[serial]`
+- **Provider surface:** `/issuer`
+
+Keep that split visible in copy and controls. If a customer page starts explaining provider operations too early, it is drifting out of role.
 
 ## Related docs
 
