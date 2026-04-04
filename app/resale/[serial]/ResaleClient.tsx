@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ActorSelector, type ActorValue } from "@/components/ActorSelector";
-import { calcRoyalty, calcSellerNet } from "@/lib/domain/fees";
+import { calcRoyalty } from "@/lib/domain/fees";
 import type { ResaleListing } from "@/lib/types/listing";
 
 export function ResaleClient({
@@ -28,11 +28,14 @@ export function ResaleClient({
 
   const askNum = Number(ask) || 0;
   const royalty = calcRoyalty(askNum);
-  const net = calcSellerNet(askNum);
 
   async function createListing() {
     if (actor !== "guestA" && actor !== "guestB") {
-      setErr("Select guestA or guestB as seller");
+      setErr("Select Person A or Person B as the current seller");
+      return;
+    }
+    if (!Number.isFinite(askNum) || askNum <= 0) {
+      setErr("Enter a positive resale ask");
       return;
     }
     setLoading("list");
@@ -53,7 +56,9 @@ export function ResaleClient({
         setErr(data.error || res.statusText);
         return;
       }
-      setMsg("Listing created");
+      setMsg(
+        `Listing created at ${askNum.toFixed(2)} ℏ. Switch to the other person to complete the resale handoff.`
+      );
       router.refresh();
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
@@ -64,7 +69,7 @@ export function ResaleClient({
 
   async function buy() {
     if (actor !== "guestA" && actor !== "guestB") {
-      setErr("Select guestA or guestB as buyer");
+      setErr("Select Person A or Person B as the buyer");
       return;
     }
     setLoading("buy");
@@ -81,7 +86,9 @@ export function ResaleClient({
         setErr(data.error || res.statusText);
         return;
       }
-      setMsg(`Purchased. Tx: ${data.txId}`);
+      setMsg(
+        `Purchased. The buyer is now the current holder. Tx: ${data.txId}`
+      );
       router.refresh();
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
@@ -99,13 +106,27 @@ export function ResaleClient({
           <p className="mt-2 text-amber-800">Token not initialized.</p>
         )}
         {initialListing?.active && (
-          <p className="mt-2 text-slate-700">
-            Active listing: <strong>{initialListing.askPriceHbar} ℏ</strong> from{" "}
-            {initialListing.sellerAccountId}
-          </p>
+          <div className="mt-2 rounded border border-emerald-200 bg-emerald-50 p-3 text-emerald-950">
+            <p>
+              <span className="font-medium">Active listing:</span>{" "}
+              <strong>{initialListing.askPriceHbar} ℏ</strong>
+            </p>
+            <p className="mt-1 text-sm">
+              Seller account:{" "}
+              <span className="font-mono text-xs">{initialListing.sellerAccountId}</span>
+            </p>
+            <p className="mt-2 text-sm">
+              The seller has already approved this move by creating the listing.
+              The other person can now buy it and become the new current holder.
+            </p>
+          </div>
         )}
         <div className="mt-4 grid gap-2 border-t border-slate-100 pt-4">
-          <p className="font-medium">Create listing (holder)</p>
+          <p className="font-medium">Current holder creates the listing</p>
+          <p className="text-xs text-slate-600">
+            The holder sets the resale ask under issuer rules. They may list above
+            cost, at cost, or below cost.
+          </p>
           <label className="flex items-center gap-2">
             Ask (ℏ)
             <input
@@ -118,8 +139,8 @@ export function ResaleClient({
             />
           </label>
           <p className="text-xs text-slate-600">
-            Royalty preview: {royalty.toFixed(2)} ℏ · Seller net: {net.toFixed(2)}{" "}
-            ℏ
+            Issuer royalty preview at 10%: {royalty.toFixed(2)} ℏ. Final settlement
+            should be checked from the resale transaction result.
           </p>
           <button
             type="button"
@@ -131,14 +152,18 @@ export function ResaleClient({
           </button>
         </div>
         <div className="mt-6 grid gap-2 border-t border-slate-100 pt-4">
-          <p className="font-medium">Buy listed slot (other guest)</p>
+          <p className="font-medium">Other person buys the listed pass</p>
+          <p className="text-xs text-slate-600">
+            Buying this listing transfers the booking right to the new holder
+            under issuer policy.
+          </p>
           <button
             type="button"
             className="w-fit rounded bg-emerald-800 px-3 py-2 text-white disabled:opacity-50"
             disabled={!!loading || !tokenId || !initialListing?.active}
             onClick={() => buy()}
           >
-            {loading === "buy" ? "…" : "Buy at listed price"}
+            {loading === "buy" ? "…" : "Buy listed pass"}
           </button>
         </div>
       </div>

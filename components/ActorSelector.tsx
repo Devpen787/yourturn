@@ -6,15 +6,18 @@ const STORAGE_KEY = "bookedrights:selectedActor";
 const ACTOR_META = {
   issuer: {
     label: "Issuer",
-    description: "Use for setup, freeze or unfreeze, and mark-used actions.",
+    description:
+      "Use for setup, holder checks, freeze or unfreeze, and redeem or mark-used actions.",
   },
   guestA: {
-    label: "Guest A",
-    description: "Demo holder account for booking and first resale actions.",
+    label: "Person A",
+    description:
+      "First customer for booking and listing a pass when plans change.",
   },
   guestB: {
-    label: "Guest B",
-    description: "Second demo guest for transfer, resale buy, and holder checks.",
+    label: "Person B",
+    description:
+      "Second customer who can buy a listed pass and become the new holder.",
   },
 } as const;
 
@@ -52,8 +55,9 @@ export function ActorSelector({ pageDefault, onChange }: Props) {
         <div>
           <p className="font-medium text-slate-900">Demo actor</p>
           <p className="mt-1 max-w-2xl text-slate-600">
-            Switch which demo account the UI is acting as. This is a demo control,
-            not wallet authentication or a security boundary.
+            Switch which demo participant the UI is acting as. This is a demo
+            control, not real sign-in, wallet authentication, or a security
+            boundary.
           </p>
         </div>
         <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">

@@ -33,7 +33,7 @@ See `docs/ECONOMICS.md` for examples and the intended product policy model.
 
 This section matches the **current** Next.js app. Use it for dry runs and judges. For **component and API mapping**, see `docs/UI-MAP.md`.
 
-**Prerequisites:** env + Redis configured per `README.md`; demo uses `guestA` / `guestB` / `issuer` from `ActorSelector` (stored in `localStorage`).
+**Prerequisites:** env + Redis configured per `README.md`; demo uses `guestA` / `guestB` / `issuer` underneath, but the UI frames them as **Person A**, **Person B**, and **Issuer** in `ActorSelector` (stored in `localStorage`).
 
 ### A. Issuer — prepare chain state
 
@@ -56,21 +56,23 @@ This section matches the **current** Next.js app. Use it for dry runs and judges
 11. From **`/slots/[serial]`** (if resale allowed) use **List for resale**, or open **`/resale/[serial]`** directly.
 12. Ensure **Actor** is the **current holder** for **create listing** — `POST /api/resale-list` with ask price.
 13. Explain that creating the listing is the seller's approval to sell under issuer conditions.
+14. Explain the economics honestly: the current MVP proves a fixed **10%** HTS royalty on resale, and the holder may list above cost, at cost, or below cost.
 
 ### D. Person B — buy the resale (`F2`)
 
-14. Switch **Actor** to the other guest.
-15. Show that Person B can see the resale offer and current ask.
-16. Buy the listed pass — `POST /api/resale-buy`.
-17. Refresh **`/slots/[serial]`** and **`/my-bookings`** to confirm Person B is now the current holder and Person A is not.
-18. Return to **`/issuer`** and confirm the issuer also sees the holder change.
+15. Switch **Actor** to the other guest.
+16. Show that Person B can see the resale offer and current ask.
+17. Buy the listed pass — `POST /api/resale-buy`.
+18. Refresh **`/slots/[serial]`** and **`/my-bookings`** to confirm Person B is now the current holder and Person A is not.
+19. Return to **`/issuer`** and confirm the issuer also sees the holder change.
 
 ### E. Issuer — close lifecycle (`F4`)
 
-19. Return to **`/issuer`**. Confirm table shows Person B as the current holder for the serial.
-20. At redemption or check-in, set **Mark used** serial to that NFT — **Mark used** — `POST /api/mark-used`.
-21. Show **USED** state on **`/slots/[serial]`** or the guest hub.
-22. Make it explicit that the issuer is the one who closes the lifecycle, so the pass cannot be used again.
+20. Return to **`/issuer`**. Confirm table shows Person B as the current holder for the serial.
+21. At redemption or check-in, set **Mark used** serial to that NFT — **Redeem / mark used** — `POST /api/mark-used`.
+22. Show **USED** state on **`/slots/[serial]`** or the guest hub.
+23. Make it explicit that the issuer is the one who closes the lifecycle, so the pass cannot be used again.
+24. If needed, show the anti-double-use proof: a second `mark-used` or `book` attempt for the same serial now fails with `CONFLICT`.
 
 ### F. Optional — freeze (`F3`)
 
@@ -95,6 +97,7 @@ This section matches the **current** Next.js app. Use it for dry runs and judges
 
 ## Related docs
 
+- `docs/REVIEW-CHECKLIST.md` — master checklist (flows, roles, UX disclosure, proof, gaps)
 - `docs/UI-MAP.md` — routes, components, APIs, flow diagram
 - `docs/PERSONAS-EXPECTATIONS.md` — expectations by role (customer, holder, issuer, judge, operator)
 - `docs/SPEC.md` — acceptance criteria for F1, F2, F3, F4, F7

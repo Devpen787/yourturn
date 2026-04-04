@@ -37,13 +37,13 @@ function nextStepSummary(
     return "Go back to the slot list and book this service slot from a guest account.";
   }
   if (status === "HELD" && listingActive) {
-    return "This booking right already has an active resale listing. Open the resale page to review it.";
+    return "This booking right already has an active resale listing. The next buyer can take over from the resale page.";
   }
   if (status === "HELD" && showResell) {
-    return "If the current holder cannot attend, they can open the resale page and list this slot under issuer rules.";
+    return "If the current holder cannot attend, they can open the resale page, list the pass under issuer rules, and let another buyer take over.";
   }
   if (status === "HELD") {
-    return "This booking right is active and ready to be used for the scheduled session.";
+    return "This booking right is active and ready for redemption at the scheduled session.";
   }
   if (status === "FROZEN") {
     return "No movement is possible until the issuer unfreezes this booking right.";
@@ -154,7 +154,7 @@ export default async function SlotDetailPage({
       </div>
       {listing?.active && (
         <p className="mt-4 rounded bg-amber-50 p-2">
-          Active resale listing: {listing.askPriceHbar} ℏ —{" "}
+          Active resale listing: {listing.askPriceHbar} ℏ. The next buyer can take over here —{" "}
           <Link href={`/resale/${serial}`} className="underline">
             resale page
           </Link>

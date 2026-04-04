@@ -22,7 +22,7 @@ Use it to keep product copy, demo narration, and implementation decisions aligne
 |-------|-------------------|-----------------------|------------------------------|
 | Issuer / provider | Primary price, resale allowed, lifecycle controls | Earns on the primary booking and earns a royalty on secondary resale when enabled | Secondary movement can still benefit the issuer, not just the reseller |
 | Primary buyer / current holder | Whether to keep or resell, and at what ask | Pays the primary price; may later recover value, break even, profit, or take a loss | They hold the right until it is transferred, frozen, used, or retired |
-| Resale seller | The resale ask | Intended economics: seller proceeds = ask minus issuer royalty | A premium resale increases proceeds; a discounted resale reduces recovery |
+| Resale seller | The resale ask | Current proven path: seller receives the ask minus the HTS royalty | A premium resale increases proceeds; a discounted resale reduces recovery |
 | Resale buyer | Whether to buy at the current ask | Pays the resale ask | They become the new current holder and only the current holder should be redeemable |
 
 ## Current pricing model
@@ -38,9 +38,10 @@ Use it to keep product copy, demo narration, and implementation decisions aligne
 - Seller sets the resale ask.
 - Buyer pays the ask.
 - Issuer royalty applies on the move.
-- Intended product economics:
+- In the current proven testnet path:
   - `issuer royalty = ask × royalty rate`
   - `seller proceeds = ask - issuer royalty`
+  - network fees still apply to the submitting operator account, so Mirror account deltas should be read with tx fees in mind
 
 ### Redemption
 
@@ -83,17 +84,16 @@ That means the long-term pricing model should support:
 
 ## Important implementation note
 
-The economic model above is the intended product story.
+The economic model above is now partly proven in testnet.
+
+- `docs/TX-LOG.md` contains a successful resale at `14 ℏ`
+- Mirror `assessed_custom_fees` for that tx shows a single HTS royalty of `140000000` tinybar (`1.4 ℏ`)
+- The seller transfer in that resale is `12.6 ℏ`
 
 The current MVP still needs one thing to stay disciplined:
 
 - resale UI copy and settlement preview must match the actual Hedera transaction outcome
-
-Until that is fully proven in testnet logs, the safest demo wording is:
-
-- the holder sets the resale ask
-- the issuer royalty applies on secondary movement
-- the final settlement should be verified from the transaction result and `docs/TX-LOG.md`
+- if operator-paid tx fees affect a fee-collector account delta, explain that clearly instead of pretending the fee-collector net change equals the royalty line item
 
 ## Demo framing
 

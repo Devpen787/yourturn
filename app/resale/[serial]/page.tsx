@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { calcRoyalty, calcSellerNet } from "@/lib/domain/fees";
 import { getStoredTokenId } from "@/lib/store/ids";
 import { getActiveListingForSerial } from "@/lib/store/listings";
 import { getSlotBySerial } from "@/lib/store/slots";
@@ -34,9 +33,7 @@ export default async function ResalePage({
   } catch {
     slot = undefined;
   }
-  const previewAsk = listing?.askPriceHbar ?? 20;
-  const royalty = calcRoyalty(previewAsk);
-  const net = calcSellerNet(previewAsk);
+  const previewAsk = listing?.askPriceHbar ?? slot?.primaryPriceHbar ?? 20;
 
   return (
     <div className="text-sm">
@@ -45,9 +42,19 @@ export default async function ResalePage({
       </Link>
       <h1 className="mt-2 text-xl font-semibold">Resale · Serial #{serial}</h1>
       <p className="mt-2 text-slate-600">
-        Royalty is fixed at 10% (numerator 1 / denominator 10). Preview for{" "}
-        {previewAsk} ℏ ask: issuer royalty {royalty.toFixed(2)} ℏ, seller net{" "}
-        {net.toFixed(2)} ℏ.
+        This is the handoff step in the demo: Person A lists the booking right
+        and Person B becomes the new current holder by buying it under issuer rules.
+      </p>
+      <p className="mt-2 text-slate-600">
+        The current MVP uses a fixed <strong>10%</strong> issuer royalty on resale.
+        The holder chooses the ask and may resell above cost, at cost, or below cost.
+      </p>
+      <p className="mt-2 rounded border border-slate-200 bg-slate-50 p-3 text-slate-700">
+        <span className="font-medium text-slate-900">Important:</span> the app can
+        preview royalty impact, but final settlement should be verified from the
+        resale transaction result and HashScan proof. At the moment, treat the
+        economics around a <strong>{previewAsk} ℏ</strong> ask as an estimate, not
+        a guaranteed seller payout line.
       </p>
       <ResaleClient
         serial={serial}

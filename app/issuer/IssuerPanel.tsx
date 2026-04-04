@@ -125,7 +125,7 @@ export function IssuerPanel({
         <p className="font-medium text-slate-900">Issuer action rules</p>
         <ul className="mt-2 list-disc space-y-1 pl-5">
           <li>Freeze or unfreeze only works when the selected holder matches the current Mirror holder.</li>
-          <li>Mark used will return a guest-held NFT to treasury first, then burn it.</li>
+          <li>Redeem or mark used is the live check-in step. It will return a guest-held NFT to treasury first, then burn it.</li>
           <li>Use the slot table below to confirm holder and status before taking action.</li>
         </ul>
       </div>
@@ -292,7 +292,7 @@ export function IssuerPanel({
         </div>
       </section>
       <section className="mt-8 border-t border-slate-200 pt-6">
-        <h2 className="mb-2 font-medium">Mark slot used (burn)</h2>
+        <h2 className="mb-2 font-medium">Redeem pass / mark used</h2>
         <p className="mb-2 text-sm text-slate-600">
           Selected serial: <strong>{burnSerial}</strong>
           {selectedBurnRow ? (
@@ -305,7 +305,8 @@ export function IssuerPanel({
           )}
         </p>
         <p className="mb-2 text-sm text-slate-600">
-          If a guest currently holds the booking right, the app will first return it to treasury and then burn it.
+          Use this when the real-world session happens. If a guest currently holds
+          the booking right, the app will first return it to treasury and then burn it.
         </p>
         <div className="mb-2 flex flex-wrap items-center gap-2 text-sm">
           <label>
@@ -325,7 +326,7 @@ export function IssuerPanel({
             run("Mark used", "/api/mark-used", { serial: Number(burnSerial) })
           }
         >
-          Mark used
+          Redeem / mark used
         </button>
       </section>
     </div>

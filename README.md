@@ -43,17 +43,20 @@ npm run lint
 
 Copy `.env.example` → `.env.local` (Hedera accounts, Upstash Redis, optional reuse `BOOKED_RIGHTS_*`). Deploy on **Vercel** with the same vars.
 
+If you are integrating another backend or agent, see `docs/AGENT-INTEGRATION.md` and set dedicated approval secrets for `/api/agent/approval-grant`.
+
 ### Implementation notes
 
 - **Royalty:** numerator **1** / denominator **10** (10%), no fallback fee — enforced by **HTS `CustomRoyaltyFee`** on resale (buyer pays seller full ask + NFT transfer in one tx); `lib/domain/fees.ts` is for **UI preview** only  
 - **Redis keys:** `bookedrights:tokenId`, `bookedrights:topicId`, `bookedrights:slots`, `bookedrights:listings`  
+- **Agent approval secrets:** set `BOOKED_RIGHTS_APPROVAL_SECRET` and `BOOKED_RIGHTS_APPROVAL_ADMIN_SECRET` for `/api/agent/*` integrations  
 - **Node:** `pino@8.17.2` override for Node 18 `next build`; Node 20+ recommended  
 
 ### Local smoke path
 
 1. `/issuer` → **Initialize** → **Mint Demo Slots**  
-2. As **guestA**, book serial **1** on `/slots`  
-3. List resale on `/resale/1`, buy as **guestB**; issuer **Freeze** / **Unfreeze** / **Mark used** as needed  
+2. As **Person A** (`guestA` underneath), book one live serial from `/slots`  
+3. List resale on `/resale/[serial]`, buy as **Person B** (`guestB`), then issuer **Freeze** / **Unfreeze** / **Redeem / Mark used** as needed  
 
 ## Repo map
 
@@ -63,6 +66,7 @@ Copy `.env.example` → `.env.local` (Hedera accounts, Upstash Redis, optional r
 | `docs/DECISIONS.md` | Locked decisions |
 | `docs/TASKS.md` | Living build checklist |
 | `docs/ARCHITECTURE.md` | System boundaries, Hedera usage |
+| `docs/AGENT-INTEGRATION.md` | How another backend or agent should call `/api/agent/*` |
 | `docs/DEMO.md` | Demo order and stage rules |
 | `docs/TX-LOG.md` | Testnet tx ids + HashScan |
 | `docs/booked-rights-build-spec.txt` | Full agent V1 instructions (original) |
@@ -80,10 +84,10 @@ GitHub **issue** and **PR** templates live under `.github/`.
 ## Submission proof (fill as you ship)
 
 - Deployed URL: _TBD_  
-- Testnet token id: _TBD_ (also `bookedrights:tokenId` in Redis)  
-- Topic id: _TBD_  
-- Treasury / demo accounts: _TBD_  
-- HashScan links: _TBD_ (`NEXT_PUBLIC_HASHSCAN_BASE`)  
+- Testnet token id: `0.0.8505698`  
+- Topic id: `0.0.8505699`  
+- Treasury / demo accounts: treasury `0.0.8504300`, Person A `0.0.8504405`, Person B `0.0.8504715`  
+- HashScan links: [token](https://hashscan.io/testnet/token/0.0.8505698), [topic](https://hashscan.io/testnet/topic/0.0.8505699), [F1 book](https://hashscan.io/testnet/transaction/0.0.8504300-1775311056.646893028), [F2 resale buy](https://hashscan.io/testnet/transaction/0.0.8504300-1775311076.681678722), [F4 transfer to treasury](https://hashscan.io/testnet/transaction/0.0.8504300-1775311104.625214821), [F4 burn](https://hashscan.io/testnet/transaction/0.0.8504300-1775311102.263715214)  
 - Video: _TBD_  
 
 ## Mirror endpoints (MVP)

@@ -1,6 +1,6 @@
 # Transaction log (Hedera testnet proof)
 
-Record **only** real testnet transactions here. Replace `_TBD_` after you run the demo flows.  
+Record **only** real testnet transactions here.  
 HashScan base (default): `https://hashscan.io/testnet`
 
 ## Network & resources
@@ -8,12 +8,12 @@ HashScan base (default): `https://hashscan.io/testnet`
 | Field | Value |
 |--------|--------|
 | Network | `testnet` |
-| Token ID | _TBD_ (also `bookedrights:tokenId` in Redis after `/api/init`) |
-| HCS topic ID | _TBD_ (also `bookedrights:topicId` in Redis) |
-| Treasury account | _TBD_ (`HEDERA_TREASURY_ID`) |
-| Fee collector (royalty) | _TBD_ (`HEDERA_FEE_COLLECTOR_ID`) |
-| Guest A | _TBD_ (`HEDERA_GUEST_A_ID`) |
-| Guest B | _TBD_ (`HEDERA_GUEST_B_ID`) |
+| Token ID | `0.0.8505698` |
+| HCS topic ID | `0.0.8505699` |
+| Treasury account | `0.0.8504300` |
+| Fee collector (royalty) | `0.0.8504300` |
+| Guest A / Person A | `0.0.8504405` |
+| Guest B / Person B | `0.0.8504715` |
 
 **Mirror (read-only):** `https://testnet.mirrornode.hedera.com/api/v1`
 
@@ -21,11 +21,12 @@ HashScan base (default): `https://hashscan.io/testnet`
 
 | Flow | Tx ID | HashScan / notes |
 |------|--------|------------------|
-| **F1** Primary book (`POST /api/book`) | _TBD_ | _TBD_ |
-| **F2** Resale buy (`POST /api/resale-buy`) | _TBD_ | _TBD_ — confirm **single** issuer royalty (HTS `CustomRoyaltyFee`); no double HBAR split in app; confirm Person B becomes current holder |
-| **F3** Freeze (`POST /api/freeze`) | _TBD_ | _TBD_ |
-| **F3** Unfreeze (`POST /api/unfreeze`) | _TBD_ | _TBD_ |
-| **F4** Mark used / burn (`POST /api/mark-used`) | _TBD_ | _TBD_ — if guest held NFT, expect **transfer → treasury** then **burn** (two steps server-side); confirm pass is closed after redemption |
+| **F1** Primary book (`POST /api/book`) | `0.0.8504300@1775311056.646893028` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1775311056.646893028) — serial `32` moved treasury → Person A (`0.0.8504405`) |
+| **F2** Resale buy (`POST /api/resale-buy`) | `0.0.8504300@1775311076.681678722` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1775311076.681678722) — serial `32` moved Person A → Person B; Mirror `assessed_custom_fees` shows a single `140000000` tinybar HTS royalty to fee collector `0.0.8504300` |
+| **F3** Freeze (`POST /api/freeze`) | `0.0.8504300@1775311165.395183233` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1775311165.395183233) — froze serial `33` for Person A (`0.0.8504405`) |
+| **F3** Unfreeze (`POST /api/unfreeze`) | `0.0.8504300@1775311174.322191867` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1775311174.322191867) — unfroze serial `33` for Person A (`0.0.8504405`) |
+| **F4** Mark used / return to treasury | `0.0.8504300@1775311104.625214821` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1775311104.625214821) — serial `32` moved Person B → treasury during redemption |
+| **F4** Burn after redemption | `0.0.8504300@1775311102.263715214` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1775311102.263715214) — token burn for serial `32`; slot detail now shows `USED` and closed lifecycle |
 
 ## Demo-complete proof checks
 
@@ -38,13 +39,15 @@ Use these checks alongside the tx rows above:
 - Issuer marks the pass **used**
 - After `USED`, the pass no longer looks active
 - Person A no longer looks redeemable after Person B buys
+- Repeating `POST /api/mark-used` on serial `32` returns `CONFLICT: Serial is already burned (USED)`
+- Repeating `POST /api/book` on serial `32` returns `CONFLICT: Slot is not available for booking`
 
 ## Optional
 
 | Item | Link / id |
 |------|-----------|
-| Token on HashScan | _TBD_ |
-| Topic on HashScan | _TBD_ |
+| Token on HashScan | [0.0.8505698](https://hashscan.io/testnet/token/0.0.8505698) |
+| Topic on HashScan | [0.0.8505699](https://hashscan.io/testnet/topic/0.0.8505699) |
 | **F7** refund (if built) | _TBD_ |
 
 ## How to capture
