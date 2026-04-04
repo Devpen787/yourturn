@@ -6,8 +6,8 @@ import { getNftBySerial, getTopicMessages } from "@/lib/hedera/mirror";
 import { getTreasuryIdString } from "@/lib/hedera/token";
 import { readSlotChainState } from "@/lib/server/slotChain";
 import { getStoredTokenId, getStoredTopicId } from "@/lib/store/ids";
-import { getActiveListingForSerial } from "@/lib/store/listings";
-import { getSlotBySerial } from "@/lib/store/slots";
+import { getActiveListingForTokenSerial } from "@/lib/store/listings";
+import { getSlotByTokenSerial } from "@/lib/store/slots";
 import { SlotResaleCta } from "./SlotResaleCta";
 
 export const dynamic = "force-dynamic";
@@ -38,11 +38,21 @@ export default async function SlotDetailPage({
     treasuryAccountId: treasury,
   });
   const nft = await getNftBySerial(tokenId, serial);
-  const slot = await getSlotBySerial(serial);
-  const meta = nft?.metadata
+  const slot = await getSlotByTokenSerial(tokenId, serial);
+  const metaFromChain = nft?.metadata
     ? parseNftMetadataBlob(nft.metadata)
     : null;
-  const listing = await getActiveListingForSerial(serial);
+  const meta =
+    metaFromChain && slot
+      ? {
+          ...metaFromChain,
+          title: metaFromChain.title || slot.title,
+          startTime: metaFromChain.startTime || slot.startTime,
+          endTime: metaFromChain.endTime || slot.endTime,
+          location: metaFromChain.location || slot.location,
+        }
+      : metaFromChain;
+  const listing = await getActiveListingForTokenSerial(tokenId, serial);
   const messages = topicId ? await getTopicMessages(topicId) : { messages: [] };
   const events =
     messages.messages?.filter((m) => {
@@ -66,9 +76,21 @@ export default async function SlotDetailPage({
         ← All slots
       </Link>
       <h1 className="mt-2 text-xl font-semibold">Serial #{serial}</h1>
+      {!slot && (
+        <p className="mt-3 rounded border border-amber-200 bg-amber-50 p-3 text-amber-950">
+          This serial is not in the app&apos;s current demo list (for example after{" "}
+          <strong>Reset Demo</strong> minted new NFTs). Hedera may still show this
+          serial as burned or old inventory. Use{" "}
+          <Link href="/slots" className="font-medium underline">
+            Public slots
+          </Link>{" "}
+          for the three slots you can book now.
+        </p>
+      )}
       <div className="mt-4 space-y-2 rounded border border-slate-200 bg-white p-4">
         <p>
-          <span className="font-medium">Status:</span> {chain.status}
+          <span className="font-medium">Status:</span>{" "}
+          {slot ? chain.status : `${chain.status} (on-chain only)`}
         </p>
         <p>
           <span className="font-medium">Holder:</span>{" "}

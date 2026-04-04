@@ -17,12 +17,15 @@ export default async function IssuerPage() {
     /* Redis / env not configured */
   }
   const tokenMirror = tokenId ? await getToken(tokenId) : null;
+  const slotsForToken = tokenId
+    ? slots.filter((s) => s.tokenId === tokenId)
+    : [];
   return (
     <IssuerPanel
       tokenId={tokenId}
       topicId={topicId}
       tokenExists={!!tokenMirror}
-      slotsCount={slots.length}
+      slotsCount={slotsForToken.length}
     />
   );
 }

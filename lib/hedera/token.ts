@@ -80,32 +80,31 @@ export async function mintSlotNfts(
 
 export async function associateTokenToAccount(
   accountIdStr: string,
-  privateKeyDer: string,
+  accountPrivateKey: PrivateKey,
   tokenIdStr: string
 ): Promise<void> {
   const client = getClient();
   const accountId = AccountId.fromString(accountIdStr);
-  const key = PrivateKey.fromString(privateKeyDer);
   const tokenId = TokenId.fromString(tokenIdStr);
   const tx = await new TokenAssociateTransaction()
     .setAccountId(accountId)
     .setTokenIds([tokenId])
     .freezeWith(client);
-  const signed = await tx.sign(key);
+  const signed = await tx.sign(accountPrivateKey);
   const response = await signed.execute(client);
   await response.getReceipt(client);
 }
 
 export async function primaryBookTransfer(args: {
   buyerAccountId: string;
-  buyerPrivateKey: string;
+  buyerPrivateKey: PrivateKey;
   serial: number;
   priceHbar: number;
   tokenIdStr: string;
 }): Promise<string> {
   const client = getClient();
   const treasury = getActorCredentials("issuer");
-  const buyer = PrivateKey.fromString(args.buyerPrivateKey);
+  const buyer = args.buyerPrivateKey;
   const buyerId = AccountId.fromString(args.buyerAccountId);
   const tokenId = TokenId.fromString(args.tokenIdStr);
   const price = Hbar.from(args.priceHbar, HbarUnit.Hbar);
@@ -128,9 +127,9 @@ export async function primaryBookTransfer(args: {
  */
 export async function resaleTransfer(args: {
   sellerAccountId: string;
-  sellerPrivateKey: string;
+  sellerPrivateKey: PrivateKey;
   buyerAccountId: string;
-  buyerPrivateKey: string;
+  buyerPrivateKey: PrivateKey;
   serial: number;
   askPriceHbar: number;
   tokenIdStr: string;
@@ -138,8 +137,8 @@ export async function resaleTransfer(args: {
   const client = getClient();
   const sellerId = AccountId.fromString(args.sellerAccountId);
   const buyerId = AccountId.fromString(args.buyerAccountId);
-  const sellerKey = PrivateKey.fromString(args.sellerPrivateKey);
-  const buyerKey = PrivateKey.fromString(args.buyerPrivateKey);
+  const sellerKey = args.sellerPrivateKey;
+  const buyerKey = args.buyerPrivateKey;
   const tokenId = TokenId.fromString(args.tokenIdStr);
   const ask = Hbar.from(args.askPriceHbar, HbarUnit.Hbar);
   const tx = await new TransferTransaction()
@@ -210,14 +209,14 @@ export async function burnUsedSlot(args: {
 
 export async function transferNftFromHolderToTreasury(args: {
   holderAccountId: string;
-  holderPrivateKey: string;
+  holderPrivateKey: PrivateKey;
   serial: number;
   tokenIdStr: string;
 }): Promise<void> {
   const client = getClient();
   const treasury = getActorCredentials("issuer");
   const holderId = AccountId.fromString(args.holderAccountId);
-  const holderKey = PrivateKey.fromString(args.holderPrivateKey);
+  const holderKey = args.holderPrivateKey;
   const tokenId = TokenId.fromString(args.tokenIdStr);
   const tx = await new TransferTransaction()
     .addNftTransfer(tokenId, args.serial, holderId, treasury.accountId)

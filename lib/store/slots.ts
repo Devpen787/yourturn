@@ -20,6 +20,15 @@ export async function saveSlots(slots: SlotRecord[]): Promise<void> {
   await redis.set(REDIS_KEYS.slots, JSON.stringify(slots));
 }
 
+/** Prefer this when you know the app token — avoids matching the wrong row if Redis ever has multiple tokens. */
+export async function getSlotByTokenSerial(
+  tokenId: string,
+  serial: number
+): Promise<SlotRecord | undefined> {
+  const slots = await loadSlots();
+  return slots.find((s) => s.tokenId === tokenId && s.serial === serial);
+}
+
 export async function getSlotBySerial(
   serial: number
 ): Promise<SlotRecord | undefined> {
@@ -38,10 +47,13 @@ export async function upsertSlot(record: SlotRecord): Promise<void> {
 
 export async function updateSlotListingActive(
   serial: number,
-  listingActive: boolean
+  listingActive: boolean,
+  tokenId?: string
 ): Promise<void> {
   const slots = await loadSlots();
-  const s = slots.find((x) => x.serial === serial);
+  const s = tokenId
+    ? slots.find((x) => x.tokenId === tokenId && x.serial === serial)
+    : slots.find((x) => x.serial === serial);
   if (s) {
     s.listingActive = listingActive;
     await saveSlots(slots);

@@ -46,7 +46,14 @@ export function IssuerPanel({
         setErr(data.error || res.statusText);
         return;
       }
-      setMsg(`${label} OK`);
+      let m = `${label} OK`;
+      if (Array.isArray(data.serials) && data.serials.length > 0) {
+        m += ` (NFT serials ${data.serials.join(", ")})`;
+      }
+      if (Array.isArray(data.warnings) && data.warnings.length > 0) {
+        m += ` — ${data.warnings.join(" ")}`;
+      }
+      setMsg(m);
       router.refresh();
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));

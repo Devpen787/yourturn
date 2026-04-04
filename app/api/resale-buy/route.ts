@@ -10,7 +10,7 @@ import {
 import { getStoredTokenId, getStoredTopicId } from "@/lib/store/ids";
 import {
   deactivateListing,
-  getActiveListingForSerial,
+  getActiveListingForTokenSerial,
 } from "@/lib/store/listings";
 import { updateSlotListingActive } from "@/lib/store/slots";
 import { fail, resaleBuyBodySchema } from "@/lib/validation/api";
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-    const listing = await getActiveListingForSerial(serial);
+    const listing = await getActiveListingForTokenSerial(tokenId, serial);
     if (!listing || !listing.active) {
       return NextResponse.json(
         fail("No active listing for this serial", "NOT_FOUND"),
@@ -68,23 +68,19 @@ export async function POST(req: Request) {
       );
     }
     if (!(await isTokenAssociatedWithAccount(buyerAcc, tokenId))) {
-      await associateTokenToAccount(
-        buyerAcc,
-        buyer.privateKey.toString(),
-        tokenId
-      );
+      await associateTokenToAccount(buyerAcc, buyer.privateKey, tokenId);
     }
     const txId = await resaleTransfer({
       sellerAccountId: listing.sellerAccountId,
-      sellerPrivateKey: sellerCreds.privateKey.toString(),
+      sellerPrivateKey: sellerCreds.privateKey,
       buyerAccountId: buyerAcc,
-      buyerPrivateKey: buyer.privateKey.toString(),
+      buyerPrivateKey: buyer.privateKey,
       serial,
       askPriceHbar: listing.askPriceHbar,
       tokenIdStr: tokenId,
     });
-    await deactivateListing(serial);
-    await updateSlotListingActive(serial, false);
+    await deactivateListing(serial, tokenId);
+    await updateSlotListingActive(serial, false, tokenId);
     await submitLifecycleEvent(topicId, {
       eventType: "RESOLD",
       tokenId,

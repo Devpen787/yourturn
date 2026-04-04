@@ -6,9 +6,9 @@ import { readSlotChainState } from "@/lib/server/slotChain";
 import { getStoredTokenId, getStoredTopicId } from "@/lib/store/ids";
 import {
   addListing,
-  getActiveListingForSerial,
+  getActiveListingForTokenSerial,
 } from "@/lib/store/listings";
-import { getSlotBySerial, updateSlotListingActive } from "@/lib/store/slots";
+import { getSlotByTokenSerial, updateSlotListingActive } from "@/lib/store/slots";
 import { getTreasuryIdString } from "@/lib/hedera/token";
 import { fail, resaleListBodySchema } from "@/lib/validation/api";
 
@@ -40,7 +40,7 @@ export async function POST(req: Request) {
       serial,
       treasuryAccountId: treasury,
     });
-    const slot = await getSlotBySerial(serial);
+    const slot = await getSlotByTokenSerial(tokenId, serial);
     if (!slot) {
       return NextResponse.json(fail("Unknown serial", "NOT_FOUND"), {
         status: 404,
@@ -58,7 +58,7 @@ export async function POST(req: Request) {
         { status: 409 }
       );
     }
-    const existing = await getActiveListingForSerial(serial);
+    const existing = await getActiveListingForTokenSerial(tokenId, serial);
     if (existing) {
       return NextResponse.json(
         fail("An active listing already exists for this serial", "CONFLICT"),
@@ -74,7 +74,7 @@ export async function POST(req: Request) {
       createdAt: new Date().toISOString(),
     };
     await addListing(listing);
-    await updateSlotListingActive(serial, true);
+    await updateSlotListingActive(serial, true, tokenId);
     await submitLifecycleEvent(topicId, {
       eventType: "LISTED",
       tokenId,

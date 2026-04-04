@@ -1,7 +1,18 @@
 import { readFile } from "fs/promises";
 import path from "path";
 import { NextResponse } from "next/server";
-import { getNftBySerial } from "@/lib/hedera/mirror";
+import type { ImmutableSlotMetadata } from "@/lib/domain/metadata";
+import { accountsEqual, getActorCredentials, tryResolveGuestActor } from "@/lib/hedera/client";
+import {
+  getAccountTokenFreezeStatus,
+  getNftBySerial,
+} from "@/lib/hedera/mirror";
+import {
+  getTreasuryIdString,
+  mintSlotNfts,
+  transferNftFromHolderToTreasury,
+  unfreezeHolder,
+} from "@/lib/hedera/token";
 import { getStoredTokenId } from "@/lib/store/ids";
 import { clearAllListings } from "@/lib/store/listings";
 import { loadSlots, saveSlots } from "@/lib/store/slots";
@@ -21,6 +32,11 @@ type DemoSeed = {
   resaleAllowed: boolean;
 };
 
+/**
+ * Clears listings, returns prior demo NFTs from Guest A/B to treasury when possible,
+ * then mints **three new** NFT serials and **replaces** Redis slot rows for this token
+ * so the app always shows three AVAILABLE (treasury-held, not burned) demo slots.
+ */
 export async function POST() {
   try {
     const tokenId = await getStoredTokenId();
@@ -31,37 +47,87 @@ export async function POST() {
       );
     }
     await clearAllListings();
+    const treasury = getTreasuryIdString();
     const raw = await readFile(
       path.join(process.cwd(), "public", "demo-slots.json"),
       "utf8"
     );
     const demo = JSON.parse(raw) as DemoSeed[];
+    if (demo.length !== 3) {
+      return NextResponse.json(
+        fail("demo-slots.json must contain exactly 3 slots", "INTERNAL_ERROR"),
+        { status: 500 }
+      );
+    }
+
     const prev = await loadSlots();
     const bySerial = prev.filter((s) => s.tokenId === tokenId);
-    const rebuilt: SlotRecord[] = [];
+    const warnings: string[] = [];
+
     for (const s of bySerial.sort((a, b) => a.serial - b.serial)) {
-      const idx = rebuilt.length;
-      const seed = demo[idx];
-      if (!seed) break;
-      await getNftBySerial(tokenId, s.serial);
-      rebuilt.push({
-        tokenId,
+      const nft = await getNftBySerial(tokenId, s.serial);
+      if (nft?.deleted) continue;
+      if (!nft?.account_id) continue;
+      if (accountsEqual(nft.account_id, treasury)) continue;
+
+      const guest = tryResolveGuestActor(nft.account_id);
+      if (!guest) {
+        warnings.push(
+          `Old serial ${s.serial} is still held by ${nft.account_id} (not Guest A/B); minting new slots anyway.`
+        );
+        continue;
+      }
+
+      const frozen = await getAccountTokenFreezeStatus(nft.account_id, tokenId);
+      if (frozen) {
+        await unfreezeHolder({
+          holderAccountId: nft.account_id,
+          tokenIdStr: tokenId,
+        });
+      }
+      const { privateKey } = getActorCredentials(guest);
+      await transferNftFromHolderToTreasury({
+        holderAccountId: nft.account_id,
+        holderPrivateKey: privateKey,
         serial: s.serial,
-        slotId: seed.slotId,
-        title: seed.title,
-        startTime: seed.startTime,
-        endTime: seed.endTime,
-        location: seed.location,
-        primaryPriceHbar: seed.primaryPriceHbar,
-        resaleAllowed: seed.resaleAllowed,
-        seeded: true,
-        mintedAt: s.mintedAt,
-        listingActive: false,
+        tokenIdStr: tokenId,
       });
     }
+
+    const metas: ImmutableSlotMetadata[] = demo.map((d) => ({
+      slotId: d.slotId,
+      title: d.title,
+      startTime: d.startTime,
+      endTime: d.endTime,
+      location: d.location,
+      issuerName: d.issuerName,
+    }));
+    const serials = await mintSlotNfts(tokenId, metas);
+    const mintedAt = new Date().toISOString();
+    const newRecords: SlotRecord[] = demo.map((d, i) => ({
+      tokenId,
+      serial: serials[i]!,
+      slotId: d.slotId,
+      title: d.title,
+      startTime: d.startTime,
+      endTime: d.endTime,
+      location: d.location,
+      primaryPriceHbar: d.primaryPriceHbar,
+      resaleAllowed: d.resaleAllowed,
+      seeded: true,
+      mintedAt,
+      listingActive: false,
+    }));
+
     const others = prev.filter((s) => s.tokenId !== tokenId);
-    await saveSlots([...others, ...rebuilt]);
-    return NextResponse.json({ ok: true as const, slots: rebuilt.length });
+    await saveSlots([...others, ...newRecords]);
+
+    return NextResponse.json({
+      ok: true as const,
+      slots: newRecords.length,
+      serials: newRecords.map((r) => r.serial).sort((a, b) => a - b),
+      ...(warnings.length ? { warnings } : {}),
+    });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     return NextResponse.json(fail(msg, "INTERNAL_ERROR"), { status: 500 });

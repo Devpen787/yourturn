@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     if (await isTokenAssociatedWithAccount(acc, tokenId)) {
       return NextResponse.json({ ok: true as const, associated: false });
     }
-    await associateTokenToAccount(acc, privateKey.toString(), tokenId);
+    await associateTokenToAccount(acc, privateKey, tokenId);
     return NextResponse.json({ ok: true as const, associated: true });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

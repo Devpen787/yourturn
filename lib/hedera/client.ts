@@ -8,6 +8,20 @@ export type DemoActor = "issuer" | "guestA" | "guestB";
 
 let cached: Client | null = null;
 
+/**
+ * Hedera JS SDK `PrivateKey.fromString` tries Ed25519 before ECDSA. A 32-byte
+ * raw ECDSA key (64 hex chars) is always mis-read as Ed25519 → INVALID_SIGNATURE
+ * on-chain. Use explicit ECDSA/ED25519/DER for guest keys via env hints.
+ */
+export function parsePrivateKey(raw: string, typeHint?: string): PrivateKey {
+  const key = raw.trim().replace(/^0x/i, "");
+  const h = typeHint?.trim().toUpperCase();
+  if (h === "ECDSA") return PrivateKey.fromStringECDSA(key);
+  if (h === "ED25519") return PrivateKey.fromStringED25519(key);
+  if (h === "DER") return PrivateKey.fromStringDer(key);
+  return PrivateKey.fromString(key);
+}
+
 export function getClient(): Client {
   if (cached) return cached;
   const opId = process.env.HEDERA_OPERATOR_ID;
@@ -18,7 +32,10 @@ export function getClient(): Client {
   const network = (process.env.HEDERA_NETWORK || "testnet").toLowerCase();
   const client =
     network === "mainnet" ? Client.forMainnet() : Client.forTestnet();
-  client.setOperator(AccountId.fromString(opId), PrivateKey.fromString(opKey));
+  client.setOperator(
+    AccountId.fromString(opId),
+    parsePrivateKey(opKey, process.env.HEDERA_OPERATOR_KEY_TYPE)
+  );
   cached = client;
   return client;
 }
@@ -33,7 +50,7 @@ export function getActorCredentials(actor: DemoActor): {
     if (!id || !key) throw new Error("Issuer treasury credentials missing");
     return {
       accountId: AccountId.fromString(id),
-      privateKey: PrivateKey.fromString(key),
+      privateKey: parsePrivateKey(key, process.env.HEDERA_TREASURY_KEY_TYPE),
     };
   }
   if (actor === "guestA") {
@@ -42,7 +59,7 @@ export function getActorCredentials(actor: DemoActor): {
     if (!id || !key) throw new Error("Guest A credentials missing");
     return {
       accountId: AccountId.fromString(id),
-      privateKey: PrivateKey.fromString(key),
+      privateKey: parsePrivateKey(key, process.env.HEDERA_GUEST_A_KEY_TYPE),
     };
   }
   const id = process.env.HEDERA_GUEST_B_ID;
@@ -50,7 +67,7 @@ export function getActorCredentials(actor: DemoActor): {
   if (!id || !key) throw new Error("Guest B credentials missing");
   return {
     accountId: AccountId.fromString(id),
-    privateKey: PrivateKey.fromString(key),
+    privateKey: parsePrivateKey(key, process.env.HEDERA_GUEST_B_KEY_TYPE),
   };
 }
 

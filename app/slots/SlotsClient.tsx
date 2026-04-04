@@ -67,7 +67,9 @@ export function SlotsClient({ rows }: { rows: SlotRow[] }) {
             key={r.serial}
             className="rounded border border-slate-200 bg-white p-4 text-sm"
           >
-            <div className="font-medium">{r.title}</div>
+            <div className="font-medium">
+              Serial #{r.serial} · {r.title}
+            </div>
             <div className="text-slate-600">
               {r.startTime} → {r.endTime}
             </div>

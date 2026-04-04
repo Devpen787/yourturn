@@ -11,7 +11,7 @@ import {
 } from "@/lib/hedera/token";
 import { readSlotChainState } from "@/lib/server/slotChain";
 import { getStoredTokenId, getStoredTopicId } from "@/lib/store/ids";
-import { getSlotBySerial } from "@/lib/store/slots";
+import { getSlotByTokenSerial } from "@/lib/store/slots";
 import { bookBodySchema, fail } from "@/lib/validation/api";
 
 export const runtime = "nodejs";
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
         { status: 409 }
       );
     }
-    const slot = await getSlotBySerial(serial);
+    const slot = await getSlotByTokenSerial(tokenId, serial);
     if (!slot) {
       return NextResponse.json(fail("Unknown serial", "NOT_FOUND"), {
         status: 404,
@@ -55,11 +55,11 @@ export async function POST(req: Request) {
     const buyer = getActorCredentials(actor);
     const acc = buyer.accountId.toString();
     if (!(await isTokenAssociatedWithAccount(acc, tokenId))) {
-      await associateTokenToAccount(acc, buyer.privateKey.toString(), tokenId);
+      await associateTokenToAccount(acc, buyer.privateKey, tokenId);
     }
     const txId = await primaryBookTransfer({
       buyerAccountId: acc,
-      buyerPrivateKey: buyer.privateKey.toString(),
+      buyerPrivateKey: buyer.privateKey,
       serial,
       priceHbar: slot.primaryPriceHbar,
       tokenIdStr: tokenId,

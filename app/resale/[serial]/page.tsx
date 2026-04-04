@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { calcRoyalty, calcSellerNet } from "@/lib/domain/fees";
 import { getStoredTokenId } from "@/lib/store/ids";
-import { getActiveListingForSerial } from "@/lib/store/listings";
-import { getSlotBySerial } from "@/lib/store/slots";
+import { getActiveListingForTokenSerial } from "@/lib/store/listings";
+import { getSlotByTokenSerial } from "@/lib/store/slots";
 import { ResaleClient } from "./ResaleClient";
 
 export const dynamic = "force-dynamic";
@@ -25,12 +25,16 @@ export default async function ResalePage({
   let listing = null;
   let slot = undefined;
   try {
-    listing = await getActiveListingForSerial(serial);
+    if (tokenId) {
+      listing = await getActiveListingForTokenSerial(tokenId, serial);
+    }
   } catch {
     listing = null;
   }
   try {
-    slot = await getSlotBySerial(serial);
+    if (tokenId) {
+      slot = await getSlotByTokenSerial(tokenId, serial);
+    }
   } catch {
     slot = undefined;
   }

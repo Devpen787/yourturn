@@ -31,6 +31,16 @@ export async function getActiveListingForSerial(
   return listings.find((l) => l.serial === serial && l.active);
 }
 
+export async function getActiveListingForTokenSerial(
+  tokenId: string,
+  serial: number
+): Promise<ResaleListing | undefined> {
+  const listings = await loadListings();
+  return listings.find(
+    (l) => l.tokenId === tokenId && l.serial === serial && l.active
+  );
+}
+
 export async function addListing(listing: ResaleListing): Promise<void> {
   const listings = await loadListings();
   const others = listings.filter(
@@ -40,10 +50,15 @@ export async function addListing(listing: ResaleListing): Promise<void> {
   await saveListings(others);
 }
 
-export async function deactivateListing(serial: number): Promise<void> {
+export async function deactivateListing(
+  serial: number,
+  tokenId?: string
+): Promise<void> {
   const listings = await loadListings();
   for (const l of listings) {
-    if (l.serial === serial) l.active = false;
+    if (l.serial !== serial) continue;
+    if (tokenId != null && l.tokenId !== tokenId) continue;
+    l.active = false;
   }
   await saveListings(listings);
 }

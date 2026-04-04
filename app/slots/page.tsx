@@ -13,7 +13,8 @@ export default async function SlotsPage() {
     const slots = await loadSlots();
     if (tokenId) {
       const treasury = getTreasuryIdString();
-      for (const s of slots) {
+      const forToken = slots.filter((s) => s.tokenId === tokenId);
+      for (const s of forToken) {
         const chain = await readSlotChainState({
           tokenId,
           serial: s.serial,

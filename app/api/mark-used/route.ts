@@ -74,7 +74,7 @@ export async function POST(req: Request) {
       const { privateKey } = getActorCredentials(guest);
       await transferNftFromHolderToTreasury({
         holderAccountId: holder,
-        holderPrivateKey: privateKey.toString(),
+        holderPrivateKey: privateKey,
         serial,
         tokenIdStr: tokenId,
       });
