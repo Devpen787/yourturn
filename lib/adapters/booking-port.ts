@@ -11,7 +11,6 @@ import {
 import { getHashscanTxUrl } from "@/lib/hedera/hashscan";
 import {
   getNftBySerial,
-  getTopicMessages,
   isTokenAssociatedWithAccount,
 } from "@/lib/hedera/mirror";
 import {
@@ -24,7 +23,11 @@ import {
   burnUsedSlot,
   unfreezeHolder,
 } from "@/lib/hedera/token";
-import { readSlotChainState } from "@/lib/server/slotChain";
+import {
+  getLifecycleEventsForSerial,
+  readSlotChainState,
+  readSlotLiveState,
+} from "@/lib/server/slotChain";
 import { getStoredTokenId, getStoredTopicId } from "@/lib/store/ids";
 import {
   addListing,
@@ -32,7 +35,6 @@ import {
   getActiveListingForSerial,
 } from "@/lib/store/listings";
 import { getSlotBySerial, loadSlots, updateSlotListingActive } from "@/lib/store/slots";
-import type { LifecycleEvent } from "@/lib/types/event";
 import type { ResaleListing } from "@/lib/types/listing";
 import type { SlotRecord } from "@/lib/types/slot";
 import type {
@@ -310,10 +312,12 @@ function listingViewFromRecord(listing: ResaleListing): ResaleListingView {
 }
 
 async function slotViewFromRecord(slot: SlotRecord): Promise<BookingSlotView> {
-  const chain = await readSlotChainState({
+  const topicId = await getStoredTopicId();
+  const chain = await readSlotLiveState({
     tokenId: slot.tokenId,
     serial: slot.serial,
     treasuryAccountId: getTreasuryIdString(),
+    topicId,
   });
   return {
     tokenId: slot.tokenId,
@@ -336,20 +340,10 @@ async function parseLifecycleEvents(serial: number): Promise<
 > {
   const topicId = await getStoredTopicId();
   if (!topicId) return [];
-  const messages = await getTopicMessages(topicId);
-  const events =
-    messages.messages?.flatMap((message) => {
-      try {
-        const decoded = JSON.parse(
-          Buffer.from(message.message, "base64").toString("utf8")
-        ) as LifecycleEvent;
-        if (decoded.serial !== serial) return [];
-        return [decoded as Record<string, unknown> & { serial: number }];
-      } catch {
-        return [];
-      }
-    }) ?? [];
-  return events;
+  const tokenId = await getStoredTokenId();
+  if (!tokenId) return [];
+  const events = await getLifecycleEventsForSerial({ topicId, tokenId, serial });
+  return events as Array<Record<string, unknown> & { serial: number }>;
 }
 
 async function prepareBook(input: {
@@ -407,7 +401,7 @@ async function executeBook(input: {
     priceHbar: prepared.slot.primaryPriceHbar,
     tokenIdStr: prepared.tokenId,
   });
-  await submitLifecycleEvent(prepared.topicId, {
+  void (await submitLifecycleEvent(prepared.topicId, {
     eventType: "BOOKED",
     tokenId: prepared.tokenId,
     serial: prepared.serial,
@@ -416,7 +410,7 @@ async function executeBook(input: {
     priceHbar: prepared.slot.primaryPriceHbar,
     txId,
     timestamp: new Date().toISOString(),
-  });
+  }));
   return { txId, hashscanUrl: getHashscanTxUrl(txId) };
 }
 
@@ -462,7 +456,11 @@ async function executeCreateListing(input: {
   seller: BookingActorRef;
   serial: number;
   askPriceHbar: number;
-}): Promise<{ listing: ResaleListingView }> {
+}): Promise<{
+  listing: ResaleListingView;
+  auditTxId: string;
+  hashscanUrl: string;
+}> {
   const prepared = await prepareCreateListing(input);
   const listing: ResaleListing = {
     tokenId: prepared.tokenId,
@@ -474,7 +472,7 @@ async function executeCreateListing(input: {
   };
   await addListing(listing);
   await updateSlotListingActive(prepared.serial, true);
-  await submitLifecycleEvent(prepared.topicId, {
+  const auditTxId = await submitLifecycleEvent(prepared.topicId, {
     eventType: "LISTED",
     tokenId: prepared.tokenId,
     serial: prepared.serial,
@@ -482,7 +480,11 @@ async function executeCreateListing(input: {
     priceHbar: prepared.askPriceHbar,
     timestamp: new Date().toISOString(),
   });
-  return { listing: listingViewFromRecord(listing) };
+  return {
+    listing: listingViewFromRecord(listing),
+    auditTxId,
+    hashscanUrl: getHashscanTxUrl(auditTxId),
+  };
 }
 
 async function prepareBuyListing(input: {
@@ -546,7 +548,7 @@ async function executeBuyListing(input: {
   });
   await deactivateListing(prepared.listing.serial);
   await updateSlotListingActive(prepared.listing.serial, false);
-  await submitLifecycleEvent(prepared.topicId, {
+  void (await submitLifecycleEvent(prepared.topicId, {
     eventType: "RESOLD",
     tokenId: prepared.tokenId,
     serial: prepared.listing.serial,
@@ -555,7 +557,7 @@ async function executeBuyListing(input: {
     priceHbar: prepared.listing.askPriceHbar,
     txId,
     timestamp: new Date().toISOString(),
-  });
+  }));
   return { txId, hashscanUrl: getHashscanTxUrl(txId) };
 }
 
@@ -606,13 +608,13 @@ async function executeFreeze(input: {
     holderAccountId: prepared.holderAccountId,
     tokenIdStr: prepared.tokenId,
   });
-  await submitLifecycleEvent(prepared.topicId, {
+  void (await submitLifecycleEvent(prepared.topicId, {
     eventType: "FROZEN",
     tokenId: prepared.tokenId,
     serial: prepared.serial,
     to: prepared.holderAccountId,
     timestamp: new Date().toISOString(),
-  });
+  }));
   return { ok: true };
 }
 
@@ -626,13 +628,13 @@ async function executeUnfreeze(input: {
     holderAccountId: prepared.holderAccountId,
     tokenIdStr: prepared.tokenId,
   });
-  await submitLifecycleEvent(prepared.topicId, {
+  void (await submitLifecycleEvent(prepared.topicId, {
     eventType: "UNFROZEN",
     tokenId: prepared.tokenId,
     serial: prepared.serial,
     to: prepared.holderAccountId,
     timestamp: new Date().toISOString(),
-  });
+  }));
   return { ok: true };
 }
 
@@ -695,12 +697,12 @@ async function executeMarkUsed(input: {
     serial: prepared.serial,
     tokenIdStr: prepared.tokenId,
   });
-  await submitLifecycleEvent(prepared.topicId, {
+  void (await submitLifecycleEvent(prepared.topicId, {
     eventType: "USED",
     tokenId: prepared.tokenId,
     serial: prepared.serial,
     timestamp: new Date().toISOString(),
-  });
+  }));
   return { ok: true };
 }
 

@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 
-const STORAGE_KEY = "bookedrights:selectedActor";
+export const ACTOR_STORAGE_KEY = "bookedrights:selectedActor";
+export const ACTOR_CHANGE_EVENT = "bookedrights:actorChange";
+
 const ACTOR_META = {
   issuer: {
     label: "Provider",
@@ -23,12 +25,23 @@ const ACTOR_META = {
 
 export type ActorValue = "issuer" | "guestA" | "guestB";
 
+export function setSelectedActor(actor: ActorValue): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(ACTOR_STORAGE_KEY, actor);
+  window.dispatchEvent(
+    new CustomEvent<ActorValue>(ACTOR_CHANGE_EVENT, { detail: actor })
+  );
+}
+
 type Props = {
   pageDefault: ActorValue;
   allowedActors?: readonly ActorValue[];
   title?: string;
   description?: string;
   onChange?: (actor: ActorValue) => void;
+  lockTo?: "guestA" | "guestB";
+  /** Isolate localStorage when multiple selectors mount (e.g. brand lab previews). */
+  actorStorageKey?: string;
 };
 
 export function ActorSelector({
@@ -37,24 +50,52 @@ export function ActorSelector({
   title = "Viewing as",
   description = "Choose whose side of the story you want to see in this demo. This switch is only for the demo, not a real sign-in flow.",
   onChange,
+  lockTo,
+  actorStorageKey,
 }: Props) {
+  const storageKey = actorStorageKey ?? ACTOR_STORAGE_KEY;
   const [actor, setActor] = useState<ActorValue>(pageDefault);
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY) as ActorValue | null;
-    const next = saved && allowedActors.includes(saved) ? saved : pageDefault;
-    setActor(next);
-    localStorage.setItem(STORAGE_KEY, next);
-    onChange?.(next);
-  }, [allowedActors, pageDefault, onChange]);
+    if (lockTo) {
+      setActor(lockTo);
+      localStorage.setItem(storageKey, lockTo);
+      onChange?.(lockTo);
+    } else {
+      const saved = localStorage.getItem(storageKey) as ActorValue | null;
+      const next = saved && allowedActors.includes(saved) ? saved : pageDefault;
+      setActor(next);
+      localStorage.setItem(storageKey, next);
+      onChange?.(next);
+    }
+
+    const handler = (event: Event) => {
+      const next = (event as CustomEvent<ActorValue>).detail;
+      if (!allowedActors.includes(next)) return;
+      if (lockTo && next !== lockTo) return;
+      setActor(next);
+      onChange?.(next);
+    };
+
+    window.addEventListener(ACTOR_CHANGE_EVENT, handler);
+    return () => window.removeEventListener(ACTOR_CHANGE_EVENT, handler);
+  }, [allowedActors, lockTo, pageDefault, onChange, storageKey]);
 
   function update(next: ActorValue) {
+    if (lockTo && next !== lockTo) return;
     setActor(next);
-    localStorage.setItem(STORAGE_KEY, next);
-    onChange?.(next);
+    if (storageKey === ACTOR_STORAGE_KEY) {
+      setSelectedActor(next);
+    } else {
+      localStorage.setItem(storageKey, next);
+      onChange?.(next);
+    }
   }
 
   const isCompact = allowedActors.length === 2;
+  const activeDescription = lockTo
+    ? `${ACTOR_META[lockTo].label} is locked by the current sign-in. Log out to use the other demo customer.`
+    : description;
 
   return (
     <div
@@ -65,7 +106,7 @@ export function ActorSelector({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="font-medium text-slate-900">{title}</p>
-          <p className="mt-1 max-w-2xl text-slate-600">{description}</p>
+          <p className="mt-1 max-w-2xl text-slate-600">{activeDescription}</p>
         </div>
         <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
           Current: {ACTOR_META[actor].label}
@@ -89,6 +130,7 @@ export function ActorSelector({
                   type="radio"
                   name="actor"
                   checked={selected}
+                  disabled={!!lockTo}
                   onChange={() => update(a)}
                   className="sr-only"
                 />
@@ -115,6 +157,7 @@ export function ActorSelector({
                     type="radio"
                     name="actor"
                     checked={selected}
+                    disabled={!!lockTo}
                     onChange={() => update(a)}
                     className="mt-1"
                   />

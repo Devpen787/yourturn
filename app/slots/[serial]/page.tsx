@@ -4,36 +4,19 @@ import { getButtonClassName } from "@/components/ui/button-classes";
 import { cn } from "@/lib/cn";
 import { parseNftMetadataBlob } from "@/lib/domain/metadata";
 import { getHashscanTokenUrl, getHashscanTopicUrl } from "@/lib/hedera/hashscan";
-import { getNftBySerial, getTopicMessages } from "@/lib/hedera/mirror";
+import { getNftBySerial } from "@/lib/hedera/mirror";
 import { getTreasuryIdString } from "@/lib/hedera/token";
-import { readSlotChainState } from "@/lib/server/slotChain";
+import { formatSlotDateTime } from "@/lib/format/slotDateTime";
+import { getLifecycleEventsForSerial, readSlotLiveState } from "@/lib/server/slotChain";
 import { getStoredTokenId, getStoredTopicId } from "@/lib/store/ids";
 import { getActiveListingForSerial } from "@/lib/store/listings";
 import { getSlotBySerial } from "@/lib/store/slots";
 import type { LifecycleEvent } from "@/lib/types/event";
 import { SlotDetailStickyBar } from "@/components/SlotDetailStickyBar";
+import { SlotPassHeroCard } from "@/components/slots/SlotPassHeroCard";
 import { SlotResaleCta } from "./SlotResaleCta";
 
 export const dynamic = "force-dynamic";
-
-function formatDateTime(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(date);
-}
-
-function statusTone(status: string): string {
-  if (status === "AVAILABLE") return "bg-slate-100 text-slate-800";
-  if (status === "HELD") return "bg-blue-50 text-blue-900";
-  if (status === "FROZEN") return "bg-amber-50 text-amber-900";
-  if (status === "USED") return "bg-emerald-50 text-emerald-900";
-  return "bg-slate-100 text-slate-800";
-}
 
 function statusSummary(status: string): string {
   if (status === "AVAILABLE") return "This session is still open and can be booked.";
@@ -186,31 +169,27 @@ export default async function SlotDetailPage({
     );
   }
 
-  const chain = await readSlotChainState({
+  const chain = await readSlotLiveState({
     tokenId,
     serial,
     treasuryAccountId: treasury,
+    topicId,
   });
   const nft = await getNftBySerial(tokenId, serial);
   const meta = nft?.metadata
     ? parseNftMetadataBlob(nft.metadata)
     : null;
   const listing = await getActiveListingForSerial(serial);
-  const messages = topicId ? await getTopicMessages(topicId) : { messages: [] };
-  const lifecycleEvents =
-    messages.messages
-      ?.flatMap((m) => {
-        try {
-          const decoded = JSON.parse(
-            Buffer.from(m.message, "base64").toString("utf8")
-          ) as LifecycleEvent;
-          if (decoded.serial !== serial) return [];
-          return [{ raw: m, event: decoded }];
-        } catch {
-          return [];
-        }
-      })
-      .reverse() ?? [];
+  const lifecycleEvents = (
+    await getLifecycleEventsForSerial({
+      topicId,
+      tokenId,
+      serial,
+    })
+  ).map((event, index) => ({
+    key: `${event.timestamp}-${event.eventType}-${index}`,
+    event,
+  }));
 
   const showResell =
     slot &&
@@ -235,45 +214,29 @@ export default async function SlotDetailPage({
       <p className="mt-1 text-slate-600">
         Everything about this session pass in one place: status, next step, and proof links.
       </p>
-      <div className="mt-4 space-y-2 rounded border border-slate-200 bg-white p-4">
-        <p className="flex flex-wrap items-center gap-2">
-          <span className="font-medium">Status:</span>
-          <span
-            className={`inline-flex rounded px-2 py-1 text-xs font-medium ${statusTone(
-              chain.status
-            )}`}
-          >
-            {chain.status}
-          </span>
-        </p>
-        <p className="text-slate-600">{statusSummary(chain.status)}</p>
-        <p className="rounded bg-slate-50 p-3 text-slate-700">
-          <span className="font-medium text-slate-900">Next step:</span>{" "}
-          {nextStepSummary(chain.status, !!showResell, !!listing?.active)}
-        </p>
-        <p>
-          <span className="font-medium">Current holder:</span>{" "}
-          {holderSummary(chain.status, chain.holderAccountId, guestAId, guestBId)}
-        </p>
-        {slot && (
-          <div className="grid gap-2 md:grid-cols-2">
-            <p>
-              <span className="font-medium">Primary price:</span>{" "}
-              {slot.primaryPriceHbar} ℏ
-            </p>
-            <p>
-              <span className="font-medium">Start:</span> {formatDateTime(slot.startTime)}
-            </p>
-            <p>
-              <span className="font-medium">End:</span> {formatDateTime(slot.endTime)}
-            </p>
-            <p>
-              <span className="font-medium">Resale allowed:</span>{" "}
-              {slot.resaleAllowed ? "Yes" : "No"}
-            </p>
-          </div>
+      <SlotPassHeroCard
+        className="mt-4"
+        serial={serial}
+        chainStatus={chain.status}
+        statusSummary={statusSummary(chain.status)}
+        nextStep={nextStepSummary(
+          chain.status,
+          !!showResell,
+          !!listing?.active
         )}
-      </div>
+        holderLabel={holderSummary(
+          chain.status,
+          chain.holderAccountId,
+          guestAId,
+          guestBId
+        )}
+        slot={{
+          primaryPriceHbar: slot.primaryPriceHbar,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          resaleAllowed: slot.resaleAllowed,
+        }}
+      />
       {listing?.active && (
         <p className="mt-4 rounded bg-amber-50 p-2">
           Active resale listing: {listing.askPriceHbar} ℏ. A new buyer can take over here —{" "}
@@ -346,13 +309,13 @@ export default async function SlotDetailPage({
         </p>
         {lifecycleEvents.length > 0 ? (
           <ul className="mt-3 space-y-3">
-            {lifecycleEvents.map(({ raw, event }) => (
-              <li key={raw.consensus_timestamp} className="rounded border border-slate-200 bg-slate-50 p-3">
+            {lifecycleEvents.map(({ key, event }) => (
+              <li key={key} className="rounded border border-slate-200 bg-slate-50 p-3">
                 <p className="text-sm text-slate-900">
                   {eventSummary(event, guestAId, guestBId, treasury)}
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  {formatDateTime(event.timestamp)}
+                  {formatSlotDateTime(event.timestamp)}
                 </p>
                 <details className="mt-2 text-xs text-slate-600">
                   <summary className="cursor-pointer font-medium text-slate-700">

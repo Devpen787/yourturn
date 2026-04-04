@@ -12,7 +12,7 @@
 | **Partial** | Mostly right; edge cases, naming drift, or demo-only caveats. |
 | **Review** | Known gap, misleading line, or needs manual retest. |
 
-**Cross-cutting:** `components/ActorSelector.tsx` is now the **customer-side** demo switcher on `/slots`, `/my-bookings`, and `/resale/*`. It only flips between **Person A** and **Person B** and persists in `localStorage`. `/issuer` is a separate provider dashboard surface, not part of the same customer switcher.
+**Cross-cutting:** `components/ActorSelector.tsx` is now the **customer-side** demo switcher on `/slots`, `/my-bookings`, and `/resale/*`. It only flips between **Person A** and **Person B**, and when you use the one-click demo sign-ins it can lock to the signed-in customer. `/issuer` is a separate provider dashboard surface, not part of the same customer switcher.
 
 ---
 
@@ -21,10 +21,34 @@
 | Item | Detail |
 |------|--------|
 | **Purpose** | Brand + navigation on every page. |
-| **Controls** | Links: **YourTurn** → `/`, **Browse** → `/slots`, **My passes** → `/my-bookings`, **Provider dashboard** → `/issuer`. |
+| **Controls** | Links: **YourTurn** → `/`, **Browse** → `/slots`, **My passes** → `/my-bookings`, **Provider dashboard** → `/issuer`; auth actions change between **Sign in / Register** and **Sign out** with a signed-in email label. |
 | **Copy role** | Consumer-first labels, with the provider dashboard kept as a quieter secondary entry in the nav. |
 | **Purpose clear?** | **Yes** for demo: customer routes first, provider dashboard secondary. |
 | **Status** | **Works** as navigation. |
+
+---
+
+## `/login` — Sign in
+
+| Item | Detail |
+|------|--------|
+| **Purpose** | Enter the app as provider, demo user A, demo user B, or an email/password account. |
+| **Controls** | **Demo issuer**, **Demo user A**, **Demo user B**; email/password form; forced logout helper when you need the other role; link to `/register`. |
+| **Copy role** | Explains that app auth now sits above the Hedera demo actors, and that the demo A/B sign-ins are meant for split-browser or split-computer runs. |
+| **Purpose clear?** | **Yes**. |
+| **Status** | **Works**; one-click demo sign-in now lands on the correct protected surface. |
+
+---
+
+## `/register` — Create account
+
+| Item | Detail |
+|------|--------|
+| **Purpose** | Create a guest app account with email + password. |
+| **Controls** | Email field, password field, submit, link back to `/login`. |
+| **Copy role** | Explains this is app account creation, not wallet auth. |
+| **Purpose clear?** | **Yes**. |
+| **Status** | **Works**. |
 
 ---
 

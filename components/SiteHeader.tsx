@@ -1,8 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 import { cn } from "@/lib/cn";
+
+type SessionUser =
+  | {
+      id: string;
+      email: string;
+      appRole: "issuer" | "user";
+      hederaPersona: "guestA" | "guestB" | null;
+    }
+  | null;
 
 const NAV = [
   {
@@ -48,9 +58,28 @@ function NavLink({
   );
 }
 
-export function SiteHeader() {
+function showProviderInNav(pathname: string): boolean {
+  if (process.env.NEXT_PUBLIC_SHOW_PROVIDER_NAV_ON_CUSTOMER_PAGES === "true") {
+    return true;
+  }
+  if (pathname === "/" || pathname.startsWith("/issuer")) {
+    return true;
+  }
+  return false;
+}
+
+export function SiteHeader({
+  sessionUser = null,
+}: {
+  sessionUser?: SessionUser;
+}) {
   const pathname = usePathname() ?? "";
+  const router = useRouter();
+  const [logoutBusy, setLogoutBusy] = useState(false);
   const homeActive = pathname === "/";
+  const navItems = showProviderInNav(pathname)
+    ? NAV
+    : NAV.filter((item) => item.href !== "/issuer");
 
   return (
     <header className="border-b border-slate-200 bg-white">
@@ -69,7 +98,23 @@ export function SiteHeader() {
           className="flex flex-wrap items-center gap-1 sm:gap-3"
           aria-label="Main"
         >
-          {NAV.map((item) => (
+          {sessionUser ? (
+            <span
+              className="hidden max-w-[15rem] truncate text-xs text-slate-500 sm:inline"
+              title={sessionUser.email}
+            >
+              Signed in: {sessionUser.email}
+            </span>
+          ) : null}
+          {process.env.NODE_ENV === "development" ? (
+            <Link
+              href="/brand-lab"
+              className="rounded-md px-2 py-2.5 text-xs text-slate-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 hover:text-slate-800"
+            >
+              Brand lab
+            </Link>
+          ) : null}
+          {navItems.map((item) => (
             <NavLink
               key={item.href}
               href={item.href}
@@ -77,6 +122,38 @@ export function SiteHeader() {
               active={item.match(pathname)}
             />
           ))}
+          {sessionUser ? (
+            <button
+              type="button"
+              disabled={logoutBusy}
+              className="rounded-md px-2 py-2.5 text-sm text-slate-700 transition-colors hover:text-slate-950 disabled:opacity-50"
+              onClick={async () => {
+                setLogoutBusy(true);
+                try {
+                  await fetch("/api/auth/logout", { method: "POST" });
+                  router.refresh();
+                  router.push("/");
+                } finally {
+                  setLogoutBusy(false);
+                }
+              }}
+            >
+              {logoutBusy ? "Signing out…" : "Sign out"}
+            </button>
+          ) : (
+            <>
+              <NavLink
+                href="/login"
+                label="Sign in"
+                active={pathname.startsWith("/login")}
+              />
+              <NavLink
+                href="/register"
+                label="Register"
+                active={pathname.startsWith("/register")}
+              />
+            </>
+          )}
         </nav>
       </div>
     </header>

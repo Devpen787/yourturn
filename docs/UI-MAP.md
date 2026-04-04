@@ -24,11 +24,13 @@ Update **`docs/UI-MAP.md` in the same PR** when you change any of the following 
 | Route | Server module | Renders | Client / child UI | User actions (primary) | APIs invoked from browser |
 |-------|----------------|---------|-------------------|-------------------------|---------------------------|
 | `/` | `app/page.tsx` | Marketing home | — (Server Component) | Navigate via links | — |
-| `/slots` | `app/slots/page.tsx` | Customer browse list | `SlotsClient` | Switch between Person A / Person B, read the demo-identity note, review and book an AVAILABLE slot | `POST /api/book` |
+| `/login` | `app/login/page.tsx` | App sign-in | `DemoLoginButtons`, `LoginForm`, `LogoutToSwitchAccount` | Sign in as demo issuer / demo user A / demo user B, or sign in with email + password | `POST /api/auth/demo-login`, `POST /api/auth/login`, `POST /api/auth/logout` |
+| `/register` | `app/register/page.tsx` | App registration | `RegisterForm` | Create a guest app account | `POST /api/auth/register` |
+| `/slots` | `app/slots/page.tsx` | Customer browse list | `SlotsClient` | Signed-in guest sees a customer browse page; demo user A / B sign-ins lock the page to that customer; review and book an AVAILABLE slot | `POST /api/book` |
 | `/slots/[serial]` | `app/slots/[serial]/page.tsx` | Shared truth page: status, next step, proof | `SlotResaleCta` (link only) | Open resale when eligible | — |
-| `/my-bookings` | `app/my-bookings/page.tsx` | Customer pass hub | `MyBookingsClient` | Switch between Person A / Person B, open details / resale, refresh | — (`router.refresh()` only) |
-| `/resale/[serial]` | `app/resale/[serial]/page.tsx` | Customer resale handoff page | `ResaleClient` | Switch seller / buyer, read the demo-identity note, review and list at ask, review and buy listing | `POST /api/resale-list`, `POST /api/resale-buy` |
-| `/issuer` | `app/issuer/page.tsx` | Provider dashboard shell | `IssuerPanel` | Save business name + 3-session plan, init, mint, typed-confirm reset, confirm freeze, reopen, typed-confirm mark used | `POST /api/session-plan`, `POST /api/init`, `POST /api/mint-slots`, `POST /api/reset-demo`, `POST /api/freeze`, `POST /api/unfreeze`, `POST /api/mark-used` |
+| `/my-bookings` | `app/my-bookings/page.tsx` | Customer pass hub | `MyBookingsClient` | Signed-in guest sees only their customer view; open details / resale, refresh | — (`router.refresh()` only) |
+| `/resale/[serial]` | `app/resale/[serial]/page.tsx` | Customer resale handoff page | `ResaleClient` | Signed-in guest sees the seller / buyer side for their locked demo user; review and list at ask, review and buy listing | `POST /api/resale-list`, `POST /api/resale-buy` |
+| `/issuer` | `app/issuer/page.tsx` | Provider dashboard shell | `IssuerPanel` | Signed-in issuer saves business name + 3-session plan, init, mint, typed-confirm reset, confirm freeze, reopen, typed-confirm mark used | `POST /api/session-plan`, `POST /api/init`, `POST /api/mint-slots`, `POST /api/reset-demo`, `POST /api/freeze`, `POST /api/unfreeze`, `POST /api/mark-used` |
 | `/demo-help` | `app/demo-help/page.tsx` | In-app explanation of demo identities and confirm steps | — (Server Component) | Read how Person A / Person B / Provider map to the demo | — |
 | `/brand-lab` | `app/brand-lab/page.tsx` | Logo variants first, then internal UI kit + homepage composites | `BrandLabClient`, `BrandLabUiKit`, `BrandLabAgentPrototype` | Switch logo direction chips; preview buttons, feedback, toasts, ActorSelector; **assistant-style prototype** (scripted routing, not an LLM) calls `/api/agent/read` + `/api/agent/preview` when “Live API” is on | — |
 | `/brand-lab/assistant` | `app/brand-lab/assistant/page.tsx` | **Customer-only** conversation-shaped **prototype** (scripted routing, not an LLM); no internal column | `BrandLabAgentPrototype` (`mode="customerOnly"`) | Starter actions, preview/confirm cards; Person A + Live API defaults | — |
@@ -40,9 +42,10 @@ Global chrome: `app/layout.tsx` + `components/SiteHeader.tsx` (header nav only; 
 
 | Component | File | Role | Used on |
 |-----------|------|------|---------|
-| `ActorSelector` | `components/ActorSelector.tsx` | Demo persona switcher; compact Person A / Person B toggle on customer routes, configurable full selector when needed | `/slots`, `/my-bookings`, `/resale/*` |
+| `ActorSelector` | `components/ActorSelector.tsx` | Demo persona switcher; compact Person A / Person B toggle on customer routes, with `lockTo` support when demo user A / B is signed in | `/slots`, `/my-bookings`, `/resale/*` |
 | `SlotResaleCta` | `app/slots/[serial]/SlotResaleCta.tsx` | Link to `/resale/[serial]` | `/slots/[serial]` when resale allowed |
-| `SiteHeader` | `components/SiteHeader.tsx` | Global product nav and route highlighting | All routes via `app/layout.tsx` |
+| `SiteHeader` | `components/SiteHeader.tsx` | Global product nav, session display, sign in / register / sign out actions | All routes via `app/layout.tsx` |
+| `GuestPortalShell` | `components/GuestPortalShell.tsx` | Shared signed-in customer wrapper used by role-gated layouts | `/slots`, `/my-bookings`, `/resale/*` |
 | `BrandLabClient` | `components/brand-lab/BrandLabClient.tsx` | Mock surfaces + switchable SVG logo directions for design review | `/brand-lab` only |
 | `Button` | `components/ui/Button.tsx` | Shared action primitive with loading state and variants | Customer + provider action surfaces |
 | `LiveFeedback` | `components/ui/LiveFeedback.tsx` | Shared success/error messaging | `/slots`, `/resale/[serial]`, `/issuer` |
@@ -64,6 +67,11 @@ Global chrome: `app/layout.tsx` + `components/SiteHeader.tsx` (header nav only; 
 
 | API | Method | Purpose | Called from UI? |
 |-----|--------|---------|-----------------|
+| `/api/auth/demo-login` | POST | One-click demo issuer / user A / user B sign-in | Yes — Login |
+| `/api/auth/login` | POST | Email + password sign-in | Yes — Login |
+| `/api/auth/logout` | POST | End current app session | Yes — Header / login helpers |
+| `/api/auth/me` | GET | Current signed-in app user | No — server/auth support |
+| `/api/auth/register` | POST | Create guest app account | Yes — Register |
 | `/api/init` | POST | Create/store token + topic ids | Yes — Issuer |
 | `/api/session-plan` | POST | Save business name + 3 planned demo sessions used by mint/reset | Yes — Issuer |
 | `/api/mint-slots` | POST | Seed slots in Redis (+ mint NFTs per demo policy) | Yes — Issuer |
@@ -152,4 +160,4 @@ Keep that split visible in copy and controls. If a customer page starts explaini
 
 ## Trust reminder (demo)
 
-The browser sends a demo **`actor`**; the server maps it to env-configured keys. This is **not** end-user authentication. Security-sensitive checks (e.g. freeze vs Mirror holder) live in **API routes**, not in client components. See `lib/validation/api.ts` and individual `app/api/*/route.ts` files.
+The browser still sends a demo **`actor`** for booking and resale actions, but those routes now also require a signed-in app session and enforce the locked demo user where applicable. This is still demo auth, not wallet auth. Security-sensitive checks (e.g. provider-only APIs, freeze vs Mirror holder, user A vs user B lock) live in **API routes**, not in client components. See `lib/auth/*`, `lib/validation/api.ts`, and individual `app/api/*/route.ts` files.

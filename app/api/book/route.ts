@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
 import { bookingPort, BookingPortError } from "@/lib/adapters/booking-port";
+import {
+  enforceLockedGuestActor,
+  requireGuestAppUser,
+} from "@/lib/auth/guest-api-auth";
 import { bookBodySchema, fail } from "@/lib/validation/api";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
+    const appUser = await requireGuestAppUser();
+    if (appUser instanceof NextResponse) return appUser;
     const parsed = bookBodySchema.safeParse(await req.json());
     if (!parsed.success) {
       return NextResponse.json(
@@ -13,6 +19,8 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+    const denied = enforceLockedGuestActor(appUser, parsed.data.actor);
+    if (denied) return denied;
     const preview = await bookingPort.previewBook({
       buyer: { kind: "demoActor", id: parsed.data.actor },
       serial: parsed.data.serial,

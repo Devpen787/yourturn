@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireIssuerAppUser } from "@/lib/auth/guest-api-auth";
 import { createBookedRightsToken } from "@/lib/hedera/token";
 import { createTopic } from "@/lib/hedera/consensus";
 import {
@@ -13,6 +14,8 @@ export const runtime = "nodejs";
 
 export async function POST() {
   try {
+    const issuer = await requireIssuerAppUser();
+    if (issuer instanceof NextResponse) return issuer;
     let tokenId = await getStoredTokenId();
     let topicId = await getStoredTopicId();
     let createdToken = false;

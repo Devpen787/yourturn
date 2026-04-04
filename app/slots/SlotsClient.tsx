@@ -64,7 +64,13 @@ function nextStepHint(status: string): string {
   return "Open details to see the current booking status.";
 }
 
-export function SlotsClient({ rows }: { rows: SlotRow[] }) {
+export function SlotsClient({
+  rows,
+  lockTo,
+}: {
+  rows: SlotRow[];
+  lockTo?: "guestA" | "guestB";
+}) {
   const router = useRouter();
   const toast = useToast();
   const [actor, setActor] = useState<ActorValue>("guestA");
@@ -167,14 +173,15 @@ export function SlotsClient({ rows }: { rows: SlotRow[] }) {
     <div>
       <h1 className="mb-2 text-xl font-semibold">Available sessions</h1>
       <ActorSelector
-        pageDefault="guestA"
+        pageDefault={lockTo ?? "guestA"}
         allowedActors={["guestA", "guestB"]}
         title="Customer view"
         description="Switch between Person A and Person B to see the booking experience from each customer side of the demo."
+        lockTo={lockTo}
         onChange={setActor}
       />
       <p className="mb-3 text-sm text-slate-600">
-        Person A and Person B are demo customer identities, not real sign-ins.{" "}
+        Person A and Person B are demo customer identities. When you use demo sign-in, this view locks to that person.{" "}
         <Link
           href="/demo-help"
           className={cn(getButtonClassName("textLink"), "min-h-0 px-0 py-0 text-sm")}

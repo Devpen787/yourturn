@@ -51,11 +51,13 @@ export function MyBookingsClient({
   guestBId,
   tokenId,
   initialRows,
+  lockTo,
 }: {
   guestAId: string;
   guestBId: string;
   tokenId: string | null;
   initialRows: Row[];
+  lockTo?: "guestA" | "guestB";
 }) {
   const router = useRouter();
   const [isRefreshing, startRefresh] = useTransition();
@@ -84,14 +86,15 @@ export function MyBookingsClient({
     <div>
       <h1 className="mb-2 text-xl font-semibold">My passes</h1>
       <ActorSelector
-        pageDefault="guestA"
+        pageDefault={lockTo ?? "guestA"}
         allowedActors={["guestA", "guestB"]}
         title="Customer view"
         description="Switch between Person A and Person B to see each customer’s active passes and resale options."
+        lockTo={lockTo}
         onChange={setActor}
       />
       <p className="mb-3 text-sm text-slate-600">
-        Person A and Person B are demo customer identities, not real sign-ins.{" "}
+        Person A and Person B are demo customer identities. When you use demo sign-in, this page locks to that customer.{" "}
         <Link
           href="/demo-help"
           className={cn(getButtonClassName("textLink"), "min-h-0 px-0 py-0 text-sm")}

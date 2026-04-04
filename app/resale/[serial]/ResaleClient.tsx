@@ -27,6 +27,7 @@ export function ResaleClient({
   currentStatus,
   resaleAllowed,
   slotTitle,
+  lockTo,
 }: {
   serial: number;
   tokenId: string | null;
@@ -35,6 +36,7 @@ export function ResaleClient({
   currentStatus: SlotStatus | null;
   resaleAllowed: boolean;
   slotTitle: string;
+  lockTo?: "guestA" | "guestB";
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -69,9 +71,6 @@ export function ResaleClient({
     mirrorHolderActor != null &&
     actor === mirrorHolderActor;
   const resaleBlockedMessage = useMemo(() => {
-    if (!resaleAllowed) {
-      return "This session is not set up for resale under provider rules.";
-    }
     if (currentStatus === "AVAILABLE") {
       return "No customer holds this pass yet, so there is nothing to resell.";
     }
@@ -80,6 +79,9 @@ export function ResaleClient({
     }
     if (currentStatus === "USED") {
       return "This pass has already been checked in and closed. It cannot be resold.";
+    }
+    if (!resaleAllowed) {
+      return "This session is not set up for resale under provider rules.";
     }
     return null;
   }, [currentStatus, resaleAllowed]);
@@ -261,14 +263,15 @@ export function ResaleClient({
       )}
     >
       <ActorSelector
-        pageDefault="guestA"
+        pageDefault={lockTo ?? "guestA"}
         allowedActors={["guestA", "guestB"]}
         title="Customer handoff"
         description="Switch between Person A and Person B to show the seller side and the buyer side of the resale flow."
+        lockTo={lockTo}
         onChange={setActor}
       />
       <p className="text-sm text-slate-600">
-        Person A and Person B are demo customer identities, not real sign-ins.{" "}
+        Person A and Person B are demo customer identities. When you use demo sign-in, this page locks to that customer.{" "}
         <Link
           href="/demo-help"
           className={cn(getButtonClassName("textLink"), "min-h-0 px-0 py-0 text-sm")}

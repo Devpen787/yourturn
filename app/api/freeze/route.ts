@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { bookingPort, BookingPortError } from "@/lib/adapters/booking-port";
+import { requireIssuerAppUser } from "@/lib/auth/guest-api-auth";
 import { fail, freezeBodySchema } from "@/lib/validation/api";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
+    const issuer = await requireIssuerAppUser();
+    if (issuer instanceof NextResponse) return issuer;
     const parsed = freezeBodySchema.safeParse(await req.json());
     if (!parsed.success) {
       return NextResponse.json(

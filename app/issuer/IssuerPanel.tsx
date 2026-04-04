@@ -195,7 +195,7 @@ export function IssuerPanel({
         );
       } else if (label === "Start over") {
         setSuccess(
-          "Live demo sessions were refreshed from the saved plan. Listings were cleared and the current schedule was reapplied."
+          "Fresh live demo sessions were created from the saved plan. Listings were cleared and the previous demo passes were retired from the active inventory."
         );
       } else if (label === "Pause pass") {
         setSuccess(
@@ -446,7 +446,7 @@ export function IssuerPanel({
               <strong> Create demo sessions </strong>
               mints, and what
               <strong> Start over </strong>
-              reapplies to the current demo serials.
+              creates a fresh set of live demo serials from the saved plan.
             </p>
           </div>
         </div>

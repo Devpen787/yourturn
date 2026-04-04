@@ -1,10 +1,11 @@
 import Link from "next/link";
+import { getSessionUser } from "@/lib/auth/get-session";
 import { getTreasuryIdString } from "@/lib/hedera/token";
-import { readSlotChainState } from "@/lib/server/slotChain";
+import { readSlotLiveState } from "@/lib/server/slotChain";
 import { getButtonClassName } from "@/components/ui/button-classes";
 import { cn } from "@/lib/cn";
 import type { SlotStatus } from "@/lib/domain/guards";
-import { getStoredTokenId } from "@/lib/store/ids";
+import { getStoredTokenId, getStoredTopicId } from "@/lib/store/ids";
 import { getActiveListingForSerial } from "@/lib/store/listings";
 import { getSlotBySerial } from "@/lib/store/slots";
 import { ResaleClient } from "./ResaleClient";
@@ -16,15 +17,23 @@ export default async function ResalePage({
 }: {
   params: { serial: string };
 }) {
+  const session = await getSessionUser();
+  const lockTo =
+    session?.hederaPersona === "guestA" || session?.hederaPersona === "guestB"
+      ? session.hederaPersona
+      : undefined;
   const serial = Number(params.serial);
   if (!Number.isFinite(serial) || serial < 1) {
     return <p>Invalid session link.</p>;
   }
   let tokenId: string | null = null;
+  let topicId: string | null = null;
   try {
     tokenId = await getStoredTokenId();
+    topicId = await getStoredTopicId();
   } catch {
     tokenId = null;
+    topicId = null;
   }
   let listing = null;
   let slot = undefined;
@@ -44,10 +53,11 @@ export default async function ResalePage({
   const guestBId = process.env.HEDERA_GUEST_B_ID ?? "";
   if (tokenId) {
     try {
-      const chain = await readSlotChainState({
+      const chain = await readSlotLiveState({
         tokenId,
         serial,
         treasuryAccountId: getTreasuryIdString(),
+        topicId,
       });
       chainStatus = chain.status;
       const holder = chain.holderAccountId;
@@ -97,6 +107,7 @@ export default async function ResalePage({
         currentStatus={chainStatus}
         resaleAllowed={slot?.resaleAllowed ?? false}
         slotTitle={slot?.title ?? `Pass ${serial}`}
+        lockTo={lockTo}
       />
     </div>
   );

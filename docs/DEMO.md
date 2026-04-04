@@ -45,47 +45,55 @@ See `docs/ECONOMICS.md` for examples and the intended product policy model.
 
 This section matches the **current** Next.js app. Use it for dry runs and judges. For **component and API mapping**, see `docs/UI-MAP.md`.
 
-**Prerequisites:** env + Redis configured per `README.md`; demo uses `guestA` / `guestB` / `issuer` underneath, but the UI frames them as **Person A**, **Person B**, and **Issuer** in `ActorSelector` (stored in `localStorage`).
+**Prerequisites:** env + Redis configured per `README.md`; use **three browser sessions or computers** when possible:
+
+- sign in as **demo issuer**
+- sign in as **demo user A**
+- sign in as **demo user B**
+
+The Hedera demo actors underneath are still `guestA` / `guestB` / `issuer`, but the app now uses a signed-in app session first and locks customer pages to **Person A** or **Person B** when you use the one-click demo accounts.
 
 ### A. Issuer — prepare chain state
 
-1. Open **`/issuer`** (Provider console).
-2. Optional but now real: set the **Business name** and shape the 3 planned sessions (title, time, location, price, resale policy), then save the plan.
-3. **Initialize** — `POST /api/init` (token + topic ids).
-4. **Mint Demo Slots** — seeds slots and NFTs for the demo using the saved session plan.
-5. Confirm the **Current slots** table shows rows with status **AVAILABLE** where expected.
+1. Open **`/login`** and use **Demo issuer**.
+2. Land on **`/issuer`** (Provider dashboard).
+3. Optional but now real: set the **Business name** and shape the 3 planned sessions (title, time, location, price, resale policy), then save the plan.
+4. **Set up business** — `POST /api/init` (token + topic ids).
+5. **Create demo sessions** — seeds slots and NFTs for the demo using the saved session plan.
+6. Confirm the **Live sessions** table shows rows with status **AVAILABLE** where expected.
 
 ### B. Person A — primary book (`F1`)
 
-6. Open **`/slots`** (Book).
-7. Set **Actor** to the guest who should become the first holder.
-8. Click **Book** on an **AVAILABLE** row, review the booking dialog, then confirm — `POST /api/book`.
-9. Confirm success message (includes tx id when returned).
-10. Open **`/slots/[serial]`** or **`/my-bookings`** and confirm the pass now belongs to Person A.
-11. Return to **`/issuer`** and confirm the issuer can also see Person A as the current holder.
+7. Open **`/login`** in a second browser and use **Demo user A**.
+8. Land on **`/slots`**.
+9. Click **Book** on an **AVAILABLE** row, review the booking dialog, then confirm — `POST /api/book`.
+10. Confirm success message (includes tx id when returned).
+11. Open **`/slots/[serial]`** or **`/my-bookings`** and confirm the pass now belongs to Person A.
+12. Return to **`/issuer`** and confirm the issuer can also see Person A as the current holder.
 
 ### C. Person A — resale (`F2`)
 
-12. From **`/slots/[serial]`** (if resale allowed) use **List for resale**, or open **`/resale/[serial]`** directly.
-13. Ensure **Actor** is the **current holder** for **create listing** — review the listing dialog, then `POST /api/resale-list` with ask price.
-14. Explain that creating the listing is the seller's approval to sell under issuer conditions.
-15. Explain the economics honestly: the current MVP proves a fixed **10%** HTS royalty on resale, and the holder may list above cost, at cost, or below cost.
+13. From **`/slots/[serial]`** (if resale allowed) use **Sell pass**, or open **`/resale/[serial]`** directly.
+14. User A is already the locked customer for this browser. Review the listing dialog, then `POST /api/resale-list` with ask price.
+15. Explain that creating the listing is the seller's approval to sell under issuer conditions.
+16. Explain the economics honestly: the current MVP proves a fixed **10%** HTS royalty on resale, and the holder may list above cost, at cost, or below cost.
 
 ### D. Person B — buy the resale (`F2`)
 
-16. Switch **Actor** to the other guest.
-17. Show that Person B can see the resale offer and current ask.
-18. Buy the listed pass — review the purchase dialog, then `POST /api/resale-buy`.
-19. Refresh **`/slots/[serial]`** and **`/my-bookings`** to confirm Person B is now the current holder and Person A is not.
-20. Return to **`/issuer`** and confirm the issuer also sees the holder change.
+17. Open **`/login`** in a third browser and use **Demo user B**.
+18. Open **`/resale/[serial]`** for the listed pass.
+19. Show that Person B can see the resale offer and current ask.
+20. Buy the listed pass — review the purchase dialog, then `POST /api/resale-buy`.
+21. Refresh **`/slots/[serial]`** and **`/my-bookings`** to confirm Person B is now the current holder and Person A is not.
+22. Return to **`/issuer`** and confirm the issuer also sees the holder change.
 
 ### E. Issuer — close lifecycle (`F4`)
 
-21. Return to **`/issuer`**. Confirm table shows Person B as the current holder for the serial.
-22. At redemption or check-in, set **Mark used** serial to that NFT — **Redeem / mark used** — `POST /api/mark-used`.
-23. Show **USED** state on **`/slots/[serial]`** or the guest hub.
-24. Make it explicit that the issuer is the one who closes the lifecycle, so the pass cannot be used again.
-25. If needed, show the anti-double-use proof: a second `mark-used` or `book` attempt for the same serial now fails with `CONFLICT`.
+23. Return to **`/issuer`**. Confirm table shows Person B as the current holder for the serial.
+24. Use **Check in / mark used** for that ref, type the ref number in the confirm dialog, and submit — `POST /api/mark-used`.
+25. Refresh the affected guest page if you are still looking at the same pass, then show **USED** state on **`/slots/[serial]`** or the guest hub.
+26. Make it explicit that the issuer is the one who closes the lifecycle, so the pass cannot be used again.
+27. If needed, show the anti-double-use proof: a second `mark-used` or `book` attempt for the same serial now fails with `CONFLICT`.
 
 ### F. Optional — freeze (`F3`)
 
@@ -103,8 +111,10 @@ This section matches the **current** Next.js app. Use it for dry runs and judges
 - Use plain language, not blockchain jargon
 - Show at least one real Hedera testnet proof point (log tx ids in `docs/TX-LOG.md`)
 - Make the three-party story obvious: issuer, Person A, Person B
+- When using the new app auth, keep one browser per demo account for the cleanest story
 - Treat **Mark used** as the live redemption step, not just cleanup
 - Show that Person A is no longer the valid holder after resale
+- If another browser is already sitting on the same page when a different user changes the pass, refresh that page before narrating the new state
 - If showing `F7` in future, use a separate booking from the one you plan to mark used
 - Only show `HCS` if it helps the audience understand the story faster (topic messages appear on slot detail)
 

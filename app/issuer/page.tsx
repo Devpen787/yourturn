@@ -1,6 +1,6 @@
 import { getToken } from "@/lib/hedera/mirror";
 import { getTreasuryIdString } from "@/lib/hedera/token";
-import { readSlotChainState } from "@/lib/server/slotChain";
+import { readSlotLiveState } from "@/lib/server/slotChain";
 import { loadDemoPlan } from "@/lib/store/demo-plan";
 import { getStoredTokenId, getStoredTopicId } from "@/lib/store/ids";
 import { loadSlots } from "@/lib/store/slots";
@@ -35,11 +35,12 @@ export default async function IssuerPage() {
     slots = await loadSlots();
     if (tokenId) {
       const treasury = getTreasuryIdString();
-      for (const slot of slots) {
-        const chain = await readSlotChainState({
+      for (const slot of slots.filter((record) => record.tokenId === tokenId)) {
+        const chain = await readSlotLiveState({
           tokenId,
           serial: slot.serial,
           treasuryAccountId: treasury,
+          topicId,
         });
         const holder = chain.holderAccountId;
         rows.push({

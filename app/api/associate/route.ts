@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import {
+  enforceLockedGuestActor,
+  requireGuestAppUser,
+} from "@/lib/auth/guest-api-auth";
 import { isTokenAssociatedWithAccount } from "@/lib/hedera/mirror";
 import { associateTokenToAccount } from "@/lib/hedera/token";
 import { getActorCredentials } from "@/lib/hedera/client";
@@ -9,6 +13,8 @@ export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
+    const appUser = await requireGuestAppUser();
+    if (appUser instanceof NextResponse) return appUser;
     const parsed = associateBodySchema.safeParse(await req.json());
     if (!parsed.success) {
       return NextResponse.json(
@@ -16,6 +22,8 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+    const denied = enforceLockedGuestActor(appUser, parsed.data.actor);
+    if (denied) return denied;
     const tokenId = await getStoredTokenId();
     if (!tokenId) {
       return NextResponse.json(

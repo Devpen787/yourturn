@@ -76,6 +76,9 @@ export function fail(
     | "VALIDATION_ERROR"
     | "NOT_FOUND"
     | "CONFLICT"
+    | "FORBIDDEN"
+    | "UNAUTHORIZED"
+    | "NOT_CONFIGURED"
     | "HEDERA_TX_ERROR"
     | "INTERNAL_ERROR"
 ): ApiFailure {

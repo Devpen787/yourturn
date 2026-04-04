@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireIssuerAppUser } from "@/lib/auth/guest-api-auth";
 import type { ImmutableSlotMetadata } from "@/lib/domain/metadata";
 import { mintSlotNfts } from "@/lib/hedera/token";
 import { loadDemoPlan } from "@/lib/store/demo-plan";
@@ -11,6 +12,8 @@ export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
+    const issuer = await requireIssuerAppUser();
+    if (issuer instanceof NextResponse) return issuer;
     const body = mintSlotsBodySchema.safeParse(await req.json().catch(() => ({})));
     if (!body.success) {
       return NextResponse.json(

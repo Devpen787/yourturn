@@ -1,5 +1,6 @@
-import { getStoredTokenId } from "@/lib/store/ids";
-import { readSlotChainState } from "@/lib/server/slotChain";
+import { getSessionUser } from "@/lib/auth/get-session";
+import { getStoredTokenId, getStoredTopicId } from "@/lib/store/ids";
+import { readSlotLiveState } from "@/lib/server/slotChain";
 import { getTreasuryIdString } from "@/lib/hedera/token";
 import { loadSlots } from "@/lib/store/slots";
 import { MyBookingsClient } from "./MyBookingsClient";
@@ -7,6 +8,11 @@ import { MyBookingsClient } from "./MyBookingsClient";
 export const dynamic = "force-dynamic";
 
 export default async function MyBookingsPage() {
+  const session = await getSessionUser();
+  const lockTo =
+    session?.hederaPersona === "guestA" || session?.hederaPersona === "guestB"
+      ? session.hederaPersona
+      : undefined;
   const guestAId = process.env.HEDERA_GUEST_A_ID ?? "";
   const guestBId = process.env.HEDERA_GUEST_B_ID ?? "";
   let tokenId: string | null = null;
@@ -19,6 +25,7 @@ export default async function MyBookingsPage() {
   }[] = [];
   try {
     tokenId = await getStoredTokenId();
+    const topicId = await getStoredTopicId();
     if (!tokenId) {
       return (
         <MyBookingsClient
@@ -26,16 +33,18 @@ export default async function MyBookingsPage() {
           guestBId={guestBId}
           tokenId={null}
           initialRows={[]}
+          lockTo={lockTo}
         />
       );
     }
     const treasury = getTreasuryIdString();
     const slots = await loadSlots();
-    for (const s of slots) {
-      const chain = await readSlotChainState({
+    for (const s of slots.filter((slot) => slot.tokenId === tokenId)) {
+      const chain = await readSlotLiveState({
         tokenId,
         serial: s.serial,
         treasuryAccountId: treasury,
+        topicId,
       });
       rows.push({
         serial: s.serial,
@@ -57,6 +66,7 @@ export default async function MyBookingsPage() {
       guestBId={guestBId}
       tokenId={tokenId}
       initialRows={rows}
+      lockTo={lockTo}
     />
   );
 }
