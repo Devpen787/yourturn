@@ -66,6 +66,27 @@ The implementation should converge on these concepts:
 
 The exact type names can change, but the concepts above need first-class support in `src/domain/`.
 
+## Economic model
+
+The product economics should stay simple and legible:
+
+- the issuer sets the primary slot price
+- the issuer decides whether resale is allowed
+- the current MVP uses a fixed **10%** issuer royalty on secondary resale
+- the current holder sets the resale ask
+- the holder may sell:
+  - above cost
+  - at cost
+  - below cost
+- the issuer must mark the right **used** at redemption so it cannot be used twice
+
+The intended long-term model is slightly broader:
+
+- issuer policy should eventually support configurable royalty rates, including `0%`
+- holder pricing should remain flexible
+
+See `docs/ECONOMICS.md` for the actor-by-actor breakdown and example outcomes.
+
 ## Must-ship flows
 
 ### F1 Primary booking

@@ -15,6 +15,20 @@ Booked Rights makes a booked service slot transferable without giving up issuer 
 3. Transfer or resale with issuer royalty (`F2`)
 4. Mark used (`F4`)
 
+## Economic framing for the live demo
+
+The audience should be able to understand the incentives quickly:
+
+- the issuer earns on the primary booking
+- the issuer can also earn on secondary movement
+- the current holder can resell at a premium, at cost, or at a loss
+- the buyer becomes the new current holder
+- the issuer must mark the pass **used** at redemption to close the lifecycle
+
+For the current MVP, the resale royalty is a fixed **10%**.
+
+See `docs/ECONOMICS.md` for examples and the intended product policy model.
+
 ## Shipped UI walkthrough (happy path)
 
 This section matches the **current** Next.js app. Use it for dry runs and judges. For **component and API mapping**, see `docs/UI-MAP.md`.
