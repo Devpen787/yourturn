@@ -18,6 +18,7 @@ type DemoSeed = {
   location: string;
   issuerName: string;
   primaryPriceHbar: number;
+  priceUsd?: number;
   resaleAllowed: boolean;
 };
 
@@ -77,6 +78,7 @@ export async function POST(req: Request) {
       endTime: d.endTime,
       location: d.location,
       primaryPriceHbar: d.primaryPriceHbar,
+      ...(typeof d.priceUsd === "number" ? { priceUsd: d.priceUsd } : {}),
       resaleAllowed: d.resaleAllowed,
       seeded: true,
       mintedAt,

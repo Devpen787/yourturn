@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { SiteHeader } from "@/components/SiteHeader";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Booked Rights v1",
-  description: "Hedera HTS + HCS transferable booking rights (demo)",
+  description:
+    "Hedera HTS + HCS transferable booking rights — demo: 1 ℏ = US$1 on testnet, 10% royalty in USD + ℏ",
 };
 
 export default function RootLayout({
@@ -15,17 +16,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen">
-        <header className="border-b border-slate-200 bg-white">
-          <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-3 px-4 py-3">
-            <span className="font-semibold text-slate-800">Booked Rights v1</span>
-            <nav className="flex flex-wrap gap-3 text-sm text-blue-700">
-              <Link href="/issuer">Issuer</Link>
-              <Link href="/slots">Slots</Link>
-              <Link href="/my-bookings">My bookings</Link>
-            </nav>
+        <SiteHeader />
+        <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
+        <footer className="border-t border-slate-200 bg-slate-50 py-4 text-center text-[11px] text-slate-600">
+          <div className="mx-auto max-w-5xl px-4">
+            Demo pricing: 1 ℏ = US$1 on testnet · 10% issuer royalty shown in USD
+            and ℏ · not a real FX rate
           </div>
-        </header>
-        <main className="mx-auto max-w-3xl px-4 py-6">{children}</main>
+        </footer>
       </body>
     </html>
   );

@@ -8,6 +8,10 @@ import { readSlotChainState } from "@/lib/server/slotChain";
 import { getStoredTokenId, getStoredTopicId } from "@/lib/store/ids";
 import { getActiveListingForTokenSerial } from "@/lib/store/listings";
 import { getSlotByTokenSerial } from "@/lib/store/slots";
+import { DemoPricingNotice } from "@/components/DemoPricingNotice";
+import { ResaleAskPrice } from "@/components/ResaleAskPrice";
+import { SlotPrimaryPrice } from "@/components/SlotPrimaryPrice";
+import { describeDemoRoyaltyFromAsk } from "@/lib/demo/pricing";
 import { SlotResaleCta } from "./SlotResaleCta";
 
 export const dynamic = "force-dynamic";
@@ -70,12 +74,17 @@ export default async function SlotDetailPage({
     slot &&
     canResell({ status: chain.status, resaleAllowed: slot.resaleAllowed });
 
+  const primaryRv = slot
+    ? describeDemoRoyaltyFromAsk(slot.primaryPriceHbar)
+    : null;
+
   return (
     <div className="text-sm">
       <Link href="/slots" className="text-blue-700 underline">
         ← All slots
       </Link>
       <h1 className="mt-2 text-xl font-semibold">Serial #{serial}</h1>
+      {slot && <DemoPricingNotice />}
       {!slot && (
         <p className="mt-3 rounded border border-amber-200 bg-amber-50 p-3 text-amber-950">
           This serial is not in the app&apos;s current demo list (for example after{" "}
@@ -97,10 +106,23 @@ export default async function SlotDetailPage({
           {chain.holderAccountId || "—"}
         </p>
         {slot && (
-          <p>
-            <span className="font-medium">Primary price:</span>{" "}
-            {slot.primaryPriceHbar} ℏ
-          </p>
+          <>
+            <p>
+              <span className="font-medium">Price:</span>{" "}
+              <SlotPrimaryPrice
+                priceUsd={slot.priceUsd}
+                primaryPriceHbar={slot.primaryPriceHbar}
+              />
+            </p>
+            {primaryRv && (
+              <p className="text-xs text-slate-600">
+                Issuer royalty on resales is <strong>10%</strong> of the resale ask
+                (HTS). If someone resold at this same list amount, issuer would be
+                about {primaryRv.royaltyUsd} ({primaryRv.royaltyHbar}) in this demo (
+                1 ℏ = US$1).
+              </p>
+            )}
+          </>
         )}
         {meta && (
           <pre className="mt-2 overflow-x-auto rounded bg-slate-100 p-2 text-xs">
@@ -131,14 +153,20 @@ export default async function SlotDetailPage({
         )}
       </div>
       {listing?.active && (
-        <p className="mt-4 rounded bg-amber-50 p-2">
-          Active resale listing: {listing.askPriceHbar} ℏ —{" "}
-          <Link href={`/resale/${serial}`} className="underline">
+        <p className="mt-4 rounded border border-emerald-200 bg-emerald-50 p-3 text-emerald-950">
+          <span className="font-medium">Listed for resale:</span>{" "}
+          <ResaleAskPrice
+            askUsd={listing.askUsd}
+            askPriceHbar={listing.askPriceHbar}
+          />{" "}
+          — other guest can buy from{" "}
+          <Link href={`/resale/${serial}`} className="font-medium underline">
             resale page
-          </Link>
+          </Link>{" "}
+          or <Link href="/slots" className="font-medium underline">Public slots</Link>.
         </p>
       )}
-      {showResell && (
+      {showResell && !listing?.active && (
         <div className="mt-4">
           <SlotResaleCta serial={serial} />
         </div>

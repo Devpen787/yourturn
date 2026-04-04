@@ -7,7 +7,10 @@ function baseUrl(): string {
 
 async function mirrorFetch<T>(path: string): Promise<T | null> {
   const url = `${baseUrl()}${path.startsWith("/") ? path : `/${path}`}`;
-  const res = await fetch(url, { next: { revalidate: 0 } });
+  const res = await fetch(url, {
+    cache: "no-store",
+    next: { revalidate: 0 },
+  });
   if (res.status === 404) return null;
   if (!res.ok) {
     throw new Error(`Mirror error ${res.status}: ${await res.text()}`);
@@ -20,6 +23,7 @@ export type MirrorTokenInfo = {
   name?: string;
   symbol?: string;
   type?: string;
+  treasury_account_id?: string;
 };
 
 export type MirrorNftInfo = {

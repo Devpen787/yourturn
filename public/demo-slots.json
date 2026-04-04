@@ -1,32 +1,35 @@
 [
   {
-    "slotId": "slot-001",
-    "title": "Office Hours",
+    "slotId": "physio-001",
+    "title": "Physiotherapy session",
     "startTime": "2026-04-04T14:00:00Z",
-    "endTime": "2026-04-04T14:20:00Z",
-    "location": "Booth A",
-    "issuerName": "Demo Issuer",
-    "primaryPriceHbar": 10,
-    "resaleAllowed": true
-  },
-  {
-    "slotId": "slot-002",
-    "title": "Office Hours",
-    "startTime": "2026-04-04T14:20:00Z",
-    "endTime": "2026-04-04T14:40:00Z",
-    "location": "Booth A",
-    "issuerName": "Demo Issuer",
-    "primaryPriceHbar": 12,
-    "resaleAllowed": true
-  },
-  {
-    "slotId": "slot-003",
-    "title": "Office Hours",
-    "startTime": "2026-04-04T14:40:00Z",
     "endTime": "2026-04-04T15:00:00Z",
-    "location": "Booth A",
-    "issuerName": "Demo Issuer",
-    "primaryPriceHbar": 15,
+    "location": "Treatment room 1",
+    "issuerName": "Demo Physio Practice",
+    "primaryPriceHbar": 10,
+    "priceUsd": 10,
+    "resaleAllowed": true
+  },
+  {
+    "slotId": "physio-002",
+    "title": "Physiotherapy session",
+    "startTime": "2026-04-04T15:00:00Z",
+    "endTime": "2026-04-04T16:00:00Z",
+    "location": "Treatment room 1",
+    "issuerName": "Demo Physio Practice",
+    "primaryPriceHbar": 10,
+    "priceUsd": 10,
+    "resaleAllowed": true
+  },
+  {
+    "slotId": "physio-003",
+    "title": "Physiotherapy session",
+    "startTime": "2026-04-04T16:00:00Z",
+    "endTime": "2026-04-04T17:00:00Z",
+    "location": "Treatment room 2",
+    "issuerName": "Demo Physio Practice",
+    "primaryPriceHbar": 10,
+    "priceUsd": 10,
     "resaleAllowed": true
   }
 ]

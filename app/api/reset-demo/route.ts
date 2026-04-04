@@ -2,13 +2,13 @@ import { readFile } from "fs/promises";
 import path from "path";
 import { NextResponse } from "next/server";
 import type { ImmutableSlotMetadata } from "@/lib/domain/metadata";
-import { accountsEqual, getActorCredentials, tryResolveGuestActor } from "@/lib/hedera/client";
+import { getActorCredentials, tryResolveGuestActor } from "@/lib/hedera/client";
 import {
   getAccountTokenFreezeStatus,
   getNftBySerial,
 } from "@/lib/hedera/mirror";
 import {
-  getTreasuryIdString,
+  isNftHolderTreasury,
   mintSlotNfts,
   transferNftFromHolderToTreasury,
   unfreezeHolder,
@@ -29,6 +29,7 @@ type DemoSeed = {
   location: string;
   issuerName: string;
   primaryPriceHbar: number;
+  priceUsd?: number;
   resaleAllowed: boolean;
 };
 
@@ -47,7 +48,6 @@ export async function POST() {
       );
     }
     await clearAllListings();
-    const treasury = getTreasuryIdString();
     const raw = await readFile(
       path.join(process.cwd(), "public", "demo-slots.json"),
       "utf8"
@@ -68,7 +68,7 @@ export async function POST() {
       const nft = await getNftBySerial(tokenId, s.serial);
       if (nft?.deleted) continue;
       if (!nft?.account_id) continue;
-      if (accountsEqual(nft.account_id, treasury)) continue;
+      if (await isNftHolderTreasury(tokenId, nft.account_id)) continue;
 
       const guest = tryResolveGuestActor(nft.account_id);
       if (!guest) {
@@ -113,6 +113,7 @@ export async function POST() {
       endTime: d.endTime,
       location: d.location,
       primaryPriceHbar: d.primaryPriceHbar,
+      ...(typeof d.priceUsd === "number" ? { priceUsd: d.priceUsd } : {}),
       resaleAllowed: d.resaleAllowed,
       seeded: true,
       mintedAt,

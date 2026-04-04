@@ -44,7 +44,12 @@ export async function getActiveListingForTokenSerial(
 export async function addListing(listing: ResaleListing): Promise<void> {
   const listings = await loadListings();
   const others = listings.filter(
-    (l) => !(l.serial === listing.serial && l.active)
+    (l) =>
+      !(
+        l.tokenId === listing.tokenId &&
+        l.serial === listing.serial &&
+        l.active
+      )
   );
   others.push(listing);
   await saveListings(others);

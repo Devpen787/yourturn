@@ -4,11 +4,14 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ActorSelector } from "@/components/ActorSelector";
 
+type HolderHint = { serial: number; label: string };
+
 type Props = {
   tokenId: string | null;
   topicId: string | null;
   tokenExists: boolean;
   slotsCount: number;
+  holderHints?: HolderHint[];
 };
 
 export function IssuerPanel({
@@ -16,15 +19,16 @@ export function IssuerPanel({
   topicId,
   tokenExists,
   slotsCount,
+  holderHints = [],
 }: Props) {
   const router = useRouter();
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
   const [freezeSerial, setFreezeSerial] = useState("1");
-  const [freezeHolder, setFreezeHolder] = useState<"guestA" | "guestB">(
-    "guestB"
-  );
+  const [freezeHolder, setFreezeHolder] = useState<
+    "auto" | "guestA" | "guestB"
+  >("auto");
   const [burnSerial, setBurnSerial] = useState("1");
 
   async function run(
@@ -47,6 +51,12 @@ export function IssuerPanel({
         return;
       }
       let m = `${label} OK`;
+      if (
+        typeof data.holderActorUsed === "string" &&
+        (label === "Freeze" || label === "Unfreeze")
+      ) {
+        m += ` (holder: ${data.holderActorUsed})`;
+      }
       if (Array.isArray(data.serials) && data.serials.length > 0) {
         m += ` (NFT serials ${data.serials.join(", ")})`;
       }
@@ -117,6 +127,29 @@ export function IssuerPanel({
       </div>
       <section className="mt-8 border-t border-slate-200 pt-6">
         <h2 className="mb-2 font-medium">Freeze / unfreeze holder</h2>
+        <p className="mb-2 max-w-xl text-sm text-slate-600">
+          <span className="font-medium text-slate-700">Auto</span> uses the
+          account Mirror reports for this serial (Guest A or B). That matches
+          slots listed for resale—the seller still holds the NFT until someone
+          buys. Freeze only applies after a guest holds the NFT (not while it is
+          still AVAILABLE in treasury). To pull an unbooked slot from sale, use{" "}
+          <span className="font-medium text-slate-800">Burn / withdraw slot</span>{" "}
+          below.
+        </p>
+        {holderHints.length > 0 && (
+          <div className="mb-3 rounded border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+            <p className="mb-1 font-medium text-slate-800">
+              On-chain holder (Mirror) for demo serials
+            </p>
+            <ul className="list-inside list-disc space-y-0.5">
+              {holderHints.map((h) => (
+                <li key={h.serial}>
+                  Serial {h.serial}: {h.label}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <div className="mb-2 flex flex-wrap items-center gap-2 text-sm">
           <label>
             Serial{" "}
@@ -132,9 +165,10 @@ export function IssuerPanel({
               className="ml-1 rounded border border-slate-300"
               value={freezeHolder}
               onChange={(e) =>
-                setFreezeHolder(e.target.value as "guestA" | "guestB")
+                setFreezeHolder(e.target.value as "auto" | "guestA" | "guestB")
               }
             >
+              <option value="auto">Auto (Mirror holder)</option>
               <option value="guestA">guestA</option>
               <option value="guestB">guestB</option>
             </select>
@@ -146,10 +180,16 @@ export function IssuerPanel({
             className="rounded bg-amber-700 px-3 py-2 text-sm text-white disabled:opacity-50"
             disabled={!!loading}
             onClick={() =>
-              run("Freeze", "/api/freeze", {
-                serial: Number(freezeSerial),
-                holderActor: freezeHolder,
-              })
+              run(
+                "Freeze",
+                "/api/freeze",
+                freezeHolder === "auto"
+                  ? { serial: Number(freezeSerial) }
+                  : {
+                      serial: Number(freezeSerial),
+                      holderActor: freezeHolder,
+                    }
+              )
             }
           >
             Freeze
@@ -159,10 +199,16 @@ export function IssuerPanel({
             className="rounded bg-slate-600 px-3 py-2 text-sm text-white disabled:opacity-50"
             disabled={!!loading}
             onClick={() =>
-              run("Unfreeze", "/api/unfreeze", {
-                serial: Number(freezeSerial),
-                holderActor: freezeHolder,
-              })
+              run(
+                "Unfreeze",
+                "/api/unfreeze",
+                freezeHolder === "auto"
+                  ? { serial: Number(freezeSerial) }
+                  : {
+                      serial: Number(freezeSerial),
+                      holderActor: freezeHolder,
+                    }
+              )
             }
           >
             Unfreeze
@@ -170,7 +216,16 @@ export function IssuerPanel({
         </div>
       </section>
       <section className="mt-8 border-t border-slate-200 pt-6">
-        <h2 className="mb-2 font-medium">Mark slot used (burn)</h2>
+        <h2 className="mb-2 font-medium">Withdraw slot / mark used (burn)</h2>
+        <p className="mb-2 max-w-xl text-sm text-slate-600">
+          Burns the NFT for this serial. Use this to{" "}
+          <span className="font-medium text-slate-800">
+            stop offering a slot that is still AVAILABLE
+          </span>{" "}
+          (NFT stays in treasury today—no booking required), or after a guest
+          held it to record that the appointment is finished (the app moves the
+          NFT back to treasury first, then burns).
+        </p>
         <div className="mb-2 flex flex-wrap items-center gap-2 text-sm">
           <label>
             Serial{" "}
@@ -186,10 +241,10 @@ export function IssuerPanel({
           className="rounded bg-red-700 px-3 py-2 text-sm text-white disabled:opacity-50"
           disabled={!!loading}
           onClick={() =>
-            run("Mark used", "/api/mark-used", { serial: Number(burnSerial) })
+            run("Burn slot", "/api/mark-used", { serial: Number(burnSerial) })
           }
         >
-          Mark used
+          Burn / withdraw slot
         </button>
       </section>
     </div>

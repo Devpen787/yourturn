@@ -10,6 +10,7 @@ import {
   transferNftFromHolderToTreasury,
 } from "@/lib/hedera/token";
 import { readSlotChainState } from "@/lib/server/slotChain";
+import { deactivateListing } from "@/lib/store/listings";
 import { getStoredTokenId, getStoredTopicId } from "@/lib/store/ids";
 import { fail, markUsedBodySchema } from "@/lib/validation/api";
 
@@ -80,6 +81,11 @@ export async function POST(req: Request) {
       });
     }
     await burnUsedSlot({ serial, tokenIdStr: tokenId });
+    try {
+      await deactivateListing(serial, tokenId);
+    } catch {
+      /* Redis optional for burn; listing row may remain if KV unset */
+    }
     await submitLifecycleEvent(topicId, {
       eventType: "USED",
       tokenId,

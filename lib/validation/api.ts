@@ -28,7 +28,8 @@ export const bookBodySchema = z.object({
 export const resaleListBodySchema = z.object({
   actor: z.enum(["guestA", "guestB"]),
   serial: z.number().int().positive(),
-  askPriceHbar: z.number().positive(),
+  /** Resale list price in USD; testnet transfer uses the same number as ℏ (demo 1:1). */
+  askUsd: z.number().positive(),
 });
 
 export const resaleBuyBodySchema = z.object({
@@ -38,7 +39,8 @@ export const resaleBuyBodySchema = z.object({
 
 export const freezeBodySchema = z.object({
   serial: z.number().int().positive(),
-  holderActor: z.enum(["guestA", "guestB"]),
+  /** Omit to freeze whoever Mirror reports holds this serial (Guest A or B only). */
+  holderActor: z.enum(["guestA", "guestB"]).optional(),
 });
 
 export const unfreezeBodySchema = freezeBodySchema;

@@ -1,4 +1,5 @@
 import { getToken } from "@/lib/hedera/mirror";
+import { describeOnChainHolder } from "@/lib/server/nftHolderLabel";
 import { getStoredTokenId, getStoredTopicId } from "@/lib/store/ids";
 import { loadSlots } from "@/lib/store/slots";
 import { IssuerPanel } from "./IssuerPanel";
@@ -20,12 +21,22 @@ export default async function IssuerPage() {
   const slotsForToken = tokenId
     ? slots.filter((s) => s.tokenId === tokenId)
     : [];
+  const holderHints =
+    tokenId && slotsForToken.length > 0
+      ? await Promise.all(
+          slotsForToken.map(async (s) => ({
+            serial: s.serial,
+            label: await describeOnChainHolder(tokenId, s.serial),
+          }))
+        )
+      : [];
   return (
     <IssuerPanel
       tokenId={tokenId}
       topicId={topicId}
       tokenExists={!!tokenMirror}
       slotsCount={slotsForToken.length}
+      holderHints={holderHints}
     />
   );
 }

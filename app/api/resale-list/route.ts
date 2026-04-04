@@ -23,7 +23,8 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-    const { actor, serial, askPriceHbar } = parsed.data;
+    const { actor, serial, askUsd } = parsed.data;
+    const askPriceHbar = askUsd;
     const tokenId = await getStoredTokenId();
     const topicId = await getStoredTopicId();
     if (!tokenId || !topicId) {
@@ -70,6 +71,7 @@ export async function POST(req: Request) {
       serial,
       sellerAccountId: acc,
       askPriceHbar,
+      askUsd,
       active: true,
       createdAt: new Date().toISOString(),
     };
@@ -89,6 +91,7 @@ export async function POST(req: Request) {
         serial: listing.serial,
         sellerAccountId: listing.sellerAccountId,
         askPriceHbar: listing.askPriceHbar,
+        askUsd: listing.askUsd,
         active: listing.active,
       },
     });

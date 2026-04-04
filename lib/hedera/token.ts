@@ -17,11 +17,13 @@ import {
 } from "@hashgraph/sdk";
 import { buildNftMetadataBlob, type ImmutableSlotMetadata } from "@/lib/domain/metadata";
 import {
+  accountsEqual,
   getActorCredentials,
   getClient,
   getFeeCollectorAccountId,
   getTreasuryAccountId,
 } from "./client";
+import { getToken } from "./mirror";
 
 /** Royalty: numerator 1 / denominator 10 = 10%. No fallback fee in v1. */
 const ROYALTY_NUM = 1;
@@ -228,4 +230,15 @@ export async function transferNftFromHolderToTreasury(args: {
 
 export function getTreasuryIdString(): string {
   return getTreasuryAccountId().toString();
+}
+
+/** True if this account is the token treasury on-chain (env id or Mirror token record). */
+export async function isNftHolderTreasury(
+  tokenId: string,
+  holderAccountId: string
+): Promise<boolean> {
+  if (accountsEqual(holderAccountId, getTreasuryIdString())) return true;
+  const info = await getToken(tokenId);
+  const mirrorTreasury = info?.treasury_account_id;
+  return !!(mirrorTreasury && accountsEqual(holderAccountId, mirrorTreasury));
 }

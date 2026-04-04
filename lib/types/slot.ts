@@ -7,6 +7,8 @@ export type SlotRecord = {
   endTime: string;
   location: string;
   primaryPriceHbar: number;
+  /** Product-facing list price in USD (demo); chain still uses `primaryPriceHbar` ℏ */
+  priceUsd?: number;
   resaleAllowed: boolean;
   seeded: boolean;
   mintedAt: string;

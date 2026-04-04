@@ -3,8 +3,9 @@ import { submitLifecycleEvent } from "@/lib/hedera/consensus";
 import {
   accountsEqual,
   getActorCredentials,
+  tryResolveGuestActor,
 } from "@/lib/hedera/client";
-import { getTreasuryIdString, unfreezeHolder } from "@/lib/hedera/token";
+import { isNftHolderTreasury, unfreezeHolder } from "@/lib/hedera/token";
 import { getNftBySerial } from "@/lib/hedera/mirror";
 import { getStoredTokenId, getStoredTopicId } from "@/lib/store/ids";
 import { fail, unfreezeBodySchema } from "@/lib/validation/api";
@@ -29,7 +30,6 @@ export async function POST(req: Request) {
       );
     }
     const { serial, holderActor } = parsed.data;
-    const treasury = getTreasuryIdString();
     const nft = await getNftBySerial(tokenId, serial);
     if (!nft || nft.deleted) {
       return NextResponse.json(
@@ -38,20 +38,40 @@ export async function POST(req: Request) {
       );
     }
     const mirrorHolder = nft.account_id;
-    if (!mirrorHolder || accountsEqual(mirrorHolder, treasury)) {
+    if (!mirrorHolder) {
       return NextResponse.json(
         fail(
-          "Cannot unfreeze: NFT is with treasury (slot AVAILABLE); there is no guest holder.",
+          "Cannot unfreeze: Mirror has no account_id for this NFT yet. Wait a few seconds and retry.",
           "CONFLICT"
         ),
         { status: 409 }
       );
     }
-    const selected = getActorCredentials(holderActor).accountId.toString();
-    if (!accountsEqual(mirrorHolder, selected)) {
+    if (await isNftHolderTreasury(tokenId, mirrorHolder)) {
       return NextResponse.json(
         fail(
-          `holderActor (${holderActor}) does not match Mirror holder for serial ${serial}. Mirror holder: ${mirrorHolder}.`,
+          `Cannot unfreeze: serial ${serial} is still with the token treasury (${mirrorHolder}) — nothing to unfreeze until a guest holds the NFT.`,
+          "CONFLICT"
+        ),
+        { status: 409 }
+      );
+    }
+    const fromMirror = tryResolveGuestActor(mirrorHolder);
+    if (holderActor !== undefined) {
+      const selected = getActorCredentials(holderActor).accountId.toString();
+      if (!accountsEqual(mirrorHolder, selected)) {
+        return NextResponse.json(
+          fail(
+            `holderActor (${holderActor}) does not match Mirror holder for serial ${serial}. Mirror holder: ${mirrorHolder}.`,
+            "CONFLICT"
+          ),
+          { status: 409 }
+        );
+      }
+    } else if (!fromMirror) {
+      return NextResponse.json(
+        fail(
+          `Cannot auto-unfreeze: Mirror holder ${mirrorHolder} is not Guest A or B in env. Pick the matching guest or fix env ids.`,
           "CONFLICT"
         ),
         { status: 409 }
@@ -68,7 +88,11 @@ export async function POST(req: Request) {
       to: mirrorHolder,
       timestamp: new Date().toISOString(),
     });
-    return NextResponse.json({ ok: true as const });
+    const holderActorUsed = holderActor ?? fromMirror!;
+    return NextResponse.json({
+      ok: true as const,
+      holderActorUsed,
+    });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     return NextResponse.json(fail(msg, "HEDERA_TX_ERROR"), { status: 500 });
