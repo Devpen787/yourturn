@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import { BrandLockup } from "@/components/brand-lab/brandLogoVariants";
 import { cn } from "@/lib/cn";
 
 type SessionUser =
@@ -46,7 +47,7 @@ function NavLink({
     <Link
       href={href}
       className={cn(
-        "rounded-md px-2 py-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2",
+        "rounded-md px-2 py-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus focus-visible:ring-offset-2",
         active
           ? "font-semibold text-slate-950"
           : "text-slate-700 hover:text-slate-950"
@@ -82,17 +83,17 @@ export function SiteHeader({
     : NAV.filter((item) => item.href !== "/issuer");
 
   return (
-    <header className="border-b border-slate-200 bg-white">
+    <header className="border-b border-slate-200/80 bg-white/85 backdrop-blur-md">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 py-3">
         <Link
           href="/"
           className={cn(
-            "rounded-md text-base font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2",
+            "rounded-xl px-1 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus focus-visible:ring-offset-2",
             homeActive ? "text-slate-950" : "text-slate-800 hover:text-slate-950"
           )}
           aria-current={homeActive ? "page" : undefined}
         >
-          YourTurn
+          <BrandLockup variant="calendarTurn" markClassName="h-8 w-8" />
         </Link>
         <nav
           className="flex flex-wrap items-center gap-1 sm:gap-3"
@@ -100,7 +101,7 @@ export function SiteHeader({
         >
           {sessionUser ? (
             <span
-              className="hidden max-w-[15rem] truncate text-xs text-slate-500 sm:inline"
+              className="hidden max-w-[15rem] truncate rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600 sm:inline"
               title={sessionUser.email}
             >
               Signed in: {sessionUser.email}
@@ -109,7 +110,7 @@ export function SiteHeader({
           {process.env.NODE_ENV === "development" ? (
             <Link
               href="/brand-lab"
-              className="rounded-md px-2 py-2.5 text-xs text-slate-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 hover:text-slate-800"
+              className="rounded-md px-2 py-2.5 text-xs text-brand-link transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus focus-visible:ring-offset-2 hover:text-brand-mark"
             >
               Brand lab
             </Link>
@@ -126,7 +127,7 @@ export function SiteHeader({
             <button
               type="button"
               disabled={logoutBusy}
-              className="rounded-md px-2 py-2.5 text-sm text-slate-700 transition-colors hover:text-slate-950 disabled:opacity-50"
+              className="rounded-md px-2 py-2.5 text-sm text-slate-700 transition-colors hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus focus-visible:ring-offset-2 disabled:opacity-50"
               onClick={async () => {
                 setLogoutBusy(true);
                 try {

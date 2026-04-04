@@ -1,22 +1,39 @@
 import Link from "next/link";
+import { BrandLockup } from "@/components/brand-lab/brandLogoVariants";
+import { getButtonClassName } from "@/components/ui/button-classes";
 import { cn } from "@/lib/cn";
+import {
+  glassInset,
+  glassPanel,
+  signatureSurfaceCanvas,
+} from "@/lib/ui/glass-classes";
 
 const heroFocus =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white/90 focus-visible:ring-offset-slate-950";
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus focus-visible:ring-offset-2";
 
 export function HomeHero() {
   return (
-    <section className="relative overflow-hidden rounded-[2rem] bg-slate-950 px-6 py-10 text-white shadow-[0_40px_120px_rgba(15,23,42,0.18)] md:px-10 md:py-14">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(125,211,252,0.25),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(244,114,182,0.16),transparent_30%)]" />
+    <section className={cn(signatureSurfaceCanvas, "px-6 py-10 md:px-10 md:py-14")}>
+      <div
+        className="pointer-events-none absolute -top-16 right-0 h-56 w-56 rounded-full bg-brand-schedule/15 blur-3xl"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute -bottom-10 left-8 h-40 w-40 rounded-full bg-brand-motion/12 blur-3xl"
+        aria-hidden
+      />
       <div className="relative grid gap-10 md:grid-cols-[minmax(0,1.15fr)_minmax(300px,0.9fr)] md:items-center">
         <div>
-          <p className="text-sm font-medium uppercase tracking-[0.22em] text-slate-300">
-            YourTurn
+          <div className="inline-flex rounded-full border border-white/70 bg-white/75 px-3 py-2 shadow-sm backdrop-blur-sm">
+            <BrandLockup variant="calendarTurn" markClassName="h-8 w-8" />
+          </div>
+          <p className="mt-6 text-[11px] font-semibold uppercase tracking-[0.22em] text-brand-word-accent">
+            Transferable service bookings
           </p>
-          <h1 className="mt-4 max-w-3xl text-4xl font-semibold tracking-tight text-white md:text-5xl">
+          <h1 className="mt-4 max-w-3xl text-4xl font-semibold tracking-tight text-brand-mark md:text-5xl">
             Book the spot. Keep your options.
           </h1>
-          <p className="mt-5 max-w-xl text-base leading-7 text-slate-300 md:text-lg">
+          <p className="mt-5 max-w-xl text-base leading-7 text-slate-700 md:text-lg">
             For studios, therapists, and coaching-led services where a missed
             session still matters. Customers keep the reservation like a pass in
             one simple booking flow, while providers use a separate dashboard for
@@ -26,7 +43,8 @@ export function HomeHero() {
             <Link
               href="/slots"
               className={cn(
-                "inline-flex min-h-[44px] items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-medium text-slate-950",
+                getButtonClassName("primary"),
+                "rounded-full no-underline shadow-sm",
                 heroFocus
               )}
             >
@@ -35,28 +53,40 @@ export function HomeHero() {
             <Link
               href="/my-bookings"
               className={cn(
-                "inline-flex min-h-[44px] items-center justify-center rounded-full border border-white/20 px-5 py-2.5 text-sm font-medium text-white",
+                getButtonClassName("secondary"),
+                "rounded-full no-underline bg-white/70 backdrop-blur-sm",
                 heroFocus
               )}
             >
               Open my passes
             </Link>
           </div>
+          <div className="mt-6 flex flex-wrap gap-2 text-xs text-slate-600">
+            <span className={cn(glassInset, "px-3 py-1.5 font-medium")}>
+              Provider-controlled resale
+            </span>
+            <span className={cn(glassInset, "px-3 py-1.5 font-medium")}>
+              One live holder per pass
+            </span>
+            <span className={cn(glassInset, "px-3 py-1.5 font-medium")}>
+              Final check-in closes the pass
+            </span>
+          </div>
         </div>
 
         <div className="relative mx-auto flex w-full max-w-sm flex-col gap-5 py-2 md:mx-0 md:ml-auto md:max-w-none md:py-0 md:pl-2 md:pr-1">
-          <div className="w-full rounded-[1.75rem] border border-white/10 bg-white/10 p-5 shadow-sm backdrop-blur md:max-w-[17.5rem] md:self-end">
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-300">
+          <div className={cn(glassPanel, "w-full p-5 md:max-w-[18rem] md:self-end")}>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
               Tonight
             </p>
-            <p className="mt-3 text-2xl font-semibold text-white">Handstand Flow</p>
-            <p className="mt-2 text-sm text-slate-300">6:00 PM · 1 spot left</p>
-            <div className="mt-5 h-px bg-white/10" />
-            <p className="mt-4 text-sm leading-relaxed text-slate-300">
+            <p className="mt-3 text-2xl font-semibold text-slate-950">Handstand Flow</p>
+            <p className="mt-2 text-sm text-slate-600">6:00 PM · 1 spot left</p>
+            <div className="mt-5 h-px bg-slate-200/80" />
+            <p className="mt-4 text-sm leading-relaxed text-slate-700">
               Last opening, still governed by provider rules.
             </p>
           </div>
-          <div className="w-full rounded-[1.75rem] border border-slate-200/60 bg-slate-50 p-5 pb-6 text-slate-900 shadow-lg md:max-w-[18rem] md:self-end md:ring-1 md:ring-slate-900/[0.04]">
+          <div className={cn(glassPanel, "w-full p-5 pb-6 text-slate-900 md:max-w-[18rem] md:self-end")}>
             <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
               My pass
             </p>

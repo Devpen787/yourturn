@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { getButtonClassName } from "@/components/ui/button-classes";
 import { cn } from "@/lib/cn";
+import { glassPanel, signatureSurfaceCanvas } from "@/lib/ui/glass-classes";
 
 export function StartFlowCta() {
   return (
-    <section className="rounded-[2rem] border border-slate-200 bg-white px-6 py-8 md:px-8">
+    <section className={cn(signatureSurfaceCanvas, "px-6 py-8 md:px-8")}>
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-6">
-          <p className="text-sm font-medium text-slate-500">Customer app</p>
+        <div className={cn(glassPanel, "p-6")}>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-word-accent">
+            Customer app
+          </p>
           <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
             Find it, book it, keep track of it.
           </h2>
@@ -20,7 +23,7 @@ export function StartFlowCta() {
               href="/slots"
               className={cn(
                 getButtonClassName("primary"),
-                "rounded-full no-underline"
+                "rounded-full no-underline shadow-sm"
               )}
             >
               Browse sessions
@@ -37,8 +40,10 @@ export function StartFlowCta() {
           </div>
         </div>
 
-        <div className="rounded-[1.5rem] border border-slate-200 bg-white p-6">
-          <p className="text-sm font-medium text-slate-500">Business dashboard</p>
+        <div className={cn(glassPanel, "p-6")}>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-word-accent">
+            Business dashboard
+          </p>
           <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
             Set the rules behind the scenes.
           </h2>
