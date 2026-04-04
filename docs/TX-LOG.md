@@ -1,15 +1,22 @@
 # Transaction log (Hedera testnet proof)
 
-Record **only** real testnet transactions here. Replace `_TBD_` after you run the demo flows.  
+Record **only** real testnet transactions here after you run the flows locally. Replace every `_TBD_` with values from your environment and from API responses (DevTools → **Network** → select the `POST` → **Response**).
+
+**Why this file still has `_TBD_`:** Nobody can paste your real tx ids without your keys and a live `npm run dev` run. The app now returns **`txId`**, **`hashscanUrl`**, and (where applicable) **`lifecycleTxId`** / **`lifecycleHashscanUrl`** so you can copy them in one shot.
+
 HashScan base (default): `https://hashscan.io/testnet`
 
+---
+
 ## Network & resources
+
+Fill this from `.env.local` and from **Issuer** after **Initialize** (or from Redis `bookedrights:tokenId` / `bookedrights:topicId`).
 
 | Field | Value |
 |--------|--------|
 | Network | `testnet` |
-| Token ID | _TBD_ (also `bookedrights:tokenId` in Redis after `/api/init`) |
-| HCS topic ID | _TBD_ (also `bookedrights:topicId` in Redis) |
+| Token ID | _TBD_ |
+| HCS topic ID | _TBD_ |
 | Treasury account | _TBD_ (`HEDERA_TREASURY_ID`) |
 | Fee collector (royalty) | _TBD_ (`HEDERA_FEE_COLLECTOR_ID`) |
 | Guest A | _TBD_ (`HEDERA_GUEST_A_ID`) |
@@ -17,84 +24,115 @@ HashScan base (default): `https://hashscan.io/testnet`
 
 **Mirror (read-only):** `https://testnet.mirrornode.hedera.com/api/v1`
 
-## Flow proofs (paste tx id + HashScan link)
+---
 
-| Flow | Tx ID | HashScan / notes |
-|------|--------|------------------|
-| **F1** Primary book (`POST /api/book`) | _TBD_ | _TBD_ |
-| **F2** Resale buy (`POST /api/resale-buy`) | _TBD_ (paste below) | _TBD_ — see [F2 runbook](#f2-resale--testnet-proof-runbook) |
-| **F3** Freeze (`POST /api/freeze`) | _TBD_ | _TBD_ |
-| **F3** Unfreeze (`POST /api/unfreeze`) | _TBD_ | _TBD_ |
-| **F4** Mark used / burn (`POST /api/mark-used`) | _TBD_ | _TBD_ — if guest held NFT, expect **transfer → treasury** then **burn** (two steps server-side) |
+## Flow proofs — main table (for reviewers)
 
-## Optional
+| Flow | Primary proof (HTS / main tx) | HashScan | Optional HCS lifecycle tx |
+|------|------------------------------|----------|-------------------------|
+| **F1** Primary book | _TBD_ (`POST /api/book` → `txId`) | _TBD_ (`hashscanUrl`) | _TBD_ (`lifecycleTxId`) |
+| **F2** List (app + HCS only) | — (no HTS transfer) | — | _TBD_ (`POST /api/resale-list` → `lifecycleTxId`) |
+| **F2** Resale buy | _TBD_ (`POST /api/resale-buy` → `txId`) | _TBD_ (`hashscanUrl`) | _TBD_ (`lifecycleTxId`) |
+| **F3** Freeze | _TBD_ (`POST /api/freeze` → `freezeTxId`) | _TBD_ (`freezeHashscanUrl`) | _TBD_ (`lifecycleTxId`) |
+| **F3** Unfreeze | _TBD_ (`POST /api/unfreeze` → `unfreezeTxId`) | _TBD_ (`unfreezeHashscanUrl`) | _TBD_ (`lifecycleTxId`) |
+| **F4** Mark used / burn | _TBD_ — see [F4 notes](#f4-mark-used--burn) | _TBD_ | _TBD_ (`lifecycleTxId`) |
 
-| Item | Link / id |
-|------|-----------|
-| Token on HashScan | _TBD_ |
-| Topic on HashScan | _TBD_ |
-| **F7** refund (if built) | _TBD_ |
+---
 
-## F2 resale — testnet proof (runbook)
+## API responses — which fields to copy
 
-Do this on **your machine** with `npm run dev`, `.env.local`, and guests funded on **testnet**. The app cannot record a real tx id until you run the flow once.
+| Endpoint | JSON fields (on success) |
+|----------|---------------------------|
+| `POST /api/book` | `txId`, `hashscanUrl`, `lifecycleTxId`, `lifecycleHashscanUrl` |
+| `POST /api/resale-list` | `lifecycleTxId`, `lifecycleHashscanUrl` (listing is Redis + HCS only) |
+| `POST /api/resale-buy` | `txId`, `hashscanUrl`, `lifecycleTxId`, `lifecycleHashscanUrl` |
+| `POST /api/freeze` | `freezeTxId`, `freezeHashscanUrl`, `lifecycleTxId`, `lifecycleHashscanUrl` |
+| `POST /api/unfreeze` | `unfreezeTxId`, `unfreezeHashscanUrl`, `lifecycleTxId`, `lifecycleHashscanUrl` |
+| `POST /api/mark-used` | `returnToTreasuryTxId` (or `null` if slot was already treasury), `returnToTreasuryHashscanUrl`, `burnTxId`, `burnHashscanUrl`, `lifecycleTxId`, `lifecycleHashscanUrl` |
 
-### Preconditions
+**Issuer UI:** After **Freeze**, **Unfreeze**, or **Burn / withdraw slot**, the green banner also appends the main tx ids when present.
 
-- **Issuer:** Initialize + **Mint Demo Slots** or **Reset Demo** so you have three **AVAILABLE** slots on `/slots`.
-- **Guest A** and **Guest B** have enough **ℏ** for fees + book + buy (book uses primary price from seed; resale uses your chosen ask).
-- If guests are **ECDSA**, `HEDERA_GUEST_*_KEY_TYPE=ECDSA` is set (see `.env.example`).
+---
 
-### Steps (UI)
+## How to capture (quick)
 
-1. **Book as Guest A**  
-   - Open **Public slots** (`/slots`).  
-   - **Actor:** `guestA` → **Book** one slot.  
-   - Optional: **My bookings** → confirm status **HELD** for that serial.
+1. Open Chrome/Edge **DevTools** → **Network** → filter **Fetch/XHR**.
+2. Run the action in the UI (or call the API with curl).
+3. Click the `book`, `resale-buy`, `freeze`, `unfreeze`, `mark-used`, or `resale-list` request → **Response** tab → copy the ids.
+4. Open `hashscanUrl` / `*HashscanUrl` links; if a link 404s, paste the raw `txId` into HashScan search (SDK form uses `@`, URLs often use `-`).
 
-2. **List for resale (seller = Guest A)**  
-   - From **My bookings** → **Resell**, or go to `/resale/<serial>` (use the **current** serial from the slots list).  
-   - **Actor:** `guestA` (must be the holder).  
-   - Set **Ask (ℏ)** (e.g. `20`) → **Create listing**.
+---
 
-3. **Buy as Guest B (F2 transaction)**  
-   - On the same resale page, switch **Actor** to **`guestB`**.  
-   - **Buy listed slot** → wait for success.  
-   - The green line shows `Purchased. Tx: …` — that **tx id** is the F2 proof.
+## End-to-end runbook (F1 → F2 → F3 → F4)
 
-4. **Copy the proof**  
-   - Prefer **`hashscanUrl`** from the browser **Network** tab → response JSON of `POST /api/resale-buy` (`hashscanUrl` + `txId`).  
-   - Or paste the `txId` from the UI and open HashScan manually.
+Use **`npm run dev`**, funded testnet guests, and **Initialize** + **Mint Demo Slots** or **Reset Demo** on **Issuer**.
 
-### HashScan — what to confirm (single royalty path)
+### F1 — Primary book
 
-The implementation uses **one** `TransferTransaction`: buyer sends the **full ask** to seller **once**, and the **NFT** moves seller → buyer. Issuer royalty is **not** implemented as a second in-app HBAR leg (that would **double** charge with HTS `CustomRoyaltyFee`).
+1. **Guests** → **Browse slots** → Actor **guestA** (or B) → **Associate** if prompted → **Book** a serial.
+2. Copy from `POST /api/book`: **`txId`** (F1 HTS proof), **`hashscanUrl`**, optional **`lifecycleTxId`**.
+3. Paste into the table above.
 
-On the transaction in HashScan, check:
+### F2 — Resale (list + buy)
 
-- [ ] **NFT transfer** for your **BOOKED** token: **seller (Guest A) → buyer (Guest B)** for the listed serial.
-- [ ] **HBAR:** a **single** payment leg matching the **listing ask** from buyer to seller (exact amount depends on how HashScan displays assessed fees; the **app** does not add a separate `addHbarTransfer` royalty line).
-- [ ] **Royalty / fee collector:** issuer royalty appears as **HTS-assessed fee** tied to the token’s **custom royalty** (fee collector account), **not** as a duplicate manual split of the same ask in application code.
+1. **My bookings** as seller → **Resell** (or `/resale/<serial>`) → create listing. Copy **`lifecycleTxId`** from `POST /api/resale-list` (HCS **LISTED**).
+2. Switch buyer actor → **Buy listed slot**. Copy **`txId`** + **`hashscanUrl`** from `POST /api/resale-buy` (F2 HTS proof — NFT + HBAR leg).
+3. See [F2 HashScan checklist](#f2-resale--hashscan-checklist) below.
 
-If anything fails, read the JSON **error** from `resale-buy` and confirm listing **ask** matches what you expect.
+### F3 — Freeze / unfreeze
 
-### Paste your F2 proof here (replace `_TBD_`)
+1. A guest must **hold** the NFT (after F1 or after F2 buyer holds it).
+2. **Issuer** → **Freeze / unfreeze** → serial + **Auto (Mirror holder)** → **Freeze**. Copy **`freezeTxId`** + **`freezeHashscanUrl`** (+ optional HCS).
+3. **Unfreeze** the same serial; copy **`unfreezeTxId`** + **`unfreezeHashscanUrl`**.
+
+### F4 — Mark used / burn
+
+- **If NFT is with treasury (AVAILABLE):** one **burn** tx — copy **`burnTxId`** / **`burnHashscanUrl`**. `returnToTreasuryTxId` is **`null`**.
+- **If a guest holds it:** server runs **guest → treasury** transfer, then **burn** — copy **`returnToTreasuryTxId`** and **`burnTxId`** (two different HashScan txs).
+
+**Frozen holder:** Unfreeze first (F3), then mark-used (see API error text).
+
+---
+
+## F2 resale — HashScan checklist
+
+The implementation uses **one** `TransferTransaction` for resale: buyer pays seller the **full ask** once; NFT moves seller → buyer. Royalty is **HTS `CustomRoyaltyFee`**, not a second in-app HBAR leg (would double-charge).
+
+On the **resale-buy** transaction in HashScan, confirm:
+
+- [ ] **NFT transfer** for your **BOOKED** token: **seller → buyer** for the listed serial.
+- [ ] **HBAR:** a **single** payment leg matching the listing ask (buyer → seller), subject to how HashScan shows assessed fees.
+- [ ] **Royalty:** appears as **HTS-assessed** fee to the **fee collector**, not a duplicate manual split in app code.
+
+### F2 paste block (optional detail)
 
 | Field | Value |
 |--------|--------|
 | Date (UTC) | _TBD_ |
 | Listed ask (ℏ) | _TBD_ |
 | Serial | _TBD_ |
-| **Transaction ID** | _TBD_ |
-| **HashScan** | _TBD_ |
-| Verified checklist (yes/no) | _TBD_ (see bullets above) |
-
-Then copy the **Transaction ID** and **HashScan** link into the **F2 row** in the table at the top of this file.
+| **LISTED** HCS tx (`/api/resale-list`) | _TBD_ |
+| **RESOLD** HTS tx (`/api/resale-buy`) | _TBD_ |
+| **RESOLD** HashScan | _TBD_ |
+| Checklist verified (yes/no) | _TBD_ |
 
 ---
 
-## How to capture
+## Optional links
 
-1. After each successful API action, copy **`txId`** from the JSON response (or UI message). For resale, use **`hashscanUrl`** from `POST /api/resale-buy` when present.  
-2. HashScan path: `https://hashscan.io/testnet/transaction/<id>` — if the link 404s, paste the tx id into HashScan’s search; SDK ids use `@` between account and valid start (e.g. `0.0.x@y.z`).  
-3. Paste one row per meaningful proof transaction in the table above, and fill section templates (e.g. F2) for judges/teammates.
+| Item | Link / id |
+|------|-----------|
+| Token on HashScan | _TBD_ — `https://hashscan.io/testnet/token/<tokenId>` |
+| Topic on HashScan | _TBD_ — `https://hashscan.io/testnet/topic/<topicId>` |
+| **F7** refund (if built) | _TBD_ |
+
+---
+
+## F4 mark-used — tx breakdown
+
+| Scenario | `returnToTreasuryTxId` | `burnTxId` |
+|----------|------------------------|------------|
+| Slot **AVAILABLE** (treasury holds NFT) | `null` | Burn only |
+| Slot **HELD** (guest holds NFT) | Guest → treasury transfer | Burn after transfer |
+
+Both scenarios emit a separate **HCS** **`USED`** message (`lifecycleTxId`).

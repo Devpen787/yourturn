@@ -81,7 +81,7 @@ export async function POST(req: Request) {
     });
     await deactivateListing(serial, tokenId);
     await updateSlotListingActive(serial, false, tokenId);
-    await submitLifecycleEvent(topicId, {
+    const lifecycleTxId = await submitLifecycleEvent(topicId, {
       eventType: "RESOLD",
       tokenId,
       serial,
@@ -95,6 +95,8 @@ export async function POST(req: Request) {
       ok: true as const,
       txId,
       hashscanUrl: getHashscanTxUrl(txId),
+      lifecycleTxId,
+      lifecycleHashscanUrl: getHashscanTxUrl(lifecycleTxId),
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

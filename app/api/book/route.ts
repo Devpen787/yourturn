@@ -64,7 +64,7 @@ export async function POST(req: Request) {
       priceHbar: slot.primaryPriceHbar,
       tokenIdStr: tokenId,
     });
-    await submitLifecycleEvent(topicId, {
+    const lifecycleTxId = await submitLifecycleEvent(topicId, {
       eventType: "BOOKED",
       tokenId,
       serial,
@@ -78,6 +78,8 @@ export async function POST(req: Request) {
       ok: true as const,
       txId,
       hashscanUrl: getHashscanTxUrl(txId),
+      lifecycleTxId,
+      lifecycleHashscanUrl: getHashscanTxUrl(lifecycleTxId),
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

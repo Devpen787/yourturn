@@ -5,6 +5,7 @@ import {
   getActorCredentials,
   tryResolveGuestActor,
 } from "@/lib/hedera/client";
+import { getHashscanTxUrl } from "@/lib/hedera/hashscan";
 import { isNftHolderTreasury, unfreezeHolder } from "@/lib/hedera/token";
 import { getNftBySerial } from "@/lib/hedera/mirror";
 import { getStoredTokenId, getStoredTopicId } from "@/lib/store/ids";
@@ -77,11 +78,11 @@ export async function POST(req: Request) {
         { status: 409 }
       );
     }
-    await unfreezeHolder({
+    const unfreezeTxId = await unfreezeHolder({
       holderAccountId: mirrorHolder,
       tokenIdStr: tokenId,
     });
-    await submitLifecycleEvent(topicId, {
+    const lifecycleTxId = await submitLifecycleEvent(topicId, {
       eventType: "UNFROZEN",
       tokenId,
       serial,
@@ -92,6 +93,10 @@ export async function POST(req: Request) {
     return NextResponse.json({
       ok: true as const,
       holderActorUsed,
+      unfreezeTxId,
+      unfreezeHashscanUrl: getHashscanTxUrl(unfreezeTxId),
+      lifecycleTxId,
+      lifecycleHashscanUrl: getHashscanTxUrl(lifecycleTxId),
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

@@ -63,6 +63,24 @@ export function IssuerPanel({
       if (Array.isArray(data.warnings) && data.warnings.length > 0) {
         m += ` — ${data.warnings.join(" ")}`;
       }
+      if (typeof data.freezeTxId === "string" && data.freezeTxId) {
+        m += ` · HTS freeze: ${data.freezeTxId}`;
+      }
+      if (typeof data.unfreezeTxId === "string" && data.unfreezeTxId) {
+        m += ` · HTS unfreeze: ${data.unfreezeTxId}`;
+      }
+      if (
+        typeof data.returnToTreasuryTxId === "string" &&
+        data.returnToTreasuryTxId
+      ) {
+        m += ` · guest→treasury: ${data.returnToTreasuryTxId}`;
+      }
+      if (typeof data.burnTxId === "string" && data.burnTxId) {
+        m += ` · burn: ${data.burnTxId}`;
+      }
+      if (typeof data.lifecycleTxId === "string" && data.lifecycleTxId) {
+        m += ` · HCS lifecycle: ${data.lifecycleTxId}`;
+      }
       setMsg(m);
       router.refresh();
     } catch (e) {

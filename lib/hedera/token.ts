@@ -158,7 +158,7 @@ export async function resaleTransfer(args: {
 export async function freezeHolder(args: {
   holderAccountId: string;
   tokenIdStr: string;
-}): Promise<void> {
+}): Promise<string> {
   const client = getClient();
   const issuer = getActorCredentials("issuer");
   const tokenId = TokenId.fromString(args.tokenIdStr);
@@ -170,12 +170,13 @@ export async function freezeHolder(args: {
   const signed = await tx.sign(issuer.privateKey);
   const response = await signed.execute(client);
   await response.getReceipt(client);
+  return response.transactionId.toString();
 }
 
 export async function unfreezeHolder(args: {
   holderAccountId: string;
   tokenIdStr: string;
-}): Promise<void> {
+}): Promise<string> {
   const client = getClient();
   const issuer = getActorCredentials("issuer");
   const tokenId = TokenId.fromString(args.tokenIdStr);
@@ -187,6 +188,7 @@ export async function unfreezeHolder(args: {
   const signed = await tx.sign(issuer.privateKey);
   const response = await signed.execute(client);
   await response.getReceipt(client);
+  return response.transactionId.toString();
 }
 
 /**
@@ -196,7 +198,7 @@ export async function unfreezeHolder(args: {
 export async function burnUsedSlot(args: {
   serial: number;
   tokenIdStr: string;
-}): Promise<void> {
+}): Promise<string> {
   const client = getClient();
   const treasury = getActorCredentials("issuer");
   const tokenId = TokenId.fromString(args.tokenIdStr);
@@ -207,6 +209,7 @@ export async function burnUsedSlot(args: {
   const signed = await tx.sign(treasury.privateKey);
   const response = await signed.execute(client);
   await response.getReceipt(client);
+  return response.transactionId.toString();
 }
 
 export async function transferNftFromHolderToTreasury(args: {
@@ -214,7 +217,7 @@ export async function transferNftFromHolderToTreasury(args: {
   holderPrivateKey: PrivateKey;
   serial: number;
   tokenIdStr: string;
-}): Promise<void> {
+}): Promise<string> {
   const client = getClient();
   const treasury = getActorCredentials("issuer");
   const holderId = AccountId.fromString(args.holderAccountId);
@@ -226,6 +229,7 @@ export async function transferNftFromHolderToTreasury(args: {
   const signed = await tx.sign(holderKey);
   const response = await signed.execute(client);
   await response.getReceipt(client);
+  return response.transactionId.toString();
 }
 
 export function getTreasuryIdString(): string {

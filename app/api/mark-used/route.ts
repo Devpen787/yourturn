@@ -9,6 +9,7 @@ import {
   getTreasuryIdString,
   transferNftFromHolderToTreasury,
 } from "@/lib/hedera/token";
+import { getHashscanTxUrl } from "@/lib/hedera/hashscan";
 import { readSlotChainState } from "@/lib/server/slotChain";
 import { deactivateListing } from "@/lib/store/listings";
 import { getStoredTokenId, getStoredTopicId } from "@/lib/store/ids";
@@ -55,6 +56,7 @@ export async function POST(req: Request) {
         { status: 409 }
       );
     }
+    let returnToTreasuryTxId: string | undefined;
     if (chain.status === "HELD") {
       const holder = chain.holderAccountId;
       if (!holder) {
@@ -73,26 +75,36 @@ export async function POST(req: Request) {
         );
       }
       const { privateKey } = getActorCredentials(guest);
-      await transferNftFromHolderToTreasury({
+      returnToTreasuryTxId = await transferNftFromHolderToTreasury({
         holderAccountId: holder,
         holderPrivateKey: privateKey,
         serial,
         tokenIdStr: tokenId,
       });
     }
-    await burnUsedSlot({ serial, tokenIdStr: tokenId });
+    const burnTxId = await burnUsedSlot({ serial, tokenIdStr: tokenId });
     try {
       await deactivateListing(serial, tokenId);
     } catch {
       /* Redis optional for burn; listing row may remain if KV unset */
     }
-    await submitLifecycleEvent(topicId, {
+    const lifecycleTxId = await submitLifecycleEvent(topicId, {
       eventType: "USED",
       tokenId,
       serial,
       timestamp: new Date().toISOString(),
     });
-    return NextResponse.json({ ok: true as const });
+    return NextResponse.json({
+      ok: true as const,
+      returnToTreasuryTxId: returnToTreasuryTxId ?? null,
+      returnToTreasuryHashscanUrl: returnToTreasuryTxId
+        ? getHashscanTxUrl(returnToTreasuryTxId)
+        : null,
+      burnTxId,
+      burnHashscanUrl: getHashscanTxUrl(burnTxId),
+      lifecycleTxId,
+      lifecycleHashscanUrl: getHashscanTxUrl(lifecycleTxId),
+    });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     return NextResponse.json(fail(msg, "HEDERA_TX_ERROR"), { status: 500 });

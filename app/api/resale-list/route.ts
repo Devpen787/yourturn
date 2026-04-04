@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { canResell } from "@/lib/domain/guards";
 import { submitLifecycleEvent } from "@/lib/hedera/consensus";
 import { getActorCredentials } from "@/lib/hedera/client";
+import { getHashscanTxUrl } from "@/lib/hedera/hashscan";
 import { readSlotChainState } from "@/lib/server/slotChain";
 import { getStoredTokenId, getStoredTopicId } from "@/lib/store/ids";
 import {
@@ -77,7 +78,7 @@ export async function POST(req: Request) {
     };
     await addListing(listing);
     await updateSlotListingActive(serial, true, tokenId);
-    await submitLifecycleEvent(topicId, {
+    const lifecycleTxId = await submitLifecycleEvent(topicId, {
       eventType: "LISTED",
       tokenId,
       serial,
@@ -94,6 +95,8 @@ export async function POST(req: Request) {
         askUsd: listing.askUsd,
         active: listing.active,
       },
+      lifecycleTxId,
+      lifecycleHashscanUrl: getHashscanTxUrl(lifecycleTxId),
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
