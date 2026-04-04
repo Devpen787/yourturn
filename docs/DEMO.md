@@ -1,5 +1,7 @@
 # Demo
 
+For the **spoken pitch layer** above this runbook, see `docs/DEMO-STORY.md`.
+
 ## Hero scenario
 
 A customer booked a yoga, physio, or coaching slot and can no longer make it. They transfer or resell the slot under the issuer's rules, and the issuer still earns on the move.
@@ -120,6 +122,7 @@ The Hedera demo actors underneath are still `guestA` / `guestB` / `issuer`, but 
 
 ## Related docs
 
+- `docs/DEMO-STORY.md` — spoken pitch, scenario framing, why Hedera, wow features
 - `docs/UI-MAP.md` — routes, components, APIs, flow diagram
 - `docs/SPEC.md` — acceptance criteria for F1, F2, F3, F4, F7
 - `docs/TASKS.md` — implementation checklist and deferrals
