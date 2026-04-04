@@ -21,6 +21,52 @@ Before making material changes, read these files in order:
 6. `docs/DEMO.md`
 7. `docs/TX-LOG.md`
 
+---
+
+## Parallel collaboration (humans + AI agents)
+
+**Goal:** Sebastian and the product partner always see **who owns what** and **what is next**, without editing the same files blindly.
+
+### Before you start a slice
+
+1. **Open or claim one GitHub issue** per slice (titles like `Improve issuer freeze UX`, `Log F2 testnet proof in TX-LOG.md`). Use `ISSUES-SEED.md` for ideas.
+2. **Comment on that issue** using this template (edit as you go):
+
+```md
+Owner: <name>
+Branch: <branch-name>
+Status: TODO | RESERVED | IN_PROGRESS | BLOCKED | READY_REVIEW | DONE
+Files: <paths — be specific>
+Blocked by: <issue # or none>
+Last updated: <ISO date>
+```
+
+3. **Stay inside your track’s paths** (see [Ownership split](#ownership-split-working-agreement) below). If you must touch **shared** files, say so in the issue and wait for a quick OK or do it in a paired PR.
+
+### After you finish a slice
+
+- Set issue **Status: DONE** (or **READY_REVIEW** if PR open).
+- Update checkboxes in **`docs/TASKS.md`**.
+- Update the **[Rolling: what to do next](#rolling-what-to-do-next)** table below (remove done rows, add new ones). If you cannot edit `AGENTS.md`, put “Update AGENTS rolling table” in your PR description for the other person.
+
+### Rolling: what to do next
+
+| Track | Owner (default) | Next concrete work | Typical paths | Notes |
+|-------|-----------------|-------------------|---------------|--------|
+| **Chain** | Sebastian | Run **testnet proof** for F2 resale: one tx, confirm **single royalty** (HTS custom fee only); paste tx id + HashScan into `docs/TX-LOG.md` | `docs/TX-LOG.md` (shared write — comment in issue first) | Code fix for double royalty is on `main` (~`e38d153`); proof still needed |
+| **Chain** | Sebastian | Optional: small **API response** improvements if product needs them (e.g. echo `mirrorHolder` on freeze error — already in message) | `app/api/*` | Coordinate if it changes contracts |
+| **Chain** | Sebastian | **BookingPort** + typed boundary (RFC or `lib/adapters/booking-port.ts`) | `lib/`, `docs/DECISIONS.md` | **Shared** — agree interface in an issue before coding |
+| **Product** | Partner | **Issuer / freeze UX:** show **current Mirror holder** for the serial (and match `holderActor` dropdown or auto-select) to avoid 409s | `app/issuer/*` | API now validates `holderActor` vs Mirror |
+| **Product** | Partner | **Holder & status clarity:** `/slots/[serial]`, `/my-bookings` — labels for AVAILABLE / HELD / FROZEN / USED, copy that matches chain | `app/slots/*`, `app/my-bookings/*`, `components/*` | No wallet scope |
+| **Product** | Partner | **Resale preview copy:** state that **10% royalty is enforced by HTS**; preview is approximate until testnet proof | `app/resale/*` | Align with `README` royalty line |
+| **Product** | Partner | **Hero demo copy** + lock scenario in `docs/DEMO.md` | `docs/DEMO.md`, optional `app/layout.tsx` copy | Coordinate one short hero string |
+| **Shared** | Either (schedule) | Fill **submission proof**: Vercel URL, token/topic ids, HashScan links in `README` + `docs/TX-LOG.md` | `README.md`, `docs/TX-LOG.md` | One PR or paired commit |
+| **Shared** | Either (schedule) | **`docs/DEMO.md`** step list = exact shipped UI flow | `docs/DEMO.md` | After product tweaks stabilize |
+
+**Intentionally parallel:** Chain can run testnet proofs and BookingPort design while Product improves issuer/slots/resale UX — **no file overlap** if shared docs are coordinated via issues.
+
+---
+
 ## Current locked direction
 
 - Primary target track: Hedera `No Solidity Allowed`
