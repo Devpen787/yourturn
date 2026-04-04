@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/**
+ * Brand tokens — calendar + turn direction.
+ * @see docs/BRAND-UI.md
+ */
+:root {
+  --brand-mark: #0f172a;
+  --brand-schedule: #38bdf8;
+  --brand-motion: #e879f9;
+  --brand-word-accent: #0284c7;
+  --brand-link: #1d4ed8;
+  --brand-canvas: #f8fafc;
+  --brand-canvas-mid: #eef2ff;
+  --brand-focus-ring: #94a3b8;
+}
+
 @layer base {
   @media (prefers-reduced-motion: reduce) {
     .animate-spin,
@@ -12,8 +27,15 @@
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  @apply antialiased;
+  color: var(--brand-mark);
+  background-color: var(--brand-canvas);
   background-image:
     radial-gradient(circle at top, rgba(148, 163, 184, 0.10), transparent 28%),
-    linear-gradient(to bottom, #f8fafc, #eef2ff 55%, #f8fafc);
+    linear-gradient(
+      to bottom,
+      var(--brand-canvas),
+      var(--brand-canvas-mid) 55%,
+      var(--brand-canvas)
+    );
 }

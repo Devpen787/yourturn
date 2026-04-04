@@ -1,7 +1,7 @@
 import { cn } from "@/lib/cn";
 
 const focusRing =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2";
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus focus-visible:ring-offset-2";
 
 const base =
   "inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50";
@@ -30,7 +30,7 @@ export const buttonClasses = {
     focusRing
   ),
   textLink: cn(
-    "rounded-md text-blue-700 underline decoration-blue-700/40 underline-offset-2 transition-colors hover:text-blue-900 hover:decoration-blue-900/50",
+    "rounded-md text-brand-link underline decoration-brand-link/40 underline-offset-2 transition-colors hover:text-brand-mark hover:decoration-brand-mark/50",
     focusRing
   ),
 } as const;
