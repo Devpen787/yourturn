@@ -1,19 +1,38 @@
-# Booked Rights v1
+# Booked Rights
 
-Demo web app for **ETHGlobal Hedera “No Solidity Allowed”**: transferable booking rights as Hedera NFTs on **testnet**, with **HTS** (mint, associate, transfer, 10% royalty custom fee, freeze/unfreeze, burn) plus **HCS** (one topic for lifecycle JSON events). **Mirror Node REST** is used for reads (token, NFT serial, account NFTs, topic messages, transactions). **No Solidity, no smart contracts** — only `@hashgraph/sdk` from Node.js API routes.
+Booked Rights turns a service booking into a transferable right under issuer rules.
 
-## Architecture (short)
+This repo is the **canonical** source for the hack build. Product, build, and demo decisions live in `docs/` (see [Repo map](#repo-map) below). The full agent-oriented build checklist remains in `docs/booked-rights-build-spec.txt` (unchanged).
 
-- **Next.js 14** App Router, TypeScript, Tailwind.
-- **Writes**: internal `POST /api/*` routes only; each Hedera route sets `export const runtime = "nodejs"`.
-- **App state**: **Upstash Redis** with keys `bookedrights:tokenId`, `bookedrights:topicId`, `bookedrights:slots`, `bookedrights:listings`.
-- **Actors (demo)**: `issuer` (treasury keys), `guestA`, `guestB` — selected in the UI; authority is **server-side keys** from env (not wallet connect).
+## Current product frame
 
-## Royalty
+**Hero customer:** SMB services and classes (studios, coaching, therapy-style sessions).
 
-Configured on token create: **numerator 1, denominator 10** (10%). **No fallback fee** in v1. Resale settlement uses an atomic transfer: buyer pays ask, **seller receives net**, **fee collector receives royalty** (see `lib/domain/fees.ts` and `lib/hedera/token.ts`).
+**Hero problem:** Someone booked a slot, cannot make it, and wants to transfer or resell without heavy manual coordination, while the issuer keeps rules and economics.
 
-## Commands
+## Locked technical direction
+
+- **Primary track:** Hedera [No Solidity Allowed](https://ethglobal.com/events/cannes2026/prizes)
+- **On-chain services in the runnable MVP:** **HTS + HCS** + **Mirror Node REST** (reads), **no Solidity**, **`@hashgraph/sdk` only** from Node.js API routes — see `docs/ARCHITECTURE.md` and `docs/booked-rights-build-spec.txt`
+- **No autonomous signing** in product vision: demo app uses server-side keys + actor selector (not wallet); value-moving txs are explicit user clicks
+
+## Must-ship build scope (product slices)
+
+- **F1** Primary booking  
+- **F2** Transfer or resale with issuer royalty  
+- **F4** Mark used  
+
+**Strong next layer:** F3 freeze/unfreeze (already in current MVP), F7 cancel/refund (out of MVP).
+
+## Product rules (locked)
+
+- Issuer earns on secondary resale where policy allows  
+- Plain language: booking, slot, transfer, resale, rebook, refund  
+- Do not lead user-facing hero copy with “NFT” in the first line  
+
+## Runnable app (merged)
+
+**Next.js 14** App Router demo: `npm install` → `npm run dev` → `/issuer` Initialize + Mint, then `/slots`, `/resale/[serial]`, etc.
 
 ```bash
 npm install
@@ -22,52 +41,56 @@ npm run build
 npm run lint
 ```
 
-## Environment
+Copy `.env.example` → `.env.local` (Hedera accounts, Upstash Redis, optional reuse `BOOKED_RIGHTS_*`). Deploy on **Vercel** with the same vars.
 
-Copy `.env.example` to `.env.local` and fill values.
+### Implementation notes
 
-- **Hedera**: operator pays fees; treasury holds NFT supply; fee collector may be the same account as treasury for hackathon setups.
-- **Redis**: `KV_REST_API_URL` and `KV_REST_API_TOKEN` from [Upstash](https://upstash.com/docs/redis/howto/vercelintegration).
-- Optional: `BOOKED_RIGHTS_TOKEN_ID` / `BOOKED_RIGHTS_TOPIC_ID` to reuse existing resources (otherwise `/api/init` creates and stores IDs in Redis).
+- **Royalty:** numerator **1** / denominator **10** (10%), no fallback fee — `lib/domain/fees.ts`, token create in `lib/hedera/token.ts`  
+- **Redis keys:** `bookedrights:tokenId`, `bookedrights:topicId`, `bookedrights:slots`, `bookedrights:listings`  
+- **Node:** `pino@8.17.2` override for Node 18 `next build`; Node 20+ recommended  
 
-## Local workflow
+### Local smoke path
 
-1. `npm run dev`
-2. Open `/issuer` → **Initialize** (token + topic) → **Mint Demo Slots** (3 NFTs from `public/demo-slots.json`).
-3. As **guestA**, book serial `1` on `/slots`.
-4. List resale on `/resale/1`, buy as **guestB**, freeze/unfreeze holder from Issuer, **Mark used** to burn.
+1. `/issuer` → **Initialize** → **Mint Demo Slots**  
+2. As **guestA**, book serial **1** on `/slots`  
+3. List resale on `/resale/1`, buy as **guestB**; issuer **Freeze** / **Unfreeze** / **Mark used** as needed  
 
-## Deploy (Vercel)
+## Repo map
 
-1. Create a Vercel project from this repo.
-2. Set the same env vars as `.env.example` in the Vercel dashboard ([docs](https://vercel.com/docs/environment-variables)).
-3. Set `NEXT_PUBLIC_APP_URL` to the production URL after first deploy.
-4. Redeploy if needed.
+| Doc | Purpose |
+|-----|---------|
+| `docs/SPEC.md` | Canonical working spec / paste-in surface |
+| `docs/DECISIONS.md` | Locked decisions |
+| `docs/TASKS.md` | Living build checklist |
+| `docs/ARCHITECTURE.md` | System boundaries, Hedera usage |
+| `docs/DEMO.md` | Demo order and stage rules |
+| `docs/TX-LOG.md` | Testnet tx ids + HashScan |
+| `docs/booked-rights-build-spec.txt` | Full agent V1 instructions (original) |
+| `AGENTS.md` | Agent / automation notes |
+| `ISSUES-SEED.md` | Slices to open as GitHub issues |
 
-## After first successful flows (fill in for submission)
+GitHub **issue** and **PR** templates live under `.github/`.
 
-- **Deployed public URL**: _add your Vercel URL_
-- **Token ID**: _from Issuer or Redis `bookedrights:tokenId`_
-- **Topic ID**: _from Issuer or Redis `bookedrights:topicId`_
-- **Sample tx IDs / HashScan**: _paste links using `NEXT_PUBLIC_HASHSCAN_BASE` (default `https://hashscan.io/testnet`)_
+## Repo discipline
 
-## Mirror endpoints used
+- Keep the repo scoped to this hack  
+- Prefer coherent slices on `main` with a verification path  
+- Coordinate before parallel edits to **shared glue**: `README.md`, `.env.example`, future `BookingPort` / adapters, lockfile  
 
-Base: `NEXT_PUBLIC_MIRROR_BASE` (default `https://testnet.mirrornode.hedera.com/api/v1`)
+## Submission proof (fill as you ship)
 
-- `GET /tokens/{tokenId}`
-- `GET /tokens/{tokenId}/nfts/{serial}`
-- `GET /accounts/{id}/nfts?token.id=...`
-- `GET /accounts/{id}/tokens?token.id=...` (freeze status)
-- `GET /topics/{topicId}/messages`
-- `GET /transactions/{transactionId}`
+- Deployed URL: _TBD_  
+- Testnet token id: _TBD_ (also `bookedrights:tokenId` in Redis)  
+- Topic id: _TBD_  
+- Treasury / demo accounts: _TBD_  
+- HashScan links: _TBD_ (`NEXT_PUBLIC_HASHSCAN_BASE`)  
+- Video: _TBD_  
 
-## Known limitations
+## Mirror endpoints (MVP)
 
-- Demo-only auth: actor switch is **not** a security boundary.
-- No refunds, no wallet UI, no scheduled transactions.
-- **Node 18**: `@hashgraph/sdk` pulls logging deps; this repo pins `pino@8.17.2` via `overrides` so `next build` works on Node 18. **Node 20+** is recommended when available.
+Base: `NEXT_PUBLIC_MIRROR_BASE` — `GET /tokens/...`, `/nfts/...`, `/accounts/.../nfts`, `/accounts/.../tokens`, `/topics/.../messages`, `/transactions/...`
 
-## Full build spec
+## Known limitations (MVP)
 
-See `docs/booked-rights-build-spec.txt`.
+- Demo actor switch is **not** a security boundary  
+- No wallet UI, no refunds, no scheduled txs in v1  
