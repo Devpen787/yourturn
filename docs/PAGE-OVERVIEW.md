@@ -16,7 +16,7 @@
 
 ---
 
-## Global chrome (`app/layout.tsx`)
+## Global chrome (`app/layout.tsx`, `components/SiteHeader.tsx`)
 
 | Item | Detail |
 |------|--------|
@@ -61,7 +61,7 @@
 | **Controls** | Link **← All sessions**; **Sell pass** (`SlotResaleCta` → `/resale/[serial]` when allowed); external **HashScan** token/topic; optional metadata `<details>`. |
 | **Copy role** | `statusSummary`, `nextStepSummary`; “Not booked yet” / Person A / Person B holder summary; readable start/end times; proof and audit sections clearly demoted as optional. |
 | **Purpose clear?** | **Yes** for lifecycle and next step; still heavier than the browse and pass-hub screens. |
-| **Status** | **Works**; Redis/Mirror/token errors return plain `<p>` messages and the audit trail can still show no events — **Partial** polish. |
+| **Status** | **Works**; invalid refs now return an explicit “Session not found” state, while Redis/Mirror/token errors still return plain `<p>` messages and the audit trail can show no events — **Partial** polish. |
 
 ---
 
@@ -71,9 +71,9 @@
 |------|--------|
 | **Purpose** | Passes held by **selected guest** (Mirror-backed); links to detail / resale. |
 | **Controls** | Customer-only `ActorSelector` (Person A / Person B); per held row: **Session details**, **Sell pass** (if allowed + HELD); **Refresh** (router.refresh); empty state → **Browse sessions**. |
-| **Copy role** | “What you can do next”; status copy for HELD/FROZEN/USED; **Ref #** on rows; **Recently finished** for USED. |
+| **Copy role** | “What you can do next”; status copy for HELD/FROZEN/USED; **Ref #** on rows; **Recently finished in this demo** clearly labelled as shared demo history for USED. |
 | **Purpose clear?** | **Yes** for demo; explains Mirror-derived view. |
-| **Status** | **Works**; token missing → init message — **Works**. |
+| **Status** | **Works**; token missing → init message. The finished-history section is honest about being shared demo history rather than filtered personal history — **Works**. |
 
 ---
 
@@ -107,6 +107,17 @@
 |---------|--------|
 | `POST /api/agent/*` | Agent integration — see `docs/AGENT-INTEGRATION.md`, `docs/UI-MAP.md`. |
 | `POST /api/associate`, `GET /api/mirror` | Tooling / debug, not linked from shipped consumer UI. |
+
+---
+
+## Shared UI infrastructure
+
+| Surface | Detail |
+|---------|--------|
+| `components/ui/Button.tsx` | Shared action primitive with loading state, spinner, and focus treatment. |
+| `components/ui/LiveFeedback.tsx` | Inline success/error feedback used on booking, resale, and provider actions. |
+| `components/ui/Skeleton.tsx` | Loading placeholder primitive for route-level `loading.tsx` files. |
+| `app/**/loading.tsx` | Route loading shells for browse, detail, hub, resale, and provider dashboard. |
 
 ---
 

@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  @media (prefers-reduced-motion: reduce) {
+    .animate-spin,
+    .animate-pulse {
+      animation: none !important;
+    }
+  }
+}
+
 body {
   @apply bg-slate-50 text-slate-900 antialiased;
   background-image:

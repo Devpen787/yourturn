@@ -1,9 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { ActorSelector, type ActorValue } from "@/components/ActorSelector";
+import { Button } from "@/components/ui/Button";
+import { getButtonClassName } from "@/components/ui/button-classes";
+import { cn } from "@/lib/cn";
 
 type Row = {
   serial: number;
@@ -55,7 +58,14 @@ export function MyBookingsClient({
   initialRows: Row[];
 }) {
   const router = useRouter();
+  const [isRefreshing, startRefresh] = useTransition();
   const [actor, setActor] = useState<ActorValue>("guestA");
+
+  function refresh() {
+    startRefresh(() => {
+      router.refresh();
+    });
+  }
 
   const accountId = useMemo(() => {
     if (actor === "guestA") return guestAId;
@@ -117,16 +127,22 @@ export function MyBookingsClient({
               <span className="font-medium text-slate-900">What you can do next:</span>{" "}
               {nextAction(r.status, r.canResell)}
             </div>
-            <div className="mt-2 flex flex-wrap gap-2">
+            <div className="mt-2 flex flex-wrap items-center gap-2">
               <Link
-                className="text-blue-700 underline"
+                className={cn(
+                  getButtonClassName("textLink"),
+                  "min-h-[44px] min-w-0 px-1 py-2.5"
+                )}
                 href={`/slots/${r.serial}`}
               >
                 Session details
               </Link>
               {r.canResell && r.status === "HELD" && (
                 <Link
-                  className="rounded bg-slate-800 px-2 py-1 text-white no-underline"
+                  className={cn(
+                    getButtonClassName("primary"),
+                    "no-underline"
+                  )}
                   href={`/resale/${r.serial}`}
                 >
                   Sell pass
@@ -142,16 +158,26 @@ export function MyBookingsClient({
             No active passes are showing for this person right now. If you just booked or bought one,
             refresh in a moment and check again.
           </p>
-          <Link href="/slots" className="mt-3 inline-flex text-blue-700 underline">
+          <Link
+            href="/slots"
+            className={cn(
+              getButtonClassName("textLink"),
+              "mt-3 inline-flex min-h-[44px] items-center"
+            )}
+          >
             Browse sessions
           </Link>
         </div>
       )}
       {tokenId && usedRows.length > 0 && (
         <section className="mt-6">
-          <h2 className="text-sm font-medium text-slate-900">Recently finished</h2>
+          <h2 className="text-sm font-medium text-slate-900">
+            Recently finished in this demo
+          </h2>
           <p className="mt-1 text-sm text-slate-600">
-            These passes have already been checked in and are no longer active for any customer.
+            These passes have already been checked in and are no longer active for any
+            customer. This section is shared demo history, not just the selected
+            person&apos;s past passes.
           </p>
           <ul className="mt-3 space-y-3">
             {usedRows.map((r) => (
@@ -173,7 +199,10 @@ export function MyBookingsClient({
                 </div>
                 <div className="mt-2 text-slate-600">{statusCopy(r.status)}</div>
                 <Link
-                  className="mt-2 inline-flex text-blue-700 underline"
+                  className={cn(
+                    getButtonClassName("textLink"),
+                    "mt-2 inline-flex min-h-[44px] items-center"
+                  )}
                   href={`/slots/${r.serial}`}
                 >
                   View session details
@@ -183,15 +212,18 @@ export function MyBookingsClient({
           </ul>
         </section>
       )}
-      <p className="mt-4 text-xs text-slate-500">
-        <button
+      <div className="mt-4">
+        <Button
           type="button"
-          className="underline"
-          onClick={() => router.refresh()}
+          variant="secondary"
+          loading={isRefreshing}
+          loadingLabel="Updating…"
+          className="px-3 text-xs font-normal"
+          onClick={refresh}
         >
-          Refresh
-        </button>
-      </p>
+          Refresh list
+        </Button>
+      </div>
     </div>
   );
 }

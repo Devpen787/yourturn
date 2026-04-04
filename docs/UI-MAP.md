@@ -30,7 +30,7 @@ Update **`docs/UI-MAP.md` in the same PR** when you change any of the following 
 | `/resale/[serial]` | `app/resale/[serial]/page.tsx` | Customer resale handoff page | `ResaleClient` | Switch seller / buyer, list at ask, buy listing | `POST /api/resale-list`, `POST /api/resale-buy` |
 | `/issuer` | `app/issuer/page.tsx` | Provider dashboard shell | `IssuerPanel` | Init, mint, reset, freeze/unfreeze, mark used | `POST /api/init`, `POST /api/mint-slots`, `POST /api/reset-demo`, `POST /api/freeze`, `POST /api/unfreeze`, `POST /api/mark-used` |
 
-Global chrome: `app/layout.tsx` (header nav only; no API calls).
+Global chrome: `app/layout.tsx` + `components/SiteHeader.tsx` (header nav only; no API calls).
 
 ## Shared components
 
@@ -38,8 +38,22 @@ Global chrome: `app/layout.tsx` (header nav only; no API calls).
 |-----------|------|------|---------|
 | `ActorSelector` | `components/ActorSelector.tsx` | Demo persona switcher; compact Person A / Person B toggle on customer routes, configurable full selector when needed | `/slots`, `/my-bookings`, `/resale/*` |
 | `SlotResaleCta` | `app/slots/[serial]/SlotResaleCta.tsx` | Link to `/resale/[serial]` | `/slots/[serial]` when resale allowed |
+| `SiteHeader` | `components/SiteHeader.tsx` | Global product nav and route highlighting | All routes via `app/layout.tsx` |
+| `Button` | `components/ui/Button.tsx` | Shared action primitive with loading state and variants | Customer + provider action surfaces |
+| `LiveFeedback` | `components/ui/LiveFeedback.tsx` | Shared success/error messaging | `/slots`, `/resale/[serial]`, `/issuer` |
+| `Skeleton` | `components/ui/Skeleton.tsx` | Shared loading placeholder | Route-level `loading.tsx` files |
 
 **Note:** `statusTone` / status copy helpers are duplicated across several files; consider one shared helper when touching styling (see prior review).
+
+## Route loading states
+
+| Route | Loading file | Purpose |
+|-------|--------------|---------|
+| `/slots` | `app/slots/loading.tsx` | Browse skeleton while sessions load |
+| `/slots/[serial]` | `app/slots/[serial]/loading.tsx` | Detail/proof skeleton |
+| `/my-bookings` | `app/my-bookings/loading.tsx` | Pass-hub skeleton |
+| `/resale/[serial]` | `app/resale/[serial]/loading.tsx` | Resale handoff skeleton |
+| `/issuer` | `app/issuer/loading.tsx` | Provider dashboard skeleton |
 
 ## API routes → purpose → typical caller
 
@@ -113,7 +127,7 @@ Use when auditing “are we missing something?”
 | `GET /api/mirror` | Not linked from app — intentional tooling |
 | `/api/agent/*` | Not linked from app — intentional agent/backend integration surface |
 | Real tx proof lines | See `docs/TX-LOG.md`; re-run and extend after new testnet proof |
-| Component inventory | This file — update when adding routes or `*Client.tsx` |
+| Component inventory | This file — update when adding routes, `*Client.tsx`, shared app chrome, or route loading states |
 
 ## Surface split
 

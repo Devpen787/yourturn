@@ -79,7 +79,7 @@ export function ActorSelector({
             return (
               <label
                 key={a}
-                className={`cursor-pointer rounded-full border px-4 py-2 transition ${
+                className={`cursor-pointer rounded-full border px-4 py-2 transition focus-within:ring-2 focus-within:ring-slate-400 focus-within:ring-offset-2 ${
                   selected
                     ? "border-slate-900 bg-slate-900 text-white"
                     : "border-slate-200 bg-slate-50 text-slate-700"
@@ -104,7 +104,7 @@ export function ActorSelector({
             return (
               <label
                 key={a}
-                className={`cursor-pointer rounded-xl border p-3 transition ${
+                className={`cursor-pointer rounded-xl border p-3 transition focus-within:ring-2 focus-within:ring-slate-400 focus-within:ring-offset-2 ${
                   selected
                     ? "border-slate-900 bg-slate-900 text-white"
                     : "border-slate-200 bg-slate-50 text-slate-900"

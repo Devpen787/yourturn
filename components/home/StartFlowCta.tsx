@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { getButtonClassName } from "@/components/ui/button-classes";
+import { cn } from "@/lib/cn";
 
 export function StartFlowCta() {
   return (
@@ -16,13 +18,19 @@ export function StartFlowCta() {
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
               href="/slots"
-              className="rounded-full bg-slate-900 px-5 py-2.5 text-sm font-medium text-white"
+              className={cn(
+                getButtonClassName("primary"),
+                "rounded-full no-underline"
+              )}
             >
               Browse sessions
             </Link>
             <Link
               href="/my-bookings"
-              className="rounded-full border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700"
+              className={cn(
+                getButtonClassName("secondary"),
+                "rounded-full no-underline"
+              )}
             >
               Open my passes
             </Link>
@@ -42,7 +50,10 @@ export function StartFlowCta() {
           <div className="mt-6">
             <Link
               href="/issuer"
-              className="rounded-full border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700"
+              className={cn(
+                getButtonClassName("secondary"),
+                "rounded-full no-underline"
+              )}
             >
               Open provider dashboard
             </Link>

@@ -1,12 +1,12 @@
-"use client";
-
 import Link from "next/link";
+import { getButtonClassName } from "@/components/ui/button-classes";
+import { cn } from "@/lib/cn";
 
 export function SlotResaleCta({ serial }: { serial: number }) {
   return (
     <Link
       href={`/resale/${serial}`}
-      className="inline-block rounded bg-slate-800 px-3 py-2 text-white"
+      className={cn(getButtonClassName("primary"), "inline-flex no-underline")}
     >
       Sell pass
     </Link>

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { getButtonClassName } from "@/components/ui/button-classes";
+import { cn } from "@/lib/cn";
 import { getStoredTokenId } from "@/lib/store/ids";
 import { getActiveListingForSerial } from "@/lib/store/listings";
 import { getSlotBySerial } from "@/lib/store/slots";
@@ -37,7 +39,13 @@ export default async function ResalePage({
 
   return (
     <div className="text-sm">
-      <Link href={`/slots/${serial}`} className="text-blue-700 underline">
+      <Link
+        href={`/slots/${serial}`}
+        className={cn(
+          getButtonClassName("textLink"),
+          "inline-flex min-h-[44px] items-center"
+        )}
+      >
         ← Back to session
       </Link>
       <h1 className="mt-2 text-xl font-semibold">Resell or buy this pass</h1>

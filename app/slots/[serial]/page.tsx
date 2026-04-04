@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { canResell } from "@/lib/domain/guards";
+import { getButtonClassName } from "@/components/ui/button-classes";
+import { cn } from "@/lib/cn";
 import { parseNftMetadataBlob } from "@/lib/domain/metadata";
 import { getHashscanTokenUrl, getHashscanTopicUrl } from "@/lib/hedera/hashscan";
 import { getNftBySerial, getTopicMessages } from "@/lib/hedera/mirror";
@@ -101,13 +103,34 @@ export default async function SlotDetailPage({
   if (!tokenId) return <p>Token not initialized.</p>;
 
   const treasury = getTreasuryIdString();
+  const slot = await getSlotBySerial(serial);
+  if (!slot) {
+    return (
+      <div className="text-sm">
+        <Link
+          href="/slots"
+          className={cn(
+            getButtonClassName("textLink"),
+            "inline-flex min-h-[44px] items-center"
+          )}
+        >
+          ← Back to sessions
+        </Link>
+        <h1 className="mt-4 text-xl font-semibold">Session not found</h1>
+        <p className="mt-2 max-w-xl text-slate-600">
+          This reference does not match a live session in the current demo. Go back
+          to the sessions list and pick an active booking from there.
+        </p>
+      </div>
+    );
+  }
+
   const chain = await readSlotChainState({
     tokenId,
     serial,
     treasuryAccountId: treasury,
   });
   const nft = await getNftBySerial(tokenId, serial);
-  const slot = await getSlotBySerial(serial);
   const meta = nft?.metadata
     ? parseNftMetadataBlob(nft.metadata)
     : null;
@@ -131,7 +154,10 @@ export default async function SlotDetailPage({
 
   return (
     <div className="text-sm">
-      <Link href="/slots" className="text-blue-700 underline">
+      <Link
+        href="/slots"
+        className="inline-flex min-h-[44px] items-center rounded-md text-blue-700 underline decoration-blue-700/40 underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+      >
         ← All sessions
       </Link>
       <h1 className="mt-2 text-xl font-semibold">
@@ -182,7 +208,13 @@ export default async function SlotDetailPage({
       {listing?.active && (
         <p className="mt-4 rounded bg-amber-50 p-2">
           Active resale listing: {listing.askPriceHbar} ℏ. A new buyer can take over here —{" "}
-          <Link href={`/resale/${serial}`} className="underline">
+          <Link
+            href={`/resale/${serial}`}
+            className={cn(
+              getButtonClassName("textLink"),
+              "inline-flex min-h-[44px] items-center font-medium"
+            )}
+          >
             resale page
           </Link>
         </p>
@@ -199,28 +231,36 @@ export default async function SlotDetailPage({
         </p>
         <div className="mt-3 flex flex-wrap gap-3">
           <a
-            className="text-blue-700 underline"
+            className="inline-flex min-h-[44px] items-center rounded-md text-blue-700 underline decoration-blue-700/40 underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
             href={getHashscanTokenUrl(tokenId)}
             target="_blank"
             rel="noreferrer"
+            title="Opens HashScan in a new tab"
           >
-            Token on HashScan
+            Token on HashScan (new tab)
           </a>
           {topicId && (
             <a
-              className="text-blue-700 underline"
+              className="inline-flex min-h-[44px] items-center rounded-md text-blue-700 underline decoration-blue-700/40 underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
               href={getHashscanTopicUrl(topicId)}
               target="_blank"
               rel="noreferrer"
+              title="Opens HashScan in a new tab"
             >
-              HCS topic on HashScan
+              HCS topic on HashScan (new tab)
             </a>
           )}
         </div>
       </section>
       {meta && (
-        <details className="mt-6 rounded border border-slate-200 bg-white p-4">
-          <summary className="cursor-pointer font-medium text-slate-900">
+        <details className="group mt-6 rounded border border-slate-200 bg-white p-4">
+          <summary className="flex cursor-pointer list-none items-center gap-2 font-medium text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden">
+            <span
+              className="inline-block text-slate-500 transition-transform duration-200 group-open:rotate-90 motion-reduce:transition-none"
+              aria-hidden
+            >
+              ▸
+            </span>
             Technical details
           </summary>
           <pre className="mt-3 overflow-x-auto rounded bg-slate-100 p-2 text-xs">

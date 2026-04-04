@@ -4,6 +4,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import { ActorSelector, type ActorValue } from "@/components/ActorSelector";
+import { Button } from "@/components/ui/Button";
+import { LiveFeedback } from "@/components/ui/LiveFeedback";
+import { getButtonClassName } from "@/components/ui/button-classes";
+import { cn } from "@/lib/cn";
 
 export type SlotRow = {
   serial: number;
@@ -106,14 +110,11 @@ export function SlotsClient({ rows }: { rows: SlotRow[] }) {
         description="Switch between Person A and Person B to see the booking experience from each customer side of the demo."
         onChange={setActor}
       />
-      {msg && (
-        <p className="mb-2 rounded bg-emerald-50 p-2 text-sm text-emerald-900">
-          {msg}
-        </p>
-      )}
-      {err && (
-        <p className="mb-2 rounded bg-red-50 p-2 text-sm text-red-800">{err}</p>
-      )}
+      <LiveFeedback
+        className="mb-2 space-y-2"
+        success={msg}
+        error={err}
+      />
       <p className="mb-4 rounded border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
         A session can only be booked while it is <strong>AVAILABLE</strong>. After booking, the pass moves to the customer who bought it and may later be resold, paused, or checked in under provider rules.
       </p>
@@ -172,22 +173,27 @@ export function SlotsClient({ rows }: { rows: SlotRow[] }) {
               <span className="font-medium text-slate-900">Next step:</span>{" "}
               {nextStepHint(r.status)}
             </div>
-            <div className="mt-2 flex flex-wrap gap-2">
+            <div className="mt-2 flex flex-wrap items-center gap-2">
               <Link
-                className="text-blue-700 underline"
+                className={cn(
+                  getButtonClassName("textLink"),
+                  "min-h-[44px] min-w-0 px-1 py-2.5"
+                )}
                 href={`/slots/${r.serial}`}
               >
                 Session details
               </Link>
               {r.status === "AVAILABLE" && (
-                <button
+                <Button
                   type="button"
-                  className="rounded bg-slate-800 px-2 py-1 text-white disabled:opacity-50"
-                  disabled={loading !== null}
+                  loading={loading === r.serial}
+                  loadingLabel="Booking…"
+                  disabled={loading !== null && loading !== r.serial}
+                  className="min-w-[5.5rem] px-3"
                   onClick={() => book(r.serial)}
                 >
-                  {loading === r.serial ? "…" : "Book"}
-                </button>
+                  Book
+                </Button>
               )}
             </div>
           </li>
@@ -196,7 +202,13 @@ export function SlotsClient({ rows }: { rows: SlotRow[] }) {
       {rows.length === 0 && (
         <div className="rounded border border-slate-200 bg-white p-4 text-slate-600">
           <p>No sessions are live yet. The business needs to set up the demo first.</p>
-          <Link href="/issuer" className="mt-3 inline-flex text-blue-700 underline">
+          <Link
+            href="/issuer"
+            className={cn(
+              getButtonClassName("textLink"),
+              "mt-3 inline-flex min-h-[44px] items-center"
+            )}
+          >
             Open provider dashboard
           </Link>
         </div>

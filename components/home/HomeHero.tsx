@@ -1,4 +1,8 @@
 import Link from "next/link";
+import { cn } from "@/lib/cn";
+
+const heroFocus =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white/90 focus-visible:ring-offset-slate-950";
 
 export function HomeHero() {
   return (
@@ -21,13 +25,19 @@ export function HomeHero() {
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
               href="/slots"
-              className="rounded-full bg-white px-5 py-2.5 text-sm font-medium text-slate-950"
+              className={cn(
+                "inline-flex min-h-[44px] items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-medium text-slate-950",
+                heroFocus
+              )}
             >
               Browse sessions
             </Link>
             <Link
               href="/my-bookings"
-              className="rounded-full border border-white/20 px-5 py-2.5 text-sm font-medium text-white"
+              className={cn(
+                "inline-flex min-h-[44px] items-center justify-center rounded-full border border-white/20 px-5 py-2.5 text-sm font-medium text-white",
+                heroFocus
+              )}
             >
               Open my passes
             </Link>

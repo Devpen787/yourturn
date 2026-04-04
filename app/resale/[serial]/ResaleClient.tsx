@@ -1,10 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { ActorSelector, type ActorValue } from "@/components/ActorSelector";
 import { calcRoyalty } from "@/lib/domain/fees";
 import type { ResaleListing } from "@/lib/types/listing";
+import { Button } from "@/components/ui/Button";
+import { LiveFeedback } from "@/components/ui/LiveFeedback";
+import { cn } from "@/lib/cn";
 
 export function ResaleClient({
   serial,
@@ -25,9 +28,15 @@ export function ResaleClient({
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
+  const askFieldId = useId();
+  const feeHintId = useId();
 
   const askNum = Number(ask) || 0;
   const royalty = calcRoyalty(askNum);
+  const askInvalid = useMemo(() => {
+    if (ask.trim() === "") return false;
+    return !Number.isFinite(askNum) || askNum <= 0;
+  }, [ask, askNum]);
 
   async function createListing() {
     if (actor !== "guestA" && actor !== "guestB") {
@@ -135,49 +144,61 @@ export function ResaleClient({
             The holder sets the resale ask under provider rules. They may list above
             cost, at cost, or below cost.
           </p>
-          <label className="flex items-center gap-2">
-            Ask (ℏ)
+          <label
+            className="flex flex-wrap items-center gap-2"
+            htmlFor={askFieldId}
+          >
+            <span className="font-medium text-slate-800">Ask (ℏ)</span>
             <input
-              className="w-24 rounded border border-slate-300 px-2 py-1"
-              type="number"
-              min={1}
-              step={1}
+              id={askFieldId}
+              className={cn(
+                "min-h-[44px] w-28 rounded-lg border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2",
+                askInvalid ? "border-red-400 bg-red-50/40" : "border-slate-300"
+              )}
+              type="text"
+              inputMode="decimal"
+              autoComplete="off"
+              aria-invalid={askInvalid}
+              aria-describedby={feeHintId}
               value={ask}
               onChange={(e) => setAsk(e.target.value)}
             />
           </label>
-          <p className="text-xs text-slate-600">
+          <p id={feeHintId} className="text-xs text-slate-600">
             Provider fee on resale (10% preview): {royalty.toFixed(2)} ℏ. Confirm
             final amounts on the completed resale transaction.
           </p>
-          <button
+          <Button
             type="button"
-            className="w-fit rounded bg-slate-800 px-3 py-2 text-white disabled:opacity-50"
+            variant="primary"
+            loading={loading === "list"}
+            loadingLabel="Listing…"
             disabled={!!loading || !tokenId}
+            className="w-fit"
             onClick={() => createListing()}
           >
-            {loading === "list" ? "…" : "List this pass"}
-          </button>
+            List this pass
+          </Button>
         </div>
         <div className="mt-6 grid gap-2 border-t border-slate-100 pt-4">
           <p className="font-medium">Another person buys the listed pass</p>
           <p className="text-xs text-slate-600">
             Buying this listing transfers the pass to the new holder under provider policy.
           </p>
-          <button
+          <Button
             type="button"
-            className="w-fit rounded bg-emerald-800 px-3 py-2 text-white disabled:opacity-50"
+            variant="primarySuccess"
+            loading={loading === "buy"}
+            loadingLabel="Buying…"
             disabled={!!loading || !tokenId || !initialListing?.active}
+            className="w-fit"
             onClick={() => buy()}
           >
-            {loading === "buy" ? "…" : "Buy this pass"}
-          </button>
+            Buy this pass
+          </Button>
         </div>
       </div>
-      {msg && (
-        <p className="rounded bg-emerald-50 p-2 text-emerald-900">{msg}</p>
-      )}
-      {err && <p className="rounded bg-red-50 p-2 text-red-800">{err}</p>}
+      <LiveFeedback className="space-y-2" success={msg} error={err} />
     </div>
   );
 }

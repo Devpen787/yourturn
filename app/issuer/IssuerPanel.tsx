@@ -2,6 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/Button";
+import { LiveFeedback } from "@/components/ui/LiveFeedback";
+import { getButtonClassName } from "@/components/ui/button-classes";
 
 type Props = {
   tokenId: string | null;
@@ -126,8 +129,14 @@ export function IssuerPanel({
         <p>
           <span className="font-medium">Sessions created:</span> {slotsCount}
         </p>
-        <details className="mt-3">
-          <summary className="cursor-pointer text-slate-600">
+        <details className="mt-3 group">
+          <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md py-1 text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden">
+            <span
+              className="inline-block text-slate-500 transition-transform duration-200 group-open:rotate-90 motion-reduce:transition-none"
+              aria-hidden
+            >
+              ▸
+            </span>
             System details
           </summary>
           <div className="mt-3 space-y-1 text-slate-600">
@@ -150,41 +159,44 @@ export function IssuerPanel({
           <li>Use the session table below to confirm the current holder and status before taking action.</li>
         </ul>
       </div>
-      {msg && (
-        <p className="mb-2 rounded bg-emerald-50 p-2 text-sm text-emerald-900">
-          {msg}
-        </p>
-      )}
-      {err && (
-        <p className="mb-2 rounded bg-red-50 p-2 text-sm text-red-800">{err}</p>
-      )}
+      <LiveFeedback
+        className="mb-2 space-y-2"
+        success={msg}
+        error={err}
+      />
       <div className="flex flex-wrap gap-2">
-        <button
+        <Button
           type="button"
-          className="rounded bg-slate-800 px-3 py-2 text-sm text-white disabled:opacity-50"
+          variant="primary"
+          loading={loading === "Set up business"}
+          loadingLabel="Setting up…"
           disabled={!!loading}
           onClick={() => run("Set up business", "/api/init")}
         >
-          {loading === "Set up business" ? "…" : "Set up business"}
-        </button>
-        <button
+          Set up business
+        </Button>
+        <Button
           type="button"
-          className="rounded bg-slate-800 px-3 py-2 text-sm text-white disabled:opacity-50"
+          variant="primary"
+          loading={loading === "Create demo sessions"}
+          loadingLabel="Creating…"
           disabled={!!loading}
           onClick={() =>
             run("Create demo sessions", "/api/mint-slots", { reseed: false })
           }
         >
-          {loading === "Create demo sessions" ? "…" : "Create demo sessions"}
-        </button>
-        <button
+          Create demo sessions
+        </Button>
+        <Button
           type="button"
-          className="rounded border border-slate-300 bg-white px-3 py-2 text-sm disabled:opacity-50"
+          variant="secondary"
+          loading={loading === "Start over"}
+          loadingLabel="Resetting…"
           disabled={!!loading}
           onClick={() => run("Start over", "/api/reset-demo")}
         >
-          {loading === "Start over" ? "…" : "Start over"}
-        </button>
+          Start over
+        </Button>
       </div>
       <section className="mt-8 border-t border-slate-200 pt-6">
         <h2 className="mb-2 font-medium">Live sessions</h2>
@@ -202,7 +214,10 @@ export function IssuerPanel({
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.serial} className="border-t border-slate-100 align-top">
+                <tr
+                  key={row.serial}
+                  className="border-t border-slate-100 align-top transition-colors hover:bg-slate-50/80"
+                >
                   <td className="px-3 py-2 font-medium">Ref #{row.serial}</td>
                   <td className="px-3 py-2">{row.title}</td>
                   <td className="px-3 py-2">
@@ -217,7 +232,7 @@ export function IssuerPanel({
                   <td className="px-3 py-2">
                     <button
                       type="button"
-                      className="rounded border border-slate-300 px-2 py-1 text-xs"
+                      className={getButtonClassName("table")}
                       onClick={() => setSerialAndRecommendedHolder(row.serial)}
                     >
                       Use this pass
@@ -253,7 +268,7 @@ export function IssuerPanel({
           <label>
             Ref #{" "}
             <input
-              className="ml-1 w-16 rounded border border-slate-300 px-1"
+              className="ml-1 w-16 rounded border border-slate-300 px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-1"
               value={freezeSerial}
               onChange={(e) => setFreezeSerial(e.target.value)}
             />
@@ -261,7 +276,7 @@ export function IssuerPanel({
           <label className="ml-2">
             Person
             <select
-              className="ml-1 rounded border border-slate-300"
+              className="ml-1 min-h-[40px] rounded border border-slate-300 px-1 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-1"
               value={freezeHolder}
               onChange={(e) =>
                 setFreezeHolder(e.target.value as "guestA" | "guestB")
@@ -284,9 +299,11 @@ export function IssuerPanel({
           </p>
         )}
         <div className="flex flex-wrap gap-2">
-          <button
+          <Button
             type="button"
-            className="rounded bg-amber-700 px-3 py-2 text-sm text-white disabled:opacity-50"
+            variant="amber"
+            loading={loading === "Pause pass"}
+            loadingLabel="Pausing…"
             disabled={!!loading || !canFreezeHolder}
             onClick={() =>
               run("Pause pass", "/api/freeze", {
@@ -295,11 +312,13 @@ export function IssuerPanel({
               })
             }
           >
-            {loading === "Pause pass" ? "…" : "Pause pass"}
-          </button>
-          <button
+            Pause pass
+          </Button>
+          <Button
             type="button"
-            className="rounded bg-slate-600 px-3 py-2 text-sm text-white disabled:opacity-50"
+            variant="muted"
+            loading={loading === "Reopen pass"}
+            loadingLabel="Reopening…"
             disabled={!!loading || !canFreezeHolder}
             onClick={() =>
               run("Reopen pass", "/api/unfreeze", {
@@ -308,8 +327,8 @@ export function IssuerPanel({
               })
             }
           >
-            {loading === "Reopen pass" ? "…" : "Reopen pass"}
-          </button>
+            Reopen pass
+          </Button>
         </div>
       </section>
       <section className="mt-8 border-t border-slate-200 pt-6">
@@ -333,22 +352,24 @@ export function IssuerPanel({
           <label>
             Ref #{" "}
             <input
-              className="ml-1 w-16 rounded border border-slate-300 px-1"
+              className="ml-1 w-16 rounded border border-slate-300 px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-1"
               value={burnSerial}
               onChange={(e) => setBurnSerial(e.target.value)}
             />
           </label>
         </div>
-        <button
+        <Button
           type="button"
-          className="rounded bg-red-700 px-3 py-2 text-sm text-white disabled:opacity-50"
+          variant="danger"
+          loading={loading === "Check in"}
+          loadingLabel="Checking in…"
           disabled={!!loading || !selectedBurnRow}
           onClick={() =>
             run("Check in", "/api/mark-used", { serial: Number(burnSerial) })
           }
         >
-          {loading === "Check in" ? "…" : "Check in / mark used"}
-        </button>
+          Check in / mark used
+        </Button>
       </section>
     </div>
   );
