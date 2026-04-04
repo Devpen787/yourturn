@@ -19,7 +19,7 @@ export async function createTopic(): Promise<string> {
 export async function submitLifecycleEvent(
   topicId: string,
   event: LifecycleEvent
-): Promise<void> {
+): Promise<string> {
   const client = getClient();
   const issuer = getActorCredentials("issuer");
   const payload = JSON.stringify(event);
@@ -30,4 +30,5 @@ export async function submitLifecycleEvent(
   const signed = await tx.sign(issuer.privateKey);
   const response = await signed.execute(client);
   await response.getReceipt(client);
+  return response.transactionId?.toString() ?? "";
 }

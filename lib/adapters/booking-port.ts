@@ -430,7 +430,7 @@ async function prepareCreateListing(input: {
     serial: input.serial,
     treasuryAccountId: resources.treasuryAccountId,
   });
-  if (chain.holderAccountId !== sellerAccountId) {
+  if (!chain.holderAccountId || !accountsEqual(chain.holderAccountId, sellerAccountId)) {
     throw createError("Only the current holder can list", "CONFLICT", 409);
   }
   if (!canResell({ status: chain.status, resaleAllowed: slot.resaleAllowed })) {
@@ -505,7 +505,7 @@ async function prepareBuyListing(input: {
     );
   }
   const buyerAccountId = actorAccountId(input.buyer);
-  if (buyerAccountId === listing.sellerAccountId) {
+  if (accountsEqual(buyerAccountId, listing.sellerAccountId)) {
     throw createError("Buyer cannot be the seller", "CONFLICT", 409);
   }
   return {

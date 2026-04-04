@@ -7,6 +7,7 @@ import { ActorSelector, type ActorValue } from "@/components/ActorSelector";
 import { Button } from "@/components/ui/Button";
 import { getButtonClassName } from "@/components/ui/button-classes";
 import { cn } from "@/lib/cn";
+import { accountsEqual } from "@/lib/hedera/client";
 
 type Row = {
   serial: number;
@@ -14,9 +15,11 @@ type Row = {
   status: string;
   holderAccountId: string | null;
   canResell: boolean;
+  listingActive: boolean;
 };
 
 function statusTone(status: string): string {
+  if (status === "FOR_SALE") return "bg-violet-100 text-violet-900";
   if (status === "HELD") return "bg-blue-50 text-blue-900";
   if (status === "FROZEN") return "bg-amber-50 text-amber-900";
   if (status === "USED") return "bg-emerald-50 text-emerald-900";
@@ -24,6 +27,8 @@ function statusTone(status: string): string {
 }
 
 function statusCopy(status: string): string {
+  if (status === "FOR_SALE")
+    return "You listed this pass for resale. It is now visible to buyers.";
   if (status === "HELD") return "You currently hold this pass.";
   if (status === "FROZEN") return "The provider has temporarily paused movement of this pass.";
   if (status === "USED") return "This pass has already been checked in and closed.";
@@ -31,6 +36,9 @@ function statusCopy(status: string): string {
 }
 
 function nextAction(status: string, canResell: boolean): string {
+  if (status === "FOR_SALE") {
+    return "Keep it listed, or open resale to review and complete the handoff with the buyer.";
+  }
   if (status === "HELD" && canResell) {
     return "You can keep this pass for the session or list it for sale if you cannot attend.";
   }
@@ -70,14 +78,15 @@ export function MyBookingsClient({
   }
 
   const accountId = useMemo(() => {
-    if (actor === "guestA") return guestAId;
-    if (actor === "guestB") return guestBId;
+    if (actor === "guestA") return guestAId.trim();
+    if (actor === "guestB") return guestBId.trim();
     return "";
   }, [actor, guestAId, guestBId]);
 
   const held = initialRows.filter((r) => {
     if (!accountId || !tokenId) return false;
-    if (r.holderAccountId !== accountId) return false;
+    if (!r.holderAccountId || !accountsEqual(r.holderAccountId, accountId))
+      return false;
     return r.status === "HELD" || r.status === "FROZEN";
   });
   const usedRows = initialRows.filter((r) => r.status === "USED");
@@ -129,7 +138,10 @@ export function MyBookingsClient({
         </p>
       )}
       <ul className="mt-4 space-y-3">
-        {held.map((r) => (
+        {held.map((r) => {
+          const displayStatus =
+            r.status === "HELD" && r.listingActive ? "FOR_SALE" : r.status;
+          return (
           <li
             key={r.serial}
             className="rounded border border-slate-200 bg-white p-4 text-sm"
@@ -140,16 +152,16 @@ export function MyBookingsClient({
               </div>
               <span
                 className={`inline-flex rounded px-2 py-1 text-xs font-medium ${statusTone(
-                  r.status
+                  displayStatus
                 )}`}
               >
-                {r.status}
+                {displayStatus}
               </span>
             </div>
-            <div className="mt-2 text-slate-600">{statusCopy(r.status)}</div>
+            <div className="mt-2 text-slate-600">{statusCopy(displayStatus)}</div>
             <div className="mt-2 rounded bg-slate-50 p-3 text-slate-700">
               <span className="font-medium text-slate-900">What you can do next:</span>{" "}
-              {nextAction(r.status, r.canResell)}
+              {nextAction(displayStatus, r.canResell)}
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <Link
@@ -161,7 +173,18 @@ export function MyBookingsClient({
               >
                 Session details
               </Link>
-              {r.canResell && r.status === "HELD" && (
+              {displayStatus === "FOR_SALE" && (
+                <Link
+                  className={cn(
+                    getButtonClassName("primarySuccess"),
+                    "no-underline"
+                  )}
+                  href={`/resale/${r.serial}`}
+                >
+                  View listing
+                </Link>
+              )}
+              {r.canResell && displayStatus === "HELD" && (
                 <Link
                   className={cn(
                     getButtonClassName("primary"),
@@ -174,7 +197,7 @@ export function MyBookingsClient({
               )}
             </div>
           </li>
-        ))}
+        )})}
       </ul>
       {held.length === 0 && tokenId && (
         <div className="rounded border border-slate-200 bg-white p-4 text-slate-600">

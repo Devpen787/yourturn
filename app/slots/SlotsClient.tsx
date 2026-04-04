@@ -19,6 +19,7 @@ export type SlotRow = {
   endTime: string;
   primaryPriceHbar: number;
   status: string;
+  listingActive?: boolean;
 };
 
 function formatDateTime(value: string): string {
@@ -34,6 +35,7 @@ function formatDateTime(value: string): string {
 
 function statusTone(status: string): string {
   if (status === "AVAILABLE") return "bg-slate-100 text-slate-800";
+  if (status === "FOR_SALE") return "bg-violet-100 text-violet-900";
   if (status === "HELD") return "bg-blue-50 text-blue-900";
   if (status === "FROZEN") return "bg-amber-50 text-amber-900";
   if (status === "USED") return "bg-emerald-50 text-emerald-900";
@@ -42,6 +44,7 @@ function statusTone(status: string): string {
 
 function statusHint(status: string): string {
   if (status === "AVAILABLE") return "Ready to book";
+  if (status === "FOR_SALE") return "Listed on resale";
   if (status === "HELD") return "Already booked";
   if (status === "FROZEN") return "Temporarily paused";
   if (status === "USED") return "Already checked in";
@@ -51,6 +54,9 @@ function statusHint(status: string): string {
 function nextStepHint(status: string): string {
   if (status === "AVAILABLE") {
     return "Choose the person who is booking, review the session, and book it if it still works for them.";
+  }
+  if (status === "FOR_SALE") {
+    return "Open resale to buy this listed pass from the current holder.";
   }
   if (status === "HELD") {
     return "Open details to see who holds the pass now and whether it can be resold.";
@@ -98,6 +104,9 @@ export function SlotsClient({
     if (optimisticHeldSerial === row.serial && row.status === "AVAILABLE") {
       return "HELD";
     }
+    if (row.listingActive && row.status === "HELD") {
+      return "FOR_SALE";
+    }
     return row.status;
   }
 
@@ -105,6 +114,9 @@ export function SlotsClient({
     (row) => effectiveStatus(row) === "AVAILABLE"
   ).length;
   const heldCount = rows.filter((row) => effectiveStatus(row) === "HELD").length;
+  const forSaleCount = rows.filter(
+    (row) => effectiveStatus(row) === "FOR_SALE"
+  ).length;
   const frozenCount = rows.filter(
     (row) => effectiveStatus(row) === "FROZEN"
   ).length;
@@ -199,10 +211,14 @@ export function SlotsClient({
         A session can only be booked while it is <strong>AVAILABLE</strong>. After booking, the pass moves to the customer who bought it and may later be resold, paused, or checked in under provider rules.
       </p>
       {rows.length > 0 && (
-        <div className="mb-4 grid gap-3 md:grid-cols-4">
+        <div className="mb-4 grid gap-3 md:grid-cols-5">
           <div className="rounded border border-slate-200 bg-white p-3">
             <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Available</p>
             <p className="mt-2 text-2xl font-semibold text-slate-900">{availableCount}</p>
+          </div>
+          <div className="rounded border border-slate-200 bg-white p-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">For sale</p>
+            <p className="mt-2 text-2xl font-semibold text-slate-900">{forSaleCount}</p>
           </div>
           <div className="rounded border border-slate-200 bg-white p-3">
             <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Held</p>
@@ -279,6 +295,17 @@ export function SlotsClient({
                   >
                     Book
                   </Button>
+                )}
+                {displayStatus === "FOR_SALE" && (
+                  <Link
+                    className={cn(
+                      getButtonClassName("primarySuccess"),
+                      "no-underline"
+                    )}
+                    href={`/resale/${r.serial}`}
+                  >
+                    Buy on resale
+                  </Link>
                 )}
               </div>
             </li>
