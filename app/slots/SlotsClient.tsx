@@ -14,6 +14,14 @@ export type SlotRow = {
   status: string;
 };
 
+function statusHint(status: string): string {
+  if (status === "AVAILABLE") return "Ready to book";
+  if (status === "HELD") return "Already booked by a guest";
+  if (status === "FROZEN") return "Booked and temporarily blocked";
+  if (status === "USED") return "Already used";
+  return status;
+}
+
 export function SlotsClient({ rows }: { rows: SlotRow[] }) {
   const router = useRouter();
   const [actor, setActor] = useState<ActorValue>("guestA");
@@ -61,6 +69,9 @@ export function SlotsClient({ rows }: { rows: SlotRow[] }) {
       {err && (
         <p className="mb-2 rounded bg-red-50 p-2 text-sm text-red-800">{err}</p>
       )}
+      <p className="mb-4 rounded border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+        A slot is bookable only while it is <strong>AVAILABLE</strong>. After booking, the right moves to a guest and may later be resold, frozen, or marked used under issuer rules.
+      </p>
       <ul className="space-y-3">
         {rows.map((r) => (
           <li
@@ -75,6 +86,7 @@ export function SlotsClient({ rows }: { rows: SlotRow[] }) {
               Price: <strong>{r.primaryPriceHbar} ℏ</strong> · Status:{" "}
               <strong>{r.status}</strong>
             </div>
+            <div className="mt-1 text-slate-600">{statusHint(r.status)}</div>
             <div className="mt-2 flex flex-wrap gap-2">
               <Link
                 className="text-blue-700 underline"

@@ -13,6 +13,13 @@ type Row = {
   canResell: boolean;
 };
 
+function statusCopy(status: string): string {
+  if (status === "HELD") return "You currently hold this booking right.";
+  if (status === "FROZEN") return "The issuer has temporarily blocked movement of this booking right.";
+  if (status === "USED") return "This booking right has already been used and closed.";
+  return "This booking right is not currently active in your wallet.";
+}
+
 export function MyBookingsClient({
   guestAId,
   guestBId,
@@ -49,6 +56,11 @@ export function MyBookingsClient({
       {actor === "issuer" && (
         <p className="text-amber-800">Switch to guestA or guestB to see NFTs.</p>
       )}
+      {actor !== "issuer" && tokenId && (
+        <p className="mb-4 rounded border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+          This page shows booking rights currently held by the selected guest according to Mirror-backed state.
+        </p>
+      )}
       <ul className="mt-4 space-y-3">
         {held.map((r) => (
           <li
@@ -59,6 +71,7 @@ export function MyBookingsClient({
               #{r.serial} — {r.title}
             </div>
             <div className="mt-1">Status: {r.status}</div>
+            <div className="mt-1 text-slate-600">{statusCopy(r.status)}</div>
             <div className="mt-2 flex flex-wrap gap-2">
               <Link
                 className="text-blue-700 underline"
@@ -80,7 +93,7 @@ export function MyBookingsClient({
       </ul>
       {held.length === 0 && tokenId && actor !== "issuer" && (
         <p className="text-slate-600">
-          No held slots for this actor (check Mirror holdings after booking).
+          No active held slots for this actor. If you just booked or bought a slot, refresh after the chain state appears in Mirror.
         </p>
       )}
       <p className="mt-4 text-xs text-slate-500">

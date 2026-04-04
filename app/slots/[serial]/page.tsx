@@ -12,6 +12,14 @@ import { SlotResaleCta } from "./SlotResaleCta";
 
 export const dynamic = "force-dynamic";
 
+function statusSummary(status: string): string {
+  if (status === "AVAILABLE") return "The booking right is still with treasury and can be booked.";
+  if (status === "HELD") return "A guest currently holds this booking right and can use it or resell it if policy allows.";
+  if (status === "FROZEN") return "The issuer has frozen this booking right, so it cannot move until it is unfrozen.";
+  if (status === "USED") return "This booking right has already been used and its lifecycle is closed.";
+  return "Status unavailable.";
+}
+
 export default async function SlotDetailPage({
   params,
 }: {
@@ -70,6 +78,7 @@ export default async function SlotDetailPage({
         <p>
           <span className="font-medium">Status:</span> {chain.status}
         </p>
+        <p className="text-slate-600">{statusSummary(chain.status)}</p>
         <p>
           <span className="font-medium">Holder:</span>{" "}
           {chain.holderAccountId || "—"}
@@ -123,6 +132,9 @@ export default async function SlotDetailPage({
       )}
       <section className="mt-6">
         <h2 className="font-medium">Lifecycle messages (HCS)</h2>
+        <p className="mt-1 text-xs text-slate-600">
+          Use this as an audit trail. Hedera state still determines the current holder and status.
+        </p>
         <ul className="mt-2 space-y-1 text-xs">
           {events.map((m) => (
             <li key={m.consensus_timestamp} className="font-mono">
