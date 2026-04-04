@@ -12,6 +12,17 @@ import { SlotResaleCta } from "./SlotResaleCta";
 
 export const dynamic = "force-dynamic";
 
+function formatDateTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
+
 function statusTone(status: string): string {
   if (status === "AVAILABLE") return "bg-slate-100 text-slate-800";
   if (status === "HELD") return "bg-blue-50 text-blue-900";
@@ -54,6 +65,20 @@ function nextStepSummary(
   return "Refresh in a moment if the latest update has not appeared yet.";
 }
 
+function holderSummary(
+  status: string,
+  holderAccountId: string | null,
+  guestAId: string,
+  guestBId: string
+): string {
+  if (status === "AVAILABLE") return "Not booked yet";
+  if (status === "USED") return "Checked in and closed";
+  if (!holderAccountId) return "Waiting for live holder data";
+  if (holderAccountId === guestAId) return "Person A";
+  if (holderAccountId === guestBId) return "Person B";
+  return holderAccountId;
+}
+
 export default async function SlotDetailPage({
   params,
 }: {
@@ -65,6 +90,8 @@ export default async function SlotDetailPage({
   }
   let tokenId: string | null = null;
   let topicId: string | null = null;
+  const guestAId = process.env.HEDERA_GUEST_A_ID ?? "";
+  const guestBId = process.env.HEDERA_GUEST_B_ID ?? "";
   try {
     tokenId = await getStoredTokenId();
     topicId = await getStoredTopicId();
@@ -131,7 +158,7 @@ export default async function SlotDetailPage({
         </p>
         <p>
           <span className="font-medium">Current holder:</span>{" "}
-          {chain.holderAccountId || "—"}
+          {holderSummary(chain.status, chain.holderAccountId, guestAId, guestBId)}
         </p>
         {slot && (
           <div className="grid gap-2 md:grid-cols-2">
@@ -140,10 +167,10 @@ export default async function SlotDetailPage({
               {slot.primaryPriceHbar} ℏ
             </p>
             <p>
-              <span className="font-medium">Start:</span> {slot.startTime}
+              <span className="font-medium">Start:</span> {formatDateTime(slot.startTime)}
             </p>
             <p>
-              <span className="font-medium">End:</span> {slot.endTime}
+              <span className="font-medium">End:</span> {formatDateTime(slot.endTime)}
             </p>
             <p>
               <span className="font-medium">Resale allowed:</span>{" "}
@@ -202,7 +229,7 @@ export default async function SlotDetailPage({
         </details>
       )}
       <section className="mt-6">
-        <h2 className="font-medium">Technical audit trail</h2>
+        <h2 className="font-medium">Audit trail (optional)</h2>
         <p className="mt-1 text-xs text-slate-600">
           This is optional proof detail. The live pass status above is the easiest thing to follow during the demo.
         </p>

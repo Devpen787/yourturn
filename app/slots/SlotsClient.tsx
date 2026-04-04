@@ -14,6 +14,17 @@ export type SlotRow = {
   status: string;
 };
 
+function formatDateTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
+
 function statusTone(status: string): string {
   if (status === "AVAILABLE") return "bg-slate-100 text-slate-800";
   if (status === "HELD") return "bg-blue-50 text-blue-900";
@@ -141,7 +152,7 @@ export function SlotsClient({ rows }: { rows: SlotRow[] }) {
               <div>
                 <div className="font-medium">{r.title}</div>
                 <div className="text-slate-600">
-                  {r.startTime} → {r.endTime}
+                  {formatDateTime(r.startTime)} → {formatDateTime(r.endTime)}
                 </div>
               </div>
               <span

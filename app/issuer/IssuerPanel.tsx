@@ -122,18 +122,25 @@ export function IssuerPanel({
         Use this space to set up sessions, keep track of who holds each pass,
         pause movement when needed, and check people in.
       </p>
-      <div className="mb-4 space-y-1 rounded border border-slate-200 bg-white p-4 text-sm">
-        <p>
-          <span className="font-medium">Pass token:</span>{" "}
-          {tokenId || "—"}{" "}
-          {tokenExists ? "(mirror: exists)" : tokenId ? "(mirror: missing)" : ""}
-        </p>
-        <p>
-          <span className="font-medium">Audit topic:</span> {topicId || "—"}
-        </p>
+      <div className="mb-4 rounded border border-slate-200 bg-white p-4 text-sm">
         <p>
           <span className="font-medium">Sessions created:</span> {slotsCount}
         </p>
+        <details className="mt-3">
+          <summary className="cursor-pointer text-slate-600">
+            System details
+          </summary>
+          <div className="mt-3 space-y-1 text-slate-600">
+            <p>
+              <span className="font-medium text-slate-900">Pass token:</span>{" "}
+              {tokenId || "—"}{" "}
+              {tokenExists ? "(mirror: exists)" : tokenId ? "(mirror: missing)" : ""}
+            </p>
+            <p>
+              <span className="font-medium text-slate-900">Audit topic:</span> {topicId || "—"}
+            </p>
+          </div>
+        </details>
       </div>
       <div className="mb-4 rounded border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
         <p className="font-medium text-slate-900">How this dashboard works</p>

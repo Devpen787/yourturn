@@ -29,7 +29,7 @@ export default function RootLayout({
               </Link>
               <Link
                 href="/issuer"
-                className="rounded-full border border-slate-300 px-3 py-1.5 text-slate-700 hover:border-slate-400 hover:text-slate-950"
+                className="text-slate-500 hover:text-slate-900"
               >
                 Provider dashboard
               </Link>

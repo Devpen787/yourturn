@@ -54,8 +54,14 @@ export function ActorSelector({
     onChange?.(next);
   }
 
+  const isCompact = allowedActors.length === 2;
+
   return (
-    <div className="mb-4 rounded border border-slate-200 bg-white p-4 text-sm">
+    <div
+      className={`mb-4 rounded border border-slate-200 bg-white text-sm ${
+        isCompact ? "p-3" : "p-4"
+      }`}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="font-medium text-slate-900">{title}</p>
@@ -66,45 +72,68 @@ export function ActorSelector({
         </span>
       </div>
 
-      <div
-        className={`mt-4 grid gap-3 ${
-          allowedActors.length === 2 ? "md:grid-cols-2" : "md:grid-cols-3"
-        }`}
-      >
-        {allowedActors.map((a) => {
-          const selected = actor === a;
-          return (
-            <label
-              key={a}
-              className={`cursor-pointer rounded-xl border p-3 transition ${
-                selected
-                  ? "border-slate-900 bg-slate-900 text-white"
-                  : "border-slate-200 bg-slate-50 text-slate-900"
-              }`}
-            >
-              <div className="flex items-start gap-2">
+      {isCompact ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {allowedActors.map((a) => {
+            const selected = actor === a;
+            return (
+              <label
+                key={a}
+                className={`cursor-pointer rounded-full border px-4 py-2 transition ${
+                  selected
+                    ? "border-slate-900 bg-slate-900 text-white"
+                    : "border-slate-200 bg-slate-50 text-slate-700"
+                }`}
+              >
                 <input
                   type="radio"
                   name="actor"
                   checked={selected}
                   onChange={() => update(a)}
-                  className="mt-1"
+                  className="sr-only"
                 />
-                <div>
-                  <p className="font-medium">{ACTOR_META[a].label}</p>
-                  <p
-                    className={`mt-1 text-xs leading-5 ${
-                      selected ? "text-slate-200" : "text-slate-600"
-                    }`}
-                  >
-                    {ACTOR_META[a].description}
-                  </p>
+                <span className="text-sm font-medium">{ACTOR_META[a].label}</span>
+              </label>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          {allowedActors.map((a) => {
+            const selected = actor === a;
+            return (
+              <label
+                key={a}
+                className={`cursor-pointer rounded-xl border p-3 transition ${
+                  selected
+                    ? "border-slate-900 bg-slate-900 text-white"
+                    : "border-slate-200 bg-slate-50 text-slate-900"
+                }`}
+              >
+                <div className="flex items-start gap-2">
+                  <input
+                    type="radio"
+                    name="actor"
+                    checked={selected}
+                    onChange={() => update(a)}
+                    className="mt-1"
+                  />
+                  <div>
+                    <p className="font-medium">{ACTOR_META[a].label}</p>
+                    <p
+                      className={`mt-1 text-xs leading-5 ${
+                        selected ? "text-slate-200" : "text-slate-600"
+                      }`}
+                    >
+                      {ACTOR_META[a].description}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </label>
-          );
-        })}
-      </div>
+              </label>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
