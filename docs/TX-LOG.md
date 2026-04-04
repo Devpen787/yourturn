@@ -15,12 +15,12 @@ Fill this from `.env.local` and from **Issuer** after **Initialize** (or from Re
 | Field | Value |
 |--------|--------|
 | Network | `testnet` |
-| Token ID | _TBD_ |
-| HCS topic ID | _TBD_ |
-| Treasury account | _TBD_ (`HEDERA_TREASURY_ID`) |
-| Fee collector (royalty) | _TBD_ (`HEDERA_FEE_COLLECTOR_ID`) |
-| Guest A | _TBD_ (`HEDERA_GUEST_A_ID`) |
-| Guest B | _TBD_ (`HEDERA_GUEST_B_ID`) |
+| Token ID | 0.0.8505698|
+| HCS topic ID | 0.0.8505699|
+| Treasury account | 0.0.8504300 (`HEDERA_TREASURY_ID`) |
+| Fee collector (royalty)  |0.0.8504300 (`HEDERA_FEE_COLLECTOR_ID`) |
+| Guest A |0.0.8504405 (`HEDERA_GUEST_A_ID`) |
+| Guest B | 0.0.8504715 (`HEDERA_GUEST_B_ID`) |
 
 **Mirror (read-only):** `https://testnet.mirrornode.hedera.com/api/v1`
 
@@ -31,12 +31,126 @@ Fill this from `.env.local` and from **Issuer** after **Initialize** (or from Re
 | Flow | Primary proof (HTS / main tx) | HashScan | Optional HCS lifecycle tx |
 |------|------------------------------|----------|-------------------------|
 | **F1** Primary book | _TBD_ (`POST /api/book` → `txId`) | _TBD_ (`hashscanUrl`) | _TBD_ (`lifecycleTxId`) |
-| **F2** List (app + HCS only) | — (no HTS transfer) | — | _TBD_ (`POST /api/resale-list` → `lifecycleTxId`) |
-| **F2** Resale buy | _TBD_ (`POST /api/resale-buy` → `txId`) | _TBD_ (`hashscanUrl`) | _TBD_ (`lifecycleTxId`) |
-| **F3** Freeze | _TBD_ (`POST /api/freeze` → `freezeTxId`) | _TBD_ (`freezeHashscanUrl`) | _TBD_ (`lifecycleTxId`) |
-| **F3** Unfreeze | _TBD_ (`POST /api/unfreeze` → `unfreezeTxId`) | _TBD_ (`unfreezeHashscanUrl`) | _TBD_ (`lifecycleTxId`) |
-| **F4** Mark used / burn | _TBD_ — see [F4 notes](#f4-mark-used--burn) | _TBD_ | _TBD_ (`lifecycleTxId`) |
 
+
+{ok: true, txId: "0.0.8504300@1775310940.927649753",…}
+hashscanUrl
+: 
+"https://hashscan.io/testnet/transaction/0.0.8504300-1775310940.927649753"
+lifecycleHashscanUrl
+: 
+"https://hashscan.io/testnet/transaction/0.0.8504300-1775310947.922367375"
+lifecycleTxId
+: 
+"0.0.8504300@1775310947.922367375"
+ok
+: 
+true
+txId
+: 
+"0.0.8504300@1775310940.927649753"
+
+| **F2** List (app + HCS only) | — (no HTS transfer) | — | _TBD_ (`POST /api/resale-list` → `lifecycleTxId`) |
+
+
+{ok: true,…}
+lifecycleHashscanUrl
+: 
+"https://hashscan.io/testnet/transaction/0.0.8504300-1775311102.812130083"
+lifecycleTxId
+: 
+"0.0.8504300@1775311102.812130083"
+listing
+: 
+{serial: 28, sellerAccountId: "0.0.8504405", askPriceHbar: 20, askUsd: 20, active: true}
+ok
+: 
+true
+
+| **F2** Resale buy | _TBD_ (`POST /api/resale-buy` → `txId`) | _TBD_ (`hashscanUrl`) | _TBD_ (`lifecycleTxId`) |
+
+{ok: true, txId: "0.0.8504300@1775311228.280315594",…}
+hashscanUrl
+: 
+"https://hashscan.io/testnet/transaction/0.0.8504300-1775311228.280315594"
+lifecycleHashscanUrl
+: 
+"https://hashscan.io/testnet/transaction/0.0.8504300-1775311229.006591720"
+lifecycleTxId
+: 
+"0.0.8504300@1775311229.006591720"
+ok
+: 
+true
+txId
+: 
+"0.0.8504300@1775311228.280315594"
+
+| **F3** Freeze | _TBD_ (`POST /api/freeze` → `freezeTxId`) | _TBD_ (`freezeHashscanUrl`) | _TBD_ (`lifecycleTxId`) |
+{ok: true, holderActorUsed: "guestB", freezeTxId: "0.0.8504300@1775311275.486137808",…}
+freezeHashscanUrl
+: 
+"https://hashscan.io/testnet/transaction/0.0.8504300-1775311275.486137808"
+freezeTxId
+: 
+"0.0.8504300@1775311275.486137808"
+holderActorUsed
+: 
+"guestB"
+lifecycleHashscanUrl
+: 
+"https://hashscan.io/testnet/transaction/0.0.8504300-1775311273.663127194"
+lifecycleTxId
+: 
+"0.0.8504300@1775311273.663127194"
+ok
+: 
+true
+
+| **F3** Unfreeze | _TBD_ (`POST /api/unfreeze` → `unfreezeTxId`) | _TBD_ (`unfreezeHashscanUrl`) | _TBD_ (`lifecycleTxId`) |
+{ok: true, holderActorUsed: "guestB", unfreezeTxId: "0.0.8504300@1775311295.777101336",…}
+holderActorUsed
+: 
+"guestB"
+lifecycleHashscanUrl
+: 
+"https://hashscan.io/testnet/transaction/0.0.8504300-1775311297.696688825"
+lifecycleTxId
+: 
+"0.0.8504300@1775311297.696688825"
+ok
+: 
+true
+unfreezeHashscanUrl
+: 
+"https://hashscan.io/testnet/transaction/0.0.8504300-1775311295.777101336"
+unfreezeTxId
+: 
+"0.0.8504300@1775311295.777101336"
+
+| **F4** Mark used / burn | _TBD_ — see [F4 notes](#f4-mark-used--burn) | _TBD_ | _TBD_ (`lifecycleTxId`) |
+ok: true, returnToTreasuryTxId: "0.0.8504300@1775311336.927278577",…}
+burnHashscanUrl
+: 
+"https://hashscan.io/testnet/transaction/0.0.8504300-1775311337.995120902"
+burnTxId
+: 
+"0.0.8504300@1775311337.995120902"
+lifecycleHashscanUrl
+: 
+"https://hashscan.io/testnet/transaction/0.0.8504300-1775311337.789775592"
+lifecycleTxId
+: 
+"0.0.8504300@1775311337.789775592"
+ok
+: 
+true
+returnToTreasuryHashscanUrl
+: 
+"https://hashscan.io/testnet/transaction/0.0.8504300-1775311336.927278577"
+returnToTreasuryTxId
+: 
+"0.0.8504300@1775311336.927278577"
 ---
 
 ## API responses — which fields to copy
