@@ -99,12 +99,18 @@ export function ResaleClient({
 
   return (
     <div className="mt-4 space-y-4">
-      <ActorSelector pageDefault="guestA" onChange={setActor} />
+      <ActorSelector
+        pageDefault="guestA"
+        allowedActors={["guestA", "guestB"]}
+        title="Customer handoff"
+        description="Switch between Person A and Person B to show the seller side and the buyer side of the resale flow."
+        onChange={setActor}
+      />
       <div className="rounded border border-slate-200 bg-white p-4">
         <h2 className="font-medium">{slotTitle}</h2>
         {!tokenId && (
           <p className="mt-2 text-amber-800">
-            Demo not ready yet — open provider tools and run setup first.
+            Demo not ready yet — open the provider dashboard and run setup first.
           </p>
         )}
         {initialListing?.active && (

@@ -82,6 +82,16 @@
 3. **Provider console:** May keep **issuer**, **token**, **Mirror** for technical operators; pair with **plain labels** in rules bullets.  
 4. **Judge / chain narrative:** **HTS**, **NFT**, **issuer** as needed — separate from consumer tier.
 
+## Surface split
+
+The app should read as **three surfaces**, not one shared admin portal:
+
+1. **Customer surfaces** — `/slots`, `/my-bookings`, `/resale/[serial]`, much more like a booking app or pass wallet.
+2. **Shared truth surface** — `/slots/[serial]`, where both sides can verify status, next step, and proof.
+3. **Provider dashboard** — `/issuer`, clearly back-office and operational.
+
+If a customer route needs repeated explanations about issuer actions or demo roles, the copy is drifting toward the dashboard voice.
+
 ---
 
 ## Sources (starting set)

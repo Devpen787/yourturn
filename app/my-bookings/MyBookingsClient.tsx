@@ -73,20 +73,23 @@ export function MyBookingsClient({
   return (
     <div>
       <h1 className="mb-2 text-xl font-semibold">My passes</h1>
-      <ActorSelector pageDefault="guestA" onChange={setActor} />
+      <ActorSelector
+        pageDefault="guestA"
+        allowedActors={["guestA", "guestB"]}
+        title="Customer view"
+        description="Switch between Person A and Person B to see each customer’s active passes and resale options."
+        onChange={setActor}
+      />
       {!tokenId && (
-        <p className="text-slate-600">The provider needs to set up the demo before passes can appear here.</p>
+        <p className="text-slate-600">The business needs to set up the demo before passes can appear here.</p>
       )}
-      {actor === "issuer" && (
-        <p className="text-amber-800">Switch to Person A or Person B to see customer passes.</p>
-      )}
-      {actor !== "issuer" && tokenId && (
+      {tokenId && (
         <p className="mb-4 rounded border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
           This page shows the passes currently held by the selected person.
           {" "}Selected account: <span className="font-mono text-xs">{accountId || "—"}</span>
         </p>
       )}
-      {actor !== "issuer" && tokenId && held.length > 0 && (
+      {tokenId && held.length > 0 && (
         <p className="mb-4 text-sm text-slate-600">
           {held.length} active pass{held.length === 1 ? "" : "es"} currently held by {actor === "guestA" ? "Person A" : "Person B"}.
         </p>
@@ -133,7 +136,7 @@ export function MyBookingsClient({
           </li>
         ))}
       </ul>
-      {held.length === 0 && tokenId && actor !== "issuer" && (
+      {held.length === 0 && tokenId && (
         <div className="rounded border border-slate-200 bg-white p-4 text-slate-600">
           <p>
             No active passes are showing for this person right now. If you just booked or bought one,
@@ -144,7 +147,7 @@ export function MyBookingsClient({
           </Link>
         </div>
       )}
-      {actor !== "issuer" && tokenId && usedRows.length > 0 && (
+      {tokenId && usedRows.length > 0 && (
         <section className="mt-6">
           <h2 className="text-sm font-medium text-slate-900">Recently finished</h2>
           <p className="mt-1 text-sm text-slate-600">

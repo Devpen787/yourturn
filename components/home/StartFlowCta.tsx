@@ -5,7 +5,7 @@ export function StartFlowCta() {
     <section className="rounded-[2rem] border border-slate-200 bg-white px-6 py-8 md:px-8">
       <div className="grid gap-4 md:grid-cols-2">
         <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-6">
-          <p className="text-sm font-medium text-slate-500">For customers</p>
+          <p className="text-sm font-medium text-slate-500">Customer app</p>
           <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
             Find it, book it, keep track of it.
           </h2>
@@ -30,7 +30,7 @@ export function StartFlowCta() {
         </div>
 
         <div className="rounded-[1.5rem] border border-slate-200 bg-white p-6">
-          <p className="text-sm font-medium text-slate-500">For providers</p>
+          <p className="text-sm font-medium text-slate-500">Business dashboard</p>
           <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
             Set the rules behind the scenes.
           </h2>
@@ -44,7 +44,7 @@ export function StartFlowCta() {
               href="/issuer"
               className="rounded-full border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700"
             >
-              Open provider tools
+              Open provider dashboard
             </Link>
           </div>
         </div>

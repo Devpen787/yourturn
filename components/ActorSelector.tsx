@@ -25,37 +25,28 @@ export type ActorValue = "issuer" | "guestA" | "guestB";
 
 type Props = {
   pageDefault: ActorValue;
+  allowedActors?: readonly ActorValue[];
+  title?: string;
+  description?: string;
   onChange?: (actor: ActorValue) => void;
 };
 
-export function ActorSelector({ pageDefault, onChange }: Props) {
+export function ActorSelector({
+  pageDefault,
+  allowedActors = ["issuer", "guestA", "guestB"],
+  title = "Viewing as",
+  description = "Choose whose side of the story you want to see in this demo. This switch is only for the demo, not a real sign-in flow.",
+  onChange,
+}: Props) {
   const [actor, setActor] = useState<ActorValue>(pageDefault);
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY) as ActorValue | null;
-    if (
-      pageDefault === "issuer" &&
-      (saved === "guestA" || saved === "guestB")
-    ) {
-      setActor(pageDefault);
-      localStorage.setItem(STORAGE_KEY, pageDefault);
-      onChange?.(pageDefault);
-    } else if (
-      pageDefault !== "issuer" &&
-      saved === "issuer"
-    ) {
-      setActor(pageDefault);
-      localStorage.setItem(STORAGE_KEY, pageDefault);
-      onChange?.(pageDefault);
-    } else if (saved === "issuer" || saved === "guestA" || saved === "guestB") {
-      setActor(saved);
-      onChange?.(saved);
-    } else {
-      setActor(pageDefault);
-      localStorage.setItem(STORAGE_KEY, pageDefault);
-      onChange?.(pageDefault);
-    }
-  }, [pageDefault, onChange]);
+    const next = saved && allowedActors.includes(saved) ? saved : pageDefault;
+    setActor(next);
+    localStorage.setItem(STORAGE_KEY, next);
+    onChange?.(next);
+  }, [allowedActors, pageDefault, onChange]);
 
   function update(next: ActorValue) {
     setActor(next);
@@ -67,19 +58,20 @@ export function ActorSelector({ pageDefault, onChange }: Props) {
     <div className="mb-4 rounded border border-slate-200 bg-white p-4 text-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="font-medium text-slate-900">Viewing as</p>
-          <p className="mt-1 max-w-2xl text-slate-600">
-            Choose whose side of the story you want to see in this demo. This
-            switch is only for the demo, not a real sign-in flow.
-          </p>
+          <p className="font-medium text-slate-900">{title}</p>
+          <p className="mt-1 max-w-2xl text-slate-600">{description}</p>
         </div>
         <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
           Current: {ACTOR_META[actor].label}
         </span>
       </div>
 
-      <div className="mt-4 grid gap-3 md:grid-cols-3">
-        {(["issuer", "guestA", "guestB"] as const).map((a) => {
+      <div
+        className={`mt-4 grid gap-3 ${
+          allowedActors.length === 2 ? "md:grid-cols-2" : "md:grid-cols-3"
+        }`}
+      >
+        {allowedActors.map((a) => {
           const selected = actor === a;
           return (
             <label

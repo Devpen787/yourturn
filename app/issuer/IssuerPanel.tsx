@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ActorSelector } from "@/components/ActorSelector";
 
 type Props = {
   tokenId: string | null;
@@ -104,7 +103,21 @@ export function IssuerPanel({
   return (
     <div>
       <h1 className="mb-2 text-xl font-semibold">Provider dashboard</h1>
-      <ActorSelector pageDefault="issuer" />
+      <div className="mb-4 rounded border border-slate-200 bg-slate-50 p-4 text-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="font-medium text-slate-900">Business view</p>
+            <p className="mt-1 max-w-2xl text-slate-600">
+              This is the back-office side of the demo. Use it to create sessions,
+              confirm who currently holds each pass, pause movement when needed,
+              and check people in when the session happens.
+            </p>
+          </div>
+          <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-700">
+            Current: Provider
+          </span>
+        </div>
+      </div>
       <p className="mb-4 text-sm text-slate-600">
         Use this space to set up sessions, keep track of who holds each pass,
         pause movement when needed, and check people in.

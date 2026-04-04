@@ -88,12 +88,13 @@ export function SlotsClient({ rows }: { rows: SlotRow[] }) {
   return (
     <div>
       <h1 className="mb-2 text-xl font-semibold">Available sessions</h1>
-      <ActorSelector pageDefault="guestA" onChange={setActor} />
-      {actor === "issuer" && (
-        <p className="mb-2 rounded bg-amber-50 p-2 text-sm text-amber-900">
-          Switch from Provider to Person A or Person B to book a session.
-        </p>
-      )}
+      <ActorSelector
+        pageDefault="guestA"
+        allowedActors={["guestA", "guestB"]}
+        title="Customer view"
+        description="Switch between Person A and Person B to see the booking experience from each customer side of the demo."
+        onChange={setActor}
+      />
       {msg && (
         <p className="mb-2 rounded bg-emerald-50 p-2 text-sm text-emerald-900">
           {msg}
@@ -183,7 +184,7 @@ export function SlotsClient({ rows }: { rows: SlotRow[] }) {
       </ul>
       {rows.length === 0 && (
         <div className="rounded border border-slate-200 bg-white p-4 text-slate-600">
-          <p>No sessions are live yet. The provider needs to set up the demo first.</p>
+          <p>No sessions are live yet. The business needs to set up the demo first.</p>
           <Link href="/issuer" className="mt-3 inline-flex text-blue-700 underline">
             Open provider dashboard
           </Link>
