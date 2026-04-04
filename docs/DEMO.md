@@ -10,10 +10,10 @@ Booked Rights makes a booked service slot transferable without giving up issuer 
 
 ## Must-ship demo order (spec)
 
-1. Show listed slot
-2. Primary booking (`F1`)
-3. Transfer or resale with issuer royalty (`F2`)
-4. Mark used (`F4`)
+1. Issuer sets up the business and live slots
+2. Person A books a slot (`F1`)
+3. Person A lists it for resale and Person B buys it (`F2`)
+4. Issuer redeems it by marking it used (`F4`)
 
 ## Economic framing for the live demo
 
@@ -42,28 +42,37 @@ This section matches the **current** Next.js app. Use it for dry runs and judges
 3. **Mint Demo Slots** — seeds slots and NFTs for the demo.
 4. Confirm the **Current slots** table shows rows with status **AVAILABLE** where expected.
 
-### B. Guest — primary book (`F1`)
+### B. Person A — primary book (`F1`)
 
 5. Open **`/slots`** (Book).
-6. Set **Actor** to **guestA** or **guestB** (must match who should hold the NFT).
+6. Set **Actor** to the guest who should become the first holder.
 7. Click **Book** on an **AVAILABLE** row — `POST /api/book`.
 8. Confirm success message (includes tx id when returned).
-9. Optional: open **`/slots/[serial]`** for that serial — status **HELD**, holder account visible; use HashScan links under **Proof links** if demonstrating verification.
+9. Open **`/slots/[serial]`** or **`/my-bookings`** and confirm the pass now belongs to Person A.
+10. Return to **`/issuer`** and confirm the issuer can also see Person A as the current holder.
 
-### C. Guest — resale (`F2`)
+### C. Person A — resale (`F2`)
 
-10. From **`/slots/[serial]`** (if resale allowed) use **List for resale**, or open **`/resale/[serial]`** directly.
-11. Ensure **Actor** is the **current holder** (guestA or guestB) for **create listing** — `POST /api/resale-list` with ask price.
-12. Switch **Actor** to the **other** guest (or same flow as your script) and **Buy** — `POST /api/resale-buy`.
-13. Refresh or revisit **`/slots/[serial]`** and **`/my-bookings`** to show updated holder / status.
+11. From **`/slots/[serial]`** (if resale allowed) use **List for resale**, or open **`/resale/[serial]`** directly.
+12. Ensure **Actor** is the **current holder** for **create listing** — `POST /api/resale-list` with ask price.
+13. Explain that creating the listing is the seller's approval to sell under issuer conditions.
 
-### D. Issuer — close lifecycle (`F4`)
+### D. Person B — buy the resale (`F2`)
 
-14. Return to **`/issuer`**. Confirm table shows correct holder for the serial (guestA/guestB mapping from env ids).
-15. Set **Mark used** serial to that NFT — **Mark used** — `POST /api/mark-used`.
-16. Show **USED** state on **`/slots/[serial]`** or guest hub as appropriate.
+14. Switch **Actor** to the other guest.
+15. Show that Person B can see the resale offer and current ask.
+16. Buy the listed pass — `POST /api/resale-buy`.
+17. Refresh **`/slots/[serial]`** and **`/my-bookings`** to confirm Person B is now the current holder and Person A is not.
+18. Return to **`/issuer`** and confirm the issuer also sees the holder change.
 
-### E. Optional — freeze (`F3`)
+### E. Issuer — close lifecycle (`F4`)
+
+19. Return to **`/issuer`**. Confirm table shows Person B as the current holder for the serial.
+20. At redemption or check-in, set **Mark used** serial to that NFT — **Mark used** — `POST /api/mark-used`.
+21. Show **USED** state on **`/slots/[serial]`** or the guest hub.
+22. Make it explicit that the issuer is the one who closes the lifecycle, so the pass cannot be used again.
+
+### F. Optional — freeze (`F3`)
 
 - On **`/issuer`**, set **Freeze / unfreeze** serial and **Holder** to match **Mirror holder** (UI can pre-fill from table). **Freeze** / **Unfreeze** — `POST /api/freeze` or `POST /api/unfreeze`.
 - On **`/slots/[serial]`** or **`/my-bookings`**, explain that movement is blocked until unfreeze.
@@ -78,6 +87,9 @@ This section matches the **current** Next.js app. Use it for dry runs and judges
 - Keep the happy path under 60 seconds
 - Use plain language, not blockchain jargon
 - Show at least one real Hedera testnet proof point (log tx ids in `docs/TX-LOG.md`)
+- Make the three-party story obvious: issuer, Person A, Person B
+- Treat **Mark used** as the live redemption step, not just cleanup
+- Show that Person A is no longer the valid holder after resale
 - If showing `F7` in future, use a separate booking from the one you plan to mark used
 - Only show `HCS` if it helps the audience understand the story faster (topic messages appear on slot detail)
 

@@ -22,10 +22,22 @@ HashScan base (default): `https://hashscan.io/testnet`
 | Flow | Tx ID | HashScan / notes |
 |------|--------|------------------|
 | **F1** Primary book (`POST /api/book`) | _TBD_ | _TBD_ |
-| **F2** Resale buy (`POST /api/resale-buy`) | _TBD_ | _TBD_ — confirm **single** issuer royalty (HTS `CustomRoyaltyFee`); no double HBAR split in app |
+| **F2** Resale buy (`POST /api/resale-buy`) | _TBD_ | _TBD_ — confirm **single** issuer royalty (HTS `CustomRoyaltyFee`); no double HBAR split in app; confirm Person B becomes current holder |
 | **F3** Freeze (`POST /api/freeze`) | _TBD_ | _TBD_ |
 | **F3** Unfreeze (`POST /api/unfreeze`) | _TBD_ | _TBD_ |
-| **F4** Mark used / burn (`POST /api/mark-used`) | _TBD_ | _TBD_ — if guest held NFT, expect **transfer → treasury** then **burn** (two steps server-side) |
+| **F4** Mark used / burn (`POST /api/mark-used`) | _TBD_ | _TBD_ — if guest held NFT, expect **transfer → treasury** then **burn** (two steps server-side); confirm pass is closed after redemption |
+
+## Demo-complete proof checks
+
+Use these checks alongside the tx rows above:
+
+- Person A books and becomes the current holder
+- Person A lists the pass for resale
+- Person B buys and becomes the new current holder
+- Issuer can see the holder change
+- Issuer marks the pass **used**
+- After `USED`, the pass no longer looks active
+- Person A no longer looks redeemable after Person B buys
 
 ## Optional
 
