@@ -16,9 +16,8 @@ The pasted example copy about state channels, exchange onramp/offramp, MobX, Rus
 - Current merged MVP also uses: `HCS` lifecycle messages
 - Current app stack in repo: `Next.js 14`, `React 18`, `TypeScript`, `Tailwind CSS`, `@hashgraph/sdk`, `@upstash/redis`, `zod`, `Vercel`
 - Current must-ship flows: `F1` primary booking, `F2` resale / transfer with royalty, `F4` mark used
-- Naming still needs one final submission decision:
-  - `README.md` product sentence uses `Booked Rights`
-  - `docs/UI-RULES.md` says visible product name should be `YourTurn`
+- Final public product name: `YourTurn`
+- Repo/package codename may still appear as `Booked Rights` / `booked-rights-v1`
 
 ## Submission readiness checklist
 
@@ -216,6 +215,7 @@ The pasted example copy about state channels, exchange onramp/offramp, MobX, Rus
   - `2 to 4 minutes`
   - `minimum 720p`
   - `audio without music`
+- Important: ETHGlobal rejects uploads under `2:00` or over `4:00`
 - Status:
 - Local file path:
 - Uploaded asset:

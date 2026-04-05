@@ -1,100 +1,196 @@
-# Booked Rights
+# YourTurn
 
-Booked Rights turns a service booking into a transferable right under issuer rules.
+YourTurn helps small and medium-sized businesses recover value from cancellations and no-shows by turning a booking into a controlled, transferable pass.
 
-This repo is the **canonical** source for the hack build. Product, build, and demo decisions live in `docs/` (see [Repo map](#repo-map) below). The full agent-oriented build checklist remains in `docs/booked-rights-build-spec.txt` (unchanged).
+Customers can safely relist a slot they can no longer use.  
+Businesses keep control of the booking lifecycle, keep visibility over the current holder, and can earn on secondary resale.
 
-## Current product frame
+## Live project
 
-**Hero customer:** SMB services and classes (studios, coaching, therapy-style sessions).
+- Production app: [yourturn-sage.vercel.app](https://yourturn-sage.vercel.app)
+- Repository: [github.com/Devpen787/yourturn](https://github.com/Devpen787/yourturn)
+- Demo video: uploaded in the ETHGlobal submission flow
 
-**Hero problem:** Someone booked a slot, cannot make it, and wants to transfer or resell without heavy manual coordination, while the issuer keeps rules and economics.
+## What the app proves
 
-## Locked technical direction
+The current MVP proves one real service-booking lifecycle:
 
-- **Primary track:** Hedera [No Solidity Allowed](https://ethglobal.com/events/cannes2026/prizes)
-- **On-chain services in the runnable MVP:** **HTS + HCS** + **Mirror Node REST** (reads), **no Solidity**, **`@hashgraph/sdk` only** from Node.js API routes — see `docs/ARCHITECTURE.md` and `docs/booked-rights-build-spec.txt`
-- **No autonomous signing** in product vision: demo app uses server-side keys + actor selector (not wallet); value-moving txs are explicit user clicks
+1. A business publishes live bookable sessions
+2. Person A books a session
+3. Person A lists the pass for resale
+4. Person B buys and becomes the new holder
+5. The issuer checks the holder in and closes the pass
 
-## Must-ship build scope (product slices)
+The product is designed for service businesses such as:
 
-- **F1** Primary booking  
-- **F2** Transfer or resale with issuer royalty  
-- **F4** Mark used  
+- therapy and physio sessions
+- studios and classes
+- coaching and appointment-led services
+- premium experiences where resale value matters
 
-**Strong next layer:** F3 freeze/unfreeze (already in current MVP), F7 cancel/refund (out of MVP).
+## Why this matters
 
-## Product rules (locked)
+Today, when a customer cannot make a booked session, the fallback is often:
 
-- Issuer earns on secondary resale where policy allows  
-- Plain language: booking, slot, transfer, resale, rebook, refund  
-- Do not lead user-facing hero copy with “NFT” in the first line  
+- manual rescheduling
+- lost revenue
+- no-show waste
+- informal handoffs the business cannot properly control
 
-## Runnable app (merged)
+YourTurn turns that booking into a controlled pass:
 
-**Next.js 14** App Router demo: `npm install` → `npm run dev` → `/issuer` Initialize + Mint, then `/slots`, `/resale/[serial]`, etc.
+- the customer keeps flexibility
+- the business keeps control
+- the slot does not have to go unused
+- the issuer can earn on secondary movement when policy allows it
+
+## Hedera fit
+
+This project is built for the Hedera **No Solidity Allowed** track.
+
+It uses:
+
+- **HTS** for the transferable booking pass and royalty behavior
+- **HCS** for lifecycle messages such as `BOOKED`, `LISTED`, `RESOLD`, `USED`
+- **Mirror Node REST** for read-side status, holder, and lifecycle visibility
+
+What it does **not** use:
+
+- no Solidity
+- no custom smart contracts
+
+## What we built during the hackathon
+
+This repository is the hackathon build.
+
+The product-specific work in this repo includes:
+
+- the Next.js app and customer/provider flows
+- Hedera booking, resale, freeze, and mark-used transaction paths
+- shared booking truth via Mirror-backed reads
+- provider dashboard and customer pass surfaces
+- demo auth for issuer, Person A, and Person B
+- submission-facing docs, proof logs, and demo runbooks
+
+Reused pieces are limited to public libraries, framework tooling, and starter infrastructure such as:
+
+- Next.js
+- React
+- Tailwind CSS
+- `@hashgraph/sdk`
+- `@upstash/redis`
+- `zod`
+- Vercel
+
+## AI usage disclosure
+
+AI tools were used as coding and documentation assistants during the hackathon, including for:
+
+- implementation support
+- refactoring assistance
+- QA prompt generation
+- documentation drafting
+- browser-based verification support
+
+All product direction, scope choices, verification decisions, and final shipped changes were reviewed and directed by the team. This repo also includes planning and documentation artifacts so the build process stays transparent.
+
+## Demo flow
+
+For the live demo and judging story:
+
+- [docs/DEMO.md](docs/DEMO.md) — operator runbook
+- [docs/DEMO-STORY.md](docs/DEMO-STORY.md) — spoken framing
+
+Core story:
+
+1. issuer prepares inventory
+2. Person A books
+3. Person A lists
+4. Person B buys
+5. issuer checks in and closes the lifecycle
+
+## Running locally
+
+Install dependencies and run the app:
 
 ```bash
 npm install
 npm run dev
+```
+
+Other useful commands:
+
+```bash
 npm run build
 npm run lint
 ```
 
-Copy `.env.example` → `.env.local` (Hedera accounts, Upstash Redis, optional reuse `BOOKED_RIGHTS_*`). Deploy on **Vercel** with the same vars.
+Then open:
 
-If you are integrating another backend or agent, see `docs/AGENT-INTEGRATION.md` and set dedicated approval secrets for `/api/agent/approval-grant`.
+- `/login`
+- `/issuer`
+- `/slots`
 
-### Implementation notes
+### Environment
 
-- **Royalty:** numerator **1** / denominator **10** (10%), no fallback fee — enforced by **HTS `CustomRoyaltyFee`** on resale (buyer pays seller full ask + NFT transfer in one tx); `lib/domain/fees.ts` is for **UI preview** only  
-- **Redis keys:** `bookedrights:tokenId`, `bookedrights:topicId`, `bookedrights:slots`, `bookedrights:listings`  
-- **Agent approval secrets:** set `BOOKED_RIGHTS_APPROVAL_SECRET` and `BOOKED_RIGHTS_APPROVAL_ADMIN_SECRET` for `/api/agent/*` integrations  
-- **Node:** `pino@8.17.2` override for Node 18 `next build`; Node 20+ recommended  
+Copy `.env.example` to `.env.local` and provide the required Hedera and Redis values.
 
-### Local smoke path
+The deployed app uses the same runtime shape on Vercel:
 
-1. `/issuer` → **Initialize** → **Mint Demo Slots**  
-2. As **Person A** (`guestA` underneath), book one live serial from `/slots`  
-3. List resale on `/resale/[serial]`, buy as **Person B** (`guestB`), then issuer **Freeze** / **Unfreeze** / **Redeem / Mark used** as needed  
+- Hedera operator / treasury / demo accounts
+- Upstash Redis
+- Mirror / HashScan public endpoints
+- app auth session secret
 
-## Repo map
+## Tech stack
 
-| Doc | Purpose |
-|-----|---------|
-| `docs/SPEC.md` | Canonical working spec / paste-in surface |
-| `docs/DECISIONS.md` | Locked decisions |
-| `docs/TASKS.md` | Living build checklist |
-| `docs/ARCHITECTURE.md` | System boundaries, Hedera usage |
-| `docs/AGENT-INTEGRATION.md` | How another backend or agent should call `/api/agent/*` |
-| `docs/DEMO.md` | Demo order and stage rules |
-| `docs/TX-LOG.md` | Testnet tx ids + HashScan |
-| `docs/booked-rights-build-spec.txt` | Full agent V1 instructions (original) |
-| `AGENTS.md` | Agent / automation notes |
-| `ISSUES-SEED.md` | Slices to open as GitHub issues |
+- Next.js 14
+- React 18
+- TypeScript
+- Tailwind CSS
+- Hedera SDK (`@hashgraph/sdk`)
+- Upstash Redis
+- Zod
+- Vercel
 
-GitHub **issue** and **PR** templates live under `.github/`.
+## Testnet proof
 
-## Repo discipline
+Canonical proof lives in [docs/TX-LOG.md](docs/TX-LOG.md).
 
-- Keep the repo scoped to this hack  
-- Prefer coherent slices on `main` with a verification path  
-- Coordinate before parallel edits to **shared glue**: `README.md`, `.env.example`, future `BookingPort` / adapters, lockfile  
+Current testnet resources:
 
-## Submission proof (fill as you ship)
+- Token ID: `0.0.8505698`
+- Topic ID: `0.0.8505699`
+- Treasury: `0.0.8504300`
+- Person A: `0.0.8504405`
+- Person B: `0.0.8504715`
 
-- Deployed URL: _TBD_  
-- Testnet token id: `0.0.8505698`  
-- Topic id: `0.0.8505699`  
-- Treasury / demo accounts: treasury `0.0.8504300`, Person A `0.0.8504405`, Person B `0.0.8504715`  
-- HashScan links: [token](https://hashscan.io/testnet/token/0.0.8505698), [topic](https://hashscan.io/testnet/topic/0.0.8505699), [F1 book](https://hashscan.io/testnet/transaction/0.0.8504300-1775311056.646893028), [F2 resale buy](https://hashscan.io/testnet/transaction/0.0.8504300-1775311076.681678722), [F4 transfer to treasury](https://hashscan.io/testnet/transaction/0.0.8504300-1775311104.625214821), [F4 burn](https://hashscan.io/testnet/transaction/0.0.8504300-1775311102.263715214)  
-- Video: _TBD_  
+HashScan links:
 
-## Mirror endpoints (MVP)
+- Token: [0.0.8505698](https://hashscan.io/testnet/token/0.0.8505698)
+- Topic: [0.0.8505699](https://hashscan.io/testnet/topic/0.0.8505699)
+- F1 book: [transaction](https://hashscan.io/testnet/transaction/0.0.8504300-1775311056.646893028)
+- F2 resale buy: [transaction](https://hashscan.io/testnet/transaction/0.0.8504300-1775311076.681678722)
+- F3 freeze: [transaction](https://hashscan.io/testnet/transaction/0.0.8504300-1775311165.395183233)
+- F3 unfreeze: [transaction](https://hashscan.io/testnet/transaction/0.0.8504300-1775311174.322191867)
+- F4 mark used / return: [transaction](https://hashscan.io/testnet/transaction/0.0.8504300-1775311104.625214821)
+- F4 burn: [transaction](https://hashscan.io/testnet/transaction/0.0.8504300-1775311102.263715214)
 
-Base: `NEXT_PUBLIC_MIRROR_BASE` — `GET /tokens/...`, `/nfts/...`, `/accounts/.../nfts`, `/accounts/.../tokens`, `/topics/.../messages`, `/transactions/...`
+## Repo guide
 
-## Known limitations (MVP)
+Key docs:
 
-- Demo actor switch is **not** a security boundary  
-- No wallet UI, no refunds, no scheduled txs in v1  
+- [docs/SPEC.md](docs/SPEC.md) — product and flow spec
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — technical boundaries and Hedera usage
+- [docs/UI-MAP.md](docs/UI-MAP.md) — routes, components, APIs
+- [docs/PAGE-OVERVIEW.md](docs/PAGE-OVERVIEW.md) — route-by-route UX status
+- [docs/TASKS.md](docs/TASKS.md) — shipped vs deferred work
+- [docs/SUBMISSION.md](docs/SUBMISSION.md) — submission worksheet
+
+## Known limitations
+
+- demo auth is not wallet auth
+- no cancel / refund flow in the shipped MVP
+- no open marketplace discovery layer; resale is a direct handoff flow
+- some pages may need refresh if another signed-in role changed the same pass
+- this is a hackathon MVP, not a production-grade permissions system
