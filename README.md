@@ -5,13 +5,65 @@ YourTurn helps small and medium-sized businesses recover value from cancellation
 Customers can safely relist a slot they can no longer use.  
 Businesses keep control of the booking lifecycle, keep visibility over the current holder, and can earn on secondary resale.
 
+Designed for issuer websites and existing booking operations, YourTurn adds controlled transferability without forcing businesses to replace their normal scheduling and check-in flow.
+
 ## Live project
 
 - Production app: [yourturn-sage.vercel.app](https://yourturn-sage.vercel.app)
 - Repository: [github.com/Devpen787/yourturn](https://github.com/Devpen787/yourturn)
 - Demo video: uploaded in the ETHGlobal submission flow
 
-## What the app proves
+## What It Solves
+
+When a customer cannot make a booked session, most businesses fall back to:
+
+- manual rescheduling
+- lost revenue
+- no-show waste
+- informal handoffs the business cannot properly control
+
+YourTurn keeps the slot alive instead of letting it die unused:
+
+- the customer keeps flexibility
+- the business keeps control
+- the issuer keeps visibility over the valid holder
+- the issuer can earn on secondary movement when policy allows it
+
+## Hero Scenario
+
+Think of a therapy, yoga, or coaching slot:
+
+- Person A books a session
+- Person A can no longer attend
+- Person A lists the pass for resale under issuer rules
+- Person B takes over
+- the provider still controls final check-in and closure
+
+This same engine also fits classes, coaching, and premium appointment-style experiences where secondary movement matters.
+
+## Why Hedera / No Solidity
+
+This project is built for the Hedera **No Solidity Allowed** track.
+
+Hedera is useful here because it gives us:
+
+- a transferable booking pass
+- visible holder changes
+- royalty economics on resale
+- a verifiable lifecycle trail
+
+Native services used:
+
+- **HTS** for the transferable booking pass and royalty behavior
+- **HCS** for lifecycle messages such as `BOOKED`, `LISTED`, `RESOLD`, `USED`
+- **Mirror Node REST** for read-side status, holder, and lifecycle visibility
+
+What it does **not** use:
+
+- no Solidity
+- no custom smart contracts
+
+## Current MVP
 
 The current MVP proves one real service-booking lifecycle:
 
@@ -28,36 +80,13 @@ The product is designed for service businesses such as:
 - coaching and appointment-led services
 - premium experiences where resale value matters
 
-## Why this matters
+## Product Rules
 
-Today, when a customer cannot make a booked session, the fallback is often:
-
-- manual rescheduling
-- lost revenue
-- no-show waste
-- informal handoffs the business cannot properly control
-
-YourTurn turns that booking into a controlled pass:
-
-- the customer keeps flexibility
-- the business keeps control
-- the slot does not have to go unused
-- the issuer can earn on secondary movement when policy allows it
-
-## Hedera fit
-
-This project is built for the Hedera **No Solidity Allowed** track.
-
-It uses:
-
-- **HTS** for the transferable booking pass and royalty behavior
-- **HCS** for lifecycle messages such as `BOOKED`, `LISTED`, `RESOLD`, `USED`
-- **Mirror Node REST** for read-side status, holder, and lifecycle visibility
-
-What it does **not** use:
-
-- no Solidity
-- no custom smart contracts
+- the issuer keeps control of booking movement and final redemption
+- the issuer can earn on secondary resale where policy allows it
+- the customer can move the booking only within issuer rules
+- the pass lifecycle ends only when the issuer checks it in and closes it
+- no autonomous signing in the shipped MVP
 
 ## What we built during the hackathon
 
@@ -109,7 +138,13 @@ Core story:
 4. Person B buys
 5. issuer checks in and closes the lifecycle
 
-## Running locally
+## Architecture Truth
+
+- HTS serial ownership and Hedera transactions are the entitlement truth
+- Mirror Node is the read model for holder, status, and lifecycle visibility
+- Redis stores convenience metadata such as slots and active listings; it is not the source of truth for booking ownership
+
+## How To Run
 
 Install dependencies and run the app:
 
@@ -131,7 +166,7 @@ Then open:
 - `/issuer`
 - `/slots`
 
-### Environment
+## Environment Variables
 
 Copy `.env.example` to `.env.local` and provide the required Hedera and Redis values.
 
@@ -141,6 +176,14 @@ The deployed app uses the same runtime shape on Vercel:
 - Upstash Redis
 - Mirror / HashScan public endpoints
 - app auth session secret
+
+Main required variables include:
+
+- Hedera operator / treasury / fee collector ids and keys
+- demo customer ids and keys for Person A and Person B
+- Redis REST URL and token
+- public Mirror / HashScan base URLs
+- app session secret
 
 ## Tech stack
 
@@ -153,7 +196,17 @@ The deployed app uses the same runtime shape on Vercel:
 - Zod
 - Vercel
 
-## Testnet proof
+## Demo Path
+
+1. Sign in as issuer and reset the live inventory
+2. Sign in as Person A and book one available session
+3. Open the same pass on the resale page and list it
+4. Sign in as Person B and buy that listed pass
+5. Return to issuer and show the holder changed
+6. Issuer checks the pass in and closes it
+7. Return to the guest side and show the pass is now closed and cannot be resold
+
+## Proof
 
 Canonical proof lives in [docs/TX-LOG.md](docs/TX-LOG.md).
 
