@@ -40,6 +40,32 @@ export type MirrorTopicMessage = {
   sequence_number: number;
 };
 
+export type MirrorScheduleInfo = {
+  schedule_id: string;
+  executed_timestamp?: string | null;
+  deleted?: boolean;
+  expiration_time?: string;
+  memo?: string;
+  wait_for_expiry?: boolean;
+};
+
+export type MirrorTransactionRow = {
+  consensus_timestamp: string;
+  name: string;
+  result: string;
+  scheduled?: boolean;
+  transaction_id: string;
+};
+
+function mirrorTransactionId(txId: string): string {
+  const clean = txId.replace(/\?scheduled$/, "");
+  const [account, timestamp] = clean.split("@");
+  if (account && timestamp) {
+    return `${account}-${timestamp.replace(".", "-")}`;
+  }
+  return clean;
+}
+
 export async function getToken(
   tokenId: string
 ): Promise<MirrorTokenInfo | null> {
@@ -102,8 +128,23 @@ export async function getTransactionsForAccount(
 }
 
 export async function getTransactionById(txId: string): Promise<unknown> {
-  const id = txId.replace(/-/g, ".");
+  const id = mirrorTransactionId(txId);
   return mirrorFetch(`/transactions/${id}`);
+}
+
+export async function getScheduleById(
+  scheduleId: string
+): Promise<MirrorScheduleInfo | null> {
+  return mirrorFetch<MirrorScheduleInfo>(`/schedules/${scheduleId}`);
+}
+
+export async function getScheduledTransactionExecution(
+  txId: string
+): Promise<MirrorTransactionRow | null> {
+  const data = await mirrorFetch<{ transactions?: MirrorTransactionRow[] }>(
+    `/transactions/${mirrorTransactionId(txId)}?scheduled=true`
+  );
+  return data?.transactions?.find((tx) => tx.scheduled) ?? null;
 }
 
 export async function getTopicMessages(topicId: string): Promise<{

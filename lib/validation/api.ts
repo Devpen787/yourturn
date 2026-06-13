@@ -24,6 +24,17 @@ export const demoPlanSlotSchema = z.object({
   location: z.string().min(1),
   primaryPriceHbar: z.number().positive(),
   resaleAllowed: z.boolean(),
+  policy: z
+    .object({
+      resaleAllowed: z.boolean(),
+      ownerRoyaltyPercent: z.number().min(0).max(50),
+      releaseAllowed: z.boolean(),
+      waitlistEnabled: z.boolean(),
+      scheduleAutomationEnabled: z.boolean(),
+      version: z.number().int().positive(),
+      label: z.string().min(1),
+    })
+    .optional(),
 });
 
 export const demoPlanBodySchema = z.object({
@@ -48,6 +59,23 @@ export const resaleListBodySchema = z.object({
 
 export const resaleBuyBodySchema = z.object({
   actor: z.enum(["guestA", "guestB"]),
+  serial: z.number().int().positive(),
+});
+
+export const recoveryPreviewBodySchema = z.object({
+  actor: z.enum(["guestA", "guestB"]),
+  serial: z.number().int().positive(),
+  action: z.enum(["create_listing", "cancel_release_refund"]).optional().default("create_listing"),
+  askPriceHbar: z.number().positive().optional(),
+});
+
+export const recoveryConfirmBodySchema = z.object({
+  actor: z.enum(["guestA", "guestB"]),
+  previewId: z.string().min(1),
+});
+
+export const automationInspectBodySchema = z.object({
+  actor: z.enum(["guestA", "guestB", "issuer"]).optional(),
   serial: z.number().int().positive(),
 });
 

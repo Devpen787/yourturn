@@ -20,6 +20,8 @@ export const REDIS_KEYS = {
   init: "bookedrights:init",
   slots: "bookedrights:slots",
   listings: "bookedrights:listings",
+  recoveryReceipts: "bookedrights:recoveryReceipts",
+  automationProofs: "bookedrights:automationProofs",
   demoPlan: "bookedrights:demoPlan",
   userById: (id: string) => `bookedrights:user:id:${id}`,
   userByEmail: (email: string) => `bookedrights:user:email:${email}`,

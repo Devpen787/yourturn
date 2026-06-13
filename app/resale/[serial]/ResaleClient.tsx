@@ -5,6 +5,7 @@ import { useId, useMemo, useState } from "react";
 import Link from "next/link";
 import { ActorSelector, type ActorValue } from "@/components/ActorSelector";
 import { useToast } from "@/components/providers/ToastProvider";
+import { RecoveryConciergePanel } from "@/components/concierge/RecoveryConciergePanel";
 import { calcRoyalty } from "@/lib/domain/fees";
 import type { SlotStatus } from "@/lib/domain/guards";
 import type { ResaleListing } from "@/lib/types/listing";
@@ -14,6 +15,7 @@ import { LiveFeedback } from "@/components/ui/LiveFeedback";
 import { getButtonClassName } from "@/components/ui/button-classes";
 import { cn } from "@/lib/cn";
 import { getHashscanTxUrl } from "@/lib/hedera/hashscan";
+import type { RecoveryProofDetails } from "@/lib/types/recovery-proof";
 
 function demoPersonLabel(actor: "guestA" | "guestB"): string {
   return actor === "guestA" ? "Person A" : "Person B";
@@ -26,7 +28,11 @@ export function ResaleClient({
   initialListing,
   currentStatus,
   resaleAllowed,
+  releaseAllowed,
   slotTitle,
+  primaryPriceHbar,
+  initialProof,
+  recoveryMode = false,
   lockTo,
 }: {
   serial: number;
@@ -35,14 +41,18 @@ export function ResaleClient({
   initialListing: ResaleListing | null;
   currentStatus: SlotStatus | null;
   resaleAllowed: boolean;
+  releaseAllowed: boolean;
   slotTitle: string;
+  primaryPriceHbar: number;
+  initialProof?: RecoveryProofDetails | null;
+  recoveryMode?: boolean;
   lockTo?: "guestA" | "guestB";
 }) {
   const router = useRouter();
   const toast = useToast();
-  const [actor, setActor] = useState<ActorValue>("guestA");
+  const [actor, setActor] = useState<ActorValue>(lockTo ?? "guestA");
   const [ask, setAsk] = useState(
-    initialListing?.askPriceHbar?.toString() ?? "20"
+    initialListing?.askPriceHbar?.toString() ?? primaryPriceHbar.toString()
   );
   const [success, setSuccess] = useState<string | null>(null);
   const [successLink, setSuccessLink] = useState<{
@@ -56,6 +66,7 @@ export function ResaleClient({
   const feeHintId = useId();
 
   const askNum = Number(ask) || 0;
+  const customerActor = actor === "guestB" ? "guestB" : "guestA";
   const royalty = calcRoyalty(askNum);
   const askInvalid = useMemo(() => {
     if (ask.trim() === "") return false;
@@ -70,7 +81,7 @@ export function ResaleClient({
     !!initialListing?.active &&
     mirrorHolderActor != null &&
     actor === mirrorHolderActor;
-  const resaleBlockedMessage = useMemo(() => {
+  const stateBlockedMessage = useMemo(() => {
     if (currentStatus === "AVAILABLE") {
       return "No customer holds this pass yet, so there is nothing to resell.";
     }
@@ -80,11 +91,16 @@ export function ResaleClient({
     if (currentStatus === "USED") {
       return "This pass has already been checked in and closed. It cannot be resold.";
     }
+    return null;
+  }, [currentStatus]);
+
+  const resaleBlockedMessage = useMemo(() => {
+    if (stateBlockedMessage) return stateBlockedMessage;
     if (!resaleAllowed) {
       return "This session is not set up for resale under provider rules.";
     }
     return null;
-  }, [currentStatus, resaleAllowed]);
+  }, [resaleAllowed, stateBlockedMessage]);
 
   const listDisabled = !!loading || !tokenId || !!resaleBlockedMessage || listPersonaMismatch;
   const buyDisabled =
@@ -93,6 +109,7 @@ export function ResaleClient({
     !!resaleBlockedMessage ||
     !initialListing?.active ||
     buyPersonaBlocksPurchase;
+  const showManualResaleControls = !!tokenId && !resaleBlockedMessage;
 
   const mirrorHint =
     !tokenId || mirrorHolderActor == null
@@ -297,6 +314,21 @@ export function ResaleClient({
           {resaleBlockedMessage}
         </p>
       ) : null}
+      <RecoveryConciergePanel
+        serial={serial}
+        actor={customerActor}
+        slotTitle={slotTitle}
+        defaultAskPriceHbar={primaryPriceHbar}
+        tokenReady={!!tokenId}
+        blockingReason={stateBlockedMessage}
+        resaleAllowed={resaleAllowed}
+        releaseAllowed={releaseAllowed}
+        initialProof={initialProof}
+        focusOnMount={recoveryMode}
+        onListed={() => {
+          router.refresh();
+        }}
+      />
       <div className="rounded border border-slate-200 bg-white p-4">
         <h2 className="font-medium">{slotTitle}</h2>
         {!tokenId && (
@@ -320,71 +352,83 @@ export function ResaleClient({
             </p>
           </div>
         )}
-        <div className="mt-4 grid gap-2 border-t border-slate-100 pt-4">
-          <p className="font-medium">Current holder lists the pass</p>
-          <p className="text-xs text-slate-600">
-            The holder sets the resale ask under provider rules. They may list above
-            cost, at cost, or below cost.
-          </p>
-          <label
-            className="flex flex-wrap items-center gap-2"
-            htmlFor={askFieldId}
-          >
-            <span className="font-medium text-slate-800">Ask (ℏ)</span>
-            <input
-              id={askFieldId}
-              className={cn(
-                "min-h-[44px] w-28 rounded-lg border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2",
-                askInvalid ? "border-red-400 bg-red-50/40" : "border-slate-300"
-              )}
-              type="text"
-              inputMode="decimal"
-              autoComplete="off"
-              aria-invalid={askInvalid}
-              aria-describedby={feeHintId}
-              value={ask}
-              onChange={(e) => setAsk(e.target.value)}
-            />
-          </label>
-          <p id={feeHintId} className="text-xs text-slate-600">
-            Provider fee on resale (10% preview): {royalty.toFixed(2)} ℏ. Confirm
-            final amounts on the completed resale transaction.
-          </p>
-          <Button
-            type="button"
-            variant="primary"
-            loading={loading === "list"}
-            loadingLabel="Listing…"
-            disabled={listDisabled}
-            className="w-fit"
-            onClick={() => {
-              setErr(null);
-              setConfirmAction("list");
-            }}
-          >
-            List this pass
-          </Button>
-        </div>
-        <div className="mt-6 grid gap-2 border-t border-slate-100 pt-4">
-          <p className="font-medium">Another person buys the listed pass</p>
-          <p className="text-xs text-slate-600">
-            Buying this listing transfers the pass to the new holder under provider policy.
-          </p>
-          <Button
-            type="button"
-            variant="primarySuccess"
-            loading={loading === "buy"}
-            loadingLabel="Buying…"
-            disabled={buyDisabled}
-            className="w-fit"
-            onClick={() => {
-              setErr(null);
-              setConfirmAction("buy");
-            }}
-          >
-            Buy this pass
-          </Button>
-        </div>
+        {showManualResaleControls ? (
+          <>
+            <div className="mt-4 grid gap-2 border-t border-slate-100 pt-4">
+              <p className="font-medium">Current holder lists the pass</p>
+              <p className="text-xs text-slate-600">
+                The holder sets the resale ask under provider rules. They may list above
+                cost, at cost, or below cost.
+              </p>
+              <label
+                className="flex flex-wrap items-center gap-2"
+                htmlFor={askFieldId}
+              >
+                <span className="font-medium text-slate-800">Ask (ℏ)</span>
+                <input
+                  id={askFieldId}
+                  className={cn(
+                    "min-h-[44px] w-28 rounded-lg border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2",
+                    askInvalid ? "border-red-400 bg-red-50/40" : "border-slate-300"
+                  )}
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  aria-invalid={askInvalid}
+                  aria-describedby={feeHintId}
+                  value={ask}
+                  onChange={(e) => setAsk(e.target.value)}
+                />
+              </label>
+              <p id={feeHintId} className="text-xs text-slate-600">
+                Provider fee on resale (10% preview): {royalty.toFixed(2)} ℏ. Confirm
+                final amounts on the completed resale transaction.
+              </p>
+              <Button
+                type="button"
+                variant="primary"
+                loading={loading === "list"}
+                loadingLabel="Listing…"
+                disabled={listDisabled}
+                className="w-fit"
+                onClick={() => {
+                  setErr(null);
+                  setConfirmAction("list");
+                }}
+              >
+                List this pass
+              </Button>
+            </div>
+            <div className="mt-6 grid gap-2 border-t border-slate-100 pt-4">
+              <p className="font-medium">Another person buys the listed pass</p>
+              <p className="text-xs text-slate-600">
+                Buying this listing transfers the pass to the new holder under provider policy.
+              </p>
+              <Button
+                type="button"
+                variant="primarySuccess"
+                loading={loading === "buy"}
+                loadingLabel="Buying…"
+                disabled={buyDisabled}
+                className="w-fit"
+                onClick={() => {
+                  setErr(null);
+                  setConfirmAction("buy");
+                }}
+              >
+                Buy this pass
+              </Button>
+            </div>
+          </>
+        ) : (
+          <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+            <p className="font-medium text-slate-950">No manual resale action available</p>
+            <p className="mt-1">
+              {resaleBlockedMessage ??
+                "This pass cannot use the manual resale controls in its current state."}
+            </p>
+          </div>
+        )}
       </div>
       <LiveFeedback
         className="space-y-2"
@@ -392,7 +436,7 @@ export function ResaleClient({
         successLink={successLink}
         error={err}
       />
-      {tokenId ? (
+      {showManualResaleControls ? (
         <div
           className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur supports-[backdrop-filter]:bg-white/85 md:hidden"
           role="region"

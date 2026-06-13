@@ -114,6 +114,14 @@ export async function POST(req: Request) {
             approval,
           }),
         });
+      case "cancel_release":
+        return NextResponse.json({
+          ok: true as const,
+          result: await bookingPort.confirmCancelRelease({
+            previewId: parsed.data.previewId,
+            approval,
+          }),
+        });
     }
   } catch (e) {
     if (e instanceof BookingPortError) {

@@ -195,7 +195,7 @@ export async function unfreezeHolder(args: {
 export async function burnUsedSlot(args: {
   serial: number;
   tokenIdStr: string;
-}): Promise<void> {
+}): Promise<string> {
   const client = getClient();
   const treasury = getActorCredentials("issuer");
   const tokenId = TokenId.fromString(args.tokenIdStr);
@@ -206,6 +206,7 @@ export async function burnUsedSlot(args: {
   const signed = await tx.sign(treasury.privateKey);
   const response = await signed.execute(client);
   await response.getReceipt(client);
+  return response.transactionId.toString();
 }
 
 export async function transferNftFromHolderToTreasury(args: {
@@ -213,7 +214,7 @@ export async function transferNftFromHolderToTreasury(args: {
   holderPrivateKey: string;
   serial: number;
   tokenIdStr: string;
-}): Promise<void> {
+}): Promise<string> {
   const client = getClient();
   const treasury = getActorCredentials("issuer");
   const holderId = AccountId.fromString(args.holderAccountId);
@@ -225,6 +226,32 @@ export async function transferNftFromHolderToTreasury(args: {
   const signed = await tx.sign(holderKey);
   const response = await signed.execute(client);
   await response.getReceipt(client);
+  return response.transactionId.toString();
+}
+
+export async function refundAndTransferNftFromHolderToTreasury(args: {
+  holderAccountId: string;
+  holderPrivateKey: string;
+  serial: number;
+  tokenIdStr: string;
+  refundHbar: number;
+}): Promise<string> {
+  const client = getClient();
+  const treasury = getActorCredentials("issuer");
+  const holderId = AccountId.fromString(args.holderAccountId);
+  const holderKey = PrivateKey.fromString(args.holderPrivateKey);
+  const tokenId = TokenId.fromString(args.tokenIdStr);
+  const refund = Hbar.from(args.refundHbar, HbarUnit.Hbar);
+  const tx = new TransferTransaction()
+    .addHbarTransfer(treasury.accountId, refund.negated())
+    .addHbarTransfer(holderId, refund)
+    .addNftTransfer(tokenId, args.serial, holderId, treasury.accountId)
+    .freezeWith(client);
+  let signed = await tx.sign(treasury.privateKey);
+  signed = await signed.sign(holderKey);
+  const response = await signed.execute(client);
+  await response.getReceipt(client);
+  return response.transactionId.toString();
 }
 
 export function getTreasuryIdString(): string {

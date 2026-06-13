@@ -65,6 +65,11 @@ export const agentPreviewBodySchema = z.discriminatedUnion("action", [
     issuer: bookingActorRefSchema,
     serial: z.number().int().positive(),
   }),
+  z.object({
+    action: z.literal("cancel_release"),
+    holder: bookingActorRefSchema,
+    serial: z.number().int().positive(),
+  }),
 ]);
 
 export const agentConfirmBodySchema = z.object({
@@ -80,6 +85,7 @@ export const approvalGrantBodySchema = z.object({
     "freeze",
     "unfreeze",
     "mark_used",
+    "cancel_release",
     "any",
   ]),
   actor: bookingActorRefSchema.optional(),

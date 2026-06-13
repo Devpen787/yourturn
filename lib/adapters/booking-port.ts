@@ -20,6 +20,7 @@ import {
   primaryBookTransfer,
   resaleTransfer,
   transferNftFromHolderToTreasury,
+  refundAndTransferNftFromHolderToTreasury,
   burnUsedSlot,
   unfreezeHolder,
 } from "@/lib/hedera/token";
@@ -90,6 +91,11 @@ type PreviewAction =
       action: "mark_used";
       input: { issuer: BookingActorRef; serial: number };
       expiresAt: string;
+    }
+  | {
+      action: "cancel_release";
+      input: { holder: BookingActorRef; serial: number };
+      expiresAt: string;
     };
 
 type StoredResources = {
@@ -126,6 +132,14 @@ type PreparedMarkUsed = StoredResources & {
   serial: number;
   currentHolderAccountId: string | null;
   currentHolderActor: "guestA" | "guestB" | null;
+};
+
+type PreparedCancelRelease = StoredResources & {
+  serial: number;
+  holderAccountId: string;
+  holderActor: "guestA" | "guestB";
+  refundHbar: number;
+  slot: SlotRecord;
 };
 
 const PREVIEW_TTL_MS = 10 * 60 * 1000;
@@ -242,9 +256,17 @@ export function inspectBookingPortPreview(previewId: string): BookingPreviewScop
       expiresAt: preview.expiresAt,
     };
   }
+  if (preview.action === "mark_used") {
+    return {
+      action: preview.action,
+      actor: preview.input.issuer,
+      serial: preview.input.serial,
+      expiresAt: preview.expiresAt,
+    };
+  }
   return {
     action: preview.action,
-    actor: preview.input.issuer,
+    actor: preview.input.holder,
     serial: preview.input.serial,
     expiresAt: preview.expiresAt,
   };
@@ -329,6 +351,8 @@ async function slotViewFromRecord(slot: SlotRecord): Promise<BookingSlotView> {
     location: slot.location,
     primaryPriceHbar: slot.primaryPriceHbar,
     resaleAllowed: slot.resaleAllowed,
+    policy: slot.policy,
+    policySnapshot: slot.policySnapshot,
     listingActive: slot.listingActive,
     status: chain.status,
     holderAccountId: chain.holderAccountId,
@@ -430,7 +454,7 @@ async function prepareCreateListing(input: {
     serial: input.serial,
     treasuryAccountId: resources.treasuryAccountId,
   });
-  if (chain.holderAccountId !== sellerAccountId) {
+  if (!chain.holderAccountId || !accountsEqual(chain.holderAccountId, sellerAccountId)) {
     throw createError("Only the current holder can list", "CONFLICT", 409);
   }
   if (!canResell({ status: chain.status, resaleAllowed: slot.resaleAllowed })) {
@@ -505,7 +529,7 @@ async function prepareBuyListing(input: {
     );
   }
   const buyerAccountId = actorAccountId(input.buyer);
-  if (buyerAccountId === listing.sellerAccountId) {
+  if (accountsEqual(buyerAccountId, listing.sellerAccountId)) {
     throw createError("Buyer cannot be the seller", "CONFLICT", 409);
   }
   return {
@@ -706,6 +730,118 @@ async function executeMarkUsed(input: {
   return { ok: true };
 }
 
+async function prepareCancelRelease(input: {
+  holder: BookingActorRef;
+  serial: number;
+}): Promise<PreparedCancelRelease> {
+  const resources = await getResources();
+  const slot = await getSlotBySerial(input.serial);
+  if (!slot) {
+    throw createError("Unknown serial", "NOT_FOUND", 404);
+  }
+  if (!slot.policySnapshot.releaseAllowed) {
+    throw createError(
+      "The provider policy active when this pass was booked does not allow release recovery.",
+      "CONFLICT",
+      409
+    );
+  }
+  const holderActor = requireDemoActor(input.holder, "Holder");
+  if (holderActor !== "guestA" && holderActor !== "guestB") {
+    throw createError("Holder must be one of the demo guest accounts.", "CONFLICT", 409);
+  }
+  const chain = await readSlotChainState({
+    tokenId: resources.tokenId,
+    serial: input.serial,
+    treasuryAccountId: resources.treasuryAccountId,
+  });
+  if (chain.status === "USED") {
+    throw createError("Serial is already burned (USED)", "CONFLICT", 409);
+  }
+  if (chain.status === "AVAILABLE") {
+    throw createError("Only a held pass can be released", "CONFLICT", 409);
+  }
+  if (chain.status === "FROZEN") {
+    throw createError(
+      "Cannot release while holder is frozen: provider must reopen first.",
+      "CONFLICT",
+      409
+    );
+  }
+  const holderAccountId = actorAccountId(input.holder);
+  if (!chain.holderAccountId || !accountsEqual(chain.holderAccountId, holderAccountId)) {
+    throw createError("Only the current holder can release this pass", "CONFLICT", 409);
+  }
+  return {
+    ...resources,
+    serial: input.serial,
+    holderAccountId,
+    holderActor,
+    refundHbar: slot.primaryPriceHbar,
+    slot,
+  };
+}
+
+async function executeCancelRelease(input: {
+  holder: BookingActorRef;
+  serial: number;
+}): Promise<{
+  txIds: {
+    transferToTreasury: string;
+    burn: string;
+    audit: string;
+  };
+  hashscanUrls: {
+    transferToTreasury: string;
+    burn: string;
+    audit: string;
+  };
+  refundHbar: number;
+}> {
+  const prepared = await prepareCancelRelease(input);
+  const holderCredentials = getActorCredentials(prepared.holderActor);
+  const activeListing = await getActiveListingForSerial(prepared.serial);
+  if (activeListing) {
+    await deactivateListing(prepared.serial);
+    await updateSlotListingActive(prepared.serial, false);
+  }
+  const transferTxId = await refundAndTransferNftFromHolderToTreasury({
+    holderAccountId: prepared.holderAccountId,
+    holderPrivateKey: holderCredentials.privateKey.toString(),
+    serial: prepared.serial,
+    tokenIdStr: prepared.tokenId,
+    refundHbar: prepared.refundHbar,
+  });
+  const burnTxId = await burnUsedSlot({
+    serial: prepared.serial,
+    tokenIdStr: prepared.tokenId,
+  });
+  const auditTxId = await submitLifecycleEvent(prepared.topicId, {
+    eventType: "CANCEL_RELEASED",
+    tokenId: prepared.tokenId,
+    serial: prepared.serial,
+    from: prepared.holderAccountId,
+    to: prepared.treasuryAccountId,
+    txId: transferTxId,
+    priceHbar: prepared.slot.primaryPriceHbar,
+    refundHbar: prepared.refundHbar,
+    timestamp: new Date().toISOString(),
+  });
+  return {
+    txIds: {
+      transferToTreasury: transferTxId,
+      burn: burnTxId,
+      audit: auditTxId,
+    },
+    hashscanUrls: {
+      transferToTreasury: getHashscanTxUrl(transferTxId),
+      burn: getHashscanTxUrl(burnTxId),
+      audit: getHashscanTxUrl(auditTxId),
+    },
+    refundHbar: prepared.refundHbar,
+  };
+}
+
 function buildPreview<TAction extends PreviewAction["action"], TDetails>(
   action: Extract<PreviewAction, { action: TAction }>,
   summary: string,
@@ -766,6 +902,7 @@ export function createBookingPort(): BookingPort {
           serial: prepared.serial,
           buyerAccountId: prepared.buyerAccountId,
           priceHbar: prepared.slot.primaryPriceHbar,
+          policySnapshot: prepared.slot.policySnapshot,
         }
       );
     },
@@ -895,6 +1032,22 @@ export function createBookingPort(): BookingPort {
       );
     },
 
+    async previewCancelRelease(input) {
+      const prepared = await prepareCancelRelease(input);
+      const expiresAt = nextExpiry();
+      return buildPreview(
+        { action: "cancel_release", input, expiresAt },
+        `Release serial ${prepared.serial}; the pass will return to treasury and be burned.`,
+        {
+          serial: prepared.serial,
+          holderAccountId: prepared.holderAccountId,
+          refundHbar: prepared.refundHbar,
+          effect: "transfer_to_treasury_and_burn" as const,
+          policySnapshot: prepared.slot.policySnapshot,
+        }
+      );
+    },
+
     async confirmMarkUsed(input) {
       requireApproval(input.approval);
       const preview = decodePreviewToken(input.previewId);
@@ -906,6 +1059,19 @@ export function createBookingPort(): BookingPort {
         );
       }
       return executeMarkUsed(preview.input);
+    },
+
+    async confirmCancelRelease(input) {
+      requireApproval(input.approval);
+      const preview = decodePreviewToken(input.previewId);
+      if (preview.action !== "cancel_release") {
+        throw createError(
+          "Preview token is not for cancel release",
+          "VALIDATION_ERROR",
+          400
+        );
+      }
+      return executeCancelRelease(preview.input);
     },
   };
 }

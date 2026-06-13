@@ -3,6 +3,7 @@ import {
   Client,
   PrivateKey,
 } from "@hashgraph/sdk";
+import { accountsEqual as accountsEqualDomain } from "@/lib/domain/account";
 
 export type DemoActor = "issuer" | "guestA" | "guestB";
 
@@ -84,11 +85,7 @@ export function getFeeCollectorAccountId(): AccountId {
 
 /** Compare Hedera account ids from Mirror vs env (normalizes shard.realm.num). */
 export function accountsEqual(a: string, b: string): boolean {
-  try {
-    return AccountId.fromString(a).equals(AccountId.fromString(b));
-  } catch {
-    return a.trim() === b.trim();
-  }
+  return accountsEqualDomain(a, b);
 }
 
 /** Map a guest account id to demo actor, or null if not Guest A/B. */

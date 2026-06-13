@@ -1,3 +1,5 @@
+import type { OwnerPolicy, OwnerPolicySnapshot } from "@/lib/policy/policy";
+
 export type BookingPortErrorCode =
   | "VALIDATION_ERROR"
   | "NOT_FOUND"
@@ -11,7 +13,8 @@ export type BookingPortAction =
   | "buy_listing"
   | "freeze"
   | "unfreeze"
-  | "mark_used";
+  | "mark_used"
+  | "cancel_release";
 
 export type BookingActorRef =
   | { kind: "demoActor"; id: "guestA" | "guestB" | "issuer" }
@@ -35,6 +38,8 @@ export type BookingSlotView = {
   location: string;
   primaryPriceHbar: number;
   resaleAllowed: boolean;
+  policy: OwnerPolicy;
+  policySnapshot: OwnerPolicySnapshot;
   listingActive: boolean;
   status: SlotStatus;
   holderAccountId: string | null;
@@ -78,6 +83,7 @@ export interface BookingPort {
         serial: number;
         buyerAccountId: string;
         priceHbar: number;
+        policySnapshot: OwnerPolicySnapshot;
       }
     >
   >;
@@ -96,7 +102,12 @@ export interface BookingPort {
   confirmCreateListing(input: {
     previewId: string;
     approval: ApprovalProof;
-  }): Promise<{ listing: ResaleListingView }>;
+  }): Promise<{
+    listing: ResaleListingView;
+    /** HCS lifecycle message submit (not an NFT transfer). */
+    auditTxId: string;
+    hashscanUrl: string;
+  }>;
 
   previewBuyListing(input: {
     buyer: BookingActorRef;
@@ -163,4 +174,37 @@ export interface BookingPort {
     previewId: string;
     approval: ApprovalProof;
   }): Promise<{ ok: true }>;
+
+  previewCancelRelease(input: {
+    holder: BookingActorRef;
+    serial: number;
+  }): Promise<
+    ActionPreview<
+      "cancel_release",
+      {
+        serial: number;
+        holderAccountId: string;
+        refundHbar: number;
+        effect: "transfer_to_treasury_and_burn";
+        policySnapshot: OwnerPolicySnapshot;
+      }
+    >
+  >;
+
+  confirmCancelRelease(input: {
+    previewId: string;
+    approval: ApprovalProof;
+  }): Promise<{
+    txIds: {
+      transferToTreasury: string | null;
+      burn: string;
+      audit: string;
+    };
+    hashscanUrls: {
+      transferToTreasury: string | null;
+      burn: string;
+      audit: string;
+    };
+    refundHbar: number;
+  }>;
 }

@@ -13,3 +13,7 @@ export function getHashscanTokenUrl(tokenId: string): string {
 export function getHashscanTopicUrl(topicId: string): string {
   return `${base()}/topic/${topicId}`;
 }
+
+export function getHashscanScheduleUrl(scheduleId: string): string {
+  return `${base()}/schedule/${scheduleId}`;
+}

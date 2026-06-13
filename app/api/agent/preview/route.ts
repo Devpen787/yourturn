@@ -46,6 +46,11 @@ export async function POST(req: Request) {
           ok: true as const,
           preview: await bookingPort.previewMarkUsed(parsed.data),
         });
+      case "cancel_release":
+        return NextResponse.json({
+          ok: true as const,
+          preview: await bookingPort.previewCancelRelease(parsed.data),
+        });
     }
   } catch (e) {
     if (e instanceof BookingPortError) {
