@@ -107,6 +107,6 @@ If a customer route needs repeated explanations about issuer actions or demo rol
 
 ## Maintenance
 
-When **ship scope** changes (e.g. real **transfer** without payment), update the **transfer vs resale** row and re-audit **`docs/PAGE-OVERVIEW.md`** home / resale copy.
+When **ship scope** changes (e.g. real **transfer** without payment), update the **transfer vs resale** row and re-audit home / resale copy (keep `docs/DEMO.md` and `docs/UI-MAP.md` aligned).
 
 **Copy pass (consumer tier):** 2026-04-05 — `components/home/*`, `SlotsClient`, slot detail, resale page + `ResaleClient`, `MyBookingsClient`, `IssuerPanel` (ref #, session links, provider fee, success labels match buttons).

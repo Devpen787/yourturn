@@ -27,6 +27,19 @@ HashScan base (default): `https://hashscan.io/testnet`
 | **F3** Unfreeze (`POST /api/unfreeze`) | `0.0.8504300@1775311174.322191867` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1775311174.322191867) — unfroze serial `33` for Person A (`0.0.8504405`) |
 | **F4** Mark used / return to treasury | `0.0.8504300@1775311104.625214821` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1775311104.625214821) — serial `32` moved Person B → treasury during redemption |
 | **F4** Burn after redemption | `0.0.8504300@1775311102.263715214` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1775311102.263715214) — token burn for serial `32`; slot detail now shows `USED` and closed lifecycle |
+| **ETHGlobal Automation** Schedule create | `0.0.8504300@1781378592.512989452` | [HashScan tx](https://hashscan.io/testnet/transaction/0.0.8504300-1781378592-512989452), [schedule 0.0.9225557](https://hashscan.io/testnet/schedule/0.0.9225557) — approved recovery flow created a `0.01` HBAR scheduled payment for serial `164` |
+| **ETHGlobal Automation** Scheduled execution | `0.0.8504300-1781378592-512989452` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1781378592-512989452) — Mirror shows scheduled `CRYPTOTRANSFER` success at `1781378689.009433978` |
+| **ETHGlobal E2E** Primary book (`POST /api/book`) | `0.0.8504300@1781390140.373211752` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1781390140-373211752) — scripted clean pass booked serial `172` for Person A |
+| **ETHGlobal E2E** Schedule create | `0.0.8504300@1781390155.709394404` | [HashScan tx](https://hashscan.io/testnet/transaction/0.0.8504300-1781390155-709394404), [schedule 0.0.9226711](https://hashscan.io/testnet/schedule/0.0.9226711) — approved recovery flow created a `0.01` HBAR scheduled payment for serial `172` |
+| **ETHGlobal E2E** Scheduled execution | `0.0.8504300-1781390155-709394404` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1781390155-709394404) — Mirror shows scheduled `CRYPTOTRANSFER` success at `1781390252.085600004`; schedule status `executed` |
+| **ETHGlobal E2E** Resale buy (`POST /api/resale-buy`) | `0.0.8504300@1781390264.368450881` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1781390264-368450881) — scripted clean pass moved serial `172` from Person A to Person B before provider check-in |
+| **Wave 8 E2E** Primary book (`POST /api/book`) | `0.0.8504300@1781393148.007129848` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1781393148-007129848) — scripted clean pass booked serial `178` for Person A |
+| **Wave 8 E2E** Real refund release | `0.0.8504300@1781393158.862791239` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1781393158-862791239) — serial `179` moved Person A → treasury and `18` HBAR moved treasury → Person A in one testnet transfer |
+| **Wave 8 E2E** Refund release close/burn | `0.0.8504300@1781393162.787231448` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1781393162-787231448) — serial `179` was closed after release |
+| **Wave 8 E2E** Refund audit event | `0.0.8504300@1781393166.653109817` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1781393166-653109817) — HCS `CANCEL_RELEASED` audit event for serial `179`; receipt `d857064c-618a-40fd-b798-f2f5d85a603e` |
+| **Wave 8 E2E** Schedule create | `0.0.8504300@1781393179.807048329` | [HashScan tx](https://hashscan.io/testnet/transaction/0.0.8504300-1781393179-807048329), [schedule 0.0.9227051](https://hashscan.io/testnet/schedule/0.0.9227051) — approved recovery flow created a `0.01` HBAR scheduled payment for serial `178` |
+| **Wave 8 E2E** Scheduled execution | `0.0.8504300-1781393179-807048329` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1781393179-807048329) — Mirror shows scheduled `CRYPTOTRANSFER` success at `1781393275.186272004`; schedule status `executed` |
+| **Wave 8 E2E** Resale buy (`POST /api/resale-buy`) | `0.0.8504300@1781393273.543596346` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1781393273-543596346) — scripted clean pass moved serial `178` from Person A to Person B before provider check-in |
 
 ## Demo-complete proof checks
 
@@ -48,7 +61,8 @@ Use these checks alongside the tx rows above:
 |------|-----------|
 | Token on HashScan | [0.0.8505698](https://hashscan.io/testnet/token/0.0.8505698) |
 | Topic on HashScan | [0.0.8505699](https://hashscan.io/testnet/topic/0.0.8505699) |
-| **F7** refund (if built) | _TBD_ |
+| Latest ETHGlobal Schedule proof | [0.0.9227051](https://hashscan.io/testnet/schedule/0.0.9227051) |
+| Latest **F7** refund/release proof | [0.0.8504300@1781393158.862791239](https://hashscan.io/testnet/transaction/0.0.8504300-1781393158-862791239) |
 
 ## How to capture
 

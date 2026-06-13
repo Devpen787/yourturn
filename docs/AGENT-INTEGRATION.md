@@ -34,7 +34,7 @@ An agent may prepare and compare actions, but it must not skip the approval step
 | Endpoint | Method | Use |
 |----------|--------|-----|
 | `/api/agent/read` | `POST` | Read slots, one slot, holdings, active listing, or lifecycle |
-| `/api/agent/preview` | `POST` | Preview `book`, `create_listing`, `buy_listing`, `freeze`, `unfreeze`, `mark_used` |
+| `/api/agent/preview` | `POST` | Preview `book`, `create_listing`, `buy_listing`, `freeze`, `unfreeze`, `mark_used`, `cancel_release` |
 | `/api/agent/approval-grant` | `POST` | Mint a scoped delegated approval grant |
 | `/api/agent/confirm` | `POST` | Confirm a previewed action using a valid approval grant |
 
@@ -209,6 +209,20 @@ curl -X POST http://localhost:3000/api/agent/preview \
   }'
 ```
 
+### Preview cancel / release
+
+This is the agent-safe F7 path. The current holder approves release; the backend transfers the NFT back to treasury, sends the policy-derived testnet HBAR refund to the holder, burns the NFT, clears any active listing, and writes a `CANCEL_RELEASED` HCS lifecycle event.
+
+```bash
+curl -X POST http://localhost:3000/api/agent/preview \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "action": "cancel_release",
+    "holder": { "kind": "demoActor", "id": "guestA" },
+    "serial": 1
+  }'
+```
+
 Example preview response:
 
 ```json
@@ -307,7 +321,7 @@ curl -X POST http://localhost:3000/api/agent/confirm \
   }'
 ```
 
-Example response for a value-moving action:
+Example response for **book** or **buy_listing** (HTS transfer; `txId` is the NFT-moving transaction):
 
 ```json
 {
@@ -319,13 +333,58 @@ Example response for a value-moving action:
 }
 ```
 
-Example response for an issuer lifecycle action:
+Example response for **create_listing** (no HTS transfer in this MVP; `auditTxId` is the **HCS** topic message submit for the LISTED lifecycle event):
+
+```json
+{
+  "ok": true,
+  "result": {
+    "listing": {
+      "tokenId": "0.0.900001",
+      "serial": 1,
+      "sellerAccountId": "0.0.700001",
+      "askPriceHbar": 30,
+      "royaltyHbar": 3,
+      "sellerNetHbar": 27,
+      "active": true,
+      "createdAt": "2026-04-04T12:00:00.000Z"
+    },
+    "auditTxId": "0.0.600001@1712232100.987654321",
+    "hashscanUrl": "https://hashscan.io/testnet/transaction/0.0.600001-1712232100-987654321"
+  }
+}
+```
+
+The same **`listing` + `auditTxId` + `hashscanUrl`** triplet is returned by **`POST /api/resale-list`** for the browser demo.
+
+Example response for **freeze**, **unfreeze**, or **mark_used** (issuer actions; no `txId` in the response body today):
 
 ```json
 {
   "ok": true,
   "result": {
     "ok": true
+  }
+}
+```
+
+Example response for **cancel_release**:
+
+```json
+{
+  "ok": true,
+  "result": {
+    "txIds": {
+      "transferToTreasury": "0.0.700001@1712232200.111111111",
+      "burn": "0.0.700001@1712232202.222222222",
+      "audit": "0.0.600001@1712232204.333333333"
+    },
+    "hashscanUrls": {
+      "transferToTreasury": "https://hashscan.io/testnet/transaction/0.0.700001-1712232200-111111111",
+      "burn": "https://hashscan.io/testnet/transaction/0.0.700001-1712232202-222222222",
+      "audit": "https://hashscan.io/testnet/transaction/0.0.600001-1712232204-333333333"
+    },
+    "refundHbar": 18
   }
 }
 ```
@@ -360,7 +419,7 @@ For a real agent backend:
 4. Show summary and fee impact to the human
 5. Mint a scoped approval grant from trusted backend code only after explicit approval
 6. Confirm the preview
-7. Persist the resulting `txId` and `hashscanUrl`
+7. Persist proof ids as returned: for **book** / **buy_listing** use **`txId`** (and **`hashscanUrl`**); for **create_listing** persist **`auditTxId`** (and **`hashscanUrl`**) — that pair refers to the **HCS** audit submit, not an NFT transfer. For **cancel_release**, persist all three tx ids: holder-to-treasury transfer, burn, and HCS audit.
 
 ## Current MVP limitations
 
@@ -368,6 +427,7 @@ For a real agent backend:
 - There is no end-user auth or wallet delegation yet
 - Approval grants are delegated by trusted backend code, not by the browser demo
 - There is no idempotency key on confirm yet
+- `cancel_release` performs an immediate testnet HBAR refund/release in this MVP; scheduled token release/refund remains future hackathon scope
 - This is an integration surface, not a finished agent product
 
 ## Related files

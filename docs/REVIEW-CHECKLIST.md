@@ -6,7 +6,7 @@
 
 **Maintenance:** When behaviour changes, update **`docs/UI-MAP.md`** and **`docs/DEMO.md`** first; then adjust **checkbox wording** in this file if a section is no longer accurate.
 
-**Related (detail, not duplicated here):** `docs/UI-MAP.md`, `docs/PAGE-OVERVIEW.md` (per-page controls + copy + clarity), `docs/DEMO.md`, `docs/PERSONAS-EXPECTATIONS.md`, `docs/SPEC.md`, `docs/TASKS.md`, `docs/TX-LOG.md`, `docs/SCORECARD.md` (dated 1–5 scores), `docs/UI-RULES.md` (if present).
+**Related (detail, not duplicated here):** `docs/UI-MAP.md`, `docs/PAGE-OVERVIEW.md` (per-page controls + copy + clarity), `docs/FULL-TEST-COVERAGE.md` (route + API inventory), `docs/EXPLORATORY-TEST-SESSION.md` (manual browser pass), `docs/DEMO.md`, `docs/PERSONAS-EXPECTATIONS.md`, `docs/SPEC.md`, `docs/TASKS.md`, `docs/TX-LOG.md`, `docs/SCORECARD.md` (dated 1–5 scores), `docs/UI-RULES.md` (if present).
 
 ---
 
@@ -16,7 +16,7 @@
 - [ ] **F2** resale (list + buy) is available and backed by `POST /api/resale-list` / `POST /api/resale-buy`.
 - [ ] **F4** mark used is available from issuer UI and backed by `POST /api/mark-used`.
 - [ ] **F3** freeze / unfreeze is available from issuer UI (optional demo path).
-- [ ] **F7** cancel / refund is **not** promised in live UI (still deferred unless `docs/TASKS.md` says otherwise).
+- [ ] **F7** cancel / refund is available only through the bounded Concierge release/refund path or agent API; scheduled refund/release remains deferred.
 - [ ] **Gift / transfer** (non-resale peer transfer) is **not** a separate shipped path — only resale is wired; narrative matches that.
 - [ ] **Listing marketplace** (browse all listings) is **not** shipped — access by serial / links only; narrative matches that.
 

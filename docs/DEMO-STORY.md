@@ -246,5 +246,6 @@ Instead say:
 ## Pair with
 
 - `docs/DEMO.md` for exact browser flow and click order
+- `docs/DEMO-STORY-TEST-STEPS.md` to map this narrative to **executable checks** (what to click and what must be true on screen)
 - `docs/ECONOMICS.md` for pricing and royalty explanation
 - `docs/UI-MAP.md` for route / API mapping

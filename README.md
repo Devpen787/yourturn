@@ -48,7 +48,7 @@ If you are integrating another backend or agent, see `docs/AGENT-INTEGRATION.md`
 ### Implementation notes
 
 - **Royalty:** numerator **1** / denominator **10** (10%), no fallback fee — enforced by **HTS `CustomRoyaltyFee`** on resale (buyer pays seller full ask + NFT transfer in one tx); `lib/domain/fees.ts` is for **UI preview** only  
-- **Redis keys:** `bookedrights:tokenId`, `bookedrights:topicId`, `bookedrights:slots`, `bookedrights:listings`  
+- **Redis keys:** `bookedrights:tokenId`, `bookedrights:topicId`, `bookedrights:slots`, `bookedrights:listings`, `bookedrights:recoveryReceipts`, `bookedrights:automationProofs`  
 - **Agent approval secrets:** set `BOOKED_RIGHTS_APPROVAL_SECRET` and `BOOKED_RIGHTS_APPROVAL_ADMIN_SECRET` for `/api/agent/*` integrations  
 - **Node:** `pino@8.17.2` override for Node 18 `next build`; Node 20+ recommended  
 
@@ -68,10 +68,10 @@ If you are integrating another backend or agent, see `docs/AGENT-INTEGRATION.md`
 | `docs/ARCHITECTURE.md` | System boundaries, Hedera usage |
 | `docs/AGENT-INTEGRATION.md` | How another backend or agent should call `/api/agent/*` |
 | `docs/DEMO.md` | Demo order and stage rules |
+| `docs/INTERNAL.md` | Convention for **local-only** notes (`docs/internal/`, gitignored) |
 | `docs/TX-LOG.md` | Testnet tx ids + HashScan |
 | `docs/booked-rights-build-spec.txt` | Full agent V1 instructions (original) |
 | `AGENTS.md` | Agent / automation notes |
-| `ISSUES-SEED.md` | Slices to open as GitHub issues |
 
 GitHub **issue** and **PR** templates live under `.github/`.
 
@@ -88,6 +88,8 @@ GitHub **issue** and **PR** templates live under `.github/`.
 - Topic id: `0.0.8505699`  
 - Treasury / demo accounts: treasury `0.0.8504300`, Person A `0.0.8504405`, Person B `0.0.8504715`  
 - HashScan links: [token](https://hashscan.io/testnet/token/0.0.8505698), [topic](https://hashscan.io/testnet/topic/0.0.8505699), [F1 book](https://hashscan.io/testnet/transaction/0.0.8504300-1775311056.646893028), [F2 resale buy](https://hashscan.io/testnet/transaction/0.0.8504300-1775311076.681678722), [F4 transfer to treasury](https://hashscan.io/testnet/transaction/0.0.8504300-1775311104.625214821), [F4 burn](https://hashscan.io/testnet/transaction/0.0.8504300-1775311102.263715214)  
+- Latest ETHGlobal Schedule Service proof: [schedule `0.0.9227051`](https://hashscan.io/testnet/schedule/0.0.9227051), [scheduled execution tx `0.0.8504300-1781393179-807048329`](https://hashscan.io/testnet/transaction/0.0.8504300-1781393179-807048329)  
+- Latest refund/release proof: [refund transfer `0.0.8504300@1781393158.862791239`](https://hashscan.io/testnet/transaction/0.0.8504300-1781393158-862791239), [close tx `0.0.8504300@1781393162.787231448`](https://hashscan.io/testnet/transaction/0.0.8504300-1781393162-787231448)  
 - Video: _TBD_  
 
 ## Mirror endpoints (MVP)
@@ -97,4 +99,4 @@ Base: `NEXT_PUBLIC_MIRROR_BASE` — `GET /tokens/...`, `/nfts/...`, `/accounts/.
 ## Known limitations (MVP)
 
 - Demo actor switch is **not** a security boundary  
-- No wallet UI, no refunds, no scheduled txs in v1  
+- No wallet UI or fiat/onramp. Telegram webhook handling is fixture-tested but live Telegram requires bot credentials and an allowlisted chat. Schedule Service is currently proven for approved recovery payment automation; refund/release is proven as an immediate testnet HBAR transfer, not scheduled refund automation.  

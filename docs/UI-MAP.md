@@ -23,26 +23,32 @@ Update **`docs/UI-MAP.md` in the same PR** when you change any of the following 
 
 | Route | Server module | Renders | Client / child UI | User actions (primary) | APIs invoked from browser |
 |-------|----------------|---------|-------------------|-------------------------|---------------------------|
-| `/` | `app/page.tsx` | Marketing home | — (Server Component) | Navigate via links | — |
+| `/` | `app/page.tsx` | Marketing home | `HomeHero`, `ExperiencePillars`, `StartFlowCta` (`components/home/*`, Server Components) | Hero CTAs → `/slots`, `/my-bookings`; business card → `/issuer` | — |
 | `/login` | `app/login/page.tsx` | App sign-in | `DemoLoginButtons`, `LoginForm`, `LogoutToSwitchAccount` | Sign in as demo issuer / demo user A / demo user B, or sign in with email + password | `POST /api/auth/demo-login`, `POST /api/auth/login`, `POST /api/auth/logout` |
 | `/register` | `app/register/page.tsx` | App registration | `RegisterForm` | Create a guest app account | `POST /api/auth/register` |
-| `/slots` | `app/slots/page.tsx` | Customer browse list | `SlotsClient` | Signed-in guest sees a customer browse page; demo user A / B sign-ins lock the page to that customer; review and book an AVAILABLE slot | `POST /api/book` |
-| `/slots/[serial]` | `app/slots/[serial]/page.tsx` | Shared truth page: status, next step, proof | `SlotResaleCta` (link only) | Open resale when eligible | — |
-| `/my-bookings` | `app/my-bookings/page.tsx` | Customer pass hub | `MyBookingsClient` | Signed-in guest sees only their customer view; open details / resale, refresh | — (`router.refresh()` only) |
-| `/resale/[serial]` | `app/resale/[serial]/page.tsx` | Customer resale handoff page | `ResaleClient` | Signed-in guest sees the seller / buyer side for their locked demo user; review and list at ask, review and buy listing | `POST /api/resale-list`, `POST /api/resale-buy` |
-| `/issuer` | `app/issuer/page.tsx` | Provider dashboard shell | `IssuerPanel` | Signed-in issuer saves business name + 3-session plan, init, mint, typed-confirm reset, confirm freeze, reopen, typed-confirm mark used | `POST /api/session-plan`, `POST /api/init`, `POST /api/mint-slots`, `POST /api/reset-demo`, `POST /api/freeze`, `POST /api/unfreeze`, `POST /api/mark-used` |
+| `/slots` | `app/slots/page.tsx` | Premium customer browse list | `SlotsClient`, `SessionCard` | Signed-in guest sees marketplace-style session cards; local search/filter helps scanning; demo user A / B sign-ins lock the page to that customer; review and book an AVAILABLE slot | `POST /api/book` |
+| `/slots/[serial]` | `app/slots/[serial]/page.tsx` | Shared truth page: status, verified receipt, HCS lifecycle history | `SlotPassHeroCard`, `RecoveryProofCard`, `VerifiedLifecycleTimeline`, `SlotDetailStickyBar`, `SlotResaleCta` (mostly Server Component tree) | Open resale when eligible; inspect verified lifecycle; HashScan / technical details | — |
+| `/my-bookings` | `app/my-bookings/page.tsx` | Customer pass hub | `MyBookingsClient`, `PassTile` | Signed-in guest sees only their customer view; open details, start Concierge recovery for eligible held passes, refresh | — (`router.refresh()` only) |
+| `/resale/[serial]` | `app/resale/[serial]/page.tsx` | Customer recovery + resale handoff page | `ResaleClient`, `RecoveryConciergePanel`, `RecoveryProofCard` | Signed-in guest previews and approves Concierge recovery listing or release/refund, sees refreshed proof state, inspects Schedule Service execution, or uses the manual seller / buyer resale flow | `POST /api/recovery/preview`, `POST /api/recovery/confirm`, `POST /api/automation/inspect`, `POST /api/resale-list`, `POST /api/resale-buy` |
+| `/issuer` | `app/issuer/page.tsx` | Provider dashboard shell | `IssuerPanel` | Signed-in issuer saves business name + 3-session plan, init, mint, typed-confirm reset, confirm freeze, reopen, typed-confirm mark used; live rows show schedule automation proof and recovery/refund proof when present | `POST /api/session-plan`, `POST /api/init`, `POST /api/mint-slots`, `POST /api/reset-demo`, `POST /api/freeze`, `POST /api/unfreeze`, `POST /api/mark-used` |
 | `/demo-help` | `app/demo-help/page.tsx` | In-app explanation of demo identities and confirm steps | — (Server Component) | Read how Person A / Person B / Provider map to the demo | — |
 | `/brand-lab` | `app/brand-lab/page.tsx` | Logo variants first, then internal UI kit + homepage composites | `BrandLabClient`, `BrandLabUiKit`, `BrandLabAgentPrototype` | Switch logo direction chips; preview buttons, feedback, toasts, ActorSelector; **assistant-style prototype** (scripted routing, not an LLM) calls `/api/agent/read` + `/api/agent/preview` when “Live API” is on | — |
+| `/brand-lab/ethglobal` | `app/brand-lab/ethglobal/page.tsx` | Hidden ETHGlobal Wave 1 sandbox | `SessionCard`, `PassTile`, static proof/policy/Concierge mock blocks | Static premium target states for browse, pass hub, proof drawer, Concierge preview, and owner-policy preview; no live API calls and not linked from product nav | — |
 | `/brand-lab/assistant` | `app/brand-lab/assistant/page.tsx` | **Customer-only** conversation-shaped **prototype** (scripted routing, not an LLM); no internal column | `BrandLabAgentPrototype` (`mode="customerOnly"`) | Starter actions, preview/confirm cards; Person A + Live API defaults | — |
 | `/brandlab` | `app/brandlab/page.tsx` | Redirect → `/brand-lab` (typo alias) | — | — | — |
 
-Global chrome: `app/layout.tsx` + `components/SiteHeader.tsx` (header nav only; no API calls).
+Global chrome: `app/layout.tsx` + `components/SiteHeader.tsx` (header nav only; no API calls). **Browse** is active for both `/slots` and `/resale/*`; **Provider dashboard** is hidden on customer-only paths unless `NEXT_PUBLIC_SHOW_PROVIDER_NAV_ON_CUSTOMER_PAGES=true` or the path is `/` or `/issuer` (see `showProviderInNav` in `SiteHeader.tsx`). **Brand lab** is not linked from the shipped product nav (lab remains at `/brand-lab` for internal use).
 
 ## Shared components
 
 | Component | File | Role | Used on |
 |-----------|------|------|---------|
 | `ActorSelector` | `components/ActorSelector.tsx` | Demo persona switcher; compact Person A / Person B toggle on customer routes, with `lockTo` support when demo user A / B is signed in | `/slots`, `/my-bookings`, `/resale/*` |
+| `SessionCard` | `components/marketplace/SessionCard.tsx` | Premium session card for browse/sandbox states; does not call APIs itself | `/slots`, `/brand-lab/ethglobal` |
+| `PassTile` | `components/passes/PassTile.tsx` | Premium customer pass tile with status, next step, and route action slot; does not call APIs itself | `/my-bookings`, `/brand-lab/ethglobal` |
+| `RecoveryConciergePanel` | `components/concierge/RecoveryConciergePanel.tsx` | In-app recovery preview, explicit approval, and receipt surface for resale listing or release/refund Concierge flows | `/resale/[serial]` |
+| `RecoveryProofCard` | `components/proof/RecoveryProofCard.tsx` | Reusable verified receipt/proof card for recovery listing, release/refund, active listing, and resale-completed states | `/resale/[serial]`, `/slots/[serial]` |
+| `VerifiedLifecycleTimeline` | `components/proof/RecoveryProofCard.tsx` | Judge-readable lifecycle trail reconstructed from HCS events, with raw event details collapsed | `/slots/[serial]` |
 | `SlotResaleCta` | `app/slots/[serial]/SlotResaleCta.tsx` | Link to `/resale/[serial]` | `/slots/[serial]` when resale allowed |
 | `SiteHeader` | `components/SiteHeader.tsx` | Global product nav, session display, sign in / register / sign out actions | All routes via `app/layout.tsx` |
 | `GuestPortalShell` | `components/GuestPortalShell.tsx` | Shared signed-in customer wrapper used by role-gated layouts | `/slots`, `/my-bookings`, `/resale/*` |
@@ -77,6 +83,10 @@ Global chrome: `app/layout.tsx` + `components/SiteHeader.tsx` (header nav only; 
 | `/api/mint-slots` | POST | Seed slots in Redis (+ mint NFTs per demo policy) | Yes — Issuer |
 | `/api/reset-demo` | POST | Reset demo state | Yes — Issuer |
 | `/api/book` | POST | Primary booking (`F1`) | Yes — Slots list |
+| `/api/recovery/preview` | POST | Browser-safe Concierge recovery preview for resale listing or release/refund; validates signed customer + current holder before returning a preview token | Yes — Resale recovery panel |
+| `/api/recovery/confirm` | POST | Browser-safe Concierge recovery confirm; mints approval server-side, creates resale listing plus Schedule Service proof, or executes real testnet HBAR refund/release; stores an Agent Kit-guided trace and returns a compact receipt | Yes — Resale recovery panel |
+| `/api/automation/inspect` | POST | Refresh Schedule Service proof from Mirror/HashScan-visible state, including executed scheduled transaction status | Yes — Resale recovery panel |
+| `/api/telegram/webhook` | POST | Telegram Concierge webhook adapter; dry-run/fixture safe by default, mutation-gated behind `TELEGRAM_ALLOW_MUTATIONS=true` and `TELEGRAM_ALLOWED_CHAT_IDS` | No — external Telegram transport |
 | `/api/resale-list` | POST | Create resale listing (`F2`) | Yes — Resale page |
 | `/api/resale-buy` | POST | Buy active listing (`F2`) | Yes — Resale page |
 | `/api/freeze` | POST | Freeze current holder (`F3`) | Yes — Issuer |
@@ -85,7 +95,7 @@ Global chrome: `app/layout.tsx` + `components/SiteHeader.tsx` (header nav only; 
 | `/api/associate` | POST | Associate token to guest (same tx path as book can do inline) | **No** — manual / tooling; booking path may associate inside `POST /api/book` |
 | `/api/mirror` | GET | Mirror debug / reads by query | **No** — tooling / scripts |
 | `/api/agent/read` | POST | Agent-safe read surface over `BookingPort` (`listSlots`, `getSlot`, holdings, listings, lifecycle) | **No** — external agent / backend integration |
-| `/api/agent/preview` | POST | Agent preview surface over `BookingPort` for `F1` / `F2` / `F3` / `F4` | **No** — external agent / backend integration |
+| `/api/agent/preview` | POST | Agent preview surface over `BookingPort` for `F1` / `F2` / `F3` / `F4` / F7 `cancel_release` | **No** — external agent / backend integration |
 | `/api/agent/confirm` | POST | Agent confirm surface; requires preview token + delegated approval grant | **No** — external agent / backend integration |
 | `/api/agent/approval-grant` | POST | Mint scoped delegated approval grants; trusted backend only via secret header | **No** — backend tooling only |
 
@@ -94,10 +104,10 @@ Global chrome: `app/layout.tsx` + `components/SiteHeader.tsx` (header nav only; 
 | Flow | Meaning | Where it shows up | Notes |
 |------|---------|-------------------|--------|
 | **F1** Primary booking | Guest books AVAILABLE slot | `/slots` → `POST /api/book` | Holder + tx feedback in UI |
-| **F2** Resale + royalty | List and buy | `/resale/[serial]` | Seller and buyer both review a confirm dialog before the API call; royalty copy on page + `lib/domain/fees.ts` |
+| **F2** Resale + royalty | Recover/list and buy | `/my-bookings` → `/resale/[serial]?mode=recovery`, plus manual `/resale/[serial]` | Concierge preview + approval creates a listing; proof receipt persists in demo state; approved recovery also creates a Schedule Service payment proof and Agent Kit-guided trace; manual seller and buyer dialogs remain available; royalty copy on page + `lib/domain/fees.ts` |
 | **F3** Freeze / unfreeze | Issuer blocks movement | `/issuer` | Mirror holder must match `holderActor` (API enforced) |
 | **F4** Mark used | Close lifecycle | `/issuer` → `POST /api/mark-used` | Typed confirm in provider dashboard; guest views update via Mirror on refresh |
-| **F7** Cancel / refund | Not in MVP | — | Listed deferred in `docs/TASKS.md` |
+| **F7** Cancel / release / refund | Holder-approved release path | `/resale/[serial]?mode=recovery` with `cancel_release_refund`; `/api/agent/preview` + `/api/agent/confirm` with `cancel_release`; Telegram adapter can route to the same bounded action when configured | Holder-approved release transfers the NFT back to treasury, moves testnet HBAR refund value to the holder, burns the NFT, emits `CANCEL_RELEASED`, and stores a recovery proof receipt |
 
 ## Where customer and provider “meet”
 
@@ -126,9 +136,9 @@ flowchart LR
   M --> Chain
 ```
 
-- **Customer** drives: book, list resale, buy resale (and reads detail / hub).
+- **Customer** drives: book, recover/list resale, buy resale (and reads detail / hub).
 - **Provider** drives: seed, freeze/unfreeze, mark used.
-- **Convergence:** serial `N` has one lifecycle; pages re-read state after `router.refresh()` or navigation. There is no separate “guest DB” vs “issuer DB” for ownership — Redis holds slot **metadata**; holder truth is chain + Mirror.
+- **Convergence:** serial `N` has one lifecycle; pages re-read state after `router.refresh()` or navigation. There is no separate “guest DB” vs “issuer DB” for ownership — Redis holds slot **metadata**, active listings, and demo proof receipts; holder truth is chain + Mirror.
 
 ## Gap and orphan checklist
 
@@ -136,12 +146,25 @@ Use when auditing “are we missing something?”
 
 | Item | Status |
 |------|--------|
-| F7 cancel / refund | Not built — see `docs/TASKS.md` |
+| F7 cancel / refund | Live for in-app Concierge release/refund and agent-safe `cancel_release`; latest proof is in `docs/TX-LOG.md`. Scheduled token release/expiry remains future work. |
 | `POST /api/associate` in UI | Not linked — optional explicit associate for demos/debug |
 | `GET /api/mirror` | Not linked from app — intentional tooling |
 | `/api/agent/*` | Not linked from app — intentional agent/backend integration surface |
 | Real tx proof lines | See `docs/TX-LOG.md`; re-run and extend after new testnet proof |
 | Component inventory | This file — update when adding routes, `*Client.tsx`, shared app chrome, or route loading states |
+
+## Last-minute improvement targets (product QA, Apr 2026)
+
+Small, high-leverage UI/copy passes before demo freeze — no new flows required:
+
+| Target | Where | Why |
+|--------|--------|-----|
+| **Resale “dead state” layout** | `ResaleClient` on `/resale/[serial]` | Fixed for terminal and policy-blocked states: manual **List** / **Buy** controls are hidden when the page has a resale block reason, and the page shows **No manual resale action available** instead. |
+| **Unknown or retired serial** | Same | For refs outside the live inventory (e.g. after **Start over**), status lines can read like “nothing to resell yet” instead of “this ref is not in the current demo schedule.” Tighten wording to match `IssuerPanel`’s “not in the current session list” idea. |
+| **Cross-role slot detail** | `/slots/[serial]` | Issuer sessions cannot open guest slot detail without switching to a guest account (`/login?need=user`). Document in demo script; optional future: read-only issuer peek (out of current scope). |
+| **Mirror / Redis lag** | Browse, hub, resale | Already **Partial** in `PAGE-OVERVIEW.md`; a single “Refresh” or “state updates after chain” hint on resale after buy/list can reduce judge confusion. |
+
+See **`docs/PAGE-OVERVIEW.md`** for route-by-route **Status** and the same items in narrative form.
 
 ## Surface split
 
@@ -153,6 +176,7 @@ Keep that split visible in copy and controls. If a customer page starts explaini
 
 ## Related docs
 
+- `docs/PAGE-OVERVIEW.md` — per-route purpose, controls, copy intent, and **Works / Partial / Review** status
 - `docs/MARKET-VOCABULARY.md` — Web2 booking / class / ticket terminology vs our copy
 - `docs/AGENT-INTEGRATION.md` — concrete backend and agent request / response examples for `/api/agent/*`
 - `docs/DEMO.md` — shipped walkthrough

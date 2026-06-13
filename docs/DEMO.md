@@ -25,9 +25,34 @@ Booked Rights makes a booked service slot transferable without giving up issuer 
 
 Current demo limits:
 
-- bookings are final in this demo; there is no cancel or refund flow yet
+- bookings move a real testnet pass in the browser demo
+- Concierge recovery is live for resale-first recovery and release/refund recovery: it previews the policy-valid action, asks for approval, executes the Hedera action, and returns a receipt with an Agent Kit-guided trace
+- resale recovery creates a listing and a Hedera Schedule Service recovery payment proof when the booked policy allows it
+- release/refund recovery moves a real testnet HBAR refund to the holder, returns the NFT to treasury, closes the pass, and writes HCS audit proof
 - listing a pass is the seller approval step; there is no second approval after the buyer clicks purchase
 - buying a listed pass transfers it immediately if the API accepts the action
+- `/brand-lab/ethglobal` is a hidden static Wave 1 sandbox for premium target states only; it is not product proof and does not call live APIs
+- Telegram webhook command handling is fixture-tested and mutation-gated, but live Telegram delivery requires bot credentials and an allowlisted chat
+- there is still no wallet connect, fiat/onramp, or user-funded budget allowance in the shipped browser demo
+
+## Clean regression command
+
+Use this before final rehearsal when you need a fresh proof pass:
+
+```bash
+npm run dev:clean
+npm run ethglobal:e2e
+```
+
+Run the app in one terminal and the E2E command in another. The E2E command intentionally mutates demo testnet/Redis state. It logs in as issuer, Person A, and Person B; saves a 3-session plan; resets the demo; books a resale-eligible slot; books a no-resale slot; proves no-resale listing is blocked; executes a real testnet HBAR refund/release on the no-resale slot; creates a Concierge recovery listing on the resale-eligible slot; creates and inspects a Hedera Schedule Service recovery payment proof; has Person B buy the listing; marks the pass used; and verifies the non-holder, unheld, used, and Mirror deletion guardrails.
+
+Telegram fixture check:
+
+```bash
+npm run telegram:fixture
+```
+
+This fixture exercises the webhook parser and confirms the fixture path cannot mutate state. A live Telegram demo additionally needs `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `TELEGRAM_ALLOWED_CHAT_IDS`, and `TELEGRAM_ALLOW_MUTATIONS=true`.
 
 ## Economic framing for the live demo
 
@@ -61,51 +86,69 @@ The Hedera demo actors underneath are still `guestA` / `guestB` / `issuer`, but 
 2. Land on **`/issuer`** (Provider dashboard).
 3. Optional but now real: set the **Business name** and shape the 3 planned sessions (title, time, location, price, resale policy), then save the plan.
 4. **Set up business** — `POST /api/init` (token + topic ids).
-5. **Create demo sessions** — seeds slots and NFTs for the demo using the saved session plan.
+5. **Create demo sessions** — `POST /api/mint-slots`; seeds slots and NFTs from the saved session plan (after **Save session plan** → `POST /api/session-plan`).
 6. Confirm the **Live sessions** table shows rows with status **AVAILABLE** where expected.
 
 ### B. Person A — primary book (`F1`)
 
 7. Open **`/login`** in a second browser and use **Demo user A**.
 8. Land on **`/slots`**.
-9. Click **Book** on an **AVAILABLE** row, review the booking dialog, then confirm — `POST /api/book`.
+9. Use the premium browse cards and local search/filter if helpful, then click **Book** on an **AVAILABLE** card, review the booking dialog, then confirm — `POST /api/book`.
 10. Confirm success message (includes tx id when returned).
-11. Open **`/slots/[serial]`** or **`/my-bookings`** and confirm the pass now belongs to Person A.
+11. Open **`/slots/[serial]`** or **`/my-bookings`** and confirm the pass tile now belongs to Person A.
 12. Return to **`/issuer`** and confirm the issuer can also see Person A as the current holder.
 
 ### C. Person A — resale (`F2`)
 
-13. From **`/slots/[serial]`** (if resale allowed) use **Sell pass**, or open **`/resale/[serial]`** directly.
-14. User A is already the locked customer for this browser. Review the listing dialog, then `POST /api/resale-list` with ask price.
-15. Explain that creating the listing is the seller's approval to sell under issuer conditions.
-16. Explain the economics honestly: the current MVP proves a fixed **10%** HTS royalty on resale, and the holder may list above cost, at cost, or below cost.
+13. From **`/my-bookings`**, choose **Recover booking** on the held pass, which opens **`/resale/[serial]?mode=recovery`**.
+14. User A is already the locked customer for this browser. Use **Preview recovery** to call `POST /api/recovery/preview`.
+15. Review the Concierge recommendation, then choose **Approve and list** to call `POST /api/recovery/confirm`.
+16. Show the verified recovery receipt: approval id, audit tx, policy snapshot, schedule id, scheduled payment status, Agent Kit tool label, and HashScan links.
+17. If the schedule is still pending, wait for the scheduled execution window and use **Inspect schedule proof**; the receipt should update from `scheduled` to `executed` using Mirror proof.
+18. Refresh **`/resale/[serial]`** if useful and show that the proof state remains visible.
+19. Explain the economics honestly: the current MVP proves a fixed **10%** HTS royalty on resale, and the holder may list above cost, at cost, or below cost.
+
+### C2. Person A — release/refund (`F7`, optional strong Hedera proof)
+
+Use a separate held pass from the resale path.
+
+1. From **`/my-bookings`**, choose **Recover booking** on a held pass whose provider policy allows release.
+2. On **`/resale/[serial]?mode=recovery`**, choose **Release + refund** when available.
+3. Use **Preview recovery** to confirm the refund amount and policy basis.
+4. Choose **Approve release**. The server executes a real testnet HBAR refund transfer from treasury to Person A, returns the NFT to treasury, burns/closes it, and writes the HCS `CANCEL_RELEASED` event.
+5. Show the receipt fields: refund amount, release/refund tx, close tx, audit tx, approval id, Agent Kit tool trace, and HashScan links.
+6. Refresh **`/slots/[serial]`** and **`/issuer`** to show the pass is closed and the recovery proof remains visible.
 
 ### D. Person B — buy the resale (`F2`)
 
-17. Open **`/login`** in a third browser and use **Demo user B**.
-18. Open **`/resale/[serial]`** for the listed pass.
-19. Show that Person B can see the resale offer and current ask.
-20. Buy the listed pass — review the purchase dialog, then `POST /api/resale-buy`.
-21. Refresh **`/slots/[serial]`** and **`/my-bookings`** to confirm Person B is now the current holder and Person A is not.
-22. Return to **`/issuer`** and confirm the issuer also sees the holder change.
+20. Open **`/login`** in a third browser and use **Demo user B**.
+21. Open **`/resale/[serial]`** for the listed pass.
+22. Show that Person B can see the resale offer and current ask.
+23. Buy the listed pass — review the purchase dialog, then `POST /api/resale-buy`.
+24. Refresh **`/slots/[serial]`** and **`/my-bookings`** to confirm Person B is now the current holder and Person A is not.
+25. On **`/slots/[serial]`**, show the verified lifecycle timeline: booked, listed, resold.
+26. Return to **`/issuer`** and confirm the issuer also sees the holder change. If the Concierge recovery flow created a scheduled recovery payment, the live session row also shows the Schedule Service proof status and HashScan links.
 
 ### E. Issuer — close lifecycle (`F4`)
 
-23. Return to **`/issuer`**. Confirm table shows Person B as the current holder for the serial.
-24. Use **Check in / mark used** for that ref, type the ref number in the confirm dialog, and submit — `POST /api/mark-used`.
-25. Refresh the affected guest page if you are still looking at the same pass, then show **USED** state on **`/slots/[serial]`** or the guest hub.
-26. Make it explicit that the issuer is the one who closes the lifecycle, so the pass cannot be used again.
-27. If needed, show the anti-double-use proof: a second `mark-used` or `book` attempt for the same serial now fails with `CONFLICT`.
+27. Return to **`/issuer`**. Confirm table shows Person B as the current holder for the serial.
+28. Use **Check in / mark used** for that ref, type the ref number in the confirm dialog, and submit — `POST /api/mark-used`.
+29. Refresh the affected guest page if you are still looking at the same pass, then show **USED** state on **`/slots/[serial]`** or the guest hub.
+30. Make it explicit that the issuer is the one who closes the lifecycle, so the pass cannot be used again.
+31. If needed, show the anti-double-use proof: a second `mark-used` or `book` attempt for the same serial now fails with `CONFLICT`.
 
-### F. Optional — freeze (`F3`)
+### F. Optional — pause / reopen (`F3`)
 
-- On **`/issuer`**, set **Freeze / unfreeze** serial and **Holder** to match **Mirror holder** (UI can pre-fill from table). **Freeze** uses a confirm dialog; **Unfreeze** remains one step — `POST /api/freeze` or `POST /api/unfreeze`.
-- On **`/slots/[serial]`** or **`/my-bookings`**, explain that movement is blocked until unfreeze.
+- On **`/issuer`**, use the **Pause or reopen a pass** section: set **Ref #** and **Person** to match the **current holder** (table **Use this pass** pre-fills). **Pause pass** uses a confirm dialog; **Reopen pass** is one step — `POST /api/freeze` or `POST /api/unfreeze`.
+- On **`/slots/[serial]`** or **`/my-bookings`**, explain that movement is blocked until the provider **Reopen**s the pass.
+- On **`/my-bookings`**, **Recover booking** is the live Wave 2 Concierge entry for resale-eligible held passes.
+
+**Note:** The UI says **Pause pass** / **Reopen pass**; APIs remain `/api/freeze` and `/api/unfreeze`.
 
 ## Strong optional add-ons
 
 - Freeze / unfreeze (`F3`) — wired as above
-- Cancel / refund (`F7`) — **not** in shipped UI yet (`docs/TASKS.md`)
+- Cancel / release / refund (`F7`) — available in the in-app Concierge recovery flow and through the agent API as `cancel_release`. The latest E2E proves real testnet HBAR refund/release plus HCS audit proof; scheduled token release/expiry remains future work.
 
 ## Demo rules
 
@@ -117,7 +160,7 @@ The Hedera demo actors underneath are still `guestA` / `guestB` / `issuer`, but 
 - Treat **Mark used** as the live redemption step, not just cleanup
 - Show that Person A is no longer the valid holder after resale
 - If another browser is already sitting on the same page when a different user changes the pass, refresh that page before narrating the new state
-- If showing `F7` in future, use a separate booking from the one you plan to mark used
+- If showing `F7`, use a separate booking from the one you plan to resell and mark used
 - Only show `HCS` if it helps the audience understand the story faster (topic messages appear on slot detail)
 
 ## Related docs

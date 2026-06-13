@@ -6,7 +6,8 @@ Use this with:
 
 - `docs/UI-MAP.md` for route / component / API wiring
 - `docs/DEMO.md` for the shipped walkthrough
-- `docs/PERSONAS-EXPECTATIONS.md` for what each role expects
+- `docs/BRAND-UI.md` for **tokens**, **calendar + turn** mark usage, glass surfaces, and rollout checklist
+- Local persona notes under `docs/internal/` (gitignored) if you maintain them
 
 These are **defaults**, not hard laws. If breaking one improves the shipped product, do it intentionally and explain why in the PR or issue.
 

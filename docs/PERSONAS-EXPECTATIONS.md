@@ -58,7 +58,7 @@ Use this when **sitting in each person’s seat**: what they reasonably expect, 
 | See fee / royalty impact before selling | **Yes** | `/resale/[serial]` — 10% royalty story and ask preview without overpromising seller proceeds |
 | Know when movement is blocked | **Yes** | **FROZEN** copy on hub and detail; issuer must unfreeze |
 | **Transfer or gift** without a listing (peer move) | **No** | Spec mentions transfer; **shipped path is resale** (list + buy). No separate “send to friend” flow. |
-| Cancel and get refund | **No** | **F7** not built. |
+| Cancel and get refund | **Partial** | Concierge can execute a holder-approved testnet HBAR release/refund when provider policy allows it; wallet/fiat refunds and scheduled refund automation are not built. |
 
 ---
 
