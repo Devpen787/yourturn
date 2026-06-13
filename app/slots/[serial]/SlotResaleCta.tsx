@@ -1,14 +1,13 @@
-import Link from "next/link";
-import { getButtonClassName } from "@/components/ui/button-classes";
-import { cn } from "@/lib/cn";
+import { ButtonLink } from "@/components/ui/ButtonLink";
 
 export function SlotResaleCta({ serial }: { serial: number }) {
   return (
-    <Link
+    <ButtonLink
       href={`/resale/${serial}`}
-      className={cn(getButtonClassName("primary"), "inline-flex no-underline")}
+      variant="primary"
+      className="no-underline"
     >
       Sell pass
-    </Link>
+    </ButtonLink>
   );
 }

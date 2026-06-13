@@ -1,3 +1,5 @@
+import type { OwnerPolicy } from "@/lib/policy/policy";
+
 export type DemoSlotSeed = {
   slotId: string;
   title: string;
@@ -7,4 +9,5 @@ export type DemoSlotSeed = {
   issuerName: string;
   primaryPriceHbar: number;
   resaleAllowed: boolean;
+  policy?: OwnerPolicy;
 };

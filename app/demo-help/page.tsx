@@ -67,7 +67,7 @@ export default function DemoHelpPage() {
         <h2 className="font-medium text-slate-900">Current demo limits</h2>
         <ul className="mt-3 space-y-2 text-slate-700">
           <li>Person A and Person B are demo identities, not real user accounts.</li>
-          <li>Bookings are final in this demo. There is no cancel or refund flow yet.</li>
+          <li>Browser bookings do not have a cancel/release flow yet.</li>
           <li>
             The resale ask and provider fee preview help explain the economics,
             but the final transaction should still be checked on HashScan.

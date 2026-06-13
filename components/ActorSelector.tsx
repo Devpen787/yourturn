@@ -96,6 +96,24 @@ export function ActorSelector({
   const activeDescription = lockTo
     ? `${ACTOR_META[lockTo].label} is locked by the current sign-in. Log out to use the other demo customer.`
     : description;
+  const lockedGreeting =
+    lockTo === "guestA"
+      ? "Hello User A"
+      : lockTo === "guestB"
+        ? "Hello User B"
+        : null;
+
+  if (lockTo && lockedGreeting) {
+    return (
+      <div className="mb-4 rounded border border-slate-200 bg-white p-3 text-sm">
+        <p className="font-medium text-slate-900">{lockedGreeting}</p>
+        <p className="mt-1 text-slate-600">
+          Your demo session is locked to {ACTOR_META[lockTo].label}. Log out to
+          switch to the other demo user.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div

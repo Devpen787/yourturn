@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireIssuerAppUser } from "@/lib/auth/guest-api-auth";
 import type { ImmutableSlotMetadata } from "@/lib/domain/metadata";
 import { mintSlotNfts } from "@/lib/hedera/token";
+import { captureOwnerPolicySnapshot, normalizeOwnerPolicy } from "@/lib/policy/policy";
 import { loadDemoPlan } from "@/lib/store/demo-plan";
 import { getStoredTokenId } from "@/lib/store/ids";
 import { loadSlots, saveSlots } from "@/lib/store/slots";
@@ -59,6 +60,14 @@ export async function POST(req: Request) {
     const serials = await mintSlotNfts(tokenId, metas);
     const mintedAt = new Date().toISOString();
     const newRecords: SlotRecord[] = demo.map((d, i) => ({
+      policy: normalizeOwnerPolicy({
+        ...d.policy,
+        resaleAllowed: d.policy?.resaleAllowed ?? d.resaleAllowed,
+      }),
+      policySnapshot: captureOwnerPolicySnapshot({
+        ...d.policy,
+        resaleAllowed: d.policy?.resaleAllowed ?? d.resaleAllowed,
+      }),
       tokenId,
       serial: serials[i]!,
       slotId: d.slotId,
@@ -67,7 +76,7 @@ export async function POST(req: Request) {
       endTime: d.endTime,
       location: d.location,
       primaryPriceHbar: d.primaryPriceHbar,
-      resaleAllowed: d.resaleAllowed,
+      resaleAllowed: d.policy?.resaleAllowed ?? d.resaleAllowed,
       seeded: true,
       mintedAt,
       listingActive: false,

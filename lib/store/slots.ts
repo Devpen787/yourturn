@@ -1,5 +1,24 @@
+import { captureOwnerPolicySnapshot, normalizeOwnerPolicy } from "@/lib/policy/policy";
 import type { SlotRecord } from "@/lib/types/slot";
 import { getRedis, REDIS_KEYS } from "./redis";
+
+function normalizeSlotRecord(slot: SlotRecord): SlotRecord {
+  const policy = normalizeOwnerPolicy({
+    ...slot.policy,
+    resaleAllowed: slot.policy?.resaleAllowed ?? slot.resaleAllowed,
+  });
+  return {
+    ...slot,
+    resaleAllowed: policy.resaleAllowed,
+    policy,
+    policySnapshot:
+      slot.policySnapshot ??
+      captureOwnerPolicySnapshot({
+        ...policy,
+        label: `${policy.label} legacy snapshot`,
+      }),
+  };
+}
 
 export async function loadSlots(): Promise<SlotRecord[]> {
   const redis = getRedis();
@@ -7,12 +26,12 @@ export async function loadSlots(): Promise<SlotRecord[]> {
   if (!raw) return [];
   if (typeof raw === "string") {
     try {
-      return JSON.parse(raw) as SlotRecord[];
+      return (JSON.parse(raw) as SlotRecord[]).map(normalizeSlotRecord);
     } catch {
       return [];
     }
   }
-  return raw as unknown as SlotRecord[];
+  return (raw as unknown as SlotRecord[]).map(normalizeSlotRecord);
 }
 
 export async function saveSlots(slots: SlotRecord[]): Promise<void> {

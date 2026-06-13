@@ -22,10 +22,9 @@ export function HomeHero() {
             Keep your options.
           </h1>
           <p className="mt-5 max-w-lg text-base leading-7 text-slate-300 md:text-lg">
-            For studios, therapists, and coaching-led services where a missed
-            session still matters. Customers keep the reservation like a pass in
-            one simple booking flow, while providers use a separate dashboard for
-            check-in, pausing movement, and resale rules.
+            For studios, therapists, and coaching where a missed session still
+            matters. Customers keep a pass they can track, use, or resell within
+            rules the business sets.
           </p>
           <div className="mt-8 flex flex-wrap gap-4">
             <Link

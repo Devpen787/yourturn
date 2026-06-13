@@ -22,6 +22,22 @@ type Props = {
     holderAccountId: string | null;
     holderActor: "guestA" | "guestB" | null;
     listingActive: boolean;
+    automationProof: {
+      status: "scheduled" | "executed" | "deleted" | "unknown";
+      scheduleId: string;
+      amountHbar: number;
+      scheduleHashscanUrl: string;
+      executionHashscanUrl?: string;
+    } | null;
+    recoveryProof: {
+      title: string;
+      statusLabel: string;
+      actionLabel: string;
+      refundHbar?: number;
+      hashscanUrl?: string;
+      releaseHashscanUrl?: string;
+      burnHashscanUrl?: string;
+    } | null;
   }[];
 };
 
@@ -33,6 +49,12 @@ type DemoPlanDraft = {
   location: string;
   primaryPriceHbar: string;
   resaleAllowed: boolean;
+  ownerRoyaltyPercent: string;
+  releaseAllowed: boolean;
+  waitlistEnabled: boolean;
+  scheduleAutomationEnabled: boolean;
+  policyVersion: string;
+  policyLabel: string;
 };
 
 type ConfirmAction = "reset" | "pause" | "markUsed" | null;
@@ -42,6 +64,26 @@ function statusTone(status: string): string {
   if (status === "HELD") return "bg-blue-50 text-blue-900";
   if (status === "FROZEN") return "bg-amber-50 text-amber-900";
   if (status === "USED") return "bg-emerald-50 text-emerald-900";
+  return "bg-slate-100 text-slate-800";
+}
+
+function automationTone(status: string): string {
+  if (status === "executed") return "bg-emerald-50 text-emerald-900";
+  if (status === "scheduled") return "bg-blue-50 text-blue-900";
+  if (status === "deleted") return "bg-rose-50 text-rose-900";
+  return "bg-slate-100 text-slate-800";
+}
+
+function recoveryTone(status: string): string {
+  if (status.toLowerCase().includes("refund")) {
+    return "bg-emerald-50 text-emerald-900";
+  }
+  if (status.toLowerCase().includes("listed")) {
+    return "bg-blue-50 text-blue-900";
+  }
+  if (status.toLowerCase().includes("transfer")) {
+    return "bg-purple-50 text-purple-900";
+  }
   return "bg-slate-100 text-slate-800";
 }
 
@@ -102,7 +144,13 @@ function formatDraftRows(plan: DemoSlotSeed[]): DemoPlanDraft[] {
     endTime: formatDateTimeLocalInput(slot.endTime),
     location: slot.location,
     primaryPriceHbar: String(slot.primaryPriceHbar),
-    resaleAllowed: slot.resaleAllowed,
+    resaleAllowed: slot.policy?.resaleAllowed ?? slot.resaleAllowed,
+    ownerRoyaltyPercent: String(slot.policy?.ownerRoyaltyPercent ?? 10),
+    releaseAllowed: slot.policy?.releaseAllowed ?? true,
+    waitlistEnabled: slot.policy?.waitlistEnabled ?? true,
+    scheduleAutomationEnabled: slot.policy?.scheduleAutomationEnabled ?? true,
+    policyVersion: String(slot.policy?.version ?? 1),
+    policyLabel: slot.policy?.label ?? "Provider recovery policy v1",
   }));
 }
 
@@ -252,12 +300,26 @@ export function IssuerPanel({
       const startTime = parseLocalInputToIso(row.startTime);
       const endTime = parseLocalInputToIso(row.endTime);
       const price = Number(row.primaryPriceHbar);
+      const ownerRoyaltyPercent = Number(row.ownerRoyaltyPercent);
+      const policyVersion = Number(row.policyVersion);
       if (!title || !location || !startTime || !endTime) {
         setErr("Complete every title, date, time, and location before saving.");
         return;
       }
       if (!Number.isFinite(price) || price <= 0) {
         setErr("Each planned session needs a positive price.");
+        return;
+      }
+      if (
+        !Number.isFinite(ownerRoyaltyPercent) ||
+        ownerRoyaltyPercent < 0 ||
+        ownerRoyaltyPercent > 50
+      ) {
+        setErr("Owner royalty must be between 0 and 50 percent.");
+        return;
+      }
+      if (!Number.isFinite(policyVersion) || policyVersion < 1) {
+        setErr("Policy version must be a positive number.");
         return;
       }
       if (new Date(endTime).getTime() <= new Date(startTime).getTime()) {
@@ -273,6 +335,15 @@ export function IssuerPanel({
         issuerName: trimmedIssuerName,
         primaryPriceHbar: price,
         resaleAllowed: row.resaleAllowed,
+        policy: {
+          resaleAllowed: row.resaleAllowed,
+          ownerRoyaltyPercent,
+          releaseAllowed: row.releaseAllowed,
+          waitlistEnabled: row.waitlistEnabled,
+          scheduleAutomationEnabled: row.scheduleAutomationEnabled,
+          version: Math.trunc(policyVersion),
+          label: row.policyLabel.trim() || "Provider recovery policy v1",
+        },
       });
     }
 
@@ -447,6 +518,7 @@ export function IssuerPanel({
               mints, and what
               <strong> Start over </strong>
               creates a fresh set of live demo serials from the saved plan.
+              Booked passes keep the policy snapshot active at booking time.
             </p>
           </div>
         </div>
@@ -572,6 +644,80 @@ export function IssuerPanel({
                     }
                   />
                 </label>
+                <label className="grid gap-1">
+                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                    Owner royalty (%)
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="50"
+                    step="1"
+                    className="min-h-[44px] rounded-lg border border-slate-300 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+                    value={row.ownerRoyaltyPercent}
+                    onChange={(e) =>
+                      updatePlanRow(index, {
+                        ownerRoyaltyPercent: e.target.value,
+                      })
+                    }
+                  />
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                    Policy label
+                  </span>
+                  <input
+                    className="min-h-[44px] rounded-lg border border-slate-300 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+                    value={row.policyLabel}
+                    onChange={(e) =>
+                      updatePlanRow(index, { policyLabel: e.target.value })
+                    }
+                  />
+                </label>
+                <div className="grid gap-2 rounded-lg border border-slate-200 bg-white px-3 py-3">
+                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                    Recovery rules
+                  </p>
+                  <label className="flex min-h-[36px] items-center justify-between gap-3 text-sm text-slate-700">
+                    <span>Allow release back to provider</span>
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4"
+                      checked={row.releaseAllowed}
+                      onChange={(e) =>
+                        updatePlanRow(index, {
+                          releaseAllowed: e.target.checked,
+                        })
+                      }
+                    />
+                  </label>
+                  <label className="flex min-h-[36px] items-center justify-between gap-3 text-sm text-slate-700">
+                    <span>Enable waitlist offers</span>
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4"
+                      checked={row.waitlistEnabled}
+                      onChange={(e) =>
+                        updatePlanRow(index, {
+                          waitlistEnabled: e.target.checked,
+                        })
+                      }
+                    />
+                  </label>
+                  <label className="flex min-h-[36px] items-center justify-between gap-3 text-sm text-slate-700">
+                    <span>Allow scheduled automation</span>
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4"
+                      checked={row.scheduleAutomationEnabled}
+                      onChange={(e) =>
+                        updatePlanRow(index, {
+                          scheduleAutomationEnabled: e.target.checked,
+                        })
+                      }
+                    />
+                  </label>
+                </div>
               </div>
             </div>
           ))}
@@ -657,6 +803,7 @@ export function IssuerPanel({
                 <th className="px-3 py-2 font-medium">Status</th>
                 <th className="px-3 py-2 font-medium">Current holder</th>
                 <th className="px-3 py-2 font-medium">Resale</th>
+                <th className="px-3 py-2 font-medium">Proof</th>
                 <th className="px-3 py-2 font-medium">Choose</th>
               </tr>
             </thead>
@@ -678,6 +825,90 @@ export function IssuerPanel({
                   </td>
                   <td className="px-3 py-2">{row.listingActive ? "Active resale" : "None"}</td>
                   <td className="px-3 py-2">
+                    <div className="space-y-3">
+                      {row.automationProof ? (
+                        <div className="space-y-1">
+                          <span
+                            className={`inline-flex rounded px-2 py-1 text-xs font-medium ${automationTone(
+                              row.automationProof.status
+                            )}`}
+                          >
+                            {row.automationProof.status}
+                          </span>
+                          <div className="text-xs text-slate-600">
+                            <a
+                              className="font-medium text-slate-900 underline decoration-slate-300 underline-offset-2 hover:decoration-slate-900"
+                              href={row.automationProof.scheduleHashscanUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              {row.automationProof.scheduleId}
+                            </a>
+                            {" · "}
+                            {row.automationProof.amountHbar.toFixed(2)} h
+                          </div>
+                          {row.automationProof.executionHashscanUrl && (
+                            <a
+                              className="block text-xs font-medium text-slate-700 underline decoration-slate-300 underline-offset-2 hover:decoration-slate-900"
+                              href={row.automationProof.executionHashscanUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Execution tx
+                            </a>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="block text-xs text-slate-500">
+                          No schedule proof
+                        </span>
+                      )}
+                      {row.recoveryProof ? (
+                        <div className="space-y-1 border-t border-slate-100 pt-2">
+                          <span
+                            className={`inline-flex rounded px-2 py-1 text-xs font-medium ${recoveryTone(
+                              row.recoveryProof.statusLabel
+                            )}`}
+                          >
+                            {row.recoveryProof.statusLabel}
+                          </span>
+                          <p className="text-xs font-medium text-slate-800">
+                            {row.recoveryProof.actionLabel}
+                          </p>
+                          {typeof row.recoveryProof.refundHbar === "number" && (
+                            <p className="text-xs text-slate-600">
+                              {row.recoveryProof.refundHbar.toFixed(2)} h refunded
+                            </p>
+                          )}
+                          {(row.recoveryProof.releaseHashscanUrl ||
+                            row.recoveryProof.hashscanUrl) && (
+                            <a
+                              className="block text-xs font-medium text-slate-700 underline decoration-slate-300 underline-offset-2 hover:decoration-slate-900"
+                              href={
+                                row.recoveryProof.releaseHashscanUrl ??
+                                row.recoveryProof.hashscanUrl
+                              }
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Recovery tx
+                            </a>
+                          )}
+                          {row.recoveryProof.burnHashscanUrl && (
+                            <a
+                              className="block text-xs font-medium text-slate-700 underline decoration-slate-300 underline-offset-2 hover:decoration-slate-900"
+                              href={row.recoveryProof.burnHashscanUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Close tx
+                            </a>
+                          )}
+                        </div>
+                      ) : null}
+                    </div>
+                  </td>
+                  <td className="px-3 py-2">
                     <button
                       type="button"
                       className={getButtonClassName("table")}
@@ -690,7 +921,7 @@ export function IssuerPanel({
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td className="px-3 py-3 text-slate-500" colSpan={6}>
+                  <td className="px-3 py-3 text-slate-500" colSpan={7}>
                     No sessions are live yet. Set up the business and create demo sessions first.
                   </td>
                 </tr>

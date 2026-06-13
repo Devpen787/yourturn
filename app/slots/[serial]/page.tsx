@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { calcRoyalty, calcSellerNet } from "@/lib/domain/fees";
 import { canResell } from "@/lib/domain/guards";
 import { getButtonClassName } from "@/components/ui/button-classes";
 import { cn } from "@/lib/cn";
@@ -10,9 +11,15 @@ import { formatSlotDateTime } from "@/lib/format/slotDateTime";
 import { getLifecycleEventsForSerial, readSlotLiveState } from "@/lib/server/slotChain";
 import { getStoredTokenId, getStoredTopicId } from "@/lib/store/ids";
 import { getActiveListingForSerial } from "@/lib/store/listings";
+import { getLatestRecoveryReceiptForSerial } from "@/lib/store/recovery-receipts";
 import { getSlotBySerial } from "@/lib/store/slots";
 import type { LifecycleEvent } from "@/lib/types/event";
 import { SlotDetailStickyBar } from "@/components/SlotDetailStickyBar";
+import {
+  RecoveryProofCard,
+  VerifiedLifecycleTimeline,
+  type LifecycleProofRow,
+} from "@/components/proof/RecoveryProofCard";
 import { SlotPassHeroCard } from "@/components/slots/SlotPassHeroCard";
 import { SlotResaleCta } from "./SlotResaleCta";
 
@@ -122,7 +129,19 @@ function eventSummary(
   if (event.eventType === "USED") {
     return "The provider checked this pass in and closed it.";
   }
+  if (event.eventType === "CANCEL_RELEASED") {
+    return `${actorLabel(event.from, guestAId, guestBId, treasuryId)} released this pass back to the provider${
+      event.refundHbar != null ? ` with a ${event.refundHbar} ℏ testnet refund` : ""
+    }.`;
+  }
   return event.eventType;
+}
+
+function latestEvent(
+  events: LifecycleEvent[],
+  eventType: LifecycleEvent["eventType"]
+): LifecycleEvent | undefined {
+  return [...events].reverse().find((event) => event.eventType === eventType);
 }
 
 export default async function SlotDetailPage({
@@ -180,16 +199,101 @@ export default async function SlotDetailPage({
     ? parseNftMetadataBlob(nft.metadata)
     : null;
   const listing = await getActiveListingForSerial(serial);
-  const lifecycleEvents = (
-    await getLifecycleEventsForSerial({
-      topicId,
-      tokenId,
-      serial,
-    })
-  ).map((event, index) => ({
+  const rawLifecycleEvents = await getLifecycleEventsForSerial({
+    topicId,
+    tokenId,
+    serial,
+  });
+  const lifecycleEvents = rawLifecycleEvents.map((event, index) => ({
     key: `${event.timestamp}-${event.eventType}-${index}`,
     event,
   }));
+  const latestListed = latestEvent(rawLifecycleEvents, "LISTED");
+  const latestResold = latestEvent(rawLifecycleEvents, "RESOLD");
+  const latestCancelReleased = latestEvent(rawLifecycleEvents, "CANCEL_RELEASED");
+  const storedRecoveryReceipt = await getLatestRecoveryReceiptForSerial(serial);
+  const lifecycleRows: LifecycleProofRow[] = lifecycleEvents.map(
+    ({ key, event }) => ({
+      id: key,
+      label: eventSummary(event, guestAId, guestBId, treasury),
+      occurredAt: formatSlotDateTime(event.timestamp),
+      eventType: event.eventType,
+      txId: event.txId,
+      technicalDetails: (
+        <pre className="overflow-x-auto">
+          {JSON.stringify(event, null, 2)}
+        </pre>
+      ),
+    })
+  );
+  const detailProof =
+    listing?.active
+      ? {
+          title: "Active resale listing",
+          statusLabel: "Listed",
+          actionLabel: "Resale listing",
+          serial,
+          actorLabel: actorLabel(listing.sellerAccountId, guestAId, guestBId, treasury),
+          currentState:
+            "The holder approved a listing. Another customer can take over from the resale page.",
+          askPriceHbar: listing.askPriceHbar,
+          royaltyHbar: calcRoyalty(listing.askPriceHbar),
+          sellerNetHbar: calcSellerNet(listing.askPriceHbar),
+          policyBasis: `${slot.policySnapshot.label} (${slot.policySnapshot.snapshotId})`,
+          policySnapshot: slot.policySnapshot,
+          occurredAt: latestListed?.timestamp ?? listing.createdAt,
+          auditTxId: latestListed?.txId,
+          }
+        : latestCancelReleased
+          ? storedRecoveryReceipt ?? {
+              title: "Refund release completed",
+              statusLabel: "Refunded",
+              actionLabel: "Release + test HBAR refund",
+              serial,
+              actorLabel: actorLabel(
+                latestCancelReleased.from,
+                guestAId,
+                guestBId,
+                treasury
+              ),
+              currentState:
+                "The booking right was released back to the provider and closed.",
+              refundHbar: latestCancelReleased.refundHbar,
+              txId: latestCancelReleased.txId,
+              occurredAt: latestCancelReleased.timestamp,
+              policyBasis: `${slot.policySnapshot.label} (${slot.policySnapshot.snapshotId})`,
+              policySnapshot: slot.policySnapshot,
+            }
+        : latestResold
+          ? {
+            title: "Resale completed",
+            statusLabel: "Transferred",
+            actionLabel: "Resale purchase",
+            serial,
+            actorLabel: actorLabel(latestResold.to, guestAId, guestBId, treasury),
+            counterpartyLabel: actorLabel(
+              latestResold.from,
+              guestAId,
+              guestBId,
+              treasury
+            ),
+            currentState:
+              "The listed pass was purchased and the buyer is now the current holder.",
+            askPriceHbar: latestResold.priceHbar,
+            royaltyHbar:
+              latestResold.priceHbar != null
+                ? calcRoyalty(latestResold.priceHbar)
+                : undefined,
+            sellerNetHbar:
+              latestResold.priceHbar != null
+                ? calcSellerNet(latestResold.priceHbar)
+                : undefined,
+            txId: latestResold.txId,
+            occurredAt: latestResold.timestamp,
+            policyBasis: `${slot.policySnapshot.label} (${slot.policySnapshot.snapshotId})`,
+            policySnapshot: slot.policySnapshot,
+          }
+        : null;
 
   const showResell =
     slot &&
@@ -259,6 +363,49 @@ export default async function SlotDetailPage({
           <SlotResaleCta serial={serial} />
         </div>
       )}
+      <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+          Policy active when booked
+        </p>
+        <h2 className="mt-1 text-lg font-semibold text-slate-950">
+          {slot.policySnapshot.label}
+        </h2>
+        <dl className="mt-4 grid gap-2 sm:grid-cols-2">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <dt className="text-xs font-medium text-slate-500">Resale</dt>
+            <dd className="mt-1 font-medium text-slate-950">
+              {slot.policySnapshot.resaleAllowed ? "Allowed" : "Not allowed"}
+            </dd>
+          </div>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <dt className="text-xs font-medium text-slate-500">Owner royalty</dt>
+            <dd className="mt-1 font-medium text-slate-950">
+              {slot.policySnapshot.ownerRoyaltyPercent}%
+            </dd>
+          </div>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <dt className="text-xs font-medium text-slate-500">Release</dt>
+            <dd className="mt-1 font-medium text-slate-950">
+              {slot.policySnapshot.releaseAllowed ? "Allowed" : "Not allowed"}
+            </dd>
+          </div>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <dt className="text-xs font-medium text-slate-500">Scheduled automation</dt>
+            <dd className="mt-1 font-medium text-slate-950">
+              {slot.policySnapshot.scheduleAutomationEnabled
+                ? "Allowed by provider"
+                : "Not allowed"}
+            </dd>
+          </div>
+        </dl>
+        <p className="mt-3 font-mono text-xs text-slate-500">
+          {slot.policySnapshot.snapshotId}
+        </p>
+      </section>
+      {detailProof ? (
+        <RecoveryProofCard proof={detailProof} className="mt-6" />
+      ) : null}
+      <VerifiedLifecycleTimeline rows={lifecycleRows} className="mt-6" />
       <section className="mt-6 rounded border border-slate-200 bg-white p-4">
         <h2 className="font-medium text-slate-900">Proof links</h2>
         <p className="mt-1 text-sm text-slate-600">
@@ -310,39 +457,6 @@ export default async function SlotDetailPage({
         </details>
       )}
       <SlotDetailStickyBar serial={serial} showResell={!!showResell} />
-      <section className="mt-6 rounded border border-slate-200 bg-white p-4">
-        <h2 className="font-medium text-slate-900">Pass history (optional)</h2>
-        <p className="mt-1 text-sm text-slate-600">
-          This is the lifecycle trail behind the current status above. Open the raw
-          event details only if you want the technical proof.
-        </p>
-        {lifecycleEvents.length > 0 ? (
-          <ul className="mt-3 space-y-3">
-            {lifecycleEvents.map(({ key, event }) => (
-              <li key={key} className="rounded border border-slate-200 bg-slate-50 p-3">
-                <p className="text-sm text-slate-900">
-                  {eventSummary(event, guestAId, guestBId, treasury)}
-                </p>
-                <p className="mt-1 text-xs text-slate-500">
-                  {formatSlotDateTime(event.timestamp)}
-                </p>
-                <details className="mt-2 text-xs text-slate-600">
-                  <summary className="cursor-pointer rounded-md font-medium text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus focus-visible:ring-offset-2">
-                    Raw event details
-                  </summary>
-                  <pre className="mt-2 overflow-x-auto rounded bg-white p-2 text-[11px] text-slate-700">
-                    {JSON.stringify(event, null, 2)}
-                  </pre>
-                </details>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-3 text-sm text-slate-500">
-            No lifecycle events have been recorded for this pass yet.
-          </p>
-        )}
-      </section>
     </div>
   );
 }

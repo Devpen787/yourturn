@@ -2,6 +2,7 @@ import { getSessionUser } from "@/lib/auth/get-session";
 import { readSlotLiveState } from "@/lib/server/slotChain";
 import { getStoredTokenId, getStoredTopicId } from "@/lib/store/ids";
 import { loadSlots } from "@/lib/store/slots";
+import { getActiveListingForSerial } from "@/lib/store/listings";
 import { getTreasuryIdString } from "@/lib/hedera/token";
 import { SlotsClient, type SlotRow } from "./SlotsClient";
 
@@ -34,6 +35,7 @@ export default async function SlotsPage() {
           endTime: s.endTime,
           primaryPriceHbar: s.primaryPriceHbar,
           status: chain.status,
+          listingActive: !!(await getActiveListingForSerial(s.serial)),
         });
       }
     }

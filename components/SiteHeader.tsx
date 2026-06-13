@@ -47,10 +47,10 @@ function NavLink({
     <Link
       href={href}
       className={cn(
-        "rounded-md px-2 py-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus focus-visible:ring-offset-2",
+        "rounded-md px-2.5 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus focus-visible:ring-offset-2",
         active
           ? "font-semibold text-slate-950"
-          : "text-slate-700 hover:text-slate-950"
+          : "font-medium text-slate-800 hover:text-slate-950"
       )}
       aria-current={active ? "page" : undefined}
     >
@@ -83,12 +83,12 @@ export function SiteHeader({
     : NAV.filter((item) => item.href !== "/issuer");
 
   return (
-    <header className="border-b border-slate-200/80 bg-white/85 backdrop-blur-md">
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 py-3">
+    <header className="border-b border-slate-200/90 bg-white/90 shadow-sm shadow-slate-900/[0.03] backdrop-blur-md">
+      <div className="mx-auto flex min-h-[3.25rem] max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2.5 sm:min-h-0 sm:py-3">
         <Link
           href="/"
           className={cn(
-            "rounded-xl px-1 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus focus-visible:ring-offset-2",
+            "shrink-0 rounded-xl px-1 py-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus focus-visible:ring-offset-2",
             homeActive ? "text-slate-950" : "text-slate-800 hover:text-slate-950"
           )}
           aria-current={homeActive ? "page" : undefined}
@@ -96,38 +96,46 @@ export function SiteHeader({
           <BrandLockup variant="calendarTurn" markClassName="h-8 w-8" />
         </Link>
         <nav
-          className="flex flex-wrap items-center gap-1 sm:gap-3"
+          className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-x-1 gap-y-1.5 sm:gap-x-2"
           aria-label="Main"
         >
           {sessionUser ? (
             <span
-              className="hidden max-w-[15rem] truncate rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600 sm:inline"
+              className="hidden max-w-[14rem] min-w-0 items-center gap-x-1.5 rounded-full border border-slate-300/80 bg-slate-100/90 px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm ring-1 ring-slate-900/[0.04] sm:inline-flex md:max-w-[18rem]"
               title={sessionUser.email}
             >
-              Signed in: {sessionUser.email}
+              <span className="shrink-0 font-normal text-slate-500">
+                Signed in
+              </span>
+              <span className="shrink-0 text-slate-300" aria-hidden>
+                ·
+              </span>
+              <span className="min-w-0 truncate text-slate-800">
+                {sessionUser.email}
+              </span>
             </span>
           ) : null}
-          {process.env.NODE_ENV === "development" ? (
-            <Link
-              href="/brand-lab"
-              className="rounded-md px-2 py-2.5 text-xs text-brand-link transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus focus-visible:ring-offset-2 hover:text-brand-mark"
-            >
-              Brand lab
-            </Link>
-          ) : null}
-          {navItems.map((item) => (
-            <NavLink
-              key={item.href}
-              href={item.href}
-              label={item.label}
-              active={item.match(pathname)}
-            />
-          ))}
+          <div
+            className={cn(
+              "flex flex-wrap items-center gap-x-1 sm:gap-x-2",
+              sessionUser &&
+                "border-l border-slate-200/90 pl-2 sm:ml-0.5 sm:pl-3"
+            )}
+          >
+            {navItems.map((item) => (
+              <NavLink
+                key={item.href}
+                href={item.href}
+                label={item.label}
+                active={item.match(pathname)}
+              />
+            ))}
+          </div>
           {sessionUser ? (
             <button
               type="button"
               disabled={logoutBusy}
-              className="rounded-md px-2 py-2.5 text-sm text-slate-700 transition-colors hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus focus-visible:ring-offset-2 disabled:opacity-50"
+              className="rounded-md border-l border-slate-200/90 px-2.5 py-2 pl-3 text-sm font-medium text-slate-800 transition-colors hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus focus-visible:ring-offset-2 disabled:opacity-50 sm:ml-0.5 sm:pl-3.5"
               onClick={async () => {
                 setLogoutBusy(true);
                 try {

@@ -1,3 +1,4 @@
+import { accountsEqual } from "@/lib/domain/account";
 import type { SlotStatus } from "./guards";
 
 export type DeriveSlotStatusArgs = {
@@ -9,7 +10,10 @@ export type DeriveSlotStatusArgs = {
 
 export function deriveSlotStatus(args: DeriveSlotStatusArgs): SlotStatus {
   if (args.burned) return "USED";
-  if (!args.holderAccountId || args.holderAccountId === args.treasuryAccountId)
+  if (
+    !args.holderAccountId ||
+    accountsEqual(args.holderAccountId, args.treasuryAccountId)
+  )
     return "AVAILABLE";
   if (args.frozenForToken) return "FROZEN";
   return "HELD";

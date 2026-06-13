@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireIssuerAppUser } from "@/lib/auth/guest-api-auth";
+import { normalizeOwnerPolicy } from "@/lib/policy/policy";
 import { saveDemoPlan } from "@/lib/store/demo-plan";
 import type { DemoSlotSeed } from "@/lib/types/demo-slot";
 import { demoPlanBodySchema, fail } from "@/lib/validation/api";
@@ -27,6 +28,10 @@ export async function POST(req: Request) {
       issuerName: parsed.data.issuerName,
       primaryPriceHbar: slot.primaryPriceHbar,
       resaleAllowed: slot.resaleAllowed,
+      policy: normalizeOwnerPolicy({
+        ...slot.policy,
+        resaleAllowed: slot.policy?.resaleAllowed ?? slot.resaleAllowed,
+      }),
     }));
 
     await saveDemoPlan(slots);

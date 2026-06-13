@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 import { requireIssuerAppUser } from "@/lib/auth/guest-api-auth";
 import type { ImmutableSlotMetadata } from "@/lib/domain/metadata";
 import { mintSlotNfts } from "@/lib/hedera/token";
+import { captureOwnerPolicySnapshot, normalizeOwnerPolicy } from "@/lib/policy/policy";
 import { loadDemoPlan } from "@/lib/store/demo-plan";
 import { getStoredTokenId } from "@/lib/store/ids";
+import { clearAutomationProofs } from "@/lib/store/automation-proofs";
 import { clearAllListings } from "@/lib/store/listings";
+import { clearRecoveryReceipts } from "@/lib/store/recovery-receipts";
 import { loadSlots, saveSlots } from "@/lib/store/slots";
 import type { SlotRecord } from "@/lib/types/slot";
 import { fail } from "@/lib/validation/api";
@@ -23,6 +26,8 @@ export async function POST() {
       );
     }
     await clearAllListings();
+    await clearAutomationProofs();
+    await clearRecoveryReceipts();
     const demo = await loadDemoPlan();
     if (demo.length !== 3) {
       return NextResponse.json(
@@ -43,20 +48,28 @@ export async function POST() {
     }));
     const serials = await mintSlotNfts(tokenId, metas);
     const mintedAt = new Date().toISOString();
-    const rebuilt: SlotRecord[] = demo.map((seed, index) => ({
-      tokenId,
-      serial: serials[index]!,
-      slotId: seed.slotId,
-      title: seed.title,
-      startTime: seed.startTime,
-      endTime: seed.endTime,
-      location: seed.location,
-      primaryPriceHbar: seed.primaryPriceHbar,
-      resaleAllowed: seed.resaleAllowed,
-      seeded: true,
-      mintedAt,
-      listingActive: false,
-    }));
+    const rebuilt: SlotRecord[] = demo.map((seed, index) => {
+      const policy = normalizeOwnerPolicy({
+        ...seed.policy,
+        resaleAllowed: seed.policy?.resaleAllowed ?? seed.resaleAllowed,
+      });
+      return {
+        tokenId,
+        serial: serials[index]!,
+        slotId: seed.slotId,
+        title: seed.title,
+        startTime: seed.startTime,
+        endTime: seed.endTime,
+        location: seed.location,
+        primaryPriceHbar: seed.primaryPriceHbar,
+        resaleAllowed: policy.resaleAllowed,
+        policy,
+        policySnapshot: captureOwnerPolicySnapshot(policy),
+        seeded: true,
+        mintedAt,
+        listingActive: false,
+      };
+    });
     const prev = await loadSlots();
     const others = prev.filter((s) => s.tokenId !== tokenId);
     await saveSlots([...others, ...rebuilt]);

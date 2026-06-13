@@ -1,9 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ActorSelector, type ActorValue } from "@/components/ActorSelector";
+import {
+  SessionCard,
+  type SessionCardStatusTone,
+} from "@/components/marketplace/SessionCard";
 import { useToast } from "@/components/providers/ToastProvider";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -19,6 +23,7 @@ export type SlotRow = {
   endTime: string;
   primaryPriceHbar: number;
   status: string;
+  listingActive?: boolean;
 };
 
 function formatDateTime(value: string): string {
@@ -32,16 +37,17 @@ function formatDateTime(value: string): string {
   }).format(date);
 }
 
-function statusTone(status: string): string {
-  if (status === "AVAILABLE") return "bg-slate-100 text-slate-800";
-  if (status === "HELD") return "bg-blue-50 text-blue-900";
-  if (status === "FROZEN") return "bg-amber-50 text-amber-900";
-  if (status === "USED") return "bg-emerald-50 text-emerald-900";
-  return "bg-slate-100 text-slate-800";
+function statusCardTone(status: string): SessionCardStatusTone {
+  if (status === "FOR_SALE") return "listed";
+  if (status === "HELD") return "held";
+  if (status === "FROZEN") return "paused";
+  if (status === "USED") return "used";
+  return "available";
 }
 
 function statusHint(status: string): string {
   if (status === "AVAILABLE") return "Ready to book";
+  if (status === "FOR_SALE") return "Listed on resale";
   if (status === "HELD") return "Already booked";
   if (status === "FROZEN") return "Temporarily paused";
   if (status === "USED") return "Already checked in";
@@ -51,6 +57,9 @@ function statusHint(status: string): string {
 function nextStepHint(status: string): string {
   if (status === "AVAILABLE") {
     return "Choose the person who is booking, review the session, and book it if it still works for them.";
+  }
+  if (status === "FOR_SALE") {
+    return "Open resale to buy this listed pass from the current holder.";
   }
   if (status === "HELD") {
     return "Open details to see who holds the pass now and whether it can be resold.";
@@ -62,6 +71,28 @@ function nextStepHint(status: string): string {
     return "This pass has already been used. The provider can create a fresh session for another run.";
   }
   return "Open details to see the current booking status.";
+}
+
+function displayMeta(serial: number, title: string) {
+  const category = title.toLowerCase().includes("handstand")
+    ? "Movement"
+    : title.toLowerCase().includes("flow")
+      ? "Studio class"
+      : "Service slot";
+  const provider =
+    serial % 3 === 0
+      ? "North Loop Studio"
+      : serial % 3 === 1
+        ? "YourTurn Movement"
+        : "Brooklyn Recovery Lab";
+  const location =
+    serial % 3 === 0
+      ? "Williamsburg"
+      : serial % 3 === 1
+        ? "SoHo"
+        : "Dumbo";
+  const rating = serial % 2 === 0 ? "4.9 rating" : "4.8 rating";
+  return { category, provider, location, rating };
 }
 
 export function SlotsClient({
@@ -85,6 +116,8 @@ export function SlotsClient({
     null
   );
   const [pendingBooking, setPendingBooking] = useState<SlotRow | null>(null);
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("All");
 
   useEffect(() => {
     if (optimisticHeldSerial == null) return;
@@ -98,6 +131,9 @@ export function SlotsClient({
     if (optimisticHeldSerial === row.serial && row.status === "AVAILABLE") {
       return "HELD";
     }
+    if (row.listingActive && row.status === "HELD") {
+      return "FOR_SALE";
+    }
     return row.status;
   }
 
@@ -105,10 +141,29 @@ export function SlotsClient({
     (row) => effectiveStatus(row) === "AVAILABLE"
   ).length;
   const heldCount = rows.filter((row) => effectiveStatus(row) === "HELD").length;
+  const forSaleCount = rows.filter(
+    (row) => effectiveStatus(row) === "FOR_SALE"
+  ).length;
   const frozenCount = rows.filter(
     (row) => effectiveStatus(row) === "FROZEN"
   ).length;
   const usedCount = rows.filter((row) => effectiveStatus(row) === "USED").length;
+  const categories = useMemo(
+    () => ["All", ...Array.from(new Set(rows.map((row) => displayMeta(row.serial, row.title).category)))],
+    [rows]
+  );
+  const visibleRows = rows.filter((row) => {
+    const meta = displayMeta(row.serial, row.title);
+    const normalizedQuery = query.trim().toLowerCase();
+    const matchesQuery =
+      normalizedQuery.length === 0 ||
+      [row.title, meta.provider, meta.location, meta.category]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedQuery);
+    const matchesCategory = category === "All" || meta.category === category;
+    return matchesQuery && matchesCategory;
+  });
 
   async function book(serial: number): Promise<boolean> {
     if (actor !== "guestA" && actor !== "guestB") {
@@ -170,8 +225,29 @@ export function SlotsClient({
   }
 
   return (
-    <div>
-      <h1 className="mb-2 text-xl font-semibold">Available sessions</h1>
+    <div className="space-y-5">
+      <section className="rounded-[1.5rem] border border-slate-200/80 bg-gradient-to-br from-white via-sky-50/60 to-slate-100/90 p-5 shadow-sm ring-1 ring-slate-900/[0.025] sm:p-6">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+              Browse sessions
+            </p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
+              Find a slot you can actually use
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+              Book scarce classes and service appointments under provider rules.
+              Hedera proof stays available when you need to inspect the pass.
+            </p>
+          </div>
+          <Link
+            href="/my-bookings"
+            className={cn(getButtonClassName("primary"), "no-underline")}
+          >
+            My bookings
+          </Link>
+        </div>
+      </section>
       <ActorSelector
         pageDefault={lockTo ?? "guestA"}
         allowedActors={["guestA", "guestB"]}
@@ -180,7 +256,7 @@ export function SlotsClient({
         lockTo={lockTo}
         onChange={setActor}
       />
-      <p className="mb-3 text-sm text-slate-600">
+      <p className="text-sm text-slate-600">
         Person A and Person B are demo customer identities. When you use demo sign-in, this view locks to that person.{" "}
         <Link
           href="/demo-help"
@@ -190,19 +266,50 @@ export function SlotsClient({
         </Link>
       </p>
       <LiveFeedback
-        className="mb-2 space-y-2"
+        className="space-y-2"
         success={success}
         successLink={successLink}
         error={err}
       />
-      <p className="mb-4 rounded border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-        A session can only be booked while it is <strong>AVAILABLE</strong>. After booking, the pass moves to the customer who bought it and may later be resold, paused, or checked in under provider rules.
-      </p>
+      <section className="grid gap-3 rounded-2xl border border-slate-200/80 bg-white/75 p-4 shadow-sm ring-1 ring-slate-900/[0.02] sm:grid-cols-[1fr_auto] sm:items-end">
+        <label className="block">
+          <span className="text-xs font-semibold text-slate-700">
+            Search sessions
+          </span>
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            className="mt-2 min-h-[44px] w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus focus-visible:ring-offset-2"
+            placeholder="Class, provider, or neighborhood"
+            type="search"
+          />
+        </label>
+        <label className="block sm:w-48">
+          <span className="text-xs font-semibold text-slate-700">
+            Category
+          </span>
+          <select
+            value={category}
+            onChange={(event) => setCategory(event.target.value)}
+            className="mt-2 min-h-[44px] w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus focus-visible:ring-offset-2"
+          >
+            {categories.map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </select>
+        </label>
+      </section>
       {rows.length > 0 && (
-        <div className="mb-4 grid gap-3 md:grid-cols-4">
+        <div className="grid gap-3 md:grid-cols-5">
           <div className="rounded border border-slate-200 bg-white p-3">
             <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Available</p>
             <p className="mt-2 text-2xl font-semibold text-slate-900">{availableCount}</p>
+          </div>
+          <div className="rounded border border-slate-200 bg-white p-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">For sale</p>
+            <p className="mt-2 text-2xl font-semibold text-slate-900">{forSaleCount}</p>
           </div>
           <div className="rounded border border-slate-200 bg-white p-3">
             <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Held</p>
@@ -223,49 +330,38 @@ export function SlotsClient({
           </div>
         </div>
       )}
-      <ul className="space-y-3">
-        {rows.map((r) => {
+      <ul className="space-y-4">
+        {visibleRows.map((r) => {
           const displayStatus = effectiveStatus(r);
+          const meta = displayMeta(r.serial, r.title);
           return (
-            <li
-              key={r.serial}
-              className="rounded border border-slate-200 bg-white p-4 text-sm"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <div className="font-medium">{r.title}</div>
-                  <div className="text-slate-600">
-                    {formatDateTime(r.startTime)} → {formatDateTime(r.endTime)}
-                  </div>
-                </div>
-                <span
-                  className={`inline-flex rounded px-2 py-1 text-xs font-medium ${statusTone(
-                    displayStatus
-                  )}`}
-                >
-                  {displayStatus}
-                </span>
-              </div>
-              <div className="mt-1">
-                Ref <strong>#{r.serial}</strong> · Price:{" "}
-                <strong>{r.primaryPriceHbar} ℏ</strong>
-              </div>
-              <div className="mt-1 text-slate-600">{statusHint(displayStatus)}</div>
-              <div className="mt-2 rounded bg-slate-50 p-3 text-slate-700">
-                <span className="font-medium text-slate-900">Next step:</span>{" "}
-                {nextStepHint(displayStatus)}
-              </div>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <Link
-                  className={cn(
-                    getButtonClassName("textLink"),
-                    "min-h-[44px] min-w-0 px-1 py-2.5"
-                  )}
-                  href={`/slots/${r.serial}`}
-                >
-                  Session details
-                </Link>
-                {displayStatus === "AVAILABLE" && (
+            <li key={r.serial}>
+              <SessionCard
+                title={r.title}
+                provider={meta.provider}
+                category={meta.category}
+                time={`${formatDateTime(r.startTime)} - ${formatDateTime(r.endTime)}`}
+                location={meta.location}
+                price={`${r.primaryPriceHbar} ℏ`}
+                serial={r.serial}
+                status={displayStatus}
+                statusTone={statusCardTone(displayStatus)}
+                rating={meta.rating}
+                policyBadges={[
+                  "Provider rules",
+                  r.listingActive ? "Resale active" : "Resale eligible",
+                  "Verified pass",
+                ]}
+                summary={
+                  <>
+                    <span className="font-semibold text-slate-900">
+                      {statusHint(displayStatus)}.
+                    </span>{" "}
+                    {nextStepHint(displayStatus)}
+                  </>
+                }
+                primaryAction={
+                  displayStatus === "AVAILABLE" ? (
                   <Button
                     type="button"
                     loading={loading === r.serial}
@@ -279,12 +375,32 @@ export function SlotsClient({
                   >
                     Book
                   </Button>
-                )}
-              </div>
+                  ) : displayStatus === "FOR_SALE" ? (
+                  <Link
+                    className={cn(
+                      getButtonClassName("primarySuccess"),
+                      "no-underline"
+                    )}
+                    href={`/resale/${r.serial}`}
+                  >
+                    Buy on resale
+                  </Link>
+                  ) : (
+                    <span className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-center text-xs font-medium text-slate-600">
+                      Inspect details
+                    </span>
+                  )
+                }
+              />
             </li>
           );
         })}
       </ul>
+      {rows.length > 0 && visibleRows.length === 0 && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600">
+          No sessions match those filters. Clear the search or pick a different category.
+        </div>
+      )}
       {rows.length === 0 && (
         <div className="rounded border border-slate-200 bg-white p-4 text-slate-600">
           <p>No sessions are live yet. The business needs to set up the demo first.</p>
@@ -319,7 +435,7 @@ export function SlotsClient({
               ]
             : []
         }
-        warning="Bookings are final in this demo. There is no cancel or refund flow yet."
+        warning="Bookings move a real testnet pass in this demo. Review the session and customer before confirming."
         confirmLabel="Book this session"
         loading={pendingBooking != null && loading === pendingBooking.serial}
         loadingLabel="Booking…"

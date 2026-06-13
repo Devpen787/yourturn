@@ -1,3 +1,5 @@
+import type { OwnerPolicy, OwnerPolicySnapshot } from "@/lib/policy/policy";
+
 export type SlotRecord = {
   tokenId: string;
   serial: number;
@@ -8,6 +10,8 @@ export type SlotRecord = {
   location: string;
   primaryPriceHbar: number;
   resaleAllowed: boolean;
+  policy: OwnerPolicy;
+  policySnapshot: OwnerPolicySnapshot;
   seeded: boolean;
   mintedAt: string;
   listingActive: boolean;

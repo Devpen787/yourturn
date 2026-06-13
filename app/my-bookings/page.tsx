@@ -3,6 +3,7 @@ import { getStoredTokenId, getStoredTopicId } from "@/lib/store/ids";
 import { readSlotLiveState } from "@/lib/server/slotChain";
 import { getTreasuryIdString } from "@/lib/hedera/token";
 import { loadSlots } from "@/lib/store/slots";
+import { getActiveListingForSerial } from "@/lib/store/listings";
 import { MyBookingsClient } from "./MyBookingsClient";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +23,7 @@ export default async function MyBookingsPage() {
     status: string;
     holderAccountId: string | null;
     canResell: boolean;
+    listingActive: boolean;
   }[] = [];
   try {
     tokenId = await getStoredTokenId();
@@ -55,6 +57,7 @@ export default async function MyBookingsPage() {
           chain.status === "HELD" &&
           s.resaleAllowed &&
           chain.holderAccountId !== null,
+        listingActive: !!(await getActiveListingForSerial(s.serial)),
       });
     }
   } catch {
