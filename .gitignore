@@ -8,3 +8,15 @@ dist
 npm-debug.log*
 .DS_Store
 coverage
+
+# Local-only: strategy, planning, test sessions, judge notes, issue seeds — not part of the committed tree
+docs/internal/
+ISSUES-SEED.md
+docs/review-screenshots/
+
+# Local IDE and generated evidence artifacts
+.cursor/
+.cursorrules
+output/
+tsconfig.tsbuildinfo
+brand-lab-assistant-section.png
