@@ -34,22 +34,22 @@ Live and tested:
 
 Latest clean proof:
 
-- Main serial: `178`
-- Refund/release serial: `179`
-- Open/unheld guardrail serial: `180`
-- Recovery listing receipt id: `4bf4cb29-ff61-4aaf-ab84-74ea40f4a696`
-- Refund release receipt id: `d857064c-618a-40fd-b798-f2f5d85a603e`
-- Schedule id: `0.0.9227051`
-- Scheduled transaction id: `0.0.8504300@1781393179.807048329?scheduled`
-- Schedule create tx: `0.0.8504300@1781393179.807048329`
-- Scheduled execution tx: `0.0.8504300-1781393179-807048329`
-- Executed timestamp: `1781393275.186272004`
-- Agent tool label shown in proof: `transfer_hbar_tool`
-- Primary book tx: `0.0.8504300@1781393148.007129848`
-- Refund/release transfer tx: `0.0.8504300@1781393158.862791239`
-- Refund close/burn tx: `0.0.8504300@1781393162.787231448`
-- Refund audit tx: `0.0.8504300@1781393166.653109817`
-- Resale buy tx: `0.0.8504300@1781393273.543596346`
+- Main serial: `184`
+- Refund/release serial: `185`
+- Open/unheld guardrail serial: `186`
+- Recovery listing receipt id: `2de79f10-8ff2-48f5-b388-d92ab828edf6`
+- Refund release receipt id: `dec5d96c-9f17-4c9e-abbd-ec535f53e193`
+- Schedule id: `0.0.9227309`
+- Scheduled transaction id: `0.0.8504300@1781395660.461031693?scheduled`
+- Schedule create tx: `0.0.8504300@1781395660.461031693`
+- Scheduled execution tx: `0.0.8504300-1781395660-461031693`
+- Executed timestamp: `1781395757.080553984`
+- Agent proof tools checked in E2E: `yourturn.recovery.confirm_refund_release`, `yourturn.recovery.confirm_listing`
+- Primary book tx: `0.0.8504300@1781395625.593456264`
+- Refund/release transfer tx: `0.0.8504300@1781395641.257640813`
+- Refund close/burn tx: `0.0.8504300@1781395642.455050030`
+- Refund audit tx: `0.0.8504300@1781395645.637309381`
+- Resale buy tx: `0.0.8504300@1781395755.740976974`
 
 Tested commands:
 

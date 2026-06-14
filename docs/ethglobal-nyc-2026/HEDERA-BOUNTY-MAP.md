@@ -112,12 +112,12 @@ Minimum:
 
 Strong:
 
-- schedule id: `0.0.9227051`
-- scheduled transaction execution tx id: `0.0.8504300-1781393179-807048329`
-- executed timestamp: `1781393275.186272004`
-- refund/release tx id: `0.0.8504300@1781393158.862791239`
-- refund close/burn tx id: `0.0.8504300@1781393162.787231448`
-- refund audit tx id: `0.0.8504300@1781393166.653109817`
+- schedule id: `0.0.9227309`
+- scheduled transaction execution tx id: `0.0.8504300-1781395660-461031693`
+- executed timestamp: `1781395757.080553984`
+- refund/release tx id: `0.0.8504300@1781395641.257640813`
+- refund close/burn tx id: `0.0.8504300@1781395642.455050030`
+- refund audit tx id: `0.0.8504300@1781395645.637309381`
 - agent verifier: `npm run hedera:agent-check`
 - agent proof fields: `agentName`, `toolId`, `approvalId`, `policyChecks`, `proofOutputs`
 - recovery page and provider dashboard showing scheduled/pending/executed state
@@ -126,14 +126,11 @@ Strong:
 Current live evidence from the latest clean scripted pass:
 
 - Script verifier: `npm run ethglobal:e2e`
-- Recovery route screenshot: `/tmp/yourturn-ethglobal-qa/recovery-178-completed-proof.png`
-- Refund/release route screenshot: `/tmp/yourturn-ethglobal-qa/recovery-179-refund-proof.png`
-- Used slot detail screenshot: `/tmp/yourturn-ethglobal-qa/slot-178-used-proof.png`
-- Provider dashboard proof screenshot: `/tmp/yourturn-ethglobal-qa/issuer-178-179-proof.png`
-- Schedule proof: [HashScan schedule 0.0.9227051](https://hashscan.io/testnet/schedule/0.0.9227051)
-- Scheduled execution proof: [HashScan transaction 0.0.8504300-1781393179-807048329](https://hashscan.io/testnet/transaction/0.0.8504300-1781393179-807048329)
-- Refund/release proof: [HashScan transaction 0.0.8504300-1781393158-862791239](https://hashscan.io/testnet/transaction/0.0.8504300-1781393158-862791239)
-- API verifier: `POST /api/automation/inspect` with `{ "actor": "guestB", "serial": 178 }`
+- Schedule proof: [HashScan schedule 0.0.9227309](https://hashscan.io/testnet/schedule/0.0.9227309)
+- Scheduled execution proof: [HashScan transaction 0.0.8504300-1781395660-461031693](https://hashscan.io/testnet/transaction/0.0.8504300-1781395660-461031693)
+- Refund/release proof: [HashScan transaction 0.0.8504300-1781395641-257640813](https://hashscan.io/testnet/transaction/0.0.8504300-1781395641-257640813)
+- Agent verifier: `npm run hedera:agent-check`
+- API verifier: `POST /api/automation/inspect` with `{ "actor": "guestB", "serial": 184 }`
 
 ## Mentor questions
 

@@ -287,9 +287,8 @@ async function main() {
         refundReceipt.agentProof?.policyChecks?.every(
           (check) => check.status === "passed"
         ) &&
-        refundReceipt.agentProof?.proofOutputs?.some(
-          (proof) => proof.id === "release_tx"
-        ),
+        refundReceipt.agentProof?.proofOutputs?.releaseTxId &&
+        refundReceipt.agentProof?.proofOutputs?.auditTxId,
       "refund receipt includes Hedera agent proof",
       refundReceipt.agentProof
     )
@@ -348,9 +347,8 @@ async function main() {
         receipt.agentProof?.policyChecks?.every(
           (check) => check.status === "passed"
         ) &&
-        receipt.agentProof?.proofOutputs?.some(
-          (proof) => proof.id === "schedule_id"
-        ),
+        receipt.agentProof?.proofOutputs?.scheduleId &&
+        receipt.agentProof?.proofOutputs?.auditTxId,
       "listing receipt includes Hedera agent proof",
       receipt.agentProof
     )
