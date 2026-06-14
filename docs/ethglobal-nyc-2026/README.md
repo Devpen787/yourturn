@@ -2,6 +2,8 @@
 
 Status: final public packet for the YourTurn continuity submission.
 
+Award: Hedera Best use of Autonomous Automation Platform, Continuity Track, $1,000 USDC.
+
 Prepared for: ETHGlobal NYC 2026.
 
 Public demo: [https://yourturn-sage.vercel.app](https://yourturn-sage.vercel.app)
