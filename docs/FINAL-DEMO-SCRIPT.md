@@ -37,9 +37,9 @@ Use these surfaces:
 - Browser: `http://localhost:3000/resale/193?mode=recovery`
 - Browser: `http://localhost:3000/resale/194?mode=recovery`
 - Telegram: `t.me/YourTurnConcierge_bot`
-- HashScan schedule: `https://hashscan.io/testnet/schedule/0.0.9228236`
-- HashScan scheduled execution: `https://hashscan.io/testnet/transaction/0.0.8504300-1781403839-567406004`
-- HashScan refund/release: `https://hashscan.io/testnet/transaction/0.0.8504300-1781404315-316217004`
+- HashScan schedule: `https://hashscan.io/#/testnet/schedule/0.0.9228236`
+- HashScan scheduled execution: `https://hashscan.io/#/testnet/transaction/0.0.8504300-1781403839-567406004`
+- HashScan refund/release: `https://hashscan.io/#/testnet/transaction/0.0.8504300-1781404315-316217004`
 
 Keep `TELEGRAM_ALLOW_MUTATIONS=false` after rehearsal. Only turn it on during the live Telegram proof step.
 

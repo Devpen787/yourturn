@@ -136,9 +136,9 @@ Strong:
 Current live evidence from the latest Telegram-assisted pass:
 
 - Telegram command proof: `approve listing 193` and `approve refund 194`
-- Schedule proof: [HashScan schedule 0.0.9228236](https://hashscan.io/testnet/schedule/0.0.9228236)
-- Scheduled execution proof: [HashScan transaction 0.0.8504300-1781403839-567406004](https://hashscan.io/testnet/transaction/0.0.8504300-1781403839-567406004)
-- Refund/release proof: [HashScan transaction 0.0.8504300-1781404315-316217004](https://hashscan.io/testnet/transaction/0.0.8504300-1781404315-316217004)
+- Schedule proof: [HashScan schedule 0.0.9228236](https://hashscan.io/#/testnet/schedule/0.0.9228236)
+- Scheduled execution proof: [HashScan transaction 0.0.8504300-1781403839-567406004](https://hashscan.io/#/testnet/transaction/0.0.8504300-1781403839-567406004)
+- Refund/release proof: [HashScan transaction 0.0.8504300-1781404315-316217004](https://hashscan.io/#/testnet/transaction/0.0.8504300-1781404315-316217004)
 - Script verifier: `npm run ethglobal:e2e`
 - Agent verifier: `npm run hedera:agent-check`
 - Agent card: `GET /.well-known/agent.json`
@@ -149,8 +149,8 @@ Final full regression evidence from 2026-06-14:
 
 - `npm run ethglobal:e2e` passed
 - serials: main `196`, refund/release `197`, open guardrail `198`
-- schedule proof: [HashScan schedule 0.0.9228519](https://hashscan.io/testnet/schedule/0.0.9228519)
-- scheduled execution proof: [HashScan transaction 0.0.8504300-1781406966-580404829](https://hashscan.io/testnet/transaction/0.0.8504300-1781406966-580404829)
+- schedule proof: [HashScan schedule 0.0.9228519](https://hashscan.io/#/testnet/schedule/0.0.9228519)
+- scheduled execution proof: [HashScan transaction 0.0.8504300-1781406966-580404829](https://hashscan.io/#/testnet/transaction/0.0.8504300-1781406966-580404829)
 - refund/release tx id: `0.0.8504300@1781406949.343880789`
 - listing receipt id: `6351521d-13e2-4973-9d33-08eb521fa1ca`
 - refund receipt id: `fb0e38dd-9ed8-4d93-9bd8-82abbaa8f7aa`

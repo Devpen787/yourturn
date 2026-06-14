@@ -46,16 +46,16 @@ Final proof packet: [docs/ethglobal-nyc-2026/FINAL-PROOF-PACK.md](docs/ethglobal
 Key final Telegram proofs:
 
 - Booking `193`: Telegram approval listed the pass and created Schedule Service proof `0.0.9228236`.
-- Schedule proof: [HashScan schedule 0.0.9228236](https://hashscan.io/testnet/schedule/0.0.9228236)
-- Scheduled execution: [HashScan transaction 0.0.8504300-1781403839-567406004](https://hashscan.io/testnet/transaction/0.0.8504300-1781403839-567406004)
+- Schedule proof: [HashScan schedule 0.0.9228236](https://hashscan.io/#/testnet/schedule/0.0.9228236)
+- Scheduled execution: [HashScan transaction 0.0.8504300-1781403839-567406004](https://hashscan.io/#/testnet/transaction/0.0.8504300-1781403839-567406004)
 - Booking `194`: Telegram approval completed a real testnet HBAR refund/release.
-- Refund/release: [HashScan transaction 0.0.8504300-1781404315-316217004](https://hashscan.io/testnet/transaction/0.0.8504300-1781404315-316217004)
+- Refund/release: [HashScan transaction 0.0.8504300-1781404315-316217004](https://hashscan.io/#/testnet/transaction/0.0.8504300-1781404315-316217004)
 
 Final automated regression also passed with fresh proof:
 
 - Main serial `196`, refund/release serial `197`, guardrail serial `198`.
-- E2E Schedule Service proof: [HashScan schedule 0.0.9228519](https://hashscan.io/testnet/schedule/0.0.9228519)
-- E2E scheduled execution: [HashScan transaction 0.0.8504300-1781406966-580404829](https://hashscan.io/testnet/transaction/0.0.8504300-1781406966-580404829)
+- E2E Schedule Service proof: [HashScan schedule 0.0.9228519](https://hashscan.io/#/testnet/schedule/0.0.9228519)
+- E2E scheduled execution: [HashScan transaction 0.0.8504300-1781406966-580404829](https://hashscan.io/#/testnet/transaction/0.0.8504300-1781406966-580404829)
 
 ## Reviewer Map
 

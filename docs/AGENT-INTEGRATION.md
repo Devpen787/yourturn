@@ -343,7 +343,7 @@ Example response for **book** or **buy_listing** (HTS transfer; `txId` is the NF
   "ok": true,
   "result": {
     "txId": "0.0.700001@1712232066.123456789",
-    "hashscanUrl": "https://hashscan.io/testnet/transaction/0.0.700001-1712232066-123456789"
+    "hashscanUrl": "https://hashscan.io/#/testnet/transaction/0.0.700001-1712232066-123456789"
   }
 }
 ```
@@ -365,7 +365,7 @@ Example response for **create_listing** (no HTS transfer in this MVP; `auditTxId
       "createdAt": "2026-04-04T12:00:00.000Z"
     },
     "auditTxId": "0.0.600001@1712232100.987654321",
-    "hashscanUrl": "https://hashscan.io/testnet/transaction/0.0.600001-1712232100-987654321"
+    "hashscanUrl": "https://hashscan.io/#/testnet/transaction/0.0.600001-1712232100-987654321"
   }
 }
 ```
@@ -395,9 +395,9 @@ Example response for **cancel_release**:
       "audit": "0.0.600001@1712232204.333333333"
     },
     "hashscanUrls": {
-      "transferToTreasury": "https://hashscan.io/testnet/transaction/0.0.700001-1712232200-111111111",
-      "burn": "https://hashscan.io/testnet/transaction/0.0.700001-1712232202-222222222",
-      "audit": "https://hashscan.io/testnet/transaction/0.0.600001-1712232204-333333333"
+      "transferToTreasury": "https://hashscan.io/#/testnet/transaction/0.0.700001-1712232200-111111111",
+      "burn": "https://hashscan.io/#/testnet/transaction/0.0.700001-1712232202-222222222",
+      "audit": "https://hashscan.io/#/testnet/transaction/0.0.600001-1712232204-333333333"
     },
     "refundHbar": 18
   }

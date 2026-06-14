@@ -1,5 +1,6 @@
 const base = () =>
-  process.env.NEXT_PUBLIC_HASHSCAN_BASE || "https://hashscan.io/testnet";
+  (process.env.NEXT_PUBLIC_HASHSCAN_BASE || "https://hashscan.io/#/testnet")
+    .replace("https://hashscan.io/testnet", "https://hashscan.io/#/testnet");
 
 export function getHashscanTxUrl(txId: string): string {
   const id = txId.includes("@") ? txId.replace("@", "-") : txId;

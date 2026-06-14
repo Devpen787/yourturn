@@ -57,8 +57,8 @@ Listing/recovery proof:
 - schedule id: `0.0.9228236`
 - scheduled execution tx: `0.0.8504300-1781403839-567406004`
 - scheduled execution timestamp: `1781403936.047653147`
-- schedule HashScan: https://hashscan.io/testnet/schedule/0.0.9228236
-- scheduled execution HashScan: https://hashscan.io/testnet/transaction/0.0.8504300-1781403839-567406004
+- schedule HashScan: https://hashscan.io/#/testnet/schedule/0.0.9228236
+- scheduled execution HashScan: https://hashscan.io/#/testnet/transaction/0.0.8504300-1781403839-567406004
 
 Refund/release proof:
 
@@ -68,7 +68,7 @@ Refund/release proof:
 - refund/release tx: `0.0.8504300@1781404315.316217004`
 - close/burn tx: `0.0.8504300@1781404320.752860402`
 - audit tx: `0.0.8504300@1781404320.697190583`
-- refund HashScan: https://hashscan.io/testnet/transaction/0.0.8504300-1781404315-316217004
+- refund HashScan: https://hashscan.io/#/testnet/transaction/0.0.8504300-1781404315-316217004
 
 ## Final Regression Proof
 
@@ -97,8 +97,8 @@ Result:
 - schedule create tx: `0.0.8504300@1781406966.580404829`
 - schedule status: `executed`
 - scheduled execution tx: `0.0.8504300-1781406966-580404829`
-- schedule HashScan: https://hashscan.io/testnet/schedule/0.0.9228519
-- scheduled execution HashScan: https://hashscan.io/testnet/transaction/0.0.8504300-1781406966-580404829
+- schedule HashScan: https://hashscan.io/#/testnet/schedule/0.0.9228519
+- scheduled execution HashScan: https://hashscan.io/#/testnet/transaction/0.0.8504300-1781406966-580404829
 
 Passed checks included:
 

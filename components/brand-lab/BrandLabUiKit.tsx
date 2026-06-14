@@ -153,7 +153,7 @@ export function BrandLabUiKit() {
           <LiveFeedback
             success="Booked. Confirmation is on-chain."
             successLink={{
-              href: "https://hashscan.io/testnet",
+              href: "https://hashscan.io/#/testnet",
               label: "View transaction on HashScan",
             }}
             error={null}
@@ -183,7 +183,7 @@ export function BrandLabUiKit() {
                 variant: "success",
                 message: "Listed on-chain.",
                 link: {
-                  href: "https://hashscan.io/testnet",
+                  href: "https://hashscan.io/#/testnet",
                   label: "View audit on HashScan",
                 },
               })
