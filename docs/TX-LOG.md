@@ -58,6 +58,10 @@ HashScan base (default): `https://hashscan.io/testnet`
 | **Telegram Concierge** Recovery listing audit | `0.0.8504300@1781403839.479174338` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1781403839-479174338) — Telegram command `approve listing ref 193` created active resale listing; ask `21` HBAR, owner royalty `2.1` HBAR, seller net `18.9` HBAR; receipt `bc9155e7-17dd-451d-8f4f-1ba56e4fb99f` |
 | **Telegram Concierge** Schedule create | `0.0.8504300@1781403839.567406004` | [HashScan tx](https://hashscan.io/testnet/transaction/0.0.8504300-1781403839-567406004), [schedule 0.0.9228236](https://hashscan.io/testnet/schedule/0.0.9228236) — Telegram-approved recovery listing created a budget-gated `0.01` HBAR scheduled payment proof for serial `193`; receipt includes `yourturn.recovery.confirm_listing` agent proof |
 | **Telegram Concierge** Scheduled execution | `0.0.8504300-1781403839-567406004` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1781403839-567406004) — Schedule `0.0.9228236` executed at `1781403936.047653147`; Telegram-originated recovery proof reached executed status |
+| **Telegram Concierge** Refund setup book (`POST /api/book`) | `0.0.8504300@1781404297.830036787` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1781404297-830036787) — setup for live Telegram refund/release demo booked serial `194` for Person A |
+| **Telegram Concierge** Real refund release | `0.0.8504300@1781404315.316217004` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1781404315-316217004) — Telegram command `approve refund ref 194` sent an `18` HBAR testnet refund and released the booking right back to treasury; receipt `143c5cee-8d08-468d-9f6e-d4f349857a08` |
+| **Telegram Concierge** Refund release close/burn | `0.0.8504300@1781404320.752860402` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1781404320-752860402) — serial `194` was closed after Telegram-approved release/refund; slot now reads `USED` with no holder |
+| **Telegram Concierge** Refund audit event | `0.0.8504300@1781404320.697190583` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1781404320-697190583) — HCS `CANCEL_RELEASED` audit event for serial `194`; receipt includes `yourturn.recovery.confirm_refund_release` agent proof |
 
 ## Demo-complete proof checks
 
@@ -80,7 +84,7 @@ Use these checks alongside the tx rows above:
 | Token on HashScan | [0.0.8505698](https://hashscan.io/testnet/token/0.0.8505698) |
 | Topic on HashScan | [0.0.8505699](https://hashscan.io/testnet/topic/0.0.8505699) |
 | Latest ETHGlobal Schedule proof | [0.0.9228236](https://hashscan.io/testnet/schedule/0.0.9228236) |
-| Latest **F7** refund/release proof | [0.0.8504300@1781397472.551738960](https://hashscan.io/testnet/transaction/0.0.8504300-1781397472-551738960) |
+| Latest **F7** refund/release proof | [0.0.8504300@1781404315.316217004](https://hashscan.io/testnet/transaction/0.0.8504300-1781404315-316217004) |
 
 ## How to capture
 
