@@ -258,6 +258,23 @@ For future events, keep reusable templates for:
 
 ## Bottom Line
 
+Future hackathon work should not restart from vibes, sponsor lists, or UI polish.
+
+Start with one proof chain:
+
+```txt
+user pain -> sponsor primitive -> proof object -> verifier -> live state change -> short demo
+```
+
+Then protect four truths until submission:
+
+- local truth
+- verification truth
+- deployment truth
+- public repo truth
+
+If those diverge, stop and reconcile before building more.
+
 The goal is not just to build fast.
 
 The goal is to build one real thing, prove it, present it cleanly, and avoid creating end-of-hackathon chaos that we already know how to prevent.
