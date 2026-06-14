@@ -27,6 +27,7 @@ The repo is a continuity submission, not a from-scratch repo. Pre-existing YourT
 | [TELEGRAM-OPENCLAW-SETUP.md](TELEGRAM-OPENCLAW-SETUP.md) | Telegram setup, command list, mutation gate, and OpenClaw/x402 boundaries. |
 | [CONTINUITY-PACKET.md](CONTINUITY-PACKET.md) | What existed before ETHGlobal and what was added during the continuity build. |
 | [SUBMISSION-CHECKLIST.md](SUBMISSION-CHECKLIST.md) | Final submission artifact checklist. |
+| [POSTMORTEM.md](POSTMORTEM.md) | Honest retrospective: what worked, what failed, and what should change before the next hackathon. |
 
 Root-level public docs:
 
@@ -36,6 +37,7 @@ Root-level public docs:
 - [../DEMO.md](../DEMO.md)
 - [../UI-MAP.md](../UI-MAP.md)
 - [../ARCHITECTURE.md](../ARCHITECTURE.md)
+- [../HACKATHON-OS.md](../HACKATHON-OS.md) — reusable operating system for future hackathon runs
 
 ## Primary Hedera Claims
 
