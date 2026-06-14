@@ -69,6 +69,7 @@ Start here:
 | [docs/UI-MAP.md](docs/UI-MAP.md) | Routes, APIs, components, and user journeys. |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System boundaries and Hedera integration architecture. |
 | [docs/ethglobal-nyc-2026/FINAL-PROOF-PACK.md](docs/ethglobal-nyc-2026/FINAL-PROOF-PACK.md) | Final proof ids, screenshots, commands, and honest gaps. |
+| [docs/ethglobal-nyc-2026/HEDERA-QUALIFICATION-DEFENSE.md](docs/ethglobal-nyc-2026/HEDERA-QUALIFICATION-DEFENSE.md) | Requirement-by-requirement Hedera qualification defense. |
 | [docs/ethglobal-nyc-2026/HEDERA-AGENT-KIT-INTEGRATION.md](docs/ethglobal-nyc-2026/HEDERA-AGENT-KIT-INTEGRATION.md) | Agent identity, Agent Kit runtime, HCS-14 id, tool manifest, and claim boundaries. |
 | [docs/ethglobal-nyc-2026/HEDERA-BOUNTY-MAP.md](docs/ethglobal-nyc-2026/HEDERA-BOUNTY-MAP.md) | Track-by-track qualification mapping. |
 

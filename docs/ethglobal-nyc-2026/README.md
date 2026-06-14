@@ -21,6 +21,7 @@ The repo is a continuity submission, not a from-scratch repo. Pre-existing YourT
 | [FINAL-PROOF-PACK.md](FINAL-PROOF-PACK.md) | Final proof ids, HashScan links, screenshots, verification commands, and honest gaps. |
 | [HEDERA-BOUNTY-MAP.md](HEDERA-BOUNTY-MAP.md) | Hedera track qualification mapping and claim rules. |
 | [HEDERA-BOUNTY-SCORECARD.md](HEDERA-BOUNTY-SCORECARD.md) | Current self-rating by Hedera bounty track. |
+| [HEDERA-QUALIFICATION-DEFENSE.md](HEDERA-QUALIFICATION-DEFENSE.md) | Requirement-by-requirement defense for Hedera reviewers. |
 | [HEDERA-AGENT-KIT-INTEGRATION.md](HEDERA-AGENT-KIT-INTEGRATION.md) | Agent identity, Agent Kit runtime adapter, HCS-14 id, tool manifest, policy gates, and claim boundaries. |
 | [CAPABILITY-STATUS.md](CAPABILITY-STATUS.md) | Current live, tested, and not-claimed capabilities. |
 | [TELEGRAM-OPENCLAW-SETUP.md](TELEGRAM-OPENCLAW-SETUP.md) | Telegram setup, command list, mutation gate, and OpenClaw/x402 boundaries. |
@@ -45,6 +46,8 @@ Root-level public docs:
 Supporting:
 
 - **Tokenization on Hedera**: booked service slots are HTS NFT rights with lifecycle operations.
+
+For the requirement-by-requirement defense, see [HEDERA-QUALIFICATION-DEFENSE.md](HEDERA-QUALIFICATION-DEFENSE.md).
 
 ## Final Proof Anchors
 

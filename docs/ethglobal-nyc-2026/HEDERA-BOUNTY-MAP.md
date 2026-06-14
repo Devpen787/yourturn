@@ -155,11 +155,14 @@ Final full regression evidence from 2026-06-14:
 - listing receipt id: `6351521d-13e2-4973-9d33-08eb521fa1ca`
 - refund receipt id: `fb0e38dd-9ed8-4d93-9bd8-82abbaa8f7aa`
 
-## Mentor questions
+## Final reviewer checklist
 
-Ask Hedera or ETHGlobal mentors before final submission:
+Before judging the Hedera tracks, reviewers can verify:
 
-1. Does a scheduled cancel/release or refund flow satisfy the Automation track if it schedules a token transfer or token-state operation?
-2. For AI & Agentic Payments, is direct Hedera SDK usage by a bounded agent enough, or do they strongly prefer Hedera Agent Kit/OpenClaw/x402/A2A?
-3. Does a booking-right resale/list/release qualify as a "financial operation" for the agentic track?
-4. Can the same Continuity submission be considered for the non-continuity Hedera tracks if the new feature satisfies those requirements?
+1. Automation: the proof packet includes executed Hedera Schedule Service ids and HashScan links.
+2. Agentic payments: the Concierge receipt includes tool id, policy checks, approval id, and Hedera proof outputs.
+3. Native services: the proof path uses HTS, HCS, Schedule Service, Mirror Node, HashScan, and the Hedera SDK without Solidity.
+4. Tokenization: the booking right is an HTS NFT serial with visible lifecycle operations.
+5. Boundaries: OpenClaw ACP, x402, wallet-funded budgets, and production fiat refunds are not presented as live.
+
+For a concise requirement-by-requirement defense, see `HEDERA-QUALIFICATION-DEFENSE.md`.
