@@ -31,7 +31,7 @@ Root-level public docs:
 
 - [../../README.md](../../README.md)
 - [../SUBMISSION.md](../SUBMISSION.md)
-- [../FINAL-DEMO-SCRIPT.md](../FINAL-DEMO-SCRIPT.md)
+- [../FINAL-DEMO-SCRIPT.md](../FINAL-DEMO-SCRIPT.md) — public recording checklist, not the private narration script
 - [../DEMO.md](../DEMO.md)
 - [../UI-MAP.md](../UI-MAP.md)
 - [../ARCHITECTURE.md](../ARCHITECTURE.md)

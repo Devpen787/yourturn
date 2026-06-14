@@ -163,7 +163,7 @@ Small, high-leverage UI/copy notes to keep in mind before demo recording:
 |--------|--------|-----|
 | **Resale “dead state” layout** | `ResaleClient` on `/resale/[serial]` | Fixed for terminal and policy-blocked states: manual **List** / **Buy** controls are hidden when the page has a resale block reason, and the page shows **No manual resale action available** instead. |
 | **Unknown or retired serial** | Same | For refs outside the live inventory (e.g. after **Start over**), status lines can read like “nothing to resell yet” instead of “this ref is not in the current demo schedule.” Tighten wording to match `IssuerPanel`’s “not in the current session list” idea. |
-| **Cross-role slot detail** | `/slots/[serial]` | Issuer sessions cannot open guest slot detail without switching to a guest account (`/login?need=user`). Document in demo script; optional future: read-only issuer peek (out of current scope). |
+| **Cross-role slot detail** | `/slots/[serial]` | Issuer sessions cannot open guest slot detail without switching to a guest account (`/login?need=user`). Document in demo docs; optional future: read-only issuer peek (out of current scope). |
 | **Mirror / Redis lag** | Browse, hub, resale | A single “Refresh” or “state updates after chain” hint on resale after buy/list can reduce judge confusion. |
 
 ## Surface split

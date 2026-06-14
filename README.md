@@ -64,7 +64,7 @@ Start here:
 | File | Why it matters |
 | --- | --- |
 | [docs/SUBMISSION.md](docs/SUBMISSION.md) | ETHGlobal submission worksheet and final copy. |
-| [docs/FINAL-DEMO-SCRIPT.md](docs/FINAL-DEMO-SCRIPT.md) | 2-4 minute demo path. |
+| [docs/FINAL-DEMO-SCRIPT.md](docs/FINAL-DEMO-SCRIPT.md) | Public recording checklist for the 2-4 minute demo. |
 | [docs/DEMO.md](docs/DEMO.md) | Full operator runbook and route flow. |
 | [docs/UI-MAP.md](docs/UI-MAP.md) | Routes, APIs, components, and user journeys. |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System boundaries and Hedera integration architecture. |

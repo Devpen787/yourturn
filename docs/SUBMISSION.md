@@ -81,7 +81,7 @@ The pasted example copy about state channels, exchange onramp/offramp, MobX, Rus
 - Requirement: `minimum 280 characters`
 - Draft: `YourTurn turns a booked service slot into a controlled, transferable pass and gives customers a Concierge recovery path when they cannot attend. A provider sets the session and recovery policy, Person A books the slot, and YourTurn Concierge can help list the pass for resale or complete a policy-gated release/refund after human approval. The ETHGlobal build uses Hedera native services to prove the lifecycle: HTS for booking-right NFTs, HCS for audit messages, Schedule Service for an executed recovery payment proof, Mirror/HashScan for verification, and a Hedera Agent Kit-style runtime/manifest for bounded agent tools and policy checks. The user sees a normal booking and Telegram flow; judges can inspect the receipts, schedule ids, transaction ids, and agent capability endpoints.`
 - Final: `YourTurn turns a booked service slot into a controlled, transferable pass and gives customers a Concierge recovery path when they cannot attend. A provider sets the session and recovery policy, Person A books the slot, and YourTurn Concierge can help list the pass for resale or complete a policy-gated release/refund after human approval. The ETHGlobal build uses Hedera native services to prove the lifecycle: HTS for booking-right NFTs, HCS for audit messages, Schedule Service for an executed recovery payment proof, Mirror/HashScan for verification, and a Hedera Agent Kit-style runtime/manifest for bounded agent tools and policy checks. The user sees a normal booking and Telegram flow; judges can inspect the receipts, schedule ids, transaction ids, and agent capability endpoints.`
-- Notes: Anchored to `docs/SPEC.md`, `docs/DEMO.md`, `docs/FINAL-DEMO-SCRIPT.md`, and `docs/ethglobal-nyc-2026/FINAL-PROOF-PACK.md`.
+- Notes: Anchored to `docs/SPEC.md`, `docs/DEMO.md`, the public recording checklist in `docs/FINAL-DEMO-SCRIPT.md`, and `docs/ethglobal-nyc-2026/FINAL-PROOF-PACK.md`.
 
 **How it's made**
 
@@ -228,10 +228,10 @@ The pasted example copy about state channels, exchange onramp/offramp, MobX, Rus
   - `2 to 4 minutes`
   - `minimum 720p`
   - `audio without music`
-- Status: `script prepared; video still needs recording/upload`
+- Status: `public recording checklist prepared; private narration stays outside the public repo; video still needs recording/upload`
 - Local file path: `TBD`
 - Uploaded asset: `TBD`
-- Notes: Use `docs/FINAL-DEMO-SCRIPT.md` and `docs/DEMO-RECORDING-CHECKLIST.md`. Keep it between 2 and 4 minutes, 720p or better, with spoken audio and no background music. Lead with the human recovery story, then show Hedera proof.
+- Notes: Use the public recording checklist in `docs/FINAL-DEMO-SCRIPT.md` and `docs/DEMO-RECORDING-CHECKLIST.md`. Keep it between 2 and 4 minutes, 720p or better, with spoken audio and no background music. Lead with the human recovery story, then show Hedera proof.
 
 ### Future opportunities
 

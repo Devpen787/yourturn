@@ -50,7 +50,7 @@ Final proof pack:
 
 - `docs/ethglobal-nyc-2026/FINAL-PROOF-PACK.md`
 - local screenshot evidence: `output/ethglobal-final-proof/screenshots/`
-- final demo script: `docs/FINAL-DEMO-SCRIPT.md`
+- public demo recording checklist: `docs/FINAL-DEMO-SCRIPT.md`
 - final submission worksheet: `docs/SUBMISSION.md`
 
 Latest final regression proof from 2026-06-14:
