@@ -14,5 +14,13 @@ export type LifecycleEvent = {
   priceHbar?: number;
   refundHbar?: number;
   txId?: string;
+  agentProof?: {
+    agentName: string;
+    agentVersion: string;
+    manifestVersion: string;
+    toolId: string;
+    approvalId?: string;
+    proofType: "agent_policy_approved_action";
+  };
   timestamp: string;
 };

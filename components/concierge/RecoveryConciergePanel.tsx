@@ -6,6 +6,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { LiveFeedback } from "@/components/ui/LiveFeedback";
 import { RecoveryProofCard } from "@/components/proof/RecoveryProofCard";
 import { calcRoyalty, calcSellerNet } from "@/lib/domain/fees";
+import type { HederaAgentProof } from "@/lib/hedera-agent-kit/agent-proof";
 import type { ConciergeAgentTrace, ScheduleAutomationProof } from "@/lib/types/automation";
 import type { RecoveryProofDetails } from "@/lib/types/recovery-proof";
 import { cn } from "@/lib/cn";
@@ -87,6 +88,7 @@ type RecoveryReceipt = {
   policyBasis: string;
   scheduleProof?: ScheduleAutomationProof;
   agentTrace?: ConciergeAgentTrace;
+  agentProof?: HederaAgentProof;
 };
 
 function personLabel(actor: Actor): string {
@@ -199,6 +201,7 @@ export function RecoveryConciergePanel({
         policyBasis: receipt.policyBasis,
         scheduleProof: receipt.scheduleProof,
         agentTrace: receipt.agentTrace,
+        agentProof: receipt.agentProof,
         occurredAt: receipt.createdAt,
       }
     : null;

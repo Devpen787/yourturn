@@ -140,6 +140,20 @@ export function RecoveryProofCard({
             mono
           />
         ) : null}
+        {proof.agentProof ? (
+          <ProofFact
+            label="Agent manifest"
+            value={proof.agentProof.manifestVersion}
+            mono
+          />
+        ) : null}
+        {proof.agentProof ? (
+          <ProofFact
+            label="Agent proof tool"
+            value={proof.agentProof.toolId}
+            mono
+          />
+        ) : null}
       </dl>
 
       {href ? (
@@ -202,6 +216,33 @@ export function RecoveryProofCard({
               <li key={`${step.label}-${step.status}`}>
                 <span className="font-semibold">{step.label}:</span>{" "}
                 {step.detail}
+              </li>
+            ))}
+          </ol>
+        </details>
+      ) : null}
+      {proof.agentProof ? (
+        <details className="mt-3 rounded-lg border border-sky-100 bg-sky-50/70 p-3 text-xs text-sky-950">
+          <summary className="cursor-pointer font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus focus-visible:ring-offset-2">
+            Hedera Agent Kit proof
+          </summary>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            <ProofFact label="Agent" value={`${proof.agentProof.agentName} ${proof.agentProof.agentVersion}`} />
+            <ProofFact label="Tool" value={proof.agentProof.toolId} mono />
+            <ProofFact label="Mode" value={proof.agentProof.executionMode} />
+            <ProofFact
+              label="Hedera services"
+              value={proof.agentProof.hederaServices.join(", ")}
+            />
+          </div>
+          <ol className="mt-3 space-y-2">
+            {proof.agentProof.policyChecks.map((check) => (
+              <li key={check.id}>
+                <span className="font-semibold">
+                  {check.status === "passed" ? "Passed" : "Blocked"} ·{" "}
+                  {check.label}:
+                </span>{" "}
+                {check.detail}
               </li>
             ))}
           </ol>

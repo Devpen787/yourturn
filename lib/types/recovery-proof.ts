@@ -1,5 +1,6 @@
 import type { OwnerPolicySnapshot } from "@/lib/policy/policy";
 import type { ConciergeAgentTrace, ScheduleAutomationProof } from "@/lib/types/automation";
+import type { HederaAgentProof } from "@/lib/hedera-agent-kit/agent-proof";
 
 export type RecoveryProofDetails = {
   title: string;
@@ -25,5 +26,6 @@ export type RecoveryProofDetails = {
   policySnapshot?: OwnerPolicySnapshot;
   scheduleProof?: ScheduleAutomationProof;
   agentTrace?: ConciergeAgentTrace;
+  agentProof?: HederaAgentProof;
   occurredAt?: string;
 };

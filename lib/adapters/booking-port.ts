@@ -1,6 +1,11 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { calcRoyalty, calcSellerNet } from "@/lib/domain/fees";
 import { canBook, canResell } from "@/lib/domain/guards";
+import {
+  YOURTURN_AGENT_NAME,
+  YOURTURN_AGENT_VERSION,
+  YOURTURN_TOOL_MANIFEST_VERSION,
+} from "@/lib/hedera-agent-kit/tool-manifest";
 import { submitLifecycleEvent } from "@/lib/hedera/consensus";
 import {
   accountsEqual,
@@ -480,6 +485,7 @@ async function executeCreateListing(input: {
   seller: BookingActorRef;
   serial: number;
   askPriceHbar: number;
+  approvalId?: string;
 }): Promise<{
   listing: ResaleListingView;
   auditTxId: string;
@@ -502,6 +508,16 @@ async function executeCreateListing(input: {
     serial: prepared.serial,
     from: prepared.sellerAccountId,
     priceHbar: prepared.askPriceHbar,
+    agentProof: input.approvalId
+      ? {
+          agentName: YOURTURN_AGENT_NAME,
+          agentVersion: YOURTURN_AGENT_VERSION,
+          manifestVersion: YOURTURN_TOOL_MANIFEST_VERSION,
+          toolId: "yourturn.recovery.confirm_listing",
+          approvalId: input.approvalId,
+          proofType: "agent_policy_approved_action",
+        }
+      : undefined,
     timestamp: new Date().toISOString(),
   });
   return {
@@ -785,6 +801,7 @@ async function prepareCancelRelease(input: {
 async function executeCancelRelease(input: {
   holder: BookingActorRef;
   serial: number;
+  approvalId?: string;
 }): Promise<{
   txIds: {
     transferToTreasury: string;
@@ -825,6 +842,16 @@ async function executeCancelRelease(input: {
     txId: transferTxId,
     priceHbar: prepared.slot.primaryPriceHbar,
     refundHbar: prepared.refundHbar,
+    agentProof: input.approvalId
+      ? {
+          agentName: YOURTURN_AGENT_NAME,
+          agentVersion: YOURTURN_AGENT_VERSION,
+          manifestVersion: YOURTURN_TOOL_MANIFEST_VERSION,
+          toolId: "yourturn.recovery.confirm_refund_release",
+          approvalId: input.approvalId,
+          proofType: "agent_policy_approved_action",
+        }
+      : undefined,
     timestamp: new Date().toISOString(),
   });
   return {
@@ -943,7 +970,10 @@ export function createBookingPort(): BookingPort {
           400
         );
       }
-      return executeCreateListing(preview.input);
+      return executeCreateListing({
+        ...preview.input,
+        approvalId: input.approval.approvalId,
+      });
     },
 
     async previewBuyListing(input) {
@@ -1071,7 +1101,10 @@ export function createBookingPort(): BookingPort {
           400
         );
       }
-      return executeCancelRelease(preview.input);
+      return executeCancelRelease({
+        ...preview.input,
+        approvalId: input.approval.approvalId,
+      });
     },
   };
 }

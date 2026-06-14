@@ -8,6 +8,8 @@ import {
   buildRecoveryPaymentAgentTrace,
   buildRefundReleaseAgentTrace,
 } from "@/lib/agent/concierge-agent";
+import { buildHederaAgentProof } from "@/lib/hedera-agent-kit/agent-proof";
+import { evaluateYourTurnAgentPolicies } from "@/lib/hedera-agent-kit/policies";
 import {
   enforceLockedGuestActor,
   requireGuestAppUser,
@@ -71,6 +73,7 @@ export async function POST(req: Request) {
       approvedBy: grant.claims.approvedBy,
       approvedAt: grant.claims.approvedAt,
       source: grant.claims.source,
+      approvalId: grant.claims.grantId,
     } as const;
     if (preview.action === "cancel_release") {
       const result = await bookingPort.confirmCancelRelease({
@@ -78,6 +81,28 @@ export async function POST(req: Request) {
         approval,
       });
       const releaseHashscanUrl = result.hashscanUrls.transferToTreasury ?? undefined;
+      const policyChecks = evaluateYourTurnAgentPolicies({
+        toolId: "yourturn.recovery.confirm_refund_release",
+        slot,
+        actorAccountId,
+        refundHbar: result.refundHbar,
+        approvalId: grant.claims.grantId,
+      });
+      const agentProof = buildHederaAgentProof({
+        toolId: "yourturn.recovery.confirm_refund_release",
+        approvalId: grant.claims.grantId,
+        policyChecks,
+        createdAt,
+        proofOutputs: {
+          serial: preview.serial,
+          refundHbar: result.refundHbar,
+          releaseTxId: result.txIds.transferToTreasury,
+          burnTxId: result.txIds.burn,
+          auditTxId: result.txIds.audit,
+          releaseHashscanUrl,
+          burnHashscanUrl: result.hashscanUrls.burn,
+        },
+      });
       const agentTrace = buildRefundReleaseAgentTrace({
         serial: preview.serial,
         intent:
@@ -115,6 +140,7 @@ export async function POST(req: Request) {
         policyBasis: `${slot.policySnapshot.label} (${slot.policySnapshot.snapshotId})`,
         policySnapshot: slot.policySnapshot,
         agentTrace,
+        agentProof,
         policyBasisRaw: {
           releaseAllowed: slot.policySnapshot.releaseAllowed,
           ownerRoyaltyPercent: slot.policySnapshot.ownerRoyaltyPercent,
@@ -158,11 +184,37 @@ export async function POST(req: Request) {
       amountHbar: scheduleProof.amountHbar,
       scheduleId: scheduleProof.scheduleId,
     });
+    const policyChecks = evaluateYourTurnAgentPolicies({
+      toolId: "yourturn.recovery.confirm_listing",
+      slot,
+      actorAccountId,
+      askPriceHbar: result.listing.askPriceHbar,
+      approvalId: grant.claims.grantId,
+      scheduleSerial: preview.serial,
+    });
+    const agentProof = buildHederaAgentProof({
+      toolId: "yourturn.recovery.confirm_listing",
+      approvalId: grant.claims.grantId,
+      policyChecks,
+      createdAt,
+      proofOutputs: {
+        serial: preview.serial,
+        askPriceHbar: result.listing.askPriceHbar,
+        royaltyHbar: result.listing.royaltyHbar,
+        sellerNetHbar: result.listing.sellerNetHbar,
+        auditTxId: result.auditTxId,
+        scheduleId: scheduleProof.scheduleId,
+        scheduledTransactionId: scheduleProof.scheduledTransactionId,
+        createTxId: scheduleProof.createTxId,
+        scheduleHashscanUrl: scheduleProof.scheduleHashscanUrl,
+      },
+    });
     await upsertAutomationProof({
       serial: preview.serial,
       actor: parsed.data.actor,
       scheduleProof,
       agentTrace,
+      agentProof,
       createdAt,
     });
     const receipt = {
@@ -189,6 +241,7 @@ export async function POST(req: Request) {
       policySnapshot: slot.policySnapshot,
       scheduleProof,
       agentTrace,
+      agentProof,
       policyBasisRaw: {
         resaleAllowed: slot.policySnapshot.resaleAllowed,
         ownerRoyaltyPercent: slot.policySnapshot.ownerRoyaltyPercent,

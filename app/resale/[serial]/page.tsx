@@ -176,6 +176,7 @@ export default async function ResalePage({
           ...initialProof,
           scheduleProof: automationProof.scheduleProof,
           agentTrace: automationProof.agentTrace,
+          agentProof: automationProof.agentProof,
         };
       }
     } catch {

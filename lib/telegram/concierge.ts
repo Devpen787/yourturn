@@ -1,5 +1,7 @@
 import { bookingPort } from "@/lib/adapters/booking-port";
 import { buildRefundReleaseAgentTrace } from "@/lib/agent/concierge-agent";
+import { buildHederaAgentProof } from "@/lib/hedera-agent-kit/agent-proof";
+import { evaluateYourTurnAgentPolicies } from "@/lib/hedera-agent-kit/policies";
 import { getActorCredentials } from "@/lib/hedera/client";
 import { mintApprovalGrant } from "@/lib/server/approval-grants";
 import { upsertRecoveryReceipt } from "@/lib/store/recovery-receipts";
@@ -153,10 +155,34 @@ async function approveRefund(
       approvedBy: grant.claims.approvedBy,
       approvedAt: grant.claims.approvedAt,
       source: grant.claims.source,
+      approvalId: grant.claims.grantId,
     },
   });
   const actorAccountId = getActorCredentials(actor).accountId.toString();
   const releaseHashscanUrl = result.hashscanUrls.transferToTreasury ?? undefined;
+  const createdAt = new Date().toISOString();
+  const policyChecks = evaluateYourTurnAgentPolicies({
+    toolId: "yourturn.recovery.confirm_refund_release",
+    slot,
+    actorAccountId,
+    refundHbar: result.refundHbar,
+    approvalId: grant.claims.grantId,
+  });
+  const agentProof = buildHederaAgentProof({
+    toolId: "yourturn.recovery.confirm_refund_release",
+    approvalId: grant.claims.grantId,
+    policyChecks,
+    createdAt,
+    proofOutputs: {
+      serial,
+      refundHbar: result.refundHbar,
+      releaseTxId: result.txIds.transferToTreasury,
+      burnTxId: result.txIds.burn,
+      auditTxId: result.txIds.audit,
+      releaseHashscanUrl,
+      burnHashscanUrl: result.hashscanUrls.burn,
+    },
+  });
   const trace = buildRefundReleaseAgentTrace({
     serial,
     intent: "Telegram Concierge approval to release booking and return value.",
@@ -188,11 +214,12 @@ async function approveRefund(
     hashscanUrl: releaseHashscanUrl,
     releaseHashscanUrl,
     burnHashscanUrl: result.hashscanUrls.burn,
-    createdAt: new Date().toISOString(),
-    occurredAt: new Date().toISOString(),
+    createdAt,
+    occurredAt: createdAt,
     policyBasis: `${slot.policySnapshot.label} (${slot.policySnapshot.snapshotId})`,
     policySnapshot: slot.policySnapshot,
     agentTrace: trace,
+    agentProof,
   };
   await upsertRecoveryReceipt(receipt, "telegram_cancel_release_refund");
   return {

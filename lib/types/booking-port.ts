@@ -24,6 +24,7 @@ export type ApprovalProof = {
   approvedBy: string;
   approvedAt: string;
   source: "ui_click" | "agent_handoff" | "api_client";
+  approvalId?: string;
 };
 
 export type SlotStatus = "AVAILABLE" | "HELD" | "FROZEN" | "USED";

@@ -10,6 +10,7 @@
     "lint": "next lint",
     "ethglobal:preflight": "node scripts/ethglobal-preflight.mjs",
     "ethglobal:e2e": "node scripts/ethglobal-e2e.mjs",
+    "hedera:agent-check": "NODE_OPTIONS=--no-warnings node scripts/hedera-agent-check.mjs",
     "telegram:fixture": "node scripts/telegram-fixture-test.mjs",
     "docs:brand-appendix": "node scripts/generate-brand-ui-appendix.mjs"
   },

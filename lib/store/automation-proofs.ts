@@ -1,4 +1,5 @@
 import type { ConciergeAgentTrace, ScheduleAutomationProof } from "@/lib/types/automation";
+import type { HederaAgentProof } from "@/lib/hedera-agent-kit/agent-proof";
 import { getRedis, REDIS_KEYS } from "./redis";
 
 export type AutomationProofRecord = {
@@ -7,6 +8,7 @@ export type AutomationProofRecord = {
   actor: "guestA" | "guestB";
   scheduleProof: ScheduleAutomationProof;
   agentTrace: ConciergeAgentTrace;
+  agentProof?: HederaAgentProof;
   createdAt: string;
 };
 
