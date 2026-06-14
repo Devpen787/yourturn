@@ -1,102 +1,152 @@
-# Booked Rights
+# YourTurn
 
-Booked Rights turns a service booking into a transferable right under issuer rules.
+YourTurn turns a booked service slot into a controlled, transferable pass on Hedera. Providers keep policy control; customers get a Concierge recovery path when they cannot attend.
 
-This repo is the **canonical** source for the hack build. Product, build, and demo decisions live in `docs/` (see [Repo map](#repo-map) below). The full agent-oriented build checklist remains in `docs/booked-rights-build-spec.txt` (unchanged).
+This repository is the public ETHGlobal NYC 2026 continuity submission for the Hedera build.
 
-## Current product frame
+Public demo: [https://yourturn-sage.vercel.app](https://yourturn-sage.vercel.app)
 
-**Hero customer:** SMB services and classes (studios, coaching, therapy-style sessions).
+## What We Built For ETHGlobal
 
-**Hero problem:** Someone booked a slot, cannot make it, and wants to transfer or resell without heavy manual coordination, while the issuer keeps rules and economics.
+The ETHGlobal delta is **YourTurn Concierge**:
 
-## Locked technical direction
+1. A provider creates service slots and recovery policy.
+2. Person A books a slot represented as an HTS NFT booking right.
+3. If Person A cannot attend, Concierge checks holder state and provider policy.
+4. Concierge recommends a recovery action, asks for explicit human approval, and executes through the same server-side Hedera paths as the app.
+5. The app returns receipts with Hedera transaction ids, HashScan links, Agent Kit proof fields, and Schedule Service proof where applicable.
 
-- **Primary track:** Hedera [No Solidity Allowed](https://ethglobal.com/events/cannes2026/prizes)
-- **On-chain services in the runnable MVP:** **HTS + HCS** + **Mirror Node REST** (reads), **no Solidity**, **`@hashgraph/sdk` only** from Node.js API routes — see `docs/ARCHITECTURE.md` and `docs/booked-rights-build-spec.txt`
-- **No autonomous signing** in product vision: demo app uses server-side keys + actor selector (not wallet); value-moving txs are explicit user clicks
+Primary live flows:
 
-## Must-ship build scope (product slices)
+- Tokenized booking rights with HTS NFT serials.
+- Resale listing and resale purchase with issuer royalty.
+- Telegram Concierge preview and approval for recovery listing.
+- Telegram Concierge approval for a real testnet HBAR refund/release.
+- Hedera Schedule Service proof for an approved recovery payment.
+- HCS audit events, Mirror Node reads, HashScan verification, and no Solidity in the proof path.
 
-- **F1** Primary booking  
-- **F2** Transfer or resale with issuer royalty  
-- **F4** Mark used  
+## Hedera Tracks
 
-**Strong next layer:** F3 freeze/unfreeze (already in current MVP), F7 cancel/refund (out of MVP).
+Primary tracks:
 
-## Product rules (locked)
+- **Autonomous On-Chain Automation Platform**: recovery listing creates and exposes an executed Hedera Schedule Service proof.
+- **AI & Agentic Payments on Hedera**: bounded Concierge applies policy, requires human approval, and executes Hedera financial/token lifecycle actions.
+- **"No Solidity Allowed" - Build with Hedera SDKs**: implementation uses Hedera SDK/native services, not Solidity.
 
-- Issuer earns on secondary resale where policy allows  
-- Plain language: booking, slot, transfer, resale, rebook, refund  
-- Do not lead user-facing hero copy with “NFT” in the first line  
+Supporting story:
 
-## Runnable app (merged)
+- **Tokenization on Hedera**: booking rights are HTS NFT serials with lifecycle operations.
 
-**Next.js 14** App Router demo: `npm install` → `npm run dev` → `/issuer` Initialize + Mint, then `/slots`, `/resale/[serial]`, etc.
+Current scorecard: [docs/ethglobal-nyc-2026/HEDERA-BOUNTY-SCORECARD.md](docs/ethglobal-nyc-2026/HEDERA-BOUNTY-SCORECARD.md)
+
+## Proof Links
+
+Final proof packet: [docs/ethglobal-nyc-2026/FINAL-PROOF-PACK.md](docs/ethglobal-nyc-2026/FINAL-PROOF-PACK.md)
+
+Key final Telegram proofs:
+
+- Booking `193`: Telegram approval listed the pass and created Schedule Service proof `0.0.9228236`.
+- Schedule proof: [HashScan schedule 0.0.9228236](https://hashscan.io/testnet/schedule/0.0.9228236)
+- Scheduled execution: [HashScan transaction 0.0.8504300-1781403839-567406004](https://hashscan.io/testnet/transaction/0.0.8504300-1781403839-567406004)
+- Booking `194`: Telegram approval completed a real testnet HBAR refund/release.
+- Refund/release: [HashScan transaction 0.0.8504300-1781404315-316217004](https://hashscan.io/testnet/transaction/0.0.8504300-1781404315-316217004)
+
+Final automated regression also passed with fresh proof:
+
+- Main serial `196`, refund/release serial `197`, guardrail serial `198`.
+- E2E Schedule Service proof: [HashScan schedule 0.0.9228519](https://hashscan.io/testnet/schedule/0.0.9228519)
+- E2E scheduled execution: [HashScan transaction 0.0.8504300-1781406966-580404829](https://hashscan.io/testnet/transaction/0.0.8504300-1781406966-580404829)
+
+## Reviewer Map
+
+Start here:
+
+| File | Why it matters |
+| --- | --- |
+| [docs/SUBMISSION.md](docs/SUBMISSION.md) | ETHGlobal submission worksheet and final copy. |
+| [docs/FINAL-DEMO-SCRIPT.md](docs/FINAL-DEMO-SCRIPT.md) | 2-4 minute demo path. |
+| [docs/DEMO.md](docs/DEMO.md) | Full operator runbook and route flow. |
+| [docs/UI-MAP.md](docs/UI-MAP.md) | Routes, APIs, components, and user journeys. |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System boundaries and Hedera integration architecture. |
+| [docs/ethglobal-nyc-2026/FINAL-PROOF-PACK.md](docs/ethglobal-nyc-2026/FINAL-PROOF-PACK.md) | Final proof ids, screenshots, commands, and honest gaps. |
+| [docs/ethglobal-nyc-2026/HEDERA-AGENT-KIT-INTEGRATION.md](docs/ethglobal-nyc-2026/HEDERA-AGENT-KIT-INTEGRATION.md) | Agent identity, Agent Kit runtime, HCS-14 id, tool manifest, and claim boundaries. |
+| [docs/ethglobal-nyc-2026/HEDERA-BOUNTY-MAP.md](docs/ethglobal-nyc-2026/HEDERA-BOUNTY-MAP.md) | Track-by-track qualification mapping. |
+
+Agent endpoints when the app is running:
+
+- [GET `/.well-known/agent.json`](https://yourturn-sage.vercel.app/.well-known/agent.json)
+- [GET `/api/agent/capabilities`](https://yourturn-sage.vercel.app/api/agent/capabilities)
+
+## Run Locally
 
 ```bash
 npm install
+cp .env.example .env.local
 npm run dev
-npm run build
-npm run lint
 ```
 
-Copy `.env.example` → `.env.local` (Hedera accounts, Upstash Redis, optional reuse `BOOKED_RIGHTS_*`). Deploy on **Vercel** with the same vars.
+Open:
 
-If you are integrating another backend or agent, see `docs/AGENT-INTEGRATION.md` and set dedicated approval secrets for `/api/agent/approval-grant`.
+- `http://localhost:3000/login`
+- Demo issuer: prepares provider slots.
+- Demo user A: books and recovers a pass.
+- Demo user B: buys a listed pass.
 
-### Implementation notes
+Required environment values are listed in [.env.example](.env.example). The live demo uses Hedera testnet accounts, Upstash Redis, and optional Telegram bot settings.
 
-- **Royalty:** numerator **1** / denominator **10** (10%), no fallback fee — enforced by **HTS `CustomRoyaltyFee`** on resale (buyer pays seller full ask + NFT transfer in one tx); `lib/domain/fees.ts` is for **UI preview** only  
-- **Redis keys:** `bookedrights:tokenId`, `bookedrights:topicId`, `bookedrights:slots`, `bookedrights:listings`, `bookedrights:recoveryReceipts`, `bookedrights:automationProofs`  
-- **Agent approval secrets:** set `BOOKED_RIGHTS_APPROVAL_SECRET` and `BOOKED_RIGHTS_APPROVAL_ADMIN_SECRET` for `/api/agent/*` integrations  
-- **Node:** `pino@8.17.2` override for Node 18 `next build`; Node 20+ recommended  
+## Verification
 
-### Local smoke path
+Final verification commands:
 
-1. `/issuer` → **Initialize** → **Mint Demo Slots**  
-2. As **Person A** (`guestA` underneath), book one live serial from `/slots`  
-3. List resale on `/resale/[serial]`, buy as **Person B** (`guestB`), then issuer **Freeze** / **Unfreeze** / **Redeem / Mark used** as needed  
+```bash
+npm run ethglobal:preflight
+npm run hedera:agent-check
+npm run telegram:fixture
+npm run ethglobal:e2e
+npm run build
+```
 
-## Repo map
+What they check:
 
-| Doc | Purpose |
-|-----|---------|
-| `docs/SPEC.md` | Canonical working spec / paste-in surface |
-| `docs/DECISIONS.md` | Locked decisions |
-| `docs/TASKS.md` | Living build checklist |
-| `docs/ARCHITECTURE.md` | System boundaries, Hedera usage |
-| `docs/AGENT-INTEGRATION.md` | How another backend or agent should call `/api/agent/*` |
-| `docs/DEMO.md` | Demo order and stage rules |
-| `docs/INTERNAL.md` | Convention for **local-only** notes (`docs/internal/`, gitignored) |
-| `docs/TX-LOG.md` | Testnet tx ids + HashScan |
-| `docs/booked-rights-build-spec.txt` | Full agent V1 instructions (original) |
-| `AGENTS.md` | Agent / automation notes |
+- `ethglobal:preflight`: public docs, final proof packet, claim boundaries, and no Solidity files.
+- `hedera:agent-check`: Agent Kit runtime adapter, HCS-14 identity, capability descriptors, policy gates, approval requirements, and budget guardrails.
+- `telegram:fixture`: Telegram parser and dry-run mutation safety.
+- `ethglobal:e2e`: live app flow against Hedera testnet and Redis demo state.
+- `build`: production Next.js build.
 
-GitHub **issue** and **PR** templates live under `.github/`.
+## Claim Boundaries
 
-## Repo discipline
+Live and claimed:
 
-- Keep the repo scoped to this hack  
-- Prefer coherent slices on `main` with a verification path  
-- Coordinate before parallel edits to **shared glue**: `README.md`, `.env.example`, future `BookingPort` / adapters, lockfile  
+- HTS booking-right NFTs.
+- HCS audit events.
+- Hedera Schedule Service recovery payment proof.
+- Real testnet HBAR refund/release.
+- Mirror Node and HashScan verification.
+- Hedera Agent Kit runtime/manifest alignment.
+- Telegram Concierge as a mutation-gated transport.
 
-## Submission proof (fill as you ship)
+Not claimed as live:
 
-- Deployed URL: _TBD_  
-- Testnet token id: `0.0.8505698`  
-- Topic id: `0.0.8505699`  
-- Treasury / demo accounts: treasury `0.0.8504300`, Person A `0.0.8504405`, Person B `0.0.8504715`  
-- HashScan links: [token](https://hashscan.io/testnet/token/0.0.8505698), [topic](https://hashscan.io/testnet/topic/0.0.8505699), [F1 book](https://hashscan.io/testnet/transaction/0.0.8504300-1775311056.646893028), [F2 resale buy](https://hashscan.io/testnet/transaction/0.0.8504300-1775311076.681678722), [F4 transfer to treasury](https://hashscan.io/testnet/transaction/0.0.8504300-1775311104.625214821), [F4 burn](https://hashscan.io/testnet/transaction/0.0.8504300-1775311102.263715214)  
-- Latest ETHGlobal Schedule Service proof: [schedule `0.0.9227051`](https://hashscan.io/testnet/schedule/0.0.9227051), [scheduled execution tx `0.0.8504300-1781393179-807048329`](https://hashscan.io/testnet/transaction/0.0.8504300-1781393179-807048329)  
-- Latest refund/release proof: [refund transfer `0.0.8504300@1781393158.862791239`](https://hashscan.io/testnet/transaction/0.0.8504300-1781393158-862791239), [close tx `0.0.8504300@1781393162.787231448`](https://hashscan.io/testnet/transaction/0.0.8504300-1781393162-787231448)  
-- Video: _TBD_  
+- OpenClaw ACP gateway runtime.
+- x402 facilitator-backed settlement.
+- Wallet connect.
+- Wallet-funded user allowances.
+- Fiat or stablecoin onramp.
+- Fully autonomous LLM negotiation.
 
-## Mirror endpoints (MVP)
+## Stack
 
-Base: `NEXT_PUBLIC_MIRROR_BASE` — `GET /tokens/...`, `/nfts/...`, `/accounts/.../nfts`, `/accounts/.../tokens`, `/topics/.../messages`, `/transactions/...`
+- Next.js 14 App Router
+- React 18
+- TypeScript
+- Tailwind CSS
+- `@hashgraph/sdk`
+- `@hashgraph/hedera-agent-kit`
+- Upstash Redis
+- Hedera Testnet
+- Vercel
 
-## Known limitations (MVP)
+## Repo Discipline
 
-- Demo actor switch is **not** a security boundary  
-- No wallet UI or fiat/onramp. Telegram webhook handling is fixture-tested but live Telegram requires bot credentials and an allowlisted chat. Schedule Service is currently proven for approved recovery payment automation; refund/release is proven as an immediate testnet HBAR transfer, not scheduled refund automation.  
+Public docs should stay focused on reviewers, judges, partners, setup, and verification. Internal planning notes belong outside the tracked public tree.

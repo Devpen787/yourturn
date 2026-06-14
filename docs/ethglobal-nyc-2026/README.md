@@ -1,65 +1,88 @@
-# ETHGlobal NYC 2026 continuity packet
+# ETHGlobal NYC 2026 Public Packet
 
-Status: planning packet for the Continuity Track. This is not a final submission form.
+Status: final public packet for the YourTurn continuity submission.
 
-Last checked: 2026-06-13.
+Prepared for: ETHGlobal NYC 2026.
 
-## Decision
+Public demo: [https://yourturn-sage.vercel.app](https://yourturn-sage.vercel.app)
 
-Use this repo as the working continuity base for ETHGlobal New York 2026 unless the team deliberately creates a new public submission repo later.
+Final public branch: [codex/ethglobal-final-public](https://github.com/Devpen787/yourturn/tree/codex/ethglobal-final-public)
 
-Working submission frame:
+## Submission Frame
 
-> YourTurn Concierge helps a customer recover value from a booking they cannot use. A Telegram-facing agent reads the booking right, checks provider policy, recommends resale, rebook, or cancel/release, asks for explicit approval, executes one Hedera-backed lifecycle action, and returns proof.
+YourTurn Concierge helps a customer recover value from a booked service slot they cannot use. A provider sets the session and recovery policy. The customer books a tokenized pass. Concierge checks holder state and policy, asks for explicit approval, executes the Hedera-backed action, and returns proof.
 
-## Packet files
+The repo is a continuity submission, not a from-scratch repo. Pre-existing YourTurn booking and tokenization work is disclosed in [CONTINUITY-PACKET.md](CONTINUITY-PACKET.md). The ETHGlobal delta is the Concierge recovery layer, Telegram transport, Hedera Schedule Service proof, Agent Kit proof surface, and final proof documentation.
+
+## Public Packet Files
 
 | File | Purpose |
 | --- | --- |
-| `CONTINUITY-PACKET.md` | Main category, product, proof, old-vs-new, and build-scope brief |
-| `DOCTRINE.md` | Plain-English product doctrine, guardrails, waves, and locked language from planning conversation |
-| `TECHNICAL-BLUEPRINT.md` | Implementation map: architecture, data model, user flows, proof objects, build waves, and verification gates |
-| `PREMIUM-UX-COMPETITOR-RESEARCH.md` | ClassPass/Mindbody research, screenshots, premium UX doctrine, missing layers, and UX build waves |
-| `COMPETITOR-JOURNEY-SCREENSHOT-MAP.md` | Full non-mutating competitor journey screenshot map and YourTurn build implications |
-| `YOURTURN-PREMIUM-UX-DELTA-REPORT.md` | Live YourTurn screenshot review against ClassPass/Mindbody expectations, findings, and next-wave priorities |
-| `IMPLEMENTATION-PLAN.md` | Build sequence, route/file targets, data additions, verification gates, and hackathon claim gates |
-| `BUILD-GUARDRAILS.md` | Drift-control rules imported from AutoBots/AgentOps/ChopDot, thread hydration order, required closeout checks, and coded preflight command |
-| `HEDERA-BOUNTY-MAP.md` | Hedera prize fit, qualification mapping, and kill conditions |
-| `HEDERA-AGENT-KIT-INTEGRATION.md` | Agent identity, tool manifest, policy gates, receipt proof, and local verifier for Hedera Agent Kit alignment |
-| `AGENT-AUTOMATION-INTEGRATION-PLAN.md` | Telegram/OpenClaw-inspired concierge plan plus Hedera Schedule Service proof path |
-| `CAPABILITY-STATUS.md` | Current tested capabilities, not-yet-shipped claims, and implementation plan for remaining gaps |
-| `SUBMISSION-CHECKLIST.md` | Deadline, required artifacts, and final pre-submit proof list |
-| `UNKNOWN-QUESTIONS.md` | Items not known or not proven yet |
+| [FINAL-PROOF-PACK.md](FINAL-PROOF-PACK.md) | Final proof ids, HashScan links, screenshots, verification commands, and honest gaps. |
+| [HEDERA-BOUNTY-MAP.md](HEDERA-BOUNTY-MAP.md) | Hedera track qualification mapping and claim rules. |
+| [HEDERA-BOUNTY-SCORECARD.md](HEDERA-BOUNTY-SCORECARD.md) | Current self-rating by Hedera bounty track. |
+| [HEDERA-AGENT-KIT-INTEGRATION.md](HEDERA-AGENT-KIT-INTEGRATION.md) | Agent identity, Agent Kit runtime adapter, HCS-14 id, tool manifest, policy gates, and claim boundaries. |
+| [CAPABILITY-STATUS.md](CAPABILITY-STATUS.md) | Current live, tested, and not-claimed capabilities. |
+| [TELEGRAM-OPENCLAW-SETUP.md](TELEGRAM-OPENCLAW-SETUP.md) | Telegram setup, command list, mutation gate, and OpenClaw/x402 boundaries. |
+| [CONTINUITY-PACKET.md](CONTINUITY-PACKET.md) | What existed before ETHGlobal and what was added during the continuity build. |
+| [SUBMISSION-CHECKLIST.md](SUBMISSION-CHECKLIST.md) | Final submission artifact checklist. |
 
-## Source stack
+Root-level public docs:
 
-Repo-local truth:
+- [../../README.md](../../README.md)
+- [../SUBMISSION.md](../SUBMISSION.md)
+- [../FINAL-DEMO-SCRIPT.md](../FINAL-DEMO-SCRIPT.md)
+- [../DEMO.md](../DEMO.md)
+- [../UI-MAP.md](../UI-MAP.md)
+- [../ARCHITECTURE.md](../ARCHITECTURE.md)
 
-- `README.md`
-- `docs/SPEC.md`
-- `docs/ARCHITECTURE.md`
-- `docs/UI-MAP.md`
-- `docs/AGENT-INTEGRATION.md`
-- `docs/TX-LOG.md`
+## Primary Hedera Claims
 
-ETHGlobal prep truth:
+1. **Autonomous On-Chain Automation Platform**: user-approved recovery creates a Hedera Schedule Service proof that executed on testnet.
+2. **AI & Agentic Payments on Hedera**: YourTurn Concierge applies policy and approval gates before executing real Hedera financial/token lifecycle actions.
+3. **"No Solidity Allowed" - Build with Hedera SDKs**: the proof path uses Hedera native services through SDK/server routes, not Solidity.
 
-- `/Users/devinsonpena/ETHGlobal/docs/ethglobal-nyc-2026/yourturn-continuity-agent-plan-2026-06-12.md`
-- `/Users/devinsonpena/ETHGlobal/docs/ethglobal-nyc-2026/partner-matrix.md`
-- `/Users/devinsonpena/ETHGlobal/docs/strategy/idea-certification-pipeline.md`
+Supporting:
 
-Live event pages checked:
+- **Tokenization on Hedera**: booked service slots are HTS NFT rights with lifecycle operations.
 
-- https://ethglobal.com/events/newyork2026
-- https://ethglobal.com/events/newyork2026/prizes
-- https://ethglobal.com/events/newyork2026/prizes/hedera
+## Final Proof Anchors
 
-## Operating rule
+Telegram-assisted proof:
 
-Do not enter this as Classic / From Scratch. This repo has substantial pre-existing YourTurn work. The continuity submission must clearly disclose the base work and show a new, event-built feature with commit history, demo proof, and new Hedera testnet artifacts.
+- Listing recovery booking: `193`
+- Schedule id: `0.0.9228236`
+- Scheduled execution tx: `0.0.8504300-1781403839-567406004`
+- Refund/release booking: `194`
+- Refund/release tx: `0.0.8504300@1781404315.316217004`
 
-Before a new build thread starts, hydrate from `BUILD-GUARDRAILS.md`, then run:
+Automated E2E proof:
+
+- Main serial: `196`
+- Refund/release serial: `197`
+- Guardrail serial: `198`
+- Schedule id: `0.0.9228519`
+- Scheduled execution tx: `0.0.8504300-1781406966-580404829`
+
+## Verification Commands
 
 ```bash
 npm run ethglobal:preflight
+npm run hedera:agent-check
+npm run telegram:fixture
+npm run ethglobal:e2e
+npm run build
 ```
+
+## Claim Boundaries
+
+Do not claim these as live:
+
+- OpenClaw ACP gateway runtime.
+- x402 facilitator-backed settlement.
+- Wallet connect or wallet-funded user allowance.
+- Fiat/stablecoin onramp.
+- Fully autonomous LLM negotiation.
+- Production-grade account custody.
+
+These are documented as boundaries or future work, not live proof.

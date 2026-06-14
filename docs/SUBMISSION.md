@@ -26,7 +26,7 @@ The pasted example copy about state channels, exchange onramp/offramp, MobX, Rus
 - [x] Final project name chosen
 - [x] Category confirmed
 - [x] Emoji confirmed
-- [ ] Demo URL captured
+- [x] Demo URL captured
 - [x] Short description written and length-checked
 - [x] Full description written
 - [x] "How it's made" written
@@ -65,9 +65,9 @@ The pasted example copy about state channels, exchange onramp/offramp, MobX, Rus
 
 **Demonstration link**
 
-- Final URL: `TBD`
-- Backup URL: `TBD`
-- Notes: Add the Vercel or public tunnel URL before final submission.
+- Final URL: `https://yourturn-sage.vercel.app`
+- Backup URL: `https://yourturn-93cnngdt3-devinsons-projects-b5ab981e.vercel.app`
+- Notes: Production deployment was created from the final public packet branch state. Telegram live mutation credentials are not configured in Vercel; use the recorded Telegram proof and local/rehearsal environment for that part of the demo.
 
 **Short description**
 
@@ -92,9 +92,10 @@ The pasted example copy about state channels, exchange onramp/offramp, MobX, Rus
 
 **GitHub repositories**
 
-- Primary repo: `https://github.com/Devpen787/yourturn`
+- Primary repo: `https://github.com/Devpen787/yourturn/tree/codex/ethglobal-final-public`
+- Canonical repo root: `https://github.com/Devpen787/yourturn`
 - Additional repos: `None`
-- Notes: Current repo state points to one public canonical repo only.
+- Notes: Use the branch URL for ETHGlobal if the form accepts branch URLs. The existing feature branch is intentionally not the final share link because it has remote divergence.
 
 ### Images and assets
 

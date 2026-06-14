@@ -6,47 +6,84 @@ const root = process.cwd();
 const requiredFiles = [
   "AGENTS.md",
   "PROJECT_DIRECTIVES.md",
+  "README.md",
   "docs/DEMO.md",
   "docs/UI-MAP.md",
-  "docs/ethglobal-nyc-2026/DOCTRINE.md",
-  "docs/ethglobal-nyc-2026/TECHNICAL-BLUEPRINT.md",
+  "docs/SUBMISSION.md",
+  "docs/FINAL-DEMO-SCRIPT.md",
+  "docs/ethglobal-nyc-2026/README.md",
+  "docs/ethglobal-nyc-2026/FINAL-PROOF-PACK.md",
   "docs/ethglobal-nyc-2026/HEDERA-BOUNTY-MAP.md",
+  "docs/ethglobal-nyc-2026/HEDERA-BOUNTY-SCORECARD.md",
   "docs/ethglobal-nyc-2026/HEDERA-AGENT-KIT-INTEGRATION.md",
-  "docs/ethglobal-nyc-2026/YOURTURN-PREMIUM-UX-DELTA-REPORT.md",
-  "docs/ethglobal-nyc-2026/IMPLEMENTATION-PLAN.md",
+  "docs/ethglobal-nyc-2026/CAPABILITY-STATUS.md",
+  "docs/ethglobal-nyc-2026/TELEGRAM-OPENCLAW-SETUP.md",
+  "docs/ethglobal-nyc-2026/CONTINUITY-PACKET.md",
+];
+
+const removedPublicPlanningFiles = [
+  "docs/ethglobal-nyc-2026/AGENT-AUTOMATION-INTEGRATION-PLAN.md",
   "docs/ethglobal-nyc-2026/BUILD-GUARDRAILS.md",
+  "docs/ethglobal-nyc-2026/COMPETITOR-JOURNEY-SCREENSHOT-MAP.md",
+  "docs/ethglobal-nyc-2026/DOCTRINE.md",
+  "docs/ethglobal-nyc-2026/IMPLEMENTATION-PLAN.md",
+  "docs/ethglobal-nyc-2026/PREMIUM-UX-COMPETITOR-RESEARCH.md",
+  "docs/ethglobal-nyc-2026/TECHNICAL-BLUEPRINT.md",
+  "docs/ethglobal-nyc-2026/UNKNOWN-QUESTIONS.md",
+  "docs/ethglobal-nyc-2026/YOURTURN-PREMIUM-UX-DELTA-REPORT.md",
 ];
 
 const textChecks = [
   {
-    file: "docs/ethglobal-nyc-2026/DOCTRINE.md",
+    file: "README.md",
     mustInclude: [
-      "Discovery",
-      "Facts",
-      "Inferences",
-      "Decisions",
-      "Next steps",
-      "Human approval is required",
-      "Do not say refund unless",
-      "Claim Automation only if",
+      "YourTurn",
+      "Autonomous On-Chain Automation Platform",
+      "AI & Agentic Payments on Hedera",
+      "No Solidity",
+      "0.0.9228236",
+      "OpenClaw ACP gateway runtime",
+      "Not claimed as live",
     ],
   },
   {
-    file: "docs/ethglobal-nyc-2026/TECHNICAL-BLUEPRINT.md",
+    file: "docs/ethglobal-nyc-2026/README.md",
     mustInclude: [
-      "Proof Object",
-      "Concierge Decision Loop",
-      "Hedera Schedule Service",
-      "preview -> approval -> execute -> receipt",
+      "final public packet",
+      "continuity submission",
+      "Primary Hedera Claims",
+      "Claim Boundaries",
+      "0.0.9228236",
+    ],
+  },
+  {
+    file: "docs/ethglobal-nyc-2026/FINAL-PROOF-PACK.md",
+    mustInclude: [
+      "booking `193`",
+      "booking `194`",
+      "0.0.9228236",
+      "npm run hedera:agent-check",
+      "OpenClaw ACP Gateway runtime",
+      "wallet-funded user allowances",
     ],
   },
   {
     file: "docs/ethglobal-nyc-2026/HEDERA-BOUNTY-MAP.md",
     mustInclude: [
+      "Claim Automation if",
+      "Claim Agentic Payments if",
       "Do not claim Automation if",
       "Do not claim AI & Agentic Payments if",
-      "Claim No Solidity if",
-      "schedule id",
+      "0.0.9228236",
+    ],
+  },
+  {
+    file: "docs/ethglobal-nyc-2026/HEDERA-BOUNTY-SCORECARD.md",
+    mustInclude: [
+      "9.2 / 10",
+      "9.0 / 10",
+      "0.0.9228236",
+      "OpenClaw ACP and x402 are honest descriptor-only",
     ],
   },
   {
@@ -55,7 +92,6 @@ const textChecks = [
       "Agent identity",
       "Tool manifest",
       "Policy gates",
-      "Agent proof receipt",
       "HCS-14",
       "Agent Kit runtime",
       "budget",
@@ -64,28 +100,13 @@ const textChecks = [
     ],
   },
   {
-    file: "docs/ethglobal-nyc-2026/IMPLEMENTATION-PLAN.md",
+    file: "docs/ethglobal-nyc-2026/CAPABILITY-STATUS.md",
     mustInclude: [
-      "Fix `/my-bookings` runtime error",
-      "Marketplace Browse",
-      "Class Detail, Ticket, And Proof Drawer",
-      "Recovery Flow And In-App Concierge",
-      "Owner Policy Builder",
-      "Hedera Schedule Service Automation",
-      "Route-Level Target State",
-      "Verification Plan",
-    ],
-  },
-  {
-    file: "docs/ethglobal-nyc-2026/BUILD-GUARDRAILS.md",
-    mustInclude: [
-      "Imported Prior Patterns",
-      "Thread Hydration Contract",
-      "Mission Control",
-      "failure stops the pass",
-      "repo-first read order",
-      "If memory is available",
-      "Do not explain past a failed gate",
+      "Live and tested",
+      "Final Telegram proof",
+      "Final E2E proof",
+      "Not Claimed",
+      "TELEGRAM_ALLOW_MUTATIONS=false",
     ],
   },
   {
@@ -95,6 +116,16 @@ const textChecks = [
 ];
 
 const forbiddenCodeFiles = [".sol"];
+const forbiddenTrackedPatterns = [
+  {
+    name: "Telegram bot token",
+    pattern: /\b\d{8,12}:AA[A-Za-z0-9_-]{20,}\b/,
+  },
+  {
+    name: "private key block",
+    pattern: /BEGIN (?:RSA |EC |OPENSSH |)PRIVATE KEY/,
+  },
+];
 const ignoreDirs = new Set([
   ".git",
   ".next",
@@ -133,6 +164,11 @@ for (const file of requiredFiles) {
   else failures.push(`missing required file: ${file}`);
 }
 
+for (const file of removedPublicPlanningFiles) {
+  if (exists(file)) failures.push(`planning/internal file should not be public: ${file}`);
+  else passes.push(`not public: ${file}`);
+}
+
 for (const check of textChecks) {
   if (!exists(check.file)) continue;
   const body = read(check.file);
@@ -149,6 +185,7 @@ for (const scriptName of [
   "ethglobal:preflight",
   "ethglobal:e2e",
   "hedera:agent-check",
+  "telegram:fixture",
 ]) {
   if (packageJson.scripts?.[scriptName]) {
     passes.push(`package script exists: ${scriptName}`);
@@ -161,6 +198,17 @@ for (const file of walk(root)) {
   for (const ext of forbiddenCodeFiles) {
     if (file.endsWith(ext)) {
       failures.push(`forbidden Solidity file found: ${rel(file)}`);
+    }
+  }
+
+  const relative = rel(file);
+  if (relative === "package-lock.json") continue;
+  if (!/\.(md|txt|ts|tsx|js|mjs|json|example|yml|yaml)$/.test(relative)) continue;
+
+  const body = fs.readFileSync(file, "utf8");
+  for (const secretPattern of forbiddenTrackedPatterns) {
+    if (secretPattern.pattern.test(body)) {
+      failures.push(`forbidden ${secretPattern.name} found in ${relative}`);
     }
   }
 }

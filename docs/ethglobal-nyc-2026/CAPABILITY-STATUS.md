@@ -1,131 +1,99 @@
-# ETHGlobal capability status
+# ETHGlobal Capability Status
 
-Date: 2026-06-13
+Date: 2026-06-14
 
-This file is the current build boundary: what is live and tested, what is configured but not live in the user journey, what cannot be claimed yet, and the next implementation plan for the gaps.
+This file is the public boundary for what YourTurn can do now, what has been tested, and what is intentionally not claimed.
 
 ## Discovery
 
-- The repo has a live Next.js app with HTS booking rights, HCS lifecycle events, Mirror reads, resale royalties, freeze/unfreeze, mark-used, recovery receipts, Schedule Service proof, real testnet HBAR refund/release, a Telegram Concierge webhook adapter, and an Agent Kit dependency.
-- The latest clean regression is automated through `npm run ethglobal:e2e`.
-- Hedera Agent Kit alignment is now documented and locally checked through `docs/ethglobal-nyc-2026/HEDERA-AGENT-KIT-INTEGRATION.md` and `npm run hedera:agent-check`; this includes a real Agent Kit runtime adapter, deterministic HCS-14 identity, A2A/capabilities descriptors, and a server-enforced demo budget gate.
-- Browser screenshots from the latest pass live at `/tmp/yourturn-ethglobal-qa/`.
-- The in-app Browser runtime was unavailable during QA, so the screenshot pass used Chrome-channel Playwright against the same local app.
+- YourTurn is a Next.js app for tokenized service bookings on Hedera.
+- The ETHGlobal build adds a bounded Concierge recovery loop on top of the existing booking-right app.
+- Concierge can run through the browser recovery page and through a Telegram webhook transport.
+- The final proof packet records Telegram proofs for bookings `193` and `194`, plus an automated E2E regression using serials `196`, `197`, and `198`.
 
 ## Facts
 
 Live and tested:
 
-- Owner can save a 3-session policy plan and reset the demo.
-- Person A can book a resale-eligible slot.
-- Person A can open recovery mode, preview a Concierge recommendation, approve the listing, and receive a proof receipt.
-- The recovery confirmation creates a real Hedera Schedule Service recovery payment proof.
-- `/api/automation/inspect` can refresh schedule state until Mirror reports `executed`.
+- Provider can create demo service slots and set resale/recovery policy.
+- Person A can book a slot represented by an HTS NFT serial.
+- Person A can open recovery mode at `/resale/[serial]?mode=recovery`.
+- Concierge checks holder state, slot state, provider policy, and approval requirements.
+- Concierge can create a resale listing after explicit approval.
+- Concierge listing recovery creates a Hedera Schedule Service payment proof.
+- Schedule `0.0.9228236` executed on Hedera testnet for the Telegram-assisted proof.
 - Person B can buy the listed pass through the existing resale flow.
-- Provider can mark the resold pass used.
-- Provider can see schedule automation proof on `/issuer` for rows that have a recovery schedule.
-- Person A can approve release of a no-resale held pass and receive a real testnet HBAR refund while the NFT returns to treasury and is closed.
-- Provider can see recovery/refund proof on `/issuer` for rows that have a recovery receipt.
-- Value-moving Concierge receipts include an `agentProof` object with agent identity, tool id, approval id, passed policy checks, Hedera services, and proof outputs.
-- `npm run hedera:agent-check` validates the Agent Kit runtime adapter, manifest, HCS-14 identity, policy gates, budget gate, approval requirements, and blocked scenarios for the Concierge tools.
-- `/.well-known/agent.json` exposes an A2A-style agent card with the HCS-14 `uaid:aid` identifier.
-- `/api/agent/capabilities` exposes the same identity, tool manifest, A2A descriptor, and honest descriptor-only status for OpenClaw ACP and x402.
-- Telegram webhook command handling is fixture-tested and mutation-gated; live Telegram delivery requires bot credentials and an allowlisted chat.
-- Used, unheld, non-holder, and no-resale states block recovery.
-- Terminal or policy-blocked resale pages no longer expose manual List or Buy controls.
+- Provider can mark a pass used and close the lifecycle.
+- Concierge can complete a policy-gated release/refund path with a real testnet HBAR transfer.
+- Telegram proof booking `194` sent a real testnet HBAR refund/release transaction.
+- Receipts include approval id, policy checks, Agent Kit proof fields, Hedera transaction ids, and HashScan links.
+- `/.well-known/agent.json` exposes the YourTurn Concierge agent card.
+- `/api/agent/capabilities` exposes identity, tools, policy boundaries, protocol descriptors, and honest claim boundaries.
+- `npm run hedera:agent-check` verifies Agent Kit runtime alignment, HCS-14 identity, policy gates, approval requirements, and budget guardrails.
+- `npm run telegram:fixture` verifies Telegram parser and dry-run mutation safety.
+- `npm run ethglobal:e2e` passed after final screenshot capture and intentionally mutated Hedera testnet/Redis demo state.
 
-Latest clean proof:
+Final Telegram proof:
 
-- Main serial: `187`
-- Refund/release serial: `188`
-- Open/unheld guardrail serial: `189`
-- Recovery listing receipt id: `50cb1cd9-264b-47f2-b95b-3eb9f30c71db`
-- Refund release receipt id: `c477475c-0982-4a44-8f39-5543d378a9fa`
-- Schedule id: `0.0.9227497`
-- Scheduled transaction id: `0.0.8504300@1781397488.488433669?scheduled`
-- Schedule create tx: `0.0.8504300@1781397488.488433669`
-- Scheduled execution tx: `0.0.8504300-1781397488-488433669`
-- Executed timestamp: `1781397585.057210004`
-- Agent proof tools checked in E2E: `yourturn.recovery.confirm_refund_release`, `yourturn.recovery.confirm_listing`
-- Agent protocol descriptors checked in E2E: A2A/HCS-14 card, OpenClaw descriptor-only status, x402 descriptor-only status
-- Primary book tx: `0.0.8504300@1781397455.868752258`
-- Refund/release transfer tx: `0.0.8504300@1781397472.551738960`
-- Refund close/burn tx: `0.0.8504300@1781397474.102316916`
-- Refund audit tx: `0.0.8504300@1781397476.746514442`
-- Resale buy tx: `0.0.8504300@1781397584.036844283`
+- Listing booking: `193`
+- Listing receipt: `bc9155e7-17dd-451d-8f4f-1ba56e4fb99f`
+- Listing audit tx: `0.0.8504300@1781403839.479174338`
+- Schedule id: `0.0.9228236`
+- Schedule create tx: `0.0.8504300@1781403839.567406004`
+- Scheduled execution tx: `0.0.8504300-1781403839-567406004`
+- Refund/release booking: `194`
+- Refund receipt: `143c5cee-8d08-468d-9f6e-d4f349857a08`
+- Refund/release tx: `0.0.8504300@1781404315.316217004`
+- Refund close/burn tx: `0.0.8504300@1781404320.752860402`
+- Refund audit tx: `0.0.8504300@1781404320.697190583`
+
+Final E2E proof:
+
+- Main serial: `196`
+- Refund/release serial: `197`
+- Open guardrail serial: `198`
+- E2E schedule: `0.0.9228519`
+- E2E scheduled execution: `0.0.8504300-1781406966-580404829`
+- E2E refund/release tx: `0.0.8504300@1781406949.343880789`
+- E2E listing receipt: `6351521d-13e2-4973-9d33-08eb521fa1ca`
+- E2E refund receipt: `fb0e38dd-9ed8-4d93-9bd8-82abbaa8f7aa`
 
 Tested commands:
 
-- `npm run ethglobal:preflight`
-- `npx tsc --noEmit`
-- `npm run telegram:fixture`
-- `npm run hedera:agent-check`
-- `npm run lint`
-- `npm run build`
-- `npm run ethglobal:e2e`
+```bash
+npm run ethglobal:preflight
+npm run hedera:agent-check
+npm run telegram:fixture
+npm run ethglobal:e2e
+npm run build
+```
 
 ## Inferences
 
-- The Automation bounty is now claimable if the final demo shows the Schedule Service schedule id, executed transaction, and user-facing approval/inspect flow.
-- The Agentic Payments bounty is now stronger because the Concierge path performs real Hedera financial operations after policy checks and human approval: a scheduled HBAR recovery payment and a real testnet HBAR refund/release. Copy must stay honest: this is a bounded Agent Kit runtime/tool workflow, not a fully autonomous Telegram/LLM agent.
-- The No Solidity bounty is a strong supporting claim because the path stays SDK-only and uses multiple native Hedera services.
-- Tokenization is supporting evidence unless a later wave adds a new HTS lifecycle or policy feature beyond the existing booking-right token.
+- The Automation bounty is a strong claim because a user-facing recovery flow creates, stores, inspects, and proves a Hedera Schedule Service transaction that executed on testnet.
+- The Agentic Payments bounty is a strong claim because Concierge performs policy-gated Hedera financial/token lifecycle actions after explicit human approval.
+- The No Solidity bounty is a strong claim because the proof path uses Hedera native services through SDK/server routes and no Solidity files are present.
+- Tokenization is a supporting claim because booking rights are HTS NFT serials with book, list, resell, release/refund, and close/use lifecycle operations.
 
-## Cannot Do Yet
+## Not Claimed
 
-Do not claim these as shipped:
+Do not describe these as live:
 
-- Live Telegram Concierge transport with bot credentials and a verified allowlisted chat.
-- OpenClaw ACP Gateway runtime. Current status: descriptor only.
-- x402 facilitator-backed settlement. Current status: descriptor only.
-- Wallet connect or user-funded budget allowance. Current status: server-enforced demo budget only.
+- OpenClaw ACP gateway execution.
+- x402 facilitator-backed settlement.
+- Wallet connect.
+- Wallet-funded user allowances.
 - Fiat/stablecoin onramp.
-- Scheduled release, refund, expiry, or transfer of the booking-right token itself.
 - Calendar conflict detection.
-- Fully autonomous LLM or multi-agent negotiation.
-- Production-grade security model. The current app uses signed demo sessions plus server-side demo accounts.
-
-## Plan For What Cannot Do Yet
-
-### Remaining implementation: live Telegram credential test
-
-Scope:
-
-- Configure `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `TELEGRAM_ALLOWED_CHAT_IDS`, and only then enable `TELEGRAM_ALLOW_MUTATIONS=true`.
-- Send a real allowlisted Telegram message such as "I cannot attend" and confirm the bot returns the same recovery link or receipt used by `/resale/[serial]?mode=recovery`.
-- Keep approval bounded to YourTurn's action allowlist; Telegram must not hold keys or execute arbitrary transactions.
-
-Exit criteria:
-
-- Fixture/dry-run webhook test proves commands are parsed and mutation-gated.
-- If credentials are available, one live Telegram message returns a recovery link or receipt.
-- Docs say Telegram is live only if this test passes.
-
-### Deferred implementation: wallet-funded budgets
-
-Scope:
-
-- Design only unless time remains after Telegram and owner proof.
-- Add UI copy and docs only when a real wallet or allowance flow exists.
-
-Exit criteria:
-
-- User can connect/fund a real testnet account or grant a bounded allowance.
-- Agent can book only inside budget/policy boundaries.
-
-### Deferred implementation: scheduled release/expiry of the booking right
-
-Scope:
-
-- Do not ship claim copy until the booking-right token operation itself is scheduled, not only executed immediately or paired with a scheduled payment.
-
-Exit criteria:
-
-- Confirm creates a real scheduled token release/expiry action.
-- Proof receipt shows tx id, schedule id, HashScan links, and final state.
+- Fully autonomous LLM negotiation.
+- Production custody or production security model.
 
 ## Next Steps
 
-1. Keep `npm run ethglobal:e2e` as the regression gate before demo recording.
-2. Add Telegram as a thin transport only after the in-app recovery loop stays green.
-3. Keep the public demo script focused on the live tested loop: owner policy, book, recover, schedule proof, resale, used.
+Before final submission:
+
+1. Add the final public GitHub branch/link to `docs/SUBMISSION.md`.
+2. Add the public Vercel URL after deployment is confirmed.
+3. Record or upload the optional 2-4 minute demo video.
+4. Keep `TELEGRAM_ALLOW_MUTATIONS=false` outside rehearsal/demo windows.
+5. Rotate the Telegram bot token after final rehearsal/submission.

@@ -20,3 +20,4 @@ docs/review-screenshots/
 output/
 tsconfig.tsbuildinfo
 brand-lab-assistant-section.png
+.vercel
