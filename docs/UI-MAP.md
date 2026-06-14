@@ -51,7 +51,7 @@ Global chrome: `app/layout.tsx` + `components/SiteHeader.tsx` (header nav only; 
 | `VerifiedLifecycleTimeline` | `components/proof/RecoveryProofCard.tsx` | Judge-readable lifecycle trail reconstructed from HCS events, with raw event details collapsed | `/slots/[serial]` |
 | `SlotResaleCta` | `app/slots/[serial]/SlotResaleCta.tsx` | Link to `/resale/[serial]` | `/slots/[serial]` when resale allowed |
 | `SiteHeader` | `components/SiteHeader.tsx` | Global product nav, session display, sign in / register / sign out actions | All routes via `app/layout.tsx` |
-| `GuestPortalShell` | `components/GuestPortalShell.tsx` | Shared signed-in customer wrapper used by role-gated layouts | `/slots`, `/my-bookings`, `/resale/*` |
+| `GuestPortalShell` | `components/GuestPortalShell.tsx` | Shared signed-in customer context strip used by role-gated layouts; global header owns Browse / My passes navigation, shell keeps only demo context | `/slots`, `/my-bookings`, `/resale/*` |
 | `BrandLabClient` | `components/brand-lab/BrandLabClient.tsx` | Mock surfaces + switchable SVG logo directions for design review | `/brand-lab` only |
 | `Button` | `components/ui/Button.tsx` | Shared action primitive with loading state and variants | Customer + provider action surfaces |
 | `LiveFeedback` | `components/ui/LiveFeedback.tsx` | Shared success/error messaging | `/slots`, `/resale/[serial]`, `/issuer` |

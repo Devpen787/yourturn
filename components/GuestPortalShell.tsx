@@ -9,7 +9,7 @@ export function GuestPortalShell({
 }) {
   return (
     <div className="space-y-5">
-      <nav
+      <section
         className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 pb-4"
         aria-label="Customer workspace"
       >
@@ -21,25 +21,7 @@ export function GuestPortalShell({
             Browse sessions, manage passes, and inspect verified handoffs.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href="/slots"
-            className={cn(
-              getButtonClassName("secondary"),
-              "bg-white/80 px-3 text-sm"
-            )}
-          >
-            Browse
-          </Link>
-          <Link
-            href="/my-bookings"
-            className={cn(
-              getButtonClassName("secondary"),
-              "bg-white/80 px-3 text-sm"
-            )}
-          >
-            My bookings
-          </Link>
+        <div className="flex items-center">
           <Link
             href="/demo-help"
             className={cn(
@@ -50,7 +32,7 @@ export function GuestPortalShell({
             Demo help
           </Link>
         </div>
-      </nav>
+      </section>
       {children}
     </div>
   );
