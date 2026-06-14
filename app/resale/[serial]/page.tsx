@@ -16,6 +16,7 @@ import { getLatestRecoveryReceiptForSerial } from "@/lib/store/recovery-receipts
 import { getSlotBySerial } from "@/lib/store/slots";
 import type { LifecycleEvent } from "@/lib/types/event";
 import type { RecoveryProofDetails } from "@/lib/types/recovery-proof";
+import { getRecordedRecoveryReceipt } from "@/lib/proof/recorded-recovery-receipts";
 import { ResaleClient } from "./ResaleClient";
 
 export const dynamic = "force-dynamic";
@@ -180,14 +181,19 @@ export default async function ResalePage({
         };
       }
     } catch {
-      initialProof = null;
+      initialProof = getRecordedRecoveryReceipt(serial);
     }
   }
-  const pageBlockReason = resaleBlockReason(
-    chainStatus,
-    slot?.resaleAllowed ?? false,
-    slot?.policySnapshot.releaseAllowed ?? false
-  );
+  if (!initialProof) {
+    initialProof = getRecordedRecoveryReceipt(serial);
+  }
+  const pageBlockReason = initialProof
+    ? null
+    : resaleBlockReason(
+        chainStatus,
+        slot?.resaleAllowed ?? false,
+        slot?.policySnapshot.releaseAllowed ?? false
+      );
 
   return (
     <div className="text-sm">
@@ -201,7 +207,11 @@ export default async function ResalePage({
         ← Back to session
       </Link>
       <h1 className="mt-2 text-xl font-semibold">
-        {pageBlockReason ? "Recovery status for this pass" : "Recover this pass"}
+        {initialProof
+          ? "Recovery receipt for this pass"
+          : pageBlockReason
+            ? "Recovery status for this pass"
+            : "Recover this pass"}
       </h1>
       {pageBlockReason ? (
         <p className="mt-2 rounded border border-slate-200 bg-slate-50 p-3 text-slate-700">

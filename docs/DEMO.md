@@ -64,6 +64,13 @@ Latest final regression proof from 2026-06-14:
 
 Primary recorded Telegram proof for the demo story remains booking `193` for listing/schedule and booking `194` for refund/release.
 
+The final public proof links for those refs are product-native app receipts, not internal proof labels:
+
+- `https://yourturn-sage.vercel.app/resale/193?mode=recovery` shows **Resale recovery receipt for Booking #193**
+- `https://yourturn-sage.vercel.app/resale/194?mode=recovery` shows **Release receipt for Booking #194**
+
+These pages keep the recorded proof visible if the live demo state later moves on during rehearsal.
+
 Telegram fixture check:
 
 ```bash
