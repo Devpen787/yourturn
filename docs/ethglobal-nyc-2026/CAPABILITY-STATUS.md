@@ -8,7 +8,7 @@ This file is the current build boundary: what is live and tested, what is config
 
 - The repo has a live Next.js app with HTS booking rights, HCS lifecycle events, Mirror reads, resale royalties, freeze/unfreeze, mark-used, recovery receipts, Schedule Service proof, real testnet HBAR refund/release, a Telegram Concierge webhook adapter, and an Agent Kit dependency.
 - The latest clean regression is automated through `npm run ethglobal:e2e`.
-- Hedera Agent Kit alignment is now documented and locally checked through `docs/ethglobal-nyc-2026/HEDERA-AGENT-KIT-INTEGRATION.md` and `npm run hedera:agent-check`.
+- Hedera Agent Kit alignment is now documented and locally checked through `docs/ethglobal-nyc-2026/HEDERA-AGENT-KIT-INTEGRATION.md` and `npm run hedera:agent-check`; this includes a real Agent Kit runtime adapter, deterministic HCS-14 identity, A2A/capabilities descriptors, and a server-enforced demo budget gate.
 - Browser screenshots from the latest pass live at `/tmp/yourturn-ethglobal-qa/`.
 - The in-app Browser runtime was unavailable during QA, so the screenshot pass used Chrome-channel Playwright against the same local app.
 
@@ -27,7 +27,9 @@ Live and tested:
 - Person A can approve release of a no-resale held pass and receive a real testnet HBAR refund while the NFT returns to treasury and is closed.
 - Provider can see recovery/refund proof on `/issuer` for rows that have a recovery receipt.
 - Value-moving Concierge receipts include an `agentProof` object with agent identity, tool id, approval id, passed policy checks, Hedera services, and proof outputs.
-- `npm run hedera:agent-check` validates the manifest, policy gates, approval requirements, and blocked scenarios for the Concierge tools.
+- `npm run hedera:agent-check` validates the Agent Kit runtime adapter, manifest, HCS-14 identity, policy gates, budget gate, approval requirements, and blocked scenarios for the Concierge tools.
+- `/.well-known/agent.json` exposes an A2A-style agent card with the HCS-14 `uaid:aid` identifier.
+- `/api/agent/capabilities` exposes the same identity, tool manifest, A2A descriptor, and honest descriptor-only status for OpenClaw ACP and x402.
 - Telegram webhook command handling is fixture-tested and mutation-gated; live Telegram delivery requires bot credentials and an allowlisted chat.
 - Used, unheld, non-holder, and no-resale states block recovery.
 - Terminal or policy-blocked resale pages no longer expose manual List or Buy controls.
@@ -64,7 +66,7 @@ Tested commands:
 ## Inferences
 
 - The Automation bounty is now claimable if the final demo shows the Schedule Service schedule id, executed transaction, and user-facing approval/inspect flow.
-- The Agentic Payments bounty is now stronger because the Concierge path performs real Hedera financial operations after policy checks and human approval: a scheduled HBAR recovery payment and a real testnet HBAR refund/release. Copy must stay honest: this is an Agent Kit-guided bounded Concierge workflow, not a fully autonomous Telegram/LLM agent.
+- The Agentic Payments bounty is now stronger because the Concierge path performs real Hedera financial operations after policy checks and human approval: a scheduled HBAR recovery payment and a real testnet HBAR refund/release. Copy must stay honest: this is a bounded Agent Kit runtime/tool workflow, not a fully autonomous Telegram/LLM agent.
 - The No Solidity bounty is a strong supporting claim because the path stays SDK-only and uses multiple native Hedera services.
 - Tokenization is supporting evidence unless a later wave adds a new HTS lifecycle or policy feature beyond the existing booking-right token.
 
@@ -73,8 +75,9 @@ Tested commands:
 Do not claim these as shipped:
 
 - Live Telegram Concierge transport with bot credentials and a verified allowlisted chat.
-- OpenClaw ACP integration.
-- Wallet connect or user-funded budget allowance.
+- OpenClaw ACP Gateway runtime. Current status: descriptor only.
+- x402 facilitator-backed settlement. Current status: descriptor only.
+- Wallet connect or user-funded budget allowance. Current status: server-enforced demo budget only.
 - Fiat/stablecoin onramp.
 - Scheduled release, refund, expiry, or transfer of the booking-right token itself.
 - Calendar conflict detection.

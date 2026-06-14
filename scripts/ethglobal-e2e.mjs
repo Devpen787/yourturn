@@ -102,6 +102,30 @@ async function main() {
   checks.push(await guestA.login("guestA"));
   checks.push(await guestB.login("guestB"));
 
+  let agentCard = await fetch(`${base}/.well-known/agent.json`).then((res) =>
+    res.json()
+  );
+  checks.push(
+    assert(
+      agentCard?.identifiers?.hcs14?.startsWith("uaid:aid:") &&
+        agentCard?.capabilities?.humanApprovalRequired === true,
+      "A2A agent card exposes HCS-14 identity",
+      agentCard
+    )
+  );
+  let capabilities = await fetch(`${base}/api/agent/capabilities`).then((res) =>
+    res.json()
+  );
+  checks.push(
+    assert(
+      capabilities?.identity?.id?.startsWith("uaid:aid:") &&
+        capabilities?.protocols?.openclaw?.status === "descriptor_only" &&
+        capabilities?.protocols?.x402?.status === "descriptor_only",
+      "agent capabilities expose honest protocol descriptors",
+      capabilities
+    )
+  );
+
   const now = Date.now();
   const plan = {
     issuerName: "YourTurn Recovery Studio",
@@ -348,7 +372,8 @@ async function main() {
           (check) => check.status === "passed"
         ) &&
         receipt.agentProof?.proofOutputs?.scheduleId &&
-        receipt.agentProof?.proofOutputs?.auditTxId,
+        receipt.agentProof?.proofOutputs?.auditTxId &&
+        receipt.agentProof?.proofOutputs?.budgetId,
       "listing receipt includes Hedera agent proof",
       receipt.agentProof
     )

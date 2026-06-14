@@ -35,6 +35,13 @@ For the ETHGlobal Concierge proof layer, see `docs/ethglobal-nyc-2026/HEDERA-AGE
 npm run hedera:agent-check
 ```
 
+Public capability descriptors:
+
+- `GET /.well-known/agent.json` returns an A2A-style agent card with the HCS-14 `uaid:aid`.
+- `GET /api/agent/capabilities` returns the agent identity, YourTurn tool manifest, and protocol descriptors.
+
+OpenClaw ACP and x402 are descriptor-only in this repo until their gateway/facilitator runtimes are configured.
+
 ## Endpoints
 
 | Endpoint | Method | Use |

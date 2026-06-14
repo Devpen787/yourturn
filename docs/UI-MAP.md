@@ -98,6 +98,8 @@ Global chrome: `app/layout.tsx` + `components/SiteHeader.tsx` (header nav only; 
 | `/api/agent/preview` | POST | Agent preview surface over `BookingPort` for `F1` / `F2` / `F3` / `F4` / F7 `cancel_release` | **No** — external agent / backend integration |
 | `/api/agent/confirm` | POST | Agent confirm surface; requires preview token + delegated approval grant | **No** — external agent / backend integration |
 | `/api/agent/approval-grant` | POST | Mint scoped delegated approval grants; trusted backend only via secret header | **No** — backend tooling only |
+| `/api/agent/capabilities` | GET | Public agent capability descriptor with HCS-14 identity, tool manifest, A2A card, and honest OpenClaw/x402 descriptor status | **No** — external agent / verifier integration |
+| `/.well-known/agent.json` | GET | A2A-style public agent card for `yourturn-concierge`, including HCS-14 `uaid:aid` identity | **No** — external agent / verifier integration |
 
 ## Spec flows (`docs/SPEC.md`) vs shipped UI
 

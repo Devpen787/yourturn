@@ -2,7 +2,7 @@
 
 Status: live verifier layer for ETHGlobal NYC 2026.
 
-Date: 2026-06-13.
+Date: 2026-06-14.
 
 ## Discovery
 
@@ -22,6 +22,10 @@ YourTurn's shipped path is a bounded Concierge agent, not an unconstrained auton
 - Package: `@hashgraph/hedera-agent-kit` is installed at version `4.0.0`.
 - Agent identity: `yourturn-concierge`, version `2026.06.13-wave9`.
 - Tool manifest: `lib/hedera-agent-kit/tool-manifest.ts`.
+- Runtime adapter: `lib/hedera-agent-kit/runtime.ts` instantiates `HederaAgentAPI`, loads the YourTurn plugin, and discovers selected core Agent Kit tools.
+- HCS-14 identity: `lib/hedera-agent-kit/identity.ts` generates a deterministic `uaid:aid` descriptor.
+- A2A/capabilities endpoints: `/.well-known/agent.json` and `/api/agent/capabilities`.
+- Budget guardrail: `lib/hedera-agent-kit/budget.ts` enforces a demo-funded Concierge budget before scheduled recovery payment proof.
 - Policy gates: `lib/hedera-agent-kit/policies.ts`.
 - Proof builder: `lib/hedera-agent-kit/agent-proof.ts`.
 - Verifier command: `npm run hedera:agent-check`.
@@ -39,6 +43,7 @@ The manifest defines the Concierge tools as reviewer-readable capabilities:
 | `yourturn.recovery.preview_refund_release` | none | Mirror Node | No |
 | `yourturn.recovery.confirm_refund_release` | hbar_transfer_and_token_close | Hedera Agent Kit, HTS, HCS, Mirror Node, HashScan | Yes |
 | `yourturn.automation.inspect_schedule` | none | Schedule Service, Mirror Node, HashScan | No |
+| `yourturn.budget.inspect` | none | Hedera Agent Kit, Mirror Node | No |
 
 ## Policy gates
 
@@ -52,6 +57,7 @@ The current policy layer checks:
 - no duplicate active listing exists
 - refund value matches the booked price
 - approval id exists before value-moving confirm
+- demo-funded Concierge budget allows the scheduled recovery payment
 - schedule inspection is tied to the requested serial and actor
 
 These checks are intentionally boring: judges should be able to see why the Concierge is allowed to act.
@@ -69,6 +75,7 @@ Every value-moving Concierge confirm now returns an `agentProof` object with:
 - approval id
 - policy check results
 - proof outputs such as schedule id, tx id, audit tx id, refund tx id, and HashScan links when available
+- HCS-14 identity and budget proof fields where relevant
 
 The same proof is stored in the demo proof record and appears inside the user-facing proof drawer.
 
@@ -83,11 +90,15 @@ npm run hedera:agent-check
 Expected result:
 
 - `ok: true`
-- five manifest tools checked
+- six manifest tools checked
+- Agent Kit runtime exposes the YourTurn plugin plus core `transfer_hbar_tool`, `approve_hbar_allowance_tool`, `transfer_hbar_with_allowance_tool`, and `submit_topic_message_tool`
+- deterministic HCS-14 `uaid:aid` is generated
+- A2A descriptor is available at `/.well-known/agent.json`
 - all mutation tools require human approval
 - valid listing policies pass
 - valid refund policies pass
 - non-holder, resale-disabled, and duplicate-listing scenarios block correctly
+- budget overflow blocks correctly
 - schedule inspection policies pass
 
 This verifier is intentionally local and deterministic. It does not replace the testnet E2E run; it checks that the agent boundary, manifest, policy gates, and bounty coverage remain coherent.
@@ -105,6 +116,7 @@ AI & Agentic Payments track:
 - Load-bearing primitive: bounded Concierge agent tool execution.
 - Product state change: after policy and approval, the Concierge performs a real Hedera financial operation.
 - Verifier: `agentProof`, HCS lifecycle proof, HashScan transaction links, `npm run hedera:agent-check`, `npm run ethglobal:e2e`.
+- Runtime proof: `npm run hedera:agent-check` instantiates `HederaAgentAPI` and confirms the YourTurn plugin and core Agent Kit payment/allowance tools are discoverable.
 
 No Solidity track:
 
@@ -114,10 +126,11 @@ No Solidity track:
 
 ## Not claimed
 
-- OpenClaw ACP is not integrated.
-- x402 is not integrated.
-- A2A, UCP, and HCS-14 agent identity are not integrated.
-- Wallet-funded user budgets are not integrated.
+- OpenClaw ACP Gateway runtime is not configured; this repo exposes an honest descriptor only.
+- x402 facilitator-backed settlement is not integrated; this repo exposes an honest descriptor only.
+- A2A is exposed as an agent-card descriptor, not a live remote negotiation runtime.
+- HCS-14 identity is generated as a deterministic draft `uaid:aid` descriptor.
+- Wallet-funded user budgets are not integrated; the current budget is a server-enforced demo budget over server-managed testnet accounts.
 - Calendar conflict detection is not integrated.
 - This is not a fully autonomous LLM agent. It is a bounded, policy-gated Concierge with human approval before value movement.
 
@@ -125,8 +138,8 @@ No Solidity track:
 
 The best next upgrade is not more copy. It is either:
 
-1. Add a real Agent Kit runtime adapter around the existing manifest tools, or
-2. Add HCS-14 style agent identity/provenance to the receipts, or
-3. Add wallet-funded budget allowance for one approved booking action.
+1. Add a real wallet allowance or budget funding flow.
+2. Add OpenClaw Gateway-backed ACP execution.
+3. Add facilitator-backed x402 settlement for a paid agent/service request.
 
 Only claim these after they are wired and verified.

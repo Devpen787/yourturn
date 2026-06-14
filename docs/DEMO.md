@@ -62,6 +62,8 @@ npm run hedera:agent-check
 
 This verifies the `yourturn-concierge` manifest, policy gates, approval requirements, and blocked-state scenarios used by the Hedera Agent Kit proof receipts.
 
+The same check also verifies the Agent Kit runtime adapter, HCS-14 identity, A2A/capabilities descriptors, and demo budget overflow block.
+
 ## Economic framing for the live demo
 
 The audience should be able to understand the incentives quickly:
