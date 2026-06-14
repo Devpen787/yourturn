@@ -57,13 +57,13 @@ Do not run `npm run ethglobal:e2e` immediately before recording unless you inten
 
 ### 0:00-0:20 - Welcome + Actors
 
-"This is YourTurn: a booking platform for service slots that customers can keep, recover, or pass on under owner-defined rules. There are three actors in this demo: the Owner who creates sessions and policies, Person A who holds a booking, and Person B who can take over a slot."
+"This is YourTurn: a booking platform that tokenizes service slots as booking rights. We tokenize the slot so a booking can be held, verified, recovered, or passed on while still following the owner's rules. There are three actors in this demo: the Owner who creates sessions and policies, Person A who holds a booking, and Person B who can take over a slot."
 
 Show: `https://yourturn-sage.vercel.app`
 
 ### 0:20-0:40 - Owner Rules
 
-"On the owner side, the provider controls inventory and rules: which bookings can be resold or released, how owner royalties work, and which recovery actions are allowed. The customer experience stays simple, but the policy stays with the booking."
+"On the owner side, the provider controls inventory and rules: which tokenized bookings can be resold or released, how owner royalties work, and which recovery actions are allowed. The customer experience stays simple, but the policy and proof stay with the booking right."
 
 Show: `https://yourturn-sage.vercel.app/issuer`, briefly. Do not run setup/reset during the recording.
 
