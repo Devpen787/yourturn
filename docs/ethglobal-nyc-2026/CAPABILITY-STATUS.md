@@ -36,22 +36,23 @@ Live and tested:
 
 Latest clean proof:
 
-- Main serial: `184`
-- Refund/release serial: `185`
-- Open/unheld guardrail serial: `186`
-- Recovery listing receipt id: `2de79f10-8ff2-48f5-b388-d92ab828edf6`
-- Refund release receipt id: `dec5d96c-9f17-4c9e-abbd-ec535f53e193`
-- Schedule id: `0.0.9227309`
-- Scheduled transaction id: `0.0.8504300@1781395660.461031693?scheduled`
-- Schedule create tx: `0.0.8504300@1781395660.461031693`
-- Scheduled execution tx: `0.0.8504300-1781395660-461031693`
-- Executed timestamp: `1781395757.080553984`
+- Main serial: `187`
+- Refund/release serial: `188`
+- Open/unheld guardrail serial: `189`
+- Recovery listing receipt id: `50cb1cd9-264b-47f2-b95b-3eb9f30c71db`
+- Refund release receipt id: `c477475c-0982-4a44-8f39-5543d378a9fa`
+- Schedule id: `0.0.9227497`
+- Scheduled transaction id: `0.0.8504300@1781397488.488433669?scheduled`
+- Schedule create tx: `0.0.8504300@1781397488.488433669`
+- Scheduled execution tx: `0.0.8504300-1781397488-488433669`
+- Executed timestamp: `1781397585.057210004`
 - Agent proof tools checked in E2E: `yourturn.recovery.confirm_refund_release`, `yourturn.recovery.confirm_listing`
-- Primary book tx: `0.0.8504300@1781395625.593456264`
-- Refund/release transfer tx: `0.0.8504300@1781395641.257640813`
-- Refund close/burn tx: `0.0.8504300@1781395642.455050030`
-- Refund audit tx: `0.0.8504300@1781395645.637309381`
-- Resale buy tx: `0.0.8504300@1781395755.740976974`
+- Agent protocol descriptors checked in E2E: A2A/HCS-14 card, OpenClaw descriptor-only status, x402 descriptor-only status
+- Primary book tx: `0.0.8504300@1781397455.868752258`
+- Refund/release transfer tx: `0.0.8504300@1781397472.551738960`
+- Refund close/burn tx: `0.0.8504300@1781397474.102316916`
+- Refund audit tx: `0.0.8504300@1781397476.746514442`
+- Resale buy tx: `0.0.8504300@1781397584.036844283`
 
 Tested commands:
 

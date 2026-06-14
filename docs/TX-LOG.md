@@ -47,6 +47,13 @@ HashScan base (default): `https://hashscan.io/testnet`
 | **Wave 9 E2E** Schedule create | `0.0.8504300@1781395660.461031693` | [HashScan tx](https://hashscan.io/testnet/transaction/0.0.8504300-1781395660-461031693), [schedule 0.0.9227309](https://hashscan.io/testnet/schedule/0.0.9227309) — approved recovery flow created a `0.01` HBAR scheduled payment for serial `184`; receipt includes `yourturn.recovery.confirm_listing` agent proof |
 | **Wave 9 E2E** Scheduled execution | `0.0.8504300-1781395660-461031693` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1781395660-461031693) — Mirror shows scheduled `CRYPTOTRANSFER` success at `1781395757.080553984`; schedule status `executed` |
 | **Wave 9 E2E** Resale buy (`POST /api/resale-buy`) | `0.0.8504300@1781395755.740976974` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1781395755-740976974) — scripted clean pass moved serial `184` from Person A to Person B before provider check-in |
+| **Wave 10 E2E** Primary book (`POST /api/book`) | `0.0.8504300@1781397455.868752258` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1781397455-868752258) — scripted clean pass booked serial `187` for Person A after Agent Kit runtime/HCS-14 descriptor upgrade |
+| **Wave 10 E2E** Real refund release | `0.0.8504300@1781397472.551738960` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1781397472-551738960) — serial `188` moved Person A -> treasury and `18` HBAR moved treasury -> Person A in one testnet transfer; receipt includes `yourturn.recovery.confirm_refund_release` agent proof |
+| **Wave 10 E2E** Refund release close/burn | `0.0.8504300@1781397474.102316916` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1781397474-102316916) — serial `188` was closed after release |
+| **Wave 10 E2E** Refund audit event | `0.0.8504300@1781397476.746514442` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1781397476-746514442) — HCS `CANCEL_RELEASED` audit event for serial `188`; receipt `c477475c-0982-4a44-8f39-5543d378a9fa` |
+| **Wave 10 E2E** Schedule create | `0.0.8504300@1781397488.488433669` | [HashScan tx](https://hashscan.io/testnet/transaction/0.0.8504300-1781397488-488433669), [schedule 0.0.9227497](https://hashscan.io/testnet/schedule/0.0.9227497) — approved recovery flow created a budget-gated `0.01` HBAR scheduled payment for serial `187`; receipt includes `yourturn.recovery.confirm_listing` agent proof |
+| **Wave 10 E2E** Scheduled execution | `0.0.8504300-1781397488-488433669` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1781397488-488433669) — Mirror shows scheduled `CRYPTOTRANSFER` success at `1781397585.057210004`; schedule status `executed` |
+| **Wave 10 E2E** Resale buy (`POST /api/resale-buy`) | `0.0.8504300@1781397584.036844283` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1781397584-036844283) — scripted clean pass moved serial `187` from Person A to Person B before provider check-in |
 
 ## Demo-complete proof checks
 
@@ -68,8 +75,8 @@ Use these checks alongside the tx rows above:
 |------|-----------|
 | Token on HashScan | [0.0.8505698](https://hashscan.io/testnet/token/0.0.8505698) |
 | Topic on HashScan | [0.0.8505699](https://hashscan.io/testnet/topic/0.0.8505699) |
-| Latest ETHGlobal Schedule proof | [0.0.9227309](https://hashscan.io/testnet/schedule/0.0.9227309) |
-| Latest **F7** refund/release proof | [0.0.8504300@1781395641.257640813](https://hashscan.io/testnet/transaction/0.0.8504300-1781395641-257640813) |
+| Latest ETHGlobal Schedule proof | [0.0.9227497](https://hashscan.io/testnet/schedule/0.0.9227497) |
+| Latest **F7** refund/release proof | [0.0.8504300@1781397472.551738960](https://hashscan.io/testnet/transaction/0.0.8504300-1781397472-551738960) |
 
 ## How to capture
 
