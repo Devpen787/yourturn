@@ -9,6 +9,7 @@ import {
   buildRefundReleaseAgentTrace,
 } from "@/lib/agent/concierge-agent";
 import { buildHederaAgentProof } from "@/lib/hedera-agent-kit/agent-proof";
+import { getDemoConciergeBudget } from "@/lib/hedera-agent-kit/budget";
 import { evaluateYourTurnAgentPolicies } from "@/lib/hedera-agent-kit/policies";
 import {
   enforceLockedGuestActor,
@@ -169,9 +170,28 @@ export async function POST(req: Request) {
         { status: 409 }
       );
     }
+    const scheduledRecoveryPaymentHbar = 0.01;
+    const budget = getDemoConciergeBudget(parsed.data.actor);
+    const policyChecks = evaluateYourTurnAgentPolicies({
+      toolId: "yourturn.recovery.confirm_listing",
+      slot,
+      actorAccountId,
+      askPriceHbar: result.listing.askPriceHbar,
+      approvalId: grant.claims.grantId,
+      scheduleSerial: preview.serial,
+      budget,
+      budgetAmountHbar: scheduledRecoveryPaymentHbar,
+    });
+    if (policyChecks.some((check) => check.status === "blocked")) {
+      return NextResponse.json(
+        fail("Concierge budget or policy blocked this recovery listing.", "CONFLICT"),
+        { status: 409 }
+      );
+    }
+
     const scheduleProof = await createScheduledRecoveryPayment({
       payerActor: parsed.data.actor,
-      amountHbar: 0.01,
+      amountHbar: scheduledRecoveryPaymentHbar,
       serial: preview.serial,
       executeAfterSeconds: 90,
     });
@@ -184,14 +204,6 @@ export async function POST(req: Request) {
       amountHbar: scheduleProof.amountHbar,
       scheduleId: scheduleProof.scheduleId,
     });
-    const policyChecks = evaluateYourTurnAgentPolicies({
-      toolId: "yourturn.recovery.confirm_listing",
-      slot,
-      actorAccountId,
-      askPriceHbar: result.listing.askPriceHbar,
-      approvalId: grant.claims.grantId,
-      scheduleSerial: preview.serial,
-    });
     const agentProof = buildHederaAgentProof({
       toolId: "yourturn.recovery.confirm_listing",
       approvalId: grant.claims.grantId,
@@ -199,6 +211,9 @@ export async function POST(req: Request) {
       createdAt,
       proofOutputs: {
         serial: preview.serial,
+        budgetId: budget.budgetId,
+        budgetRemainingHbar: budget.remainingHbar,
+        budgetSource: budget.source,
         askPriceHbar: result.listing.askPriceHbar,
         royaltyHbar: result.listing.royaltyHbar,
         sellerNetHbar: result.listing.sellerNetHbar,

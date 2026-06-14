@@ -1,5 +1,6 @@
 import { accountsEqual } from "../domain/account.ts";
 import type { BookingSlotView, ResaleListingView } from "../types/booking-port";
+import { evaluateBudgetForAction, type ConciergeBudget } from "./budget.ts";
 import type { YourTurnToolId } from "./tool-manifest";
 
 export type AgentPolicyCheckId =
@@ -12,7 +13,8 @@ export type AgentPolicyCheckId =
   | "refund_matches_booked_price"
   | "approval_present"
   | "schedule_references_serial"
-  | "actor_can_view_schedule";
+  | "actor_can_view_schedule"
+  | "budget_allows_payment";
 
 export type AgentPolicyCheckResult = {
   id: AgentPolicyCheckId;
@@ -38,6 +40,8 @@ export type RecoveryPolicyInput = {
   refundHbar?: number;
   approvalId?: string | null;
   scheduleSerial?: number;
+  budget?: ConciergeBudget;
+  budgetAmountHbar?: number;
 };
 
 function result(
@@ -149,6 +153,28 @@ function approvalPresent(input: RecoveryPolicyInput): AgentPolicyCheckResult {
   );
 }
 
+function budgetAllowsPayment(input: RecoveryPolicyInput): AgentPolicyCheckResult {
+  if (!input.budget) {
+    return result(
+      "budget_allows_payment",
+      "Budget allows payment",
+      false,
+      "No Concierge budget was provided for this value-moving action."
+    );
+  }
+  const check = evaluateBudgetForAction({
+    budget: input.budget,
+    toolId: input.toolId,
+    requestedHbar: input.budgetAmountHbar ?? 0,
+  });
+  return {
+    id: check.id,
+    label: check.label,
+    status: check.status,
+    detail: check.detail,
+  };
+}
+
 function scheduleReferencesSerial(input: RecoveryPolicyInput): AgentPolicyCheckResult {
   const passed = input.scheduleSerial === input.slot.serial;
   return result(
@@ -185,6 +211,7 @@ export function evaluateYourTurnAgentPolicies(
       ...common,
       resaleAllowed(input),
       scheduleAutomationAllowed(input),
+      budgetAllowsPayment(input),
       approvalPresent(input),
     ];
   }
@@ -201,6 +228,9 @@ export function evaluateYourTurnAgentPolicies(
   }
   if (input.toolId === "yourturn.automation.inspect_schedule") {
     return [scheduleReferencesSerial(input), actorCanViewSchedule(input)];
+  }
+  if (input.toolId === "yourturn.budget.inspect") {
+    return [budgetAllowsPayment(input)];
   }
   return common;
 }

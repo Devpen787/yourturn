@@ -82,6 +82,16 @@ const {
   YOURTURN_TOOL_MANIFEST_VERSION,
   bountyCoverage,
 } = await import("../lib/hedera-agent-kit/tool-manifest.ts");
+const { getDemoConciergeBudget } = await import("../lib/hedera-agent-kit/budget.ts");
+const { buildHcs14AgentIdentity } = await import(
+  "../lib/hedera-agent-kit/identity.ts"
+);
+const { inspectYourTurnHederaAgentRuntime } = await import(
+  "../lib/hedera-agent-kit/runtime.ts"
+);
+const { buildAgentProtocolDescriptors } = await import(
+  "../lib/agent-protocols/descriptors.ts"
+);
 const { evaluateYourTurnAgentPolicies, policyChecksPassed } = await import(
   "../lib/hedera-agent-kit/policies.ts"
 );
@@ -109,6 +119,8 @@ const validListing = evaluateYourTurnAgentPolicies({
   actorAccountId: "0.0.1001",
   askPriceHbar: 18,
   approvalId: "grant_agent_check_listing",
+  budget: getDemoConciergeBudget("guestA"),
+  budgetAmountHbar: 0.01,
 });
 const validRefund = evaluateYourTurnAgentPolicies({
   toolId: "yourturn.recovery.confirm_refund_release",
@@ -123,6 +135,8 @@ const blockedNonHolder = evaluateYourTurnAgentPolicies({
   actorAccountId: "0.0.9999",
   askPriceHbar: 18,
   approvalId: "grant_agent_check_wrong_holder",
+  budget: getDemoConciergeBudget("guestA"),
+  budgetAmountHbar: 0.01,
 });
 const blockedResaleDisabled = evaluateYourTurnAgentPolicies({
   toolId: "yourturn.recovery.preview_listing",
@@ -146,6 +160,19 @@ const scheduleInspect = evaluateYourTurnAgentPolicies({
   actorAccountId: "0.0.1001",
   scheduleSerial: 906,
 });
+const blockedBudget = evaluateYourTurnAgentPolicies({
+  toolId: "yourturn.recovery.confirm_listing",
+  slot: makeSlot({ serial: 907 }),
+  actorAccountId: "0.0.1001",
+  askPriceHbar: 18,
+  approvalId: "grant_agent_check_budget",
+  budget: {
+    ...getDemoConciergeBudget("guestA"),
+    limitHbar: 0.001,
+    remainingHbar: 0.001,
+  },
+  budgetAmountHbar: 0.01,
+});
 
 const policyScenarios = {
   validListing: summarizeChecks(validListing),
@@ -154,6 +181,7 @@ const policyScenarios = {
   blockedResaleDisabled: summarizeChecks(blockedResaleDisabled),
   blockedDuplicateListing: summarizeChecks(blockedDuplicateListing),
   scheduleInspect: summarizeChecks(scheduleInspect),
+  blockedBudget: summarizeChecks(blockedBudget),
 };
 
 const policyAssertions = [
@@ -163,7 +191,33 @@ const policyAssertions = [
   assert(!policyChecksPassed(blockedResaleDisabled), "resale-disabled listing is blocked"),
   assert(!policyChecksPassed(blockedDuplicateListing), "duplicate listing is blocked"),
   assert(policyChecksPassed(scheduleInspect), "schedule inspection policies pass"),
+  assert(!policyChecksPassed(blockedBudget), "budget overflow is blocked"),
 ];
+
+const identity = buildHcs14AgentIdentity({
+  nativeId: "hedera:testnet:0.0.8504300",
+});
+assert(identity.id.startsWith("uaid:aid:"), "HCS-14 UAID generated");
+assert(identity.id.includes("nativeId="), "HCS-14 UAID includes native id");
+
+const runtime = await inspectYourTurnHederaAgentRuntime();
+assert(runtime.hasYourTurnPlugin, "Agent Kit runtime has YourTurn plugin");
+assert(runtime.hasCoreTransferTool, "Agent Kit runtime has core transfer tool");
+assert(runtime.hasCoreAllowanceTool, "Agent Kit runtime has core allowance tool");
+
+const protocolDescriptors = buildAgentProtocolDescriptors("http://localhost:3000");
+assert(
+  protocolDescriptors.a2a.identifiers.hcs14,
+  "A2A descriptor includes HCS-14 id"
+);
+assert(
+  protocolDescriptors.openclaw.status === "descriptor_only",
+  "OpenClaw descriptor is honest"
+);
+assert(
+  protocolDescriptors.x402.status === "descriptor_only",
+  "x402 descriptor is honest"
+);
 
 const output = {
   ok: true,
@@ -172,6 +226,14 @@ const output = {
     version: YOURTURN_AGENT_VERSION,
     agentKitVersion,
     manifestVersion: YOURTURN_TOOL_MANIFEST_VERSION,
+    hcs14: identity.id,
+  },
+  runtime: {
+    mode: runtime.mode,
+    toolMethods: runtime.toolMethods,
+    hasCoreTransferTool: runtime.hasCoreTransferTool,
+    hasCoreAllowanceTool: runtime.hasCoreAllowanceTool,
+    hasYourTurnPlugin: runtime.hasYourTurnPlugin,
   },
   toolsChecked: YOURTURN_AGENT_TOOLS.map((tool) => ({
     id: tool.id,
@@ -182,13 +244,21 @@ const output = {
   manifestChecks: manifestChecks.length,
   policiesChecked: policyAssertions,
   policyScenarios,
+  protocols: {
+    a2a: "live descriptor at /.well-known/agent.json and /api/agent/capabilities",
+    hcs14: "live deterministic UAID descriptor",
+    openclaw: "descriptor only; no Gateway-backed ACP runtime configured",
+    x402: "descriptor only; no facilitator-backed HTTP 402 settlement configured",
+  },
   bountyCoverage: bountyCoverage(),
   remainingGaps: [
-    "OpenClaw ACP is not integrated.",
-    "x402, A2A, UCP, and HCS-14 agent identity are not integrated.",
-    "Wallet-funded user budgets and fiat/stablecoin onramp are not integrated.",
+    "OpenClaw ACP Gateway runtime is not configured; descriptor only.",
+    "x402 facilitator-backed settlement is not integrated; descriptor only.",
+    "A2A is exposed as an agent card descriptor, not a remote multi-agent negotiation runtime.",
+    "Wallet connect, wallet-funded allowances, and fiat/stablecoin onramp are not integrated.",
     "Scheduled token release/refund remains future scope.",
   ],
 };
 
 console.log(JSON.stringify(output, null, 2));
+process.exit(0);

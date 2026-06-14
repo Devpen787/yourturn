@@ -7,7 +7,8 @@ export type YourTurnToolId =
   | "yourturn.recovery.confirm_listing"
   | "yourturn.recovery.preview_refund_release"
   | "yourturn.recovery.confirm_refund_release"
-  | "yourturn.automation.inspect_schedule";
+  | "yourturn.automation.inspect_schedule"
+  | "yourturn.budget.inspect";
 
 export type HederaServiceUsed =
   | "Hedera Agent Kit"
@@ -15,7 +16,8 @@ export type HederaServiceUsed =
   | "Hedera Consensus Service"
   | "Hedera Schedule Service"
   | "Mirror Node"
-  | "HashScan";
+  | "HashScan"
+  | "HCS-14";
 
 export type YourTurnToolManifestEntry = {
   id: YourTurnToolId;
@@ -64,6 +66,7 @@ export const YOURTURN_AGENT_TOOLS: YourTurnToolManifestEntry[] = [
       "slot_is_held",
       "resale_allowed",
       "schedule_automation_allowed",
+      "budget_allows_payment",
       "approval_present",
     ],
     proofOutputs: [
@@ -141,6 +144,24 @@ export const YOURTURN_AGENT_TOOLS: YourTurnToolManifestEntry[] = [
       "status",
     ],
   },
+  {
+    id: "yourturn.budget.inspect",
+    description:
+      "Inspect the demo-funded Concierge budget boundary before a value-moving recovery action.",
+    requiredInput: ["actor", "toolId", "amountHbar"],
+    hederaServices: ["Hedera Agent Kit", "Mirror Node"],
+    mutation: "none",
+    requiresHumanApproval: false,
+    policyGates: ["budget_allows_payment"],
+    proofOutputs: [
+      "budgetId",
+      "limitHbar",
+      "spentHbar",
+      "remainingHbar",
+      "requestedHbar",
+      "budgetSource",
+    ],
+  },
 ];
 
 export function getYourTurnTool(id: YourTurnToolId): YourTurnToolManifestEntry {
@@ -159,7 +180,7 @@ export function bountyCoverage() {
     agenticPayments: {
       status: "live",
       proof:
-        "yourturn.recovery.confirm_refund_release executes a real testnet HBAR refund/release after policy checks and approval.",
+        "yourturn.recovery.confirm_refund_release executes a real testnet HBAR refund/release after policy checks and approval; recovery scheduling is also budget-gated.",
     },
     noSolidity: {
       status: "live",
