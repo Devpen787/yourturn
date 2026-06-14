@@ -92,10 +92,10 @@ The pasted example copy about state channels, exchange onramp/offramp, MobX, Rus
 
 **GitHub repositories**
 
-- Primary repo: `https://github.com/Devpen787/yourturn/tree/codex/ethglobal-final-public`
-- Canonical repo root: `https://github.com/Devpen787/yourturn`
+- Primary repo: `https://github.com/Devpen787/yourturn`
+- Final public branch: `codex/ethglobal-final-public`
 - Additional repos: `None`
-- Notes: Use the branch URL for ETHGlobal if the form accepts branch URLs. The existing feature branch is intentionally not the final share link because it has remote divergence.
+- Notes: The GitHub default branch is now `codex/ethglobal-final-public`, so the repo root opens directly to the final ETHGlobal public packet.
 
 ### Images and assets
 
