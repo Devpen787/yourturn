@@ -1,9 +1,18 @@
 import { bookingPort } from "@/lib/adapters/booking-port";
-import { buildRefundReleaseAgentTrace } from "@/lib/agent/concierge-agent";
+import {
+  buildRecoveryPaymentAgentTrace,
+  buildRefundReleaseAgentTrace,
+} from "@/lib/agent/concierge-agent";
 import { buildHederaAgentProof } from "@/lib/hedera-agent-kit/agent-proof";
-import { evaluateYourTurnAgentPolicies } from "@/lib/hedera-agent-kit/policies";
+import { getDemoConciergeBudget } from "@/lib/hedera-agent-kit/budget";
+import {
+  evaluateYourTurnAgentPolicies,
+  policyChecksPassed,
+} from "@/lib/hedera-agent-kit/policies";
 import { getActorCredentials } from "@/lib/hedera/client";
+import { createScheduledRecoveryPayment } from "@/lib/hedera/schedule";
 import { mintApprovalGrant } from "@/lib/server/approval-grants";
+import { upsertAutomationProof } from "@/lib/store/automation-proofs";
 import { upsertRecoveryReceipt } from "@/lib/store/recovery-receipts";
 
 type TelegramActor = "guestA" | "guestB";
@@ -21,6 +30,7 @@ export type TelegramUpdate = {
 export type TelegramCommand =
   | { kind: "show_bookings"; actor: TelegramActor }
   | { kind: "recover_booking"; actor: TelegramActor; serial?: number }
+  | { kind: "approve_listing"; actor: TelegramActor; serial?: number }
   | { kind: "approve_refund"; actor: TelegramActor; serial?: number }
   | { kind: "help"; actor: TelegramActor };
 
@@ -45,19 +55,33 @@ function actorFromText(text: string): TelegramActor {
   return (process.env.TELEGRAM_DEMO_ACTOR as TelegramActor | undefined) ?? "guestA";
 }
 
+function serialFromText(text: string): number | undefined {
+  const match = text.match(/(?:ref|serial|booking|pass|#)\s*#?(\d+)/i);
+  return match ? Number(match[1]) : undefined;
+}
+
 export function parseTelegramCommand(text: string): TelegramCommand {
   const normalized = text.trim().toLowerCase();
   const actor = actorFromText(normalized);
-  const serialMatch = normalized.match(/(?:ref|serial|#)\s*(\d+)/i);
-  const serial = serialMatch ? Number(serialMatch[1]) : undefined;
+  const serial = serialFromText(normalized);
   if (normalized.includes("approve") && normalized.includes("refund")) {
     return { kind: "approve_refund", actor, serial };
+  }
+  if (
+    normalized.includes("approve") &&
+    (normalized.includes("list") ||
+      normalized.includes("listing") ||
+      normalized.includes("resale") ||
+      normalized.includes("recover"))
+  ) {
+    return { kind: "approve_listing", actor, serial };
   }
   if (
     normalized.includes("can't attend") ||
     normalized.includes("cannot attend") ||
     normalized.includes("recover") ||
-    normalized.includes("can't make")
+    normalized.includes("can't make") ||
+    normalized.includes("list for resale")
   ) {
     return { kind: "recover_booking", actor, serial };
   }
@@ -103,12 +127,219 @@ async function recoverBooking(
   }
   const slot = await bookingPort.getSlot(serial);
   if (!slot) return [`Ref #${serial} is not in the current demo schedule.`];
-  return [
-    `Recovery ready for ${personLabel(actor)}.`,
-    `Ref #${serial}: ${slot.title}`,
-    `Open Concierge: ${appBaseUrl}/resale/${serial}?mode=recovery`,
-    `To approve a real testnet refund from Telegram, send: approve refund ref ${serial}`,
-  ];
+  const activeListing = await bookingPort.getListing(serial);
+  if (activeListing?.active) {
+    return [
+      `Ref #${serial} is already listed for resale.`,
+      `Ask: ${activeListing.askPriceHbar.toFixed(2)} HBAR.`,
+      `Open listing: ${appBaseUrl}/resale/${serial}`,
+    ];
+  }
+  try {
+    const preview = await bookingPort.previewCreateListing({
+      seller: { kind: "demoActor", id: actor },
+      serial,
+      askPriceHbar: slot.primaryPriceHbar,
+    });
+    return [
+      `Recovery preview for ${personLabel(actor)}.`,
+      `Ref #${serial}: ${slot.title}`,
+      `Ask: ${preview.details.askPriceHbar.toFixed(2)} HBAR.`,
+      `Owner royalty: ${preview.details.royaltyHbar.toFixed(2)} HBAR.`,
+      `Seller net: ${preview.details.sellerNetHbar.toFixed(2)} HBAR.`,
+      `Open Concierge: ${appBaseUrl}/resale/${serial}?mode=recovery`,
+      `To approve listing from Telegram, send: approve listing ref ${serial}`,
+      `For release/refund instead, send: approve refund ref ${serial}`,
+    ];
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    return [
+      `Recovery is blocked for Ref #${serial}.`,
+      reason,
+      `Open Concierge: ${appBaseUrl}/resale/${serial}?mode=recovery`,
+    ];
+  }
+}
+
+async function approveListing(
+  actor: TelegramActor,
+  appBaseUrl: string,
+  explicitSerial: number | undefined,
+  allowMutations: boolean
+): Promise<{ messages: string[]; mutated: boolean }> {
+  const serial = await resolveHeldSerial(actor, explicitSerial);
+  if (!serial) {
+    return {
+      mutated: false,
+      messages: [`I could not find a held pass for ${personLabel(actor)}.`],
+    };
+  }
+  if (!allowMutations) {
+    return {
+      mutated: false,
+      messages: [
+        `Telegram listing approval is dry-run safe right now.`,
+        `Open the approval surface: ${appBaseUrl}/resale/${serial}?mode=recovery`,
+        `Enable TELEGRAM_ALLOW_MUTATIONS=true with an allowlisted chat to execute from Telegram.`,
+      ],
+    };
+  }
+  const slot = await bookingPort.getSlot(serial);
+  if (!slot) {
+    return { mutated: false, messages: [`Ref #${serial} is not in the current demo schedule.`] };
+  }
+  const activeListing = await bookingPort.getListing(serial);
+  if (activeListing?.active) {
+    return {
+      mutated: false,
+      messages: [
+        `Ref #${serial} is already listed.`,
+        `Ask: ${activeListing.askPriceHbar.toFixed(2)} HBAR.`,
+        `Open listing: ${appBaseUrl}/resale/${serial}`,
+      ],
+    };
+  }
+  const actorAccountId = getActorCredentials(actor).accountId.toString();
+  const askPriceHbar = slot.primaryPriceHbar;
+  const preview = await bookingPort.previewCreateListing({
+    seller: { kind: "demoActor", id: actor },
+    serial,
+    askPriceHbar,
+  });
+  const grant = mintApprovalGrant({
+    action: "create_listing",
+    actor: { kind: "demoActor", id: actor },
+    serial,
+    approvedBy: `telegram:${actor}`,
+    source: "agent_handoff",
+    ttlSeconds: 10 * 60,
+  });
+  const createdAt = new Date().toISOString();
+  const scheduledRecoveryPaymentHbar = 0.01;
+  const budget = getDemoConciergeBudget(actor);
+  const preflightPolicyChecks = evaluateYourTurnAgentPolicies({
+    toolId: "yourturn.recovery.confirm_listing",
+    slot,
+    actorAccountId,
+    askPriceHbar,
+    approvalId: grant.claims.grantId,
+    scheduleSerial: serial,
+    budget,
+    budgetAmountHbar: scheduledRecoveryPaymentHbar,
+  });
+  if (!policyChecksPassed(preflightPolicyChecks)) {
+    return {
+      mutated: false,
+      messages: [
+        `Telegram approval was blocked by recovery policy.`,
+        ...preflightPolicyChecks
+          .filter((check) => check.status === "blocked")
+          .map((check) => `${check.label}: ${check.detail}`),
+        `Open Concierge: ${appBaseUrl}/resale/${serial}?mode=recovery`,
+      ],
+    };
+  }
+  const result = await bookingPort.confirmCreateListing({
+    previewId: preview.previewId,
+    approval: {
+      approvedBy: grant.claims.approvedBy,
+      approvedAt: grant.claims.approvedAt,
+      source: grant.claims.source,
+      approvalId: grant.claims.grantId,
+    },
+  });
+  const scheduleProof = await createScheduledRecoveryPayment({
+    payerActor: actor,
+    amountHbar: scheduledRecoveryPaymentHbar,
+    serial,
+    executeAfterSeconds: 90,
+  });
+  const policyChecks = evaluateYourTurnAgentPolicies({
+    toolId: "yourturn.recovery.confirm_listing",
+    slot,
+    actorAccountId,
+    askPriceHbar: result.listing.askPriceHbar,
+    approvalId: grant.claims.grantId,
+    scheduleSerial: serial,
+    budget,
+    budgetAmountHbar: scheduledRecoveryPaymentHbar,
+  });
+  const agentTrace = buildRecoveryPaymentAgentTrace({
+    serial,
+    intent:
+      "Telegram Concierge approval to recover value by listing and scheduling recovery settlement proof.",
+    actorLabel: personLabel(actor),
+    approvalId: grant.claims.grantId,
+    policySnapshot: slot.policySnapshot,
+    amountHbar: scheduleProof.amountHbar,
+    scheduleId: scheduleProof.scheduleId,
+  });
+  const agentProof = buildHederaAgentProof({
+    toolId: "yourturn.recovery.confirm_listing",
+    approvalId: grant.claims.grantId,
+    policyChecks,
+    createdAt,
+    proofOutputs: {
+      serial,
+      budgetId: budget.budgetId,
+      budgetRemainingHbar: budget.remainingHbar,
+      budgetSource: budget.source,
+      askPriceHbar: result.listing.askPriceHbar,
+      royaltyHbar: result.listing.royaltyHbar,
+      sellerNetHbar: result.listing.sellerNetHbar,
+      auditTxId: result.auditTxId,
+      scheduleId: scheduleProof.scheduleId,
+      scheduledTransactionId: scheduleProof.scheduledTransactionId,
+      createTxId: scheduleProof.createTxId,
+      scheduleHashscanUrl: scheduleProof.scheduleHashscanUrl,
+    },
+  });
+  await upsertAutomationProof({
+    serial,
+    actor,
+    scheduleProof,
+    agentTrace,
+    agentProof,
+    createdAt,
+  });
+  const receipt = {
+    title: "Telegram recovery listing created",
+    statusLabel: "Listed",
+    actionLabel: "Telegram Concierge recovery listing",
+    actorLabel: personLabel(actor),
+    currentState: "Telegram Concierge listed this pass for another customer to take over.",
+    receiptId: grant.claims.grantId,
+    action: "create_listing" as const,
+    actor,
+    actorAccountId,
+    serial,
+    askPriceHbar: result.listing.askPriceHbar,
+    royaltyHbar: result.listing.royaltyHbar,
+    sellerNetHbar: result.listing.sellerNetHbar,
+    approvalId: grant.claims.grantId,
+    approvalGrantId: grant.claims.grantId,
+    auditTxId: result.auditTxId,
+    hashscanUrl: result.hashscanUrl,
+    createdAt,
+    occurredAt: createdAt,
+    policyBasis: `${slot.policySnapshot.label} (${slot.policySnapshot.snapshotId})`,
+    policySnapshot: slot.policySnapshot,
+    scheduleProof,
+    agentTrace,
+    agentProof,
+  };
+  await upsertRecoveryReceipt(receipt, "telegram_recovery_listing");
+  return {
+    mutated: true,
+    messages: [
+      `Approved and listed Ref #${serial} from Telegram.`,
+      `Ask: ${result.listing.askPriceHbar.toFixed(2)} HBAR.`,
+      `Seller net: ${result.listing.sellerNetHbar.toFixed(2)} HBAR after owner royalty.`,
+      `Schedule proof: ${scheduleProof.scheduleId}`,
+      `Listing proof: ${result.hashscanUrl}`,
+      `Receipt: ${appBaseUrl}/resale/${serial}?mode=recovery`,
+    ],
+  };
 }
 
 async function approveRefund(
@@ -258,6 +489,21 @@ export async function handleTelegramUpdate(
       mutated: false,
     };
   }
+  if (command.kind === "approve_listing") {
+    const approval = await approveListing(
+      command.actor,
+      options.appBaseUrl,
+      command.serial,
+      !!options.allowMutations
+    );
+    return {
+      chatId,
+      actor: command.actor,
+      command: command.kind,
+      messages: approval.messages,
+      mutated: approval.mutated,
+    };
+  }
   if (command.kind === "approve_refund") {
     const approval = await approveRefund(
       command.actor,
@@ -282,6 +528,7 @@ export async function handleTelegramUpdate(
       "show my bookings",
       "I can't attend",
       "recover booking ref 123",
+      "approve listing ref 123",
       "approve refund ref 123",
     ],
     mutated: false,

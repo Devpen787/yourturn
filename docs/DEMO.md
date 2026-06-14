@@ -32,7 +32,7 @@ Current demo limits:
 - listing a pass is the seller approval step; there is no second approval after the buyer clicks purchase
 - buying a listed pass transfers it immediately if the API accepts the action
 - `/brand-lab/ethglobal` is a hidden static Wave 1 sandbox for premium target states only; it is not product proof and does not call live APIs
-- Telegram webhook command handling is fixture-tested and mutation-gated, but live Telegram delivery requires bot credentials and an allowlisted chat
+- Telegram webhook command handling is fixture-tested and mutation-gated, but live Telegram delivery requires bot credentials and an allowlisted chat; allowlisted Telegram can preview recovery and approve listing/refund actions through the same server recovery paths
 - there is still no wallet connect, fiat/onramp, or user-funded budget allowance in the shipped browser demo
 
 ## Clean regression command
@@ -52,7 +52,16 @@ Telegram fixture check:
 npm run telegram:fixture
 ```
 
-This fixture exercises the webhook parser and confirms the fixture path cannot mutate state. A live Telegram demo additionally needs `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `TELEGRAM_ALLOWED_CHAT_IDS`, and `TELEGRAM_ALLOW_MUTATIONS=true`.
+This fixture exercises the webhook parser and confirms the fixture path cannot mutate state. A live Telegram demo additionally needs `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, and `TELEGRAM_ALLOWED_CHAT_IDS`; set `TELEGRAM_ALLOW_MUTATIONS=true` only after dry-run messages work from the allowlisted chat.
+
+Supported Telegram Concierge commands:
+
+- `show my bookings`
+- `recover booking ref 123`
+- `approve listing ref 123`
+- `approve refund ref 123`
+
+`recover booking ref 123` previews the resale ask, owner royalty, seller net, and in-app Concierge link. `approve listing ref 123` uses the same bounded recovery listing path as the app: it mints a scoped server-side approval, creates the listing, creates a Hedera Schedule Service proof, stores a Hedera Agent Kit proof receipt, and replies with the listing and proof links. `approve refund ref 123` remains the separate release/refund path and sends a real testnet HBAR refund only when mutations are enabled.
 
 Agent proof checker:
 

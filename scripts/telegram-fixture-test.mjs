@@ -76,12 +76,14 @@ async function main() {
     "show my bookings",
     "I can't attend",
     "recover booking",
+    "approve listing",
+    "approve listing ref 123",
     "approve refund",
     "what can you do?",
   ]) {
     const result = await postFixture(text);
     assert(result.messages?.length > 0, `${text} returns messages`, result);
-    if (text === "approve refund") {
+    if (text.startsWith("approve")) {
       assert(result.mutated === false, "fixture approval does not mutate", result);
     }
     checks.push({ text, command: result.command, mutated: result.mutated, messages: result.messages });

@@ -42,6 +42,8 @@ Public capability descriptors:
 
 OpenClaw ACP and x402 are descriptor-only in this repo until their gateway/facilitator runtimes are configured.
 
+Telegram Concierge transport is documented in `docs/ethglobal-nyc-2026/TELEGRAM-OPENCLAW-SETUP.md`. It is a bounded webhook adapter over the same BookingPort recovery actions, not a separate agent business-logic path.
+
 ## Endpoints
 
 | Endpoint | Method | Use |

@@ -24,6 +24,10 @@ function allowedChatIds(): Set<string> {
   );
 }
 
+function botTokenConfigured(): boolean {
+  return !!process.env.TELEGRAM_BOT_TOKEN;
+}
+
 async function sendTelegramMessage(chatId: string, text: string): Promise<void> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) return;
@@ -60,16 +64,16 @@ export async function POST(req: Request) {
       update.message?.chat?.id != null ? String(update.message.chat.id) : null;
     const allowMutations =
       !fixtureDryRun && process.env.TELEGRAM_ALLOW_MUTATIONS === "true";
-    if (allowMutations && allowed.size === 0) {
+    if (!fixtureDryRun && (allowMutations || botTokenConfigured()) && allowed.size === 0) {
       return NextResponse.json(
         fail(
-          "TELEGRAM_ALLOWED_CHAT_IDS is required when TELEGRAM_ALLOW_MUTATIONS=true.",
+          "TELEGRAM_ALLOWED_CHAT_IDS is required for live Telegram delivery or mutation.",
           "NOT_CONFIGURED"
         ),
         { status: 503 }
       );
     }
-    const isAllowed = !chatId || allowed.size === 0 || allowed.has(chatId);
+    const isAllowed = fixtureDryRun || (chatId != null && (allowed.size === 0 || allowed.has(chatId)));
     if (!isAllowed) {
       return NextResponse.json(
         fail("Telegram chat is not allowlisted.", "FORBIDDEN"),
@@ -87,7 +91,7 @@ export async function POST(req: Request) {
     }
     return NextResponse.json({
       ok: true as const,
-      dryRun: !process.env.TELEGRAM_BOT_TOKEN,
+      dryRun: fixtureDryRun || !botTokenConfigured(),
       result,
     });
   } catch (error) {
