@@ -84,7 +84,7 @@ export async function POST(req: Request) {
       appBaseUrl: appBaseUrl(),
       allowMutations,
     });
-    if (result.chatId && process.env.TELEGRAM_BOT_TOKEN) {
+    if (!fixtureDryRun && result.chatId && process.env.TELEGRAM_BOT_TOKEN) {
       for (const message of result.messages) {
         await sendTelegramMessage(result.chatId, message);
       }

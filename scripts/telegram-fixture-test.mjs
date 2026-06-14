@@ -38,11 +38,13 @@ async function assertAppReachable() {
 }
 
 async function postFixture(text) {
+  const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
   const res = await fetch(`${base}/api/telegram/webhook`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "x-yourturn-telegram-fixture": "true",
+      ...(secret ? { "x-telegram-bot-api-secret-token": secret } : {}),
     },
     body: JSON.stringify({
       update_id: Date.now(),
@@ -73,12 +75,19 @@ async function main() {
   await assertAppReachable();
   const checks = [];
   for (const text of [
+    "/start",
+    "/bookings",
     "show my bookings",
     "I can't attend",
     "recover booking",
+    "recover booking 123",
     "approve listing",
+    "approve listing 123",
     "approve listing ref 123",
+    "/list 123",
     "approve refund",
+    "approve refund 123",
+    "/refund 123",
     "what can you do?",
   ]) {
     const result = await postFixture(text);

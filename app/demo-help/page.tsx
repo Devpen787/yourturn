@@ -64,10 +64,44 @@ export default function DemoHelpPage() {
       </section>
 
       <section className="mt-6 rounded-xl border border-slate-200 bg-white p-4">
+        <h2 className="font-medium text-slate-900">Telegram Concierge</h2>
+        <p className="mt-2 text-slate-700">
+          YourTurn Concierge can help a customer recover value from a booking they
+          cannot use. Open the bot, ask for your bookings, then use the booking
+          number shown on the pass.
+        </p>
+        <a
+          href="https://t.me/YourTurnConcierge_bot"
+          target="_blank"
+          rel="noreferrer"
+          className={cn(
+            getButtonClassName("secondary"),
+            "mt-3 inline-flex no-underline"
+          )}
+        >
+          Open YourTurn Concierge
+        </a>
+        <ul className="mt-3 space-y-2 text-slate-700">
+          <li>
+            <code className="rounded bg-slate-100 px-1.5 py-0.5">show my bookings</code>
+          </li>
+          <li>
+            <code className="rounded bg-slate-100 px-1.5 py-0.5">recover booking 123</code>
+          </li>
+          <li>
+            <code className="rounded bg-slate-100 px-1.5 py-0.5">approve listing 123</code>
+          </li>
+          <li>
+            <code className="rounded bg-slate-100 px-1.5 py-0.5">approve refund 123</code>
+          </li>
+        </ul>
+      </section>
+
+      <section className="mt-6 rounded-xl border border-slate-200 bg-white p-4">
         <h2 className="font-medium text-slate-900">Current demo limits</h2>
         <ul className="mt-3 space-y-2 text-slate-700">
           <li>Person A and Person B are demo identities, not real user accounts.</li>
-          <li>Browser bookings do not have a cancel/release flow yet.</li>
+          <li>Telegram mutations stay off unless the demo operator enables them.</li>
           <li>
             The resale ask and provider fee preview help explain the economics,
             but the final transaction should still be checked on HashScan.

@@ -19,6 +19,8 @@ type Row = {
   listingActive: boolean;
 };
 
+const TELEGRAM_BOT_URL = "https://t.me/YourTurnConcierge_bot";
+
 function passTone(status: string): PassTileTone {
   if (status === "FOR_SALE") return "listed";
   if (status === "HELD") return "active";
@@ -157,6 +159,44 @@ export function MyBookingsClient({
         <p className="text-sm text-slate-600">
           {held.length} active pass{held.length === 1 ? "" : "es"} currently held by {actor === "guestA" ? "Person A" : "Person B"}.
         </p>
+      )}
+      {tokenId && (
+        <section className="rounded-2xl border border-blue-100 bg-blue-50/70 p-4 text-sm text-slate-700 shadow-sm ring-1 ring-blue-900/[0.03]">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-700">
+                Telegram Concierge
+              </p>
+              <h2 className="mt-1 text-base font-semibold text-slate-950">
+                Ask YourTurn Concierge to help recover a booking
+              </h2>
+              <p className="mt-2 max-w-2xl text-slate-600">
+                Open the bot, send <span className="font-medium text-slate-900">show my bookings</span>,
+                then use the booking number shown on your pass, such as{" "}
+                <span className="font-medium text-slate-900">recover booking 123</span>.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2 text-xs text-blue-950">
+                <span className="rounded-full bg-white/75 px-2.5 py-1 ring-1 ring-blue-100">
+                  show my bookings
+                </span>
+                <span className="rounded-full bg-white/75 px-2.5 py-1 ring-1 ring-blue-100">
+                  recover booking 123
+                </span>
+                <span className="rounded-full bg-white/75 px-2.5 py-1 ring-1 ring-blue-100">
+                  approve listing 123
+                </span>
+              </div>
+            </div>
+            <a
+              href={TELEGRAM_BOT_URL}
+              target="_blank"
+              rel="noreferrer"
+              className={cn(getButtonClassName("secondary"), "no-underline")}
+            >
+              Open bot
+            </a>
+          </div>
+        </section>
       )}
       <ul className="space-y-4">
         {held.map((r) => {

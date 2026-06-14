@@ -56,15 +56,31 @@ function actorFromText(text: string): TelegramActor {
 }
 
 function serialFromText(text: string): number | undefined {
-  const match = text.match(/(?:ref|serial|booking|pass|#)\s*#?(\d+)/i);
-  return match ? Number(match[1]) : undefined;
+  const labeled = text.match(/(?:ref|serial|booking|pass|#)\s*#?(\d+)/i);
+  if (labeled) return Number(labeled[1]);
+  const trailing = text.match(/(?:^|\s)#?(\d+)\s*$/);
+  return trailing ? Number(trailing[1]) : undefined;
 }
 
 export function parseTelegramCommand(text: string): TelegramCommand {
   const normalized = text.trim().toLowerCase();
   const actor = actorFromText(normalized);
   const serial = serialFromText(normalized);
+  if (
+    normalized === "/start" ||
+    normalized === "/help" ||
+    normalized === "help" ||
+    normalized.includes("what can you do")
+  ) {
+    return { kind: "help", actor };
+  }
+  if (normalized === "/bookings" || normalized.includes("my bookings")) {
+    return { kind: "show_bookings", actor };
+  }
   if (normalized.includes("approve") && normalized.includes("refund")) {
+    return { kind: "approve_refund", actor, serial };
+  }
+  if (normalized.startsWith("/refund")) {
     return { kind: "approve_refund", actor, serial };
   }
   if (
@@ -76,12 +92,16 @@ export function parseTelegramCommand(text: string): TelegramCommand {
   ) {
     return { kind: "approve_listing", actor, serial };
   }
+  if (normalized.startsWith("/list")) {
+    return { kind: "approve_listing", actor, serial };
+  }
   if (
     normalized.includes("can't attend") ||
     normalized.includes("cannot attend") ||
     normalized.includes("recover") ||
     normalized.includes("can't make") ||
-    normalized.includes("list for resale")
+    normalized.includes("list for resale") ||
+    normalized.startsWith("/recover")
   ) {
     return { kind: "recover_booking", actor, serial };
   }
@@ -95,6 +115,15 @@ function personLabel(actor: TelegramActor): string {
   return actor === "guestA" ? "Person A" : "Person B";
 }
 
+function missingBookingNumberMessages(actor: TelegramActor, appBaseUrl: string): string[] {
+  return [
+    `Please include the booking number for ${personLabel(actor)}.`,
+    "You can find it in YourTurn > My bookings. It appears as Booking #123 on each pass.",
+    `My bookings: ${appBaseUrl}/my-bookings`,
+    "Example: approve listing 123",
+  ];
+}
+
 async function resolveHeldSerial(actor: TelegramActor, explicitSerial?: number): Promise<number | null> {
   if (explicitSerial) return explicitSerial;
   const holdings = await bookingPort.listHoldings({ kind: "demoActor", id: actor });
@@ -105,14 +134,28 @@ async function resolveHeldSerial(actor: TelegramActor, explicitSerial?: number):
 async function showBookings(actor: TelegramActor, appBaseUrl: string): Promise<string[]> {
   const holdings = await bookingPort.listHoldings({ kind: "demoActor", id: actor });
   if (holdings.length === 0) {
-    return [`${personLabel(actor)} has no active passes right now.`];
+    return [
+      `${personLabel(actor)} has no active passes right now.`,
+      `Book one in YourTurn first: ${appBaseUrl}/slots`,
+    ];
   }
+  const bookingLines = await Promise.all(
+    holdings.map(async (slot) => {
+      const activeListing = await bookingPort.getListing(slot.serial);
+      const status = activeListing?.active ? "LISTED FOR RESALE" : slot.status;
+      const nextAction = activeListing?.active ? "Open listing" : "Details";
+      const nextUrl = activeListing?.active
+        ? `${appBaseUrl}/resale/${slot.serial}`
+        : `${appBaseUrl}/slots/${slot.serial}`;
+      return `Booking #${slot.serial}: ${slot.title} - ${status}. ${nextAction}: ${nextUrl}`;
+    })
+  );
   return [
-    `${personLabel(actor)} active passes:`,
-    ...holdings.map(
-      (slot) =>
-        `Ref #${slot.serial}: ${slot.title} · ${slot.status} · ${appBaseUrl}/slots/${slot.serial}`
-    ),
+    `${personLabel(actor)} active bookings:`,
+    ...bookingLines,
+    "To recover one, send: recover booking 123",
+    "To approve a resale listing, send: approve listing 123",
+    "To approve a release/refund, send: approve refund 123",
   ];
 }
 
@@ -123,14 +166,18 @@ async function recoverBooking(
 ): Promise<string[]> {
   const serial = await resolveHeldSerial(actor, explicitSerial);
   if (!serial) {
-    return [`I could not find a held pass for ${personLabel(actor)}.`];
+    return [
+      `I could not find an active booking for ${personLabel(actor)}.`,
+      "Open YourTurn > My bookings to find the booking number shown as #123 on each pass.",
+      `My bookings: ${appBaseUrl}/my-bookings`,
+    ];
   }
   const slot = await bookingPort.getSlot(serial);
-  if (!slot) return [`Ref #${serial} is not in the current demo schedule.`];
+  if (!slot) return [`Booking #${serial} is not in the current demo schedule.`];
   const activeListing = await bookingPort.getListing(serial);
   if (activeListing?.active) {
     return [
-      `Ref #${serial} is already listed for resale.`,
+      `Booking #${serial} is already listed for resale.`,
       `Ask: ${activeListing.askPriceHbar.toFixed(2)} HBAR.`,
       `Open listing: ${appBaseUrl}/resale/${serial}`,
     ];
@@ -143,18 +190,18 @@ async function recoverBooking(
     });
     return [
       `Recovery preview for ${personLabel(actor)}.`,
-      `Ref #${serial}: ${slot.title}`,
+      `Booking #${serial}: ${slot.title}`,
       `Ask: ${preview.details.askPriceHbar.toFixed(2)} HBAR.`,
       `Owner royalty: ${preview.details.royaltyHbar.toFixed(2)} HBAR.`,
       `Seller net: ${preview.details.sellerNetHbar.toFixed(2)} HBAR.`,
       `Open Concierge: ${appBaseUrl}/resale/${serial}?mode=recovery`,
-      `To approve listing from Telegram, send: approve listing ref ${serial}`,
-      `For release/refund instead, send: approve refund ref ${serial}`,
+      `To approve listing from Telegram, send: approve listing ${serial}`,
+      `For release/refund instead, send: approve refund ${serial}`,
     ];
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     return [
-      `Recovery is blocked for Ref #${serial}.`,
+      `Recovery is blocked for booking #${serial}.`,
       reason,
       `Open Concierge: ${appBaseUrl}/resale/${serial}?mode=recovery`,
     ];
@@ -167,11 +214,20 @@ async function approveListing(
   explicitSerial: number | undefined,
   allowMutations: boolean
 ): Promise<{ messages: string[]; mutated: boolean }> {
+  if (!explicitSerial) {
+    return {
+      mutated: false,
+      messages: missingBookingNumberMessages(actor, appBaseUrl),
+    };
+  }
   const serial = await resolveHeldSerial(actor, explicitSerial);
   if (!serial) {
     return {
       mutated: false,
-      messages: [`I could not find a held pass for ${personLabel(actor)}.`],
+      messages: [
+        `I could not find an active booking for ${personLabel(actor)}.`,
+        "Open YourTurn > My bookings to find the booking number shown as #123 on each pass.",
+      ],
     };
   }
   if (!allowMutations) {
@@ -186,14 +242,14 @@ async function approveListing(
   }
   const slot = await bookingPort.getSlot(serial);
   if (!slot) {
-    return { mutated: false, messages: [`Ref #${serial} is not in the current demo schedule.`] };
+    return { mutated: false, messages: [`Booking #${serial} is not in the current demo schedule.`] };
   }
   const activeListing = await bookingPort.getListing(serial);
   if (activeListing?.active) {
     return {
       mutated: false,
       messages: [
-        `Ref #${serial} is already listed.`,
+        `Booking #${serial} is already listed.`,
         `Ask: ${activeListing.askPriceHbar.toFixed(2)} HBAR.`,
         `Open listing: ${appBaseUrl}/resale/${serial}`,
       ],
@@ -332,7 +388,7 @@ async function approveListing(
   return {
     mutated: true,
     messages: [
-      `Approved and listed Ref #${serial} from Telegram.`,
+      `Approved and listed booking #${serial} from Telegram.`,
       `Ask: ${result.listing.askPriceHbar.toFixed(2)} HBAR.`,
       `Seller net: ${result.listing.sellerNetHbar.toFixed(2)} HBAR after owner royalty.`,
       `Schedule proof: ${scheduleProof.scheduleId}`,
@@ -348,11 +404,22 @@ async function approveRefund(
   explicitSerial: number | undefined,
   allowMutations: boolean
 ): Promise<{ messages: string[]; mutated: boolean }> {
+  if (!explicitSerial) {
+    return {
+      mutated: false,
+      messages: missingBookingNumberMessages(actor, appBaseUrl).map((message) =>
+        message === "Example: approve listing 123" ? "Example: approve refund 123" : message
+      ),
+    };
+  }
   const serial = await resolveHeldSerial(actor, explicitSerial);
   if (!serial) {
     return {
       mutated: false,
-      messages: [`I could not find a held pass for ${personLabel(actor)}.`],
+      messages: [
+        `I could not find an active booking for ${personLabel(actor)}.`,
+        "Open YourTurn > My bookings to find the booking number shown as #123 on each pass.",
+      ],
     };
   }
   if (!allowMutations) {
@@ -366,7 +433,7 @@ async function approveRefund(
   }
   const slot = await bookingPort.getSlot(serial);
   if (!slot) {
-    return { mutated: false, messages: [`Ref #${serial} is not in the current demo schedule.`] };
+    return { mutated: false, messages: [`Booking #${serial} is not in the current demo schedule.`] };
   }
   const preview = await bookingPort.previewCancelRelease({
     holder: { kind: "demoActor", id: actor },
@@ -456,7 +523,7 @@ async function approveRefund(
   return {
     mutated: true,
     messages: [
-      `Approved and completed refund release for Ref #${serial}.`,
+      `Approved and completed refund release for booking #${serial}.`,
       `Refund: ${result.refundHbar.toFixed(2)} HBAR testnet.`,
       `Proof: ${releaseHashscanUrl ?? result.hashscanUrls.audit}`,
       `Receipt: ${appBaseUrl}/resale/${serial}?mode=recovery`,
@@ -524,12 +591,14 @@ export async function handleTelegramUpdate(
     actor: command.actor,
     command: command.kind,
     messages: [
-      "YourTurn Concierge commands:",
+      "YourTurn Concierge can help recover bookings you cannot use.",
+      "Find your booking number in YourTurn > My bookings. It appears as Booking #123 on each pass.",
+      "Commands:",
       "show my bookings",
-      "I can't attend",
-      "recover booking ref 123",
-      "approve listing ref 123",
-      "approve refund ref 123",
+      "recover booking 123",
+      "approve listing 123",
+      "approve refund 123",
+      "Shortcuts also work: /bookings, /recover 123, /list 123, /refund 123",
     ],
     mutated: false,
   };

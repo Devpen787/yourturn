@@ -57,11 +57,12 @@ This fixture exercises the webhook parser and confirms the fixture path cannot m
 Supported Telegram Concierge commands:
 
 - `show my bookings`
-- `recover booking ref 123`
-- `approve listing ref 123`
-- `approve refund ref 123`
+- `recover booking 123`
+- `approve listing 123`
+- `approve refund 123`
+- shortcuts: `/bookings`, `/recover 123`, `/list 123`, `/refund 123`
 
-`recover booking ref 123` previews the resale ask, owner royalty, seller net, and in-app Concierge link. `approve listing ref 123` uses the same bounded recovery listing path as the app: it mints a scoped server-side approval, creates the listing, creates a Hedera Schedule Service proof, stores a Hedera Agent Kit proof receipt, and replies with the listing and proof links. `approve refund ref 123` remains the separate release/refund path and sends a real testnet HBAR refund only when mutations are enabled.
+Users find the booking number in **My bookings**; each pass now shows it as **Booking #123**. `recover booking 123` previews the resale ask, owner royalty, seller net, and in-app Concierge link. `approve listing 123` uses the same bounded recovery listing path as the app: it mints a scoped server-side approval, creates the listing, creates a Hedera Schedule Service proof, stores a Hedera Agent Kit proof receipt, and replies with the listing and proof links. `approve refund 123` remains the separate release/refund path and sends a real testnet HBAR refund only when mutations are enabled.
 
 Agent proof checker:
 

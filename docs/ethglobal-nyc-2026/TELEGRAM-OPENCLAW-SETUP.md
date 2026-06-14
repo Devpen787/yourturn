@@ -50,10 +50,18 @@ npm run telegram:fixture
 
 Supported Telegram messages:
 
+- `/start`
+- `/help`
+- `/bookings`
 - `show my bookings`
-- `recover booking ref 123`
-- `approve listing ref 123`
-- `approve refund ref 123`
+- `recover booking 123`
+- `approve listing 123`
+- `approve refund 123`
+- `/recover 123`
+- `/list 123`
+- `/refund 123`
+
+Users find the booking number in the app under **My bookings**. Each pass shows the number as **Booking #123**.
 
 ## Claim Boundary
 

@@ -43,7 +43,7 @@ export function PassTile({
               Your pass
             </p>
             <h2 className="mt-1 text-base font-semibold leading-tight text-slate-950">
-              <span className="font-mono text-slate-700">#{serial}</span>
+              <span className="font-mono text-slate-700">Booking #{serial}</span>
               <span className="text-slate-300"> / </span>
               {title}
             </h2>
