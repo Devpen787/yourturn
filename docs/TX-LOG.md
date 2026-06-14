@@ -54,6 +54,10 @@ HashScan base (default): `https://hashscan.io/testnet`
 | **Wave 10 E2E** Schedule create | `0.0.8504300@1781397488.488433669` | [HashScan tx](https://hashscan.io/testnet/transaction/0.0.8504300-1781397488-488433669), [schedule 0.0.9227497](https://hashscan.io/testnet/schedule/0.0.9227497) — approved recovery flow created a budget-gated `0.01` HBAR scheduled payment for serial `187`; receipt includes `yourturn.recovery.confirm_listing` agent proof |
 | **Wave 10 E2E** Scheduled execution | `0.0.8504300-1781397488-488433669` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1781397488-488433669) — Mirror shows scheduled `CRYPTOTRANSFER` success at `1781397585.057210004`; schedule status `executed` |
 | **Wave 10 E2E** Resale buy (`POST /api/resale-buy`) | `0.0.8504300@1781397584.036844283` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1781397584-036844283) — scripted clean pass moved serial `187` from Person A to Person B before provider check-in |
+| **Telegram Concierge** Primary book (`POST /api/book`) | `0.0.8504300@1781403389.753074856` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1781403389-753074856) — setup for live Telegram demo booked serial `193` for Person A |
+| **Telegram Concierge** Recovery listing audit | `0.0.8504300@1781403839.479174338` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1781403839-479174338) — Telegram command `approve listing ref 193` created active resale listing; ask `21` HBAR, owner royalty `2.1` HBAR, seller net `18.9` HBAR; receipt `bc9155e7-17dd-451d-8f4f-1ba56e4fb99f` |
+| **Telegram Concierge** Schedule create | `0.0.8504300@1781403839.567406004` | [HashScan tx](https://hashscan.io/testnet/transaction/0.0.8504300-1781403839-567406004), [schedule 0.0.9228236](https://hashscan.io/testnet/schedule/0.0.9228236) — Telegram-approved recovery listing created a budget-gated `0.01` HBAR scheduled payment proof for serial `193`; receipt includes `yourturn.recovery.confirm_listing` agent proof |
+| **Telegram Concierge** Scheduled execution | `0.0.8504300-1781403839-567406004` | [HashScan](https://hashscan.io/testnet/transaction/0.0.8504300-1781403839-567406004) — Schedule `0.0.9228236` executed at `1781403936.047653147`; Telegram-originated recovery proof reached executed status |
 
 ## Demo-complete proof checks
 
@@ -75,7 +79,7 @@ Use these checks alongside the tx rows above:
 |------|-----------|
 | Token on HashScan | [0.0.8505698](https://hashscan.io/testnet/token/0.0.8505698) |
 | Topic on HashScan | [0.0.8505699](https://hashscan.io/testnet/topic/0.0.8505699) |
-| Latest ETHGlobal Schedule proof | [0.0.9227497](https://hashscan.io/testnet/schedule/0.0.9227497) |
+| Latest ETHGlobal Schedule proof | [0.0.9228236](https://hashscan.io/testnet/schedule/0.0.9228236) |
 | Latest **F7** refund/release proof | [0.0.8504300@1781397472.551738960](https://hashscan.io/testnet/transaction/0.0.8504300-1781397472-551738960) |
 
 ## How to capture
