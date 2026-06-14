@@ -15,6 +15,8 @@ Person A cannot attend. YourTurn Concierge recovers value under provider rules. 
 - Artifact: final Telegram screenshots, recovery receipts, HashScan links, and verifier command output recorded in the proof packet.
 - Roadmap: wallet-funded user budgets, OpenClaw ACP gateway runtime, x402 facilitator settlement, remote A2A negotiation, scheduled token release/refund.
 
+Boundary note: OpenClaw ACP and x402 are documented as future gateway integrations, not part of the spoken closer.
+
 ## Before Recording
 
 Use production for the app surface:
@@ -109,9 +111,9 @@ Show: the expanded **Hedera Agent Kit proof** section inside `https://yourturn-s
 
 ### 3:10-3:20 - Close
 
-"What is live today is the Hedera-backed recovery loop: tokenized booking rights, audit trail, scheduled automation, and approved testnet value movement. OpenClaw ACP and x402 are documented as future gateway integrations, not claimed as live settlement in this demo."
+"What is live today is the Hedera-backed recovery loop: tokenized booking rights, audit trail, scheduled automation, and approved testnet value movement. YourTurn gives owners policy control, gives customers a way to recover value, and makes the recovery action verifiable end to end."
 
-Show: final receipt or capability endpoint.
+Show: final receipt with Hedera Agent Kit proof or the Telegram proof pane.
 
 ## App Map
 
