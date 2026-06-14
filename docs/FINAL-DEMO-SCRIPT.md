@@ -1,141 +1,45 @@
-# Final Demo Script
+# Tight 3-Minute ETHGlobal Demo - Author Script + App Map
 
-Use this as the 2-4 minute ETHGlobal recording script.
+Use this for the final 2-4 minute ETHGlobal recording. The target runtime is `2:45-3:15`.
 
-One person speaks. One person clicks. Do not narrate every field. The goal is to make the proof path obvious:
+Do not expand the author script while recording. If the UI changes, update only the App Map and Verified Click Order so the spoken story stays clean.
 
-1. owner policy controls what can happen
-2. Person A owns a booked pass
-3. Concierge recommends a recovery action
-4. the human approves
-5. Hedera executes and produces proof
+## Golden Line
+
+Person A cannot attend. YourTurn Concierge recovers value under provider rules. Hedera proves the policy, approval, automation, and value movement.
 
 ## Claim Labels
 
-- Live: in-app recovery listing, Telegram recovery/listing, Telegram refund/release, HTS pass lifecycle, HCS audit, Schedule Service proof, Agent Kit verifier.
-- Configured: live Telegram requires bot credentials, webhook secret, allowlisted chat, and `TELEGRAM_ALLOW_MUTATIONS=true`.
-- Roadmap: wallet-funded budgets, OpenClaw ACP gateway runtime, x402 facilitator settlement, remote A2A negotiation, scheduled token release/refund.
+- Live: in-app recovery listing, Telegram recovery/listing proof, Telegram refund/release proof, HTS pass lifecycle, HCS audit trail, Hedera Schedule Service proof, Mirror/HashScan verification, Hedera Agent Kit runtime/manifest verifier.
+- Configured: live Telegram mutation requires bot credentials, webhook secret, allowlisted chat, and `TELEGRAM_ALLOW_MUTATIONS=true`.
+- Artifact: final Telegram screenshots, recovery receipts, HashScan links, and verifier command output recorded in the proof packet.
+- Roadmap: wallet-funded user budgets, OpenClaw ACP gateway runtime, x402 facilitator settlement, remote A2A negotiation, scheduled token release/refund.
 
-## Proof Objects To Show
+## Before Recording
 
-- Telegram listing proof for booking `193`.
-- Telegram refund/release proof for booking `194`.
-- Schedule `0.0.9228236`.
-- Scheduled execution transaction `0.0.8504300-1781403839-567406004`.
-- Refund/release transaction `0.0.8504300@1781404315.316217004`.
-- Listing receipt `bc9155e7-17dd-451d-8f4f-1ba56e4fb99f`.
-- Refund receipt `143c5cee-8d08-468d-9f6e-d4f349857a08`.
-- Agent descriptor at `/.well-known/agent.json`.
-- Agent capability endpoint at `/api/agent/capabilities`.
+Use production for the app surface:
 
-## Recording Setup
-
-Use these surfaces:
-
-- Browser: `http://localhost:3000/issuer`
-- Browser: `http://localhost:3000/my-bookings`
-- Browser: `http://localhost:3000/resale/193?mode=recovery`
-- Browser: `http://localhost:3000/resale/194?mode=recovery`
+- App: `https://yourturn-sage.vercel.app`
+- Bookings: `https://yourturn-sage.vercel.app/my-bookings`
+- Listing proof: `https://yourturn-sage.vercel.app/resale/193?mode=recovery`
+- Refund proof: `https://yourturn-sage.vercel.app/resale/194?mode=recovery`
+- Agent capabilities: `https://yourturn-sage.vercel.app/api/agent/capabilities`
 - Telegram: `t.me/YourTurnConcierge_bot`
 - HashScan schedule: `https://hashscan.io/#/testnet/schedule/0.0.9228236`
 - HashScan scheduled execution: `https://hashscan.io/#/testnet/transaction/0.0.8504300-1781403839-567406004`
 - HashScan refund/release: `https://hashscan.io/#/testnet/transaction/0.0.8504300-1781404315-316217004`
 
-Keep `TELEGRAM_ALLOW_MUTATIONS=false` after rehearsal. Only turn it on during the live Telegram proof step.
+Have these local fallback screenshots ready if live Telegram or explorer loading is slow:
 
-## Script
+- `output/ethglobal-final-proof/screenshots/01-telegram-recovery-preview.png`
+- `output/ethglobal-final-proof/screenshots/02-telegram-listing-success.png`
+- `output/ethglobal-final-proof/screenshots/03-telegram-refund-success.png`
+- `output/ethglobal-final-proof/screenshots/04-resale-193-recovery-proof.png`
+- `output/ethglobal-final-proof/screenshots/05-resale-194-refund-proof.png`
+- `output/ethglobal-final-proof/screenshots/08-hashscan-schedule-9228236.png`
+- `output/ethglobal-final-proof/screenshots/10-hashscan-refund-release.png`
 
-### 0:00-0:20 Opening
-
-Speaker:
-
-YourTurn helps service businesses recover value when a customer cannot attend a booked slot.
-
-Instead of a cancellation becoming a manual support problem, the booking becomes a controlled pass. The customer gets a recovery path, the owner keeps policy control, and Hedera records the lifecycle.
-
-### 0:20-0:45 Owner policy
-
-Operator:
-
-Open `/issuer` and show the live sessions table and policy-shaped inventory.
-
-Speaker:
-
-The provider sets which sessions can be resold or released, and those rules drive the recovery flow. This is not an open-ended resale market. The owner keeps control over the slot and the final redemption.
-
-### 0:45-1:10 Customer pass and Telegram entry
-
-Operator:
-
-Open `/my-bookings` as Person A. Show the pass tile with `Booking #193` and the Telegram Concierge card.
-
-Speaker:
-
-Person A holds a booked pass. If they cannot attend, they do not need to understand tokens, schedules, or policy state. They can ask YourTurn Concierge for their bookings and use the booking number shown in the app.
-
-### 1:10-1:45 Telegram listing recovery
-
-Operator:
-
-Show the Telegram recovery preview screenshot or live chat for `recover booking 193`, then show `approve listing 193`.
-
-Speaker:
-
-The Concierge checks the current holder, the owner resale policy, the expected ask, the owner royalty, and the seller net. It then asks for human approval before changing anything.
-
-After approval, the pass is listed for resale, an audit receipt is created, and the recovery payment proof is scheduled on Hedera.
-
-### 1:45-2:15 Schedule Service proof
-
-Operator:
-
-Open `/resale/193?mode=recovery`, then open HashScan schedule `0.0.9228236`.
-
-Speaker:
-
-This is the automation proof. The recovery action created a real Hedera Schedule Service object, and HashScan shows it executed on testnet. The app can inspect that proof and show the scheduled action status back to the user.
-
-### 2:15-2:45 Telegram refund/release proof
-
-Operator:
-
-Show the Telegram `approve refund 194` success screenshot, then open `/resale/194?mode=recovery` and the refund HashScan link.
-
-Speaker:
-
-The second proof shows the other recovery path. For booking `194`, the Concierge performed a policy-gated refund/release after human approval. It sent a real testnet HBAR refund, closed the booking right, and wrote the audit proof.
-
-### 2:45-3:20 Agent Kit proof
-
-Operator:
-
-Open `/.well-known/agent.json`, `/api/agent/capabilities`, or the terminal output from `npm run hedera:agent-check`.
-
-Speaker:
-
-The agent has a bounded identity, tool manifest, policy gates, approval requirements, and budget checks. The verifier confirms the live tracks: Schedule Service automation, agentic Hedera payments, native Hedera services, and no Solidity.
-
-We are honest about what is not live: OpenClaw ACP and x402 are descriptors only, not gateway settlement runtimes in this demo.
-
-### 3:20-3:45 Close
-
-Speaker:
-
-The result is a booked-rights recovery flow that normal users can operate through the app or Telegram, while Hedera provides the token lifecycle, audit trail, scheduled automation, and payment proof.
-
-For the hackathon, our primary Hedera claims are Autonomous On-Chain Automation, AI and Agentic Payments, and No Solidity Allowed.
-
-## Short Cut If Time Is Tight
-
-1. Show `/my-bookings` with `Booking #193` and Telegram entry.
-2. Show Telegram listing success for `193`.
-3. Show `/resale/193?mode=recovery` and HashScan schedule `0.0.9228236`.
-4. Show Telegram refund success for `194`.
-5. Show `npm run hedera:agent-check` result or `/api/agent/capabilities`.
-
-## Final Rehearsal Commands
-
-Run before recording:
+Final rehearsal commands:
 
 ```bash
 npm run ethglobal:preflight
@@ -144,8 +48,100 @@ npm run telegram:fixture
 npm run build
 ```
 
-Optional full regression, if you are comfortable mutating demo state:
+Do not run `npm run ethglobal:e2e` immediately before recording unless you intentionally want fresh demo/testnet state. It mutates demo state.
 
-```bash
-npm run ethglobal:e2e
-```
+## Author Script (Verbatim)
+
+### 0:00-0:15 - Open
+
+"YourTurn turns booked service slots into controlled booking rights. The demo starts with one simple problem: Person A cannot attend, and the provider does not want a manual support mess."
+
+Show: `https://yourturn-sage.vercel.app/my-bookings`
+
+### 0:15-0:35 - Human Story
+
+"The user sees a normal booking experience. Behind it, the booking is a pass with provider rules: whether it can be resold, how owner royalties work, and which recovery actions are allowed."
+
+Show: booked pass or recovery entry point in `My bookings`.
+
+### 0:35-1:05 - Concierge Recovery
+
+"Now Person A asks YourTurn Concierge to recover the booking. The Concierge checks holder state, provider resale policy, ask price, owner royalty, and seller net. Nothing changes until the human approves."
+
+Show: Telegram recovery preview for booking `193`.
+
+### 1:05-1:25 - Approved Listing
+
+"After approval, the Concierge lists the pass for resale and creates a receipt. This is the product value: the customer can recover value, the provider keeps policy control, and the next buyer can take the slot."
+
+Show: Telegram listing success for booking `193`.
+
+### 1:25-1:55 - In-App Proof
+
+"The same proof is visible inside the app. This receipt shows the recovery action, approval id, price math, owner royalty, audit proof, and Hedera references without making the user think about chain state first."
+
+Show: `https://yourturn-sage.vercel.app/resale/193?mode=recovery`
+
+### 1:55-2:20 - Schedule Service Proof
+
+"For the automation bounty, this recovery flow creates a real Hedera Schedule Service proof. HashScan shows schedule `0.0.9228236` executed on testnet. The scheduled amount is small because it proves the provider-policy automation path; the separate refund proof shows larger value movement."
+
+Show: HashScan schedule `0.0.9228236`.
+
+### 2:20-2:45 - Refund/Release Proof
+
+"The second path is refund and release. For booking `194`, the Concierge performed a policy-gated refund/release after approval, sent a real `18 HBAR` testnet refund, closed the booking right, and returned a HashScan proof."
+
+Show: Telegram refund success, then HashScan refund/release transaction.
+
+### 2:45-3:05 - Agent Proof
+
+"The agent is bounded. It has an identity, tool manifest, policy gates, approval requirements, and budget checks. The repo verifier confirms the live Hedera tracks: automation, agentic payments, native services, and no Solidity."
+
+Show: `https://yourturn-sage.vercel.app/api/agent/capabilities` or terminal output from `npm run hedera:agent-check`.
+
+### 3:05-3:15 - Close
+
+"What is live today is the Hedera-backed recovery loop: tokenized booking rights, audit trail, scheduled automation, and approved testnet value movement. OpenClaw ACP and x402 are documented as future gateway integrations, not claimed as live settlement in this demo."
+
+Show: final receipt or capability endpoint.
+
+## App Map
+
+| Author phrase | Surface to show |
+| --- | --- |
+| "Person A cannot attend" | `/my-bookings` with the booked pass / recovery entry point |
+| "Concierge checks holder state" | Telegram recovery preview screenshot or live chat for booking `193` |
+| "After approval" | Telegram listing success for booking `193` |
+| "same proof is visible inside the app" | `/resale/193?mode=recovery` |
+| "Schedule Service proof" | HashScan schedule `0.0.9228236` |
+| "refund and release" | Telegram refund success for booking `194`, then HashScan refund tx |
+| "agent is bounded" | `/api/agent/capabilities` or `npm run hedera:agent-check` |
+| "not claimed as live settlement" | Stay on capabilities/proof packet; do not open OpenClaw/x402 pages |
+
+## Verified Click Order
+
+1. Open `https://yourturn-sage.vercel.app/my-bookings`.
+2. Show Telegram recovery preview for `recover booking ref 193`.
+3. Show Telegram approval success for `approve listing ref 193`.
+4. Open `https://yourturn-sage.vercel.app/resale/193?mode=recovery`.
+5. Open `https://hashscan.io/#/testnet/schedule/0.0.9228236`.
+6. Open Telegram refund success for `approve refund ref 194`.
+7. Open `https://hashscan.io/#/testnet/transaction/0.0.8504300-1781404315-316217004`.
+8. Open `https://yourturn-sage.vercel.app/api/agent/capabilities` or show `npm run hedera:agent-check`.
+
+## If Time Is Tight
+
+Cut the owner-policy explanation, not the proof. Keep these five shots:
+
+1. `/my-bookings`.
+2. Telegram listing success for `193`.
+3. `/resale/193?mode=recovery`.
+4. HashScan schedule `0.0.9228236`.
+5. Telegram refund success for `194` plus HashScan refund/release.
+
+## If Asked What Is Real
+
+- Real: Hedera SDK transactions, HTS pass lifecycle, HCS audit events, Schedule Service proof, Mirror/HashScan verification, Telegram approval transport, Agent Kit runtime/manifest verifier.
+- Real but demo-scoped: testnet HBAR value movement and demo user identity.
+- Not live: wallet-funded customer budgets, OpenClaw ACP gateway runtime, x402 facilitator settlement, remote A2A negotiation, production fiat refunds.

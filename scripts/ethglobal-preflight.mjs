@@ -11,6 +11,7 @@ const requiredFiles = [
   "docs/UI-MAP.md",
   "docs/SUBMISSION.md",
   "docs/FINAL-DEMO-SCRIPT.md",
+  "docs/DEMO-RECORDING-CHECKLIST.md",
   "docs/ethglobal-nyc-2026/README.md",
   "docs/ethglobal-nyc-2026/FINAL-PROOF-PACK.md",
   "docs/ethglobal-nyc-2026/HEDERA-BOUNTY-MAP.md",
@@ -34,6 +35,26 @@ const removedPublicPlanningFiles = [
 ];
 
 const textChecks = [
+  {
+    file: "docs/FINAL-DEMO-SCRIPT.md",
+    mustInclude: [
+      "Tight 3-Minute ETHGlobal Demo",
+      "Person A cannot attend",
+      "0.0.9228236",
+      "18 HBAR",
+      "OpenClaw ACP and x402 are documented as future gateway integrations",
+    ],
+  },
+  {
+    file: "docs/DEMO-RECORDING-CHECKLIST.md",
+    mustInclude: [
+      "2-4 minutes",
+      "720p",
+      "No speeding footage",
+      "output/ethglobal-final-proof/screenshots",
+      "OpenClaw ACP and x402 are documented future gateway integrations",
+    ],
+  },
   {
     file: "README.md",
     mustInclude: [

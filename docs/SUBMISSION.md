@@ -231,7 +231,7 @@ The pasted example copy about state channels, exchange onramp/offramp, MobX, Rus
 - Status: `script prepared; video still needs recording/upload`
 - Local file path: `TBD`
 - Uploaded asset: `TBD`
-- Notes: Use `docs/FINAL-DEMO-SCRIPT.md`. Keep it between 2 and 4 minutes, 720p or better, with spoken audio and no background music.
+- Notes: Use `docs/FINAL-DEMO-SCRIPT.md` and `docs/DEMO-RECORDING-CHECKLIST.md`. Keep it between 2 and 4 minutes, 720p or better, with spoken audio and no background music. Lead with the human recovery story, then show Hedera proof.
 
 ### Future opportunities
 
