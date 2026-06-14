@@ -69,7 +69,7 @@ Show: `https://yourturn-sage.vercel.app/issuer`, briefly. Do not run setup/reset
 
 ### 0:40-0:55 - Human Story
 
-"Now Person A cannot attend. Instead of a support ticket or a lost slot, Person A can ask the Concierge to recover value under the owner's rules."
+"The marketplace dynamic is Person A and Person B: Person A holds a booking, and Person B can take over a listed slot. In this recording, we focus on Person A's recovery path because that is where the agent checks policy, asks for approval, and creates the Hedera proof."
 
 Show: `https://yourturn-sage.vercel.app/my-bookings` or the visible Telegram proof pane.
 
@@ -81,7 +81,7 @@ Show: positioned Telegram proof for booking `193`.
 
 ### 1:20-1:40 - Approved Listing
 
-"After approval, the Concierge lists the pass for resale and creates a receipt. Person A can recover value, the owner keeps policy control and royalty economics, and Person B can take the slot."
+"After approval, the Concierge lists the pass for resale and creates a receipt. Person A can recover value, the owner keeps policy control and royalty economics, and Person B can take the listed slot through the resale flow."
 
 Show: Telegram listing success for booking `193`.
 
