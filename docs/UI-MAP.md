@@ -155,18 +155,16 @@ Use when auditing “are we missing something?”
 | Real tx proof lines | See `docs/TX-LOG.md`; re-run and extend after new testnet proof |
 | Component inventory | This file — update when adding routes, `*Client.tsx`, shared app chrome, or route loading states |
 
-## Last-minute improvement targets (product QA, Apr 2026)
+## Product QA Notes
 
-Small, high-leverage UI/copy passes before demo freeze — no new flows required:
+Small, high-leverage UI/copy notes to keep in mind before demo recording:
 
 | Target | Where | Why |
 |--------|--------|-----|
 | **Resale “dead state” layout** | `ResaleClient` on `/resale/[serial]` | Fixed for terminal and policy-blocked states: manual **List** / **Buy** controls are hidden when the page has a resale block reason, and the page shows **No manual resale action available** instead. |
 | **Unknown or retired serial** | Same | For refs outside the live inventory (e.g. after **Start over**), status lines can read like “nothing to resell yet” instead of “this ref is not in the current demo schedule.” Tighten wording to match `IssuerPanel`’s “not in the current session list” idea. |
 | **Cross-role slot detail** | `/slots/[serial]` | Issuer sessions cannot open guest slot detail without switching to a guest account (`/login?need=user`). Document in demo script; optional future: read-only issuer peek (out of current scope). |
-| **Mirror / Redis lag** | Browse, hub, resale | Already **Partial** in `PAGE-OVERVIEW.md`; a single “Refresh” or “state updates after chain” hint on resale after buy/list can reduce judge confusion. |
-
-See **`docs/PAGE-OVERVIEW.md`** for route-by-route **Status** and the same items in narrative form.
+| **Mirror / Redis lag** | Browse, hub, resale | A single “Refresh” or “state updates after chain” hint on resale after buy/list can reduce judge confusion. |
 
 ## Surface split
 
@@ -178,7 +176,6 @@ Keep that split visible in copy and controls. If a customer page starts explaini
 
 ## Related docs
 
-- `docs/PAGE-OVERVIEW.md` — per-route purpose, controls, copy intent, and **Works / Partial / Review** status
 - `docs/MARKET-VOCABULARY.md` — Web2 booking / class / ticket terminology vs our copy
 - `docs/AGENT-INTEGRATION.md` — concrete backend and agent request / response examples for `/api/agent/*`
 - `docs/DEMO.md` — shipped walkthrough
