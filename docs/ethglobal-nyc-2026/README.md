@@ -25,6 +25,7 @@ Working submission frame:
 | `IMPLEMENTATION-PLAN.md` | Build sequence, route/file targets, data additions, verification gates, and hackathon claim gates |
 | `BUILD-GUARDRAILS.md` | Drift-control rules imported from AutoBots/AgentOps/ChopDot, thread hydration order, required closeout checks, and coded preflight command |
 | `HEDERA-BOUNTY-MAP.md` | Hedera prize fit, qualification mapping, and kill conditions |
+| `HEDERA-AGENT-KIT-INTEGRATION.md` | Agent identity, tool manifest, policy gates, receipt proof, and local verifier for Hedera Agent Kit alignment |
 | `AGENT-AUTOMATION-INTEGRATION-PLAN.md` | Telegram/OpenClaw-inspired concierge plan plus Hedera Schedule Service proof path |
 | `CAPABILITY-STATUS.md` | Current tested capabilities, not-yet-shipped claims, and implementation plan for remaining gaps |
 | `SUBMISSION-CHECKLIST.md` | Deadline, required artifacts, and final pre-submit proof list |

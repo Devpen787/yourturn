@@ -280,6 +280,20 @@ async function main() {
     )
   );
   const refundReceipt = out.data.receipt;
+  checks.push(
+    assert(
+      refundReceipt.agentProof?.toolId === "yourturn.recovery.confirm_refund_release" &&
+        refundReceipt.agentProof?.approvalId &&
+        refundReceipt.agentProof?.policyChecks?.every(
+          (check) => check.status === "passed"
+        ) &&
+        refundReceipt.agentProof?.proofOutputs?.some(
+          (proof) => proof.id === "release_tx"
+        ),
+      "refund receipt includes Hedera agent proof",
+      refundReceipt.agentProof
+    )
+  );
 
   let refundUsedPreview;
   for (let i = 0; i < 6; i += 1) {
@@ -327,6 +341,20 @@ async function main() {
     )
   );
   const receipt = out.data.receipt;
+  checks.push(
+    assert(
+      receipt.agentProof?.toolId === "yourturn.recovery.confirm_listing" &&
+        receipt.agentProof?.approvalId &&
+        receipt.agentProof?.policyChecks?.every(
+          (check) => check.status === "passed"
+        ) &&
+        receipt.agentProof?.proofOutputs?.some(
+          (proof) => proof.id === "schedule_id"
+        ),
+      "listing receipt includes Hedera agent proof",
+      receipt.agentProof
+    )
+  );
 
   out = await guestA.request("/api/recovery/preview", {
     method: "POST",

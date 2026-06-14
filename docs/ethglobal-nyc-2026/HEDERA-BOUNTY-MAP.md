@@ -36,6 +36,8 @@ Facts from this repo:
 - `docs/ARCHITECTURE.md` says API routes call `@hashgraph/sdk` server-side and HCS emits JSON lifecycle events.
 - `docs/UI-MAP.md` lists agent-safe API routes for read, preview, confirm, and approval grants.
 - `docs/SPEC.md` keeps the agent as a helper with no autonomous signing.
+- `docs/ethglobal-nyc-2026/HEDERA-AGENT-KIT-INTEGRATION.md` defines the `yourturn-concierge` agent identity, tool manifest, policy gates, and verifier command.
+- `npm run hedera:agent-check` validates the agent manifest, approval requirements, policy scenarios, and bounty coverage locally.
 
 Inferences:
 
@@ -116,6 +118,8 @@ Strong:
 - refund/release tx id: `0.0.8504300@1781393158.862791239`
 - refund close/burn tx id: `0.0.8504300@1781393162.787231448`
 - refund audit tx id: `0.0.8504300@1781393166.653109817`
+- agent verifier: `npm run hedera:agent-check`
+- agent proof fields: `agentName`, `toolId`, `approvalId`, `policyChecks`, `proofOutputs`
 - recovery page and provider dashboard showing scheduled/pending/executed state
 - README or demo docs command that verifies the proof chain: `npm run ethglobal:e2e`
 

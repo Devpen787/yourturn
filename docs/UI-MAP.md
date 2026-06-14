@@ -47,7 +47,7 @@ Global chrome: `app/layout.tsx` + `components/SiteHeader.tsx` (header nav only; 
 | `SessionCard` | `components/marketplace/SessionCard.tsx` | Premium session card for browse/sandbox states; does not call APIs itself | `/slots`, `/brand-lab/ethglobal` |
 | `PassTile` | `components/passes/PassTile.tsx` | Premium customer pass tile with status, next step, and route action slot; does not call APIs itself | `/my-bookings`, `/brand-lab/ethglobal` |
 | `RecoveryConciergePanel` | `components/concierge/RecoveryConciergePanel.tsx` | In-app recovery preview, explicit approval, and receipt surface for resale listing or release/refund Concierge flows | `/resale/[serial]` |
-| `RecoveryProofCard` | `components/proof/RecoveryProofCard.tsx` | Reusable verified receipt/proof card for recovery listing, release/refund, active listing, and resale-completed states | `/resale/[serial]`, `/slots/[serial]` |
+| `RecoveryProofCard` | `components/proof/RecoveryProofCard.tsx` | Reusable verified receipt/proof card for recovery listing, release/refund, active listing, resale-completed states, and Hedera Agent Kit proof details | `/resale/[serial]`, `/slots/[serial]` |
 | `VerifiedLifecycleTimeline` | `components/proof/RecoveryProofCard.tsx` | Judge-readable lifecycle trail reconstructed from HCS events, with raw event details collapsed | `/slots/[serial]` |
 | `SlotResaleCta` | `app/slots/[serial]/SlotResaleCta.tsx` | Link to `/resale/[serial]` | `/slots/[serial]` when resale allowed |
 | `SiteHeader` | `components/SiteHeader.tsx` | Global product nav, session display, sign in / register / sign out actions | All routes via `app/layout.tsx` |
@@ -84,7 +84,7 @@ Global chrome: `app/layout.tsx` + `components/SiteHeader.tsx` (header nav only; 
 | `/api/reset-demo` | POST | Reset demo state | Yes — Issuer |
 | `/api/book` | POST | Primary booking (`F1`) | Yes — Slots list |
 | `/api/recovery/preview` | POST | Browser-safe Concierge recovery preview for resale listing or release/refund; validates signed customer + current holder before returning a preview token | Yes — Resale recovery panel |
-| `/api/recovery/confirm` | POST | Browser-safe Concierge recovery confirm; mints approval server-side, creates resale listing plus Schedule Service proof, or executes real testnet HBAR refund/release; stores an Agent Kit-guided trace and returns a compact receipt | Yes — Resale recovery panel |
+| `/api/recovery/confirm` | POST | Browser-safe Concierge recovery confirm; mints approval server-side, creates resale listing plus Schedule Service proof, or executes real testnet HBAR refund/release; stores a Hedera Agent Kit proof trace and returns a compact receipt | Yes — Resale recovery panel |
 | `/api/automation/inspect` | POST | Refresh Schedule Service proof from Mirror/HashScan-visible state, including executed scheduled transaction status | Yes — Resale recovery panel |
 | `/api/telegram/webhook` | POST | Telegram Concierge webhook adapter; dry-run/fixture safe by default, mutation-gated behind `TELEGRAM_ALLOW_MUTATIONS=true` and `TELEGRAM_ALLOWED_CHAT_IDS` | No — external Telegram transport |
 | `/api/resale-list` | POST | Create resale listing (`F2`) | Yes — Resale page |
@@ -104,7 +104,7 @@ Global chrome: `app/layout.tsx` + `components/SiteHeader.tsx` (header nav only; 
 | Flow | Meaning | Where it shows up | Notes |
 |------|---------|-------------------|--------|
 | **F1** Primary booking | Guest books AVAILABLE slot | `/slots` → `POST /api/book` | Holder + tx feedback in UI |
-| **F2** Resale + royalty | Recover/list and buy | `/my-bookings` → `/resale/[serial]?mode=recovery`, plus manual `/resale/[serial]` | Concierge preview + approval creates a listing; proof receipt persists in demo state; approved recovery also creates a Schedule Service payment proof and Agent Kit-guided trace; manual seller and buyer dialogs remain available; royalty copy on page + `lib/domain/fees.ts` |
+| **F2** Resale + royalty | Recover/list and buy | `/my-bookings` → `/resale/[serial]?mode=recovery`, plus manual `/resale/[serial]` | Concierge preview + approval creates a listing; proof receipt persists in demo state; approved recovery also creates a Schedule Service payment proof and Hedera Agent Kit proof trace; manual seller and buyer dialogs remain available; royalty copy on page + `lib/domain/fees.ts` |
 | **F3** Freeze / unfreeze | Issuer blocks movement | `/issuer` | Mirror holder must match `holderActor` (API enforced) |
 | **F4** Mark used | Close lifecycle | `/issuer` → `POST /api/mark-used` | Typed confirm in provider dashboard; guest views update via Mirror on refresh |
 | **F7** Cancel / release / refund | Holder-approved release path | `/resale/[serial]?mode=recovery` with `cancel_release_refund`; `/api/agent/preview` + `/api/agent/confirm` with `cancel_release`; Telegram adapter can route to the same bounded action when configured | Holder-approved release transfers the NFT back to treasury, moves testnet HBAR refund value to the holder, burns the NFT, emits `CANCEL_RELEASED`, and stores a recovery proof receipt |

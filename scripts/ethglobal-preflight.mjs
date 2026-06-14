@@ -11,6 +11,7 @@ const requiredFiles = [
   "docs/ethglobal-nyc-2026/DOCTRINE.md",
   "docs/ethglobal-nyc-2026/TECHNICAL-BLUEPRINT.md",
   "docs/ethglobal-nyc-2026/HEDERA-BOUNTY-MAP.md",
+  "docs/ethglobal-nyc-2026/HEDERA-AGENT-KIT-INTEGRATION.md",
   "docs/ethglobal-nyc-2026/YOURTURN-PREMIUM-UX-DELTA-REPORT.md",
   "docs/ethglobal-nyc-2026/IMPLEMENTATION-PLAN.md",
   "docs/ethglobal-nyc-2026/BUILD-GUARDRAILS.md",
@@ -46,6 +47,17 @@ const textChecks = [
       "Do not claim AI & Agentic Payments if",
       "Claim No Solidity if",
       "schedule id",
+    ],
+  },
+  {
+    file: "docs/ethglobal-nyc-2026/HEDERA-AGENT-KIT-INTEGRATION.md",
+    mustInclude: [
+      "Agent identity",
+      "Tool manifest",
+      "Policy gates",
+      "Agent proof receipt",
+      "npm run hedera:agent-check",
+      "Not claimed",
     ],
   },
   {
@@ -128,7 +140,13 @@ for (const check of textChecks) {
 }
 
 const packageJson = JSON.parse(read("package.json"));
-for (const scriptName of ["dev", "build", "ethglobal:preflight"]) {
+for (const scriptName of [
+  "dev",
+  "build",
+  "ethglobal:preflight",
+  "ethglobal:e2e",
+  "hedera:agent-check",
+]) {
   if (packageJson.scripts?.[scriptName]) {
     passes.push(`package script exists: ${scriptName}`);
   } else {

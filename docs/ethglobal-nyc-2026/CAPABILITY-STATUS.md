@@ -8,6 +8,7 @@ This file is the current build boundary: what is live and tested, what is config
 
 - The repo has a live Next.js app with HTS booking rights, HCS lifecycle events, Mirror reads, resale royalties, freeze/unfreeze, mark-used, recovery receipts, Schedule Service proof, real testnet HBAR refund/release, a Telegram Concierge webhook adapter, and an Agent Kit dependency.
 - The latest clean regression is automated through `npm run ethglobal:e2e`.
+- Hedera Agent Kit alignment is now documented and locally checked through `docs/ethglobal-nyc-2026/HEDERA-AGENT-KIT-INTEGRATION.md` and `npm run hedera:agent-check`.
 - Browser screenshots from the latest pass live at `/tmp/yourturn-ethglobal-qa/`.
 - The in-app Browser runtime was unavailable during QA, so the screenshot pass used Chrome-channel Playwright against the same local app.
 
@@ -25,6 +26,8 @@ Live and tested:
 - Provider can see schedule automation proof on `/issuer` for rows that have a recovery schedule.
 - Person A can approve release of a no-resale held pass and receive a real testnet HBAR refund while the NFT returns to treasury and is closed.
 - Provider can see recovery/refund proof on `/issuer` for rows that have a recovery receipt.
+- Value-moving Concierge receipts include an `agentProof` object with agent identity, tool id, approval id, passed policy checks, Hedera services, and proof outputs.
+- `npm run hedera:agent-check` validates the manifest, policy gates, approval requirements, and blocked scenarios for the Concierge tools.
 - Telegram webhook command handling is fixture-tested and mutation-gated; live Telegram delivery requires bot credentials and an allowlisted chat.
 - Used, unheld, non-holder, and no-resale states block recovery.
 - Terminal or policy-blocked resale pages no longer expose manual List or Buy controls.
@@ -53,6 +56,7 @@ Tested commands:
 - `npm run ethglobal:preflight`
 - `npx tsc --noEmit`
 - `npm run telegram:fixture`
+- `npm run hedera:agent-check`
 - `npm run lint`
 - `npm run build`
 - `npm run ethglobal:e2e`

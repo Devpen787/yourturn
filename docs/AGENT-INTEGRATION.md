@@ -29,6 +29,12 @@ Agent actions follow this sequence:
 
 An agent may prepare and compare actions, but it must not skip the approval step.
 
+For the ETHGlobal Concierge proof layer, see `docs/ethglobal-nyc-2026/HEDERA-AGENT-KIT-INTEGRATION.md`. The shipped verifier command is:
+
+```bash
+npm run hedera:agent-check
+```
+
 ## Endpoints
 
 | Endpoint | Method | Use |

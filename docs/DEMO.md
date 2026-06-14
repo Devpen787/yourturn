@@ -54,6 +54,14 @@ npm run telegram:fixture
 
 This fixture exercises the webhook parser and confirms the fixture path cannot mutate state. A live Telegram demo additionally needs `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `TELEGRAM_ALLOWED_CHAT_IDS`, and `TELEGRAM_ALLOW_MUTATIONS=true`.
 
+Agent proof checker:
+
+```bash
+npm run hedera:agent-check
+```
+
+This verifies the `yourturn-concierge` manifest, policy gates, approval requirements, and blocked-state scenarios used by the Hedera Agent Kit proof receipts.
+
 ## Economic framing for the live demo
 
 The audience should be able to understand the incentives quickly:
@@ -103,7 +111,7 @@ The Hedera demo actors underneath are still `guestA` / `guestB` / `issuer`, but 
 13. From **`/my-bookings`**, choose **Recover booking** on the held pass, which opens **`/resale/[serial]?mode=recovery`**.
 14. User A is already the locked customer for this browser. Use **Preview recovery** to call `POST /api/recovery/preview`.
 15. Review the Concierge recommendation, then choose **Approve and list** to call `POST /api/recovery/confirm`.
-16. Show the verified recovery receipt: approval id, audit tx, policy snapshot, schedule id, scheduled payment status, Agent Kit tool label, and HashScan links.
+16. Show the verified recovery receipt: approval id, audit tx, policy snapshot, schedule id, scheduled payment status, Hedera Agent Kit proof, and HashScan links.
 17. If the schedule is still pending, wait for the scheduled execution window and use **Inspect schedule proof**; the receipt should update from `scheduled` to `executed` using Mirror proof.
 18. Refresh **`/resale/[serial]`** if useful and show that the proof state remains visible.
 19. Explain the economics honestly: the current MVP proves a fixed **10%** HTS royalty on resale, and the holder may list above cost, at cost, or below cost.
@@ -116,7 +124,7 @@ Use a separate held pass from the resale path.
 2. On **`/resale/[serial]?mode=recovery`**, choose **Release + refund** when available.
 3. Use **Preview recovery** to confirm the refund amount and policy basis.
 4. Choose **Approve release**. The server executes a real testnet HBAR refund transfer from treasury to Person A, returns the NFT to treasury, burns/closes it, and writes the HCS `CANCEL_RELEASED` event.
-5. Show the receipt fields: refund amount, release/refund tx, close tx, audit tx, approval id, Agent Kit tool trace, and HashScan links.
+5. Show the receipt fields: refund amount, release/refund tx, close tx, audit tx, approval id, Hedera Agent Kit proof, and HashScan links.
 6. Refresh **`/slots/[serial]`** and **`/issuer`** to show the pass is closed and the recovery proof remains visible.
 
 ### D. Person B — buy the resale (`F2`)
