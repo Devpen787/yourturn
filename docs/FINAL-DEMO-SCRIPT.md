@@ -53,61 +53,61 @@ Do not run `npm run ethglobal:e2e` immediately before recording unless you inten
 
 ## Author Script (Verbatim)
 
-### 0:00-0:15 - Open
+### 0:00-0:20 - Welcome + Actors
 
-"YourTurn turns booked service slots into controlled booking rights. The demo starts with one simple problem: Person A cannot attend, and the provider does not want a manual support mess."
+"This is YourTurn: a booking platform for service slots that customers can keep, recover, or pass on under owner-defined rules. There are three actors in this demo: the Owner who creates sessions and policies, Person A who holds a booking, and Person B who can take over a slot."
 
 Show: `https://yourturn-sage.vercel.app`
 
-### 0:15-0:35 - Provider Rules
+### 0:20-0:40 - Owner Rules
 
-"On the provider side, the owner controls the session inventory and the rules: whether a booking can be resold or released, how owner royalties work, and which recovery actions are allowed."
+"On the owner side, the provider controls inventory and rules: which bookings can be resold or released, how owner royalties work, and which recovery actions are allowed. The customer experience stays simple, but the policy stays with the booking."
 
 Show: `https://yourturn-sage.vercel.app/issuer`, briefly. Do not run setup/reset during the recording.
 
-### 0:35-0:50 - Human Story
+### 0:40-0:55 - Human Story
 
-"The customer still sees a normal booking experience. The difference is that the booked slot stays recoverable under the provider's policy."
+"Now Person A cannot attend. Instead of a support ticket or a lost slot, Person A can ask the Concierge to recover value under the owner's rules."
 
 Show: `https://yourturn-sage.vercel.app/my-bookings` or the visible Telegram proof pane.
 
-### 0:50-1:15 - Concierge Recovery
+### 0:55-1:20 - Concierge Recovery
 
 "Now Person A asks YourTurn Concierge to recover the booking. The Concierge checks holder state, provider resale policy, ask price, owner royalty, and seller net. Nothing changes until the human approves."
 
 Show: positioned Telegram proof for booking `193`.
 
-### 1:15-1:35 - Approved Listing
+### 1:20-1:40 - Approved Listing
 
-"After approval, the Concierge lists the pass for resale and creates a receipt. This is the product value: the customer can recover value, the provider keeps policy control, and the next buyer can take the slot."
+"After approval, the Concierge lists the pass for resale and creates a receipt. Person A can recover value, the owner keeps policy control and royalty economics, and Person B can take the slot."
 
 Show: Telegram listing success for booking `193`.
 
-### 1:35-2:00 - In-App Proof
+### 1:40-2:05 - In-App Proof
 
 "The same proof is visible inside the app. This receipt shows the recovery action, approval id, price math, owner royalty, audit proof, and Hedera references without making the user think about chain state first."
 
 Show: `https://yourturn-sage.vercel.app/resale/193?mode=recovery`
 
-### 2:00-2:20 - Schedule Service Proof
+### 2:05-2:25 - Schedule Service Proof
 
 "For the automation bounty, this recovery flow creates a real Hedera Schedule Service proof. HashScan shows schedule `0.0.9228236` executed on testnet. The scheduled amount is small because it proves the provider-policy automation path; the separate refund proof shows larger value movement."
 
 Show: HashScan schedule `0.0.9228236`.
 
-### 2:20-2:45 - Refund/Release Proof
+### 2:25-2:50 - Refund/Release Proof
 
 "The second path is refund and release. For booking `194`, the Concierge performed a policy-gated refund/release after approval, sent a real `18 HBAR` testnet refund, closed the booking right, and returned a HashScan proof."
 
 Show: Telegram refund success, then HashScan refund/release transaction.
 
-### 2:45-3:05 - Agent Proof
+### 2:50-3:10 - Agent Proof
 
 "The agent is bounded. It has an identity, tool manifest, policy gates, approval requirements, and budget checks. The repo verifier confirms the live Hedera tracks: automation, agentic payments, native services, and no Solidity."
 
 Show: the expanded **Hedera Agent Kit proof** section inside `https://yourturn-sage.vercel.app/resale/193?mode=recovery`, or terminal output from `npm run hedera:agent-check`. Chrome may block direct JSON endpoint viewing.
 
-### 3:05-3:15 - Close
+### 3:10-3:20 - Close
 
 "What is live today is the Hedera-backed recovery loop: tokenized booking rights, audit trail, scheduled automation, and approved testnet value movement. OpenClaw ACP and x402 are documented as future gateway integrations, not claimed as live settlement in this demo."
 
