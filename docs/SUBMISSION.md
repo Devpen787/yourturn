@@ -2,7 +2,7 @@
 
 Local worksheet for the final hackathon submission. This file is now filled with a repo-backed draft; only external items still need manual confirmation in the submission UI.
 
-As of `2026-04-05`, the form notes that live judging for Top 10 finalists is on `Sunday, April 5th, 2026 at 09:30 CEST`.
+As of the ETHGlobal NYC 2026 packet, the submission deadline is `Sunday, June 14th, 2026 at 09:00 EDT`.
 
 ## Do not reuse the example text from the form paste
 
@@ -11,11 +11,12 @@ The pasted example copy about state channels, exchange onramp/offramp, MobX, Rus
 ## Current repo facts to keep aligned
 
 - Current public repo: `https://github.com/Devpen787/yourturn`
-- Current locked track: Hedera `No Solidity Allowed`
-- Current technical fit: `HTS + Mirror Node`
-- Current merged MVP also uses: `HCS` lifecycle messages
+- Current primary Hedera tracks: `Autonomous On-Chain Automation Platform`, `AI & Agentic Payments on Hedera`, and `"No Solidity Allowed" - Build with Hedera SDKs`
+- Current supporting Hedera story: `Tokenization on Hedera`
+- Current technical fit: `HTS + HCS + Hedera Schedule Service + Mirror Node + Hedera Agent Kit runtime/manifest`
+- Current merged MVP also uses: Telegram Concierge transport, HashScan proof links, and Upstash Redis for demo metadata
 - Current app stack in repo: `Next.js 14`, `React 18`, `TypeScript`, `Tailwind CSS`, `@hashgraph/sdk`, `@upstash/redis`, `zod`, `Vercel`
-- Current must-ship flows: `F1` primary booking, `F2` resale / transfer with royalty, `F4` mark used
+- Current must-ship flows: `F1` primary booking, `F2` resale / transfer with royalty, `F4` mark used, and ETHGlobal recovery proofs for Concierge listing and refund/release
 - Naming still needs one final submission decision:
   - `README.md` product sentence uses `Booked Rights`
   - `docs/UI-RULES.md` says visible product name should be `YourTurn`
@@ -55,7 +56,7 @@ The pasted example copy about state channels, exchange onramp/offramp, MobX, Rus
 
 - Current draft from form: `Wallet/Payments`
 - Final: `Wallet/Payments`
-- Notes: Best fit for the current MVP because the core proof is controlled transfer and resale of a booking-backed pass.
+- Notes: Best fit because the current proof combines controlled pass transfer, agent-assisted HBAR movement, and Hedera-backed recovery payments.
 
 **Emoji**
 
@@ -66,28 +67,28 @@ The pasted example copy about state channels, exchange onramp/offramp, MobX, Rus
 
 - Final URL: `TBD`
 - Backup URL: `TBD`
-- Notes: A public deployed demo URL was not found in repo state on `2026-04-05`. Add the Vercel URL before final submission.
+- Notes: Add the Vercel or public tunnel URL before final submission.
 
 **Short description**
 
 - Limit: `100 characters max`
-- Draft: `Transferable booking passes for classes and services with provider-controlled resale.`
-- Character count: `85`
-- Final: `Transferable booking passes for classes and services with provider-controlled resale.`
+- Draft: `Agent-assisted recovery for tokenized bookings on Hedera.`
+- Character count: `55`
+- Final: `Agent-assisted recovery for tokenized bookings on Hedera.`
 
 **Description**
 
 - Requirement: `minimum 280 characters`
-- Draft: `YourTurn turns a booked service slot into a controlled, transferable pass. In the MVP, a provider can mint limited session slots, a customer can book one, the current holder can resell it under provider rules, the provider earns a 10% royalty on secondary resale, and the provider can freeze movement or mark the pass used. The point is not generic ticketing. It is a cleaner way for studios, coaches, and therapy-style services to handle last-minute changes without losing control of the booking lifecycle.`
-- Final: `YourTurn turns a booked service slot into a controlled, transferable pass. In the MVP, a provider can mint limited session slots, a customer can book one, the current holder can resell it under provider rules, the provider earns a 10% royalty on secondary resale, and the provider can freeze movement or mark the pass used. The point is not generic ticketing. It is a cleaner way for studios, coaches, and therapy-style services to handle last-minute changes without losing control of the booking lifecycle.`
-- Notes: Anchored to `docs/SPEC.md`, `docs/DEMO-STORY.md`, and the shipped flows in `docs/DEMO.md`.
+- Draft: `YourTurn turns a booked service slot into a controlled, transferable pass and gives customers a Concierge recovery path when they cannot attend. A provider sets the session and recovery policy, Person A books the slot, and YourTurn Concierge can help list the pass for resale or complete a policy-gated release/refund after human approval. The ETHGlobal build uses Hedera native services to prove the lifecycle: HTS for booking-right NFTs, HCS for audit messages, Schedule Service for an executed recovery payment proof, Mirror/HashScan for verification, and a Hedera Agent Kit-style runtime/manifest for bounded agent tools and policy checks. The user sees a normal booking and Telegram flow; judges can inspect the receipts, schedule ids, transaction ids, and agent capability endpoints.`
+- Final: `YourTurn turns a booked service slot into a controlled, transferable pass and gives customers a Concierge recovery path when they cannot attend. A provider sets the session and recovery policy, Person A books the slot, and YourTurn Concierge can help list the pass for resale or complete a policy-gated release/refund after human approval. The ETHGlobal build uses Hedera native services to prove the lifecycle: HTS for booking-right NFTs, HCS for audit messages, Schedule Service for an executed recovery payment proof, Mirror/HashScan for verification, and a Hedera Agent Kit-style runtime/manifest for bounded agent tools and policy checks. The user sees a normal booking and Telegram flow; judges can inspect the receipts, schedule ids, transaction ids, and agent capability endpoints.`
+- Notes: Anchored to `docs/SPEC.md`, `docs/DEMO.md`, `docs/FINAL-DEMO-SCRIPT.md`, and `docs/ethglobal-nyc-2026/FINAL-PROOF-PACK.md`.
 
 **How it's made**
 
 - Requirement: `minimum 280 characters`
-- Draft: `YourTurn is a Next.js 14 App Router app built with TypeScript, React, and Tailwind CSS. All Hedera write actions run in Node.js API routes using @hashgraph/sdk. We use Hedera Token Service for the transferable booking pass itself, including NFT serials, custom royalty fees, freeze and unfreeze controls, and final redemption via return-to-treasury plus burn. We use Mirror Node REST for holder and status reads, Hedera Consensus Service for lifecycle audit messages, Upstash Redis for slot and listing metadata, and HashScan links for proof during the demo. The result is a no-Solidity MVP that shows booking, resale, issuer control, and real testnet verification.`
-- Final: `YourTurn is a Next.js 14 App Router app built with TypeScript, React, and Tailwind CSS. All Hedera write actions run in Node.js API routes using @hashgraph/sdk. We use Hedera Token Service for the transferable booking pass itself, including NFT serials, custom royalty fees, freeze and unfreeze controls, and final redemption via return-to-treasury plus burn. We use Mirror Node REST for holder and status reads, Hedera Consensus Service for lifecycle audit messages, Upstash Redis for slot and listing metadata, and HashScan links for proof during the demo. The result is a no-Solidity MVP that shows booking, resale, issuer control, and real testnet verification.`
-- Notes: Keep the final form answer aligned with `docs/ARCHITECTURE.md` and `docs/TX-LOG.md`.
+- Draft: `YourTurn is a Next.js 14 App Router app built with TypeScript, React, Tailwind CSS, Upstash Redis, and @hashgraph/sdk. Hedera writes run server-side in Node routes through a BookingPort boundary. HTS represents booked service slots as NFT serials with royalty and lifecycle controls. HCS records audit events. Mirror Node and HashScan provide holder/status verification. The ETHGlobal recovery flow adds a policy-gated Concierge layer with preview, human approval, receipt storage, Telegram transport, and Hedera Agent Kit-style tool metadata. The listing recovery path creates a real Hedera Schedule Service payment proof; the release/refund path sends a real testnet HBAR refund, returns/closes the pass, and writes audit proof. The verifier commands are npm run ethglobal:preflight, npm run hedera:agent-check, npm run telegram:fixture, npm run ethglobal:e2e, and npm run build.`
+- Final: `YourTurn is a Next.js 14 App Router app built with TypeScript, React, Tailwind CSS, Upstash Redis, and @hashgraph/sdk. Hedera writes run server-side in Node routes through a BookingPort boundary. HTS represents booked service slots as NFT serials with royalty and lifecycle controls. HCS records audit events. Mirror Node and HashScan provide holder/status verification. The ETHGlobal recovery flow adds a policy-gated Concierge layer with preview, human approval, receipt storage, Telegram transport, and Hedera Agent Kit-style tool metadata. The listing recovery path creates a real Hedera Schedule Service payment proof; the release/refund path sends a real testnet HBAR refund, returns/closes the pass, and writes audit proof. The verifier commands are npm run ethglobal:preflight, npm run hedera:agent-check, npm run telegram:fixture, npm run ethglobal:e2e, and npm run build.`
+- Notes: Keep the final form answer aligned with `docs/ARCHITECTURE.md`, `docs/DEMO.md`, and `docs/ethglobal-nyc-2026/FINAL-PROOF-PACK.md`.
 
 **GitHub repositories**
 
@@ -114,13 +115,13 @@ The pasted example copy about state channels, exchange onramp/offramp, MobX, Rus
 **Screenshots**
 
 - Minimum required: `3`
-- Screenshot 1: `docs/review-screenshots/01-home.png` — marketing home
-- Screenshot 2: `docs/review-screenshots/05-provider-dashboard.png` — provider console
-- Screenshot 3: `docs/review-screenshots/08-resale-person-a.png` — resale listing flow
-- Screenshot 4: `docs/review-screenshots/09-resale-person-b.png` — resale buy flow
-- Screenshot 5: `docs/review-screenshots/07-session-detail-available.png` — pass detail and proof
-- Screenshot 6: `docs/review-screenshots/02-slots.png` — browse and book
-- Notes: These are already checked into the repo under `docs/review-screenshots/`.
+- Screenshot 1: `output/ethglobal-final-proof/screenshots/01-telegram-recovery-preview.png` — Telegram recovery preview
+- Screenshot 2: `output/ethglobal-final-proof/screenshots/02-telegram-listing-success.png` — Telegram listing success and schedule proof link
+- Screenshot 3: `output/ethglobal-final-proof/screenshots/03-telegram-refund-success.png` — Telegram refund/release success
+- Screenshot 4: `output/ethglobal-final-proof/screenshots/04-resale-193-recovery-proof.png` — in-app recovery proof for booking `193`
+- Screenshot 5: `output/ethglobal-final-proof/screenshots/08-hashscan-schedule-9228236.png` — HashScan executed schedule
+- Screenshot 6: `output/ethglobal-final-proof/screenshots/10-hashscan-refund-release.png` — HashScan refund/release transaction
+- Notes: `output/` is local-only and gitignored. Use these files for upload; the tracked index is `docs/ethglobal-nyc-2026/FINAL-PROOF-PACK.md`.
 
 ### Tech stack
 
@@ -168,6 +169,8 @@ The pasted example copy about state channels, exchange onramp/offramp, MobX, Rus
 - Final selections:
   - `Hedera Token Service (HTS)`
   - `Hedera Consensus Service (HCS)`
+  - `Hedera Schedule Service`
+  - `Hedera Agent Kit`
   - `Mirror Node REST API`
   - `HashScan`
   - `@hashgraph/sdk`
@@ -178,8 +181,8 @@ The pasted example copy about state channels, exchange onramp/offramp, MobX, Rus
 **Describe how AI tools were used**
 
 - Leave blank if not applicable.
-- Draft: `OpenAI tools were used to accelerate implementation, refactors, copy iteration, and documentation across the Next.js app and supporting repo docs. The final Hedera transaction paths, UI wiring, and proof transactions were then reviewed and run manually against testnet before being written into the submission materials.`
-- Final: `OpenAI tools were used to accelerate implementation, refactors, copy iteration, and documentation across the Next.js app and supporting repo docs. The final Hedera transaction paths, UI wiring, and proof transactions were then reviewed and run manually against testnet before being written into the submission materials.`
+- Draft: `OpenAI/Codex tools were used to accelerate implementation, refactors, copy iteration, browser QA, and documentation across the Next.js app and supporting repo docs. The final Hedera transaction paths, Telegram proofs, verifier commands, screenshots, and proof links were then run against Hedera testnet and recorded in the final proof packet.`
+- Final: `OpenAI/Codex tools were used to accelerate implementation, refactors, copy iteration, browser QA, and documentation across the Next.js app and supporting repo docs. The final Hedera transaction paths, Telegram proofs, verifier commands, screenshots, and proof links were then run against Hedera testnet and recorded in the final proof packet.`
 - Notes: If you want a stricter disclosure, replace `OpenAI tools` with the exact tools you are comfortable naming publicly.
 
 ### Judging and prizes
@@ -209,7 +212,7 @@ The pasted example copy about state channels, exchange onramp/offramp, MobX, Rus
   - `Unlink`
   - `Dynamic`
 - Selected partner 1: `Hedera`
-- Why applicable: `This project was built specifically for the Hedera No Solidity Allowed track. The core product flow relies on HTS for the transferable booking pass and enforced royalty behavior, Mirror Node for holder and lifecycle reads, and HCS for lifecycle audit messages. The repo includes real testnet proof for booking, resale, freeze / unfreeze, and redemption in docs/TX-LOG.md.`
+- Why applicable: `YourTurn uses Hedera as the proof and execution layer for tokenized booking recovery. HTS represents the booking-right NFT lifecycle, HCS records audit proof, Schedule Service creates and executes the recovery payment proof, Mirror/HashScan verify state, and the Concierge/Agent Kit path applies policy checks before approved listing or refund/release actions. The final packet records Telegram proofs for bookings 193 and 194 plus a full E2E regression.`
 - Selected partner 2: `None`
 - Why applicable: `Not applying for a second partner prize unless a real integration is added.`
 - Selected partner 3: `None`
@@ -224,10 +227,10 @@ The pasted example copy about state channels, exchange onramp/offramp, MobX, Rus
   - `2 to 4 minutes`
   - `minimum 720p`
   - `audio without music`
-- Status: `not prepared yet`
+- Status: `script prepared; video still needs recording/upload`
 - Local file path: `TBD`
 - Uploaded asset: `TBD`
-- Notes: If you record one, keep it between 2 and 4 minutes, 720p or better, with spoken audio and no background music.
+- Notes: Use `docs/FINAL-DEMO-SCRIPT.md`. Keep it between 2 and 4 minutes, 720p or better, with spoken audio and no background music.
 
 ### Future opportunities
 
@@ -257,9 +260,13 @@ The pasted example copy about state channels, exchange onramp/offramp, MobX, Rus
 
 - [x] Submission copy matches current shipped product
 - [x] Hedera track claims match repo reality
+- [x] Final proof pack created
+- [x] Telegram proofs `193` and `194` referenced clearly
 - [ ] Demo URL works
 - [x] Repo is public
-- [ ] Images are ready and correctly sized
+- [x] Images are captured locally
+- [ ] Images are uploaded to ETHGlobal form
 - [x] Screenshots reflect the shipped UI
 - [x] Prize selections are justified
+- [ ] Demo video uploaded or intentionally skipped
 - [ ] Team is complete before pressing submit

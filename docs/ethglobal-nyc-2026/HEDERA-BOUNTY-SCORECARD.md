@@ -1,6 +1,6 @@
 # Hedera Bounty Scorecard
 
-Last scored: 2026-06-13 after live Telegram listing and refund/release proofs.
+Last scored: 2026-06-14 after live Telegram listing/refund proofs and final E2E regression.
 
 Scale: 1-10. A score of 10 means the track requirement is met with live product state, public proof, a clear user story, and a repeatable verifier path. Scores are not prize predictions.
 
@@ -24,6 +24,7 @@ Facts:
 - Receipt `bc9155e7-17dd-451d-8f4f-1ba56e4fb99f` proves the listing path.
 - Receipt `143c5cee-8d08-468d-9f6e-d4f349857a08` proves the refund/release path.
 - `npm run hedera:agent-check` verifies the agent manifest, policy gates, runtime adapter, HCS-14 identity, A2A descriptor, OpenClaw/x402 claim boundaries, and budget overflow block.
+- `npm run ethglobal:e2e` passed after screenshot capture and produced fresh regression proof for serials `196`, `197`, and `198`.
 
 Primary proof links:
 
@@ -33,6 +34,14 @@ Primary proof links:
 - Telegram refund/release: `0.0.8504300@1781404315.316217004`
 - Telegram refund close/burn: `0.0.8504300@1781404320.752860402`
 - Telegram refund audit: `0.0.8504300@1781404320.697190583`
+
+Final regression proof:
+
+- E2E schedule: `0.0.9228519`
+- E2E scheduled execution: `0.0.8504300-1781406966-580404829`
+- E2E refund/release: `0.0.8504300@1781406949.343880789`
+- E2E listing receipt: `6351521d-13e2-4973-9d33-08eb521fa1ca`
+- E2E refund receipt: `fb0e38dd-9ed8-4d93-9bd8-82abbaa8f7aa`
 
 ## Track Notes
 
@@ -111,5 +120,5 @@ Supporting story:
 
 ## Next Improvement Before Final Pack
 
-- Capture final screenshots of Telegram preview, Telegram listing success, Telegram refund success, recovery receipt, schedule proof, and refund proof.
-- Write the final demo spine with explicit live/configured/roadmap claim labels.
+- Record/upload the optional 2-4 minute demo video.
+- Add the final deployed URL once available.

@@ -46,6 +46,24 @@ npm run ethglobal:e2e
 
 Run the app in one terminal and the E2E command in another. The E2E command intentionally mutates demo testnet/Redis state. It logs in as issuer, Person A, and Person B; saves a 3-session plan; resets the demo; books a resale-eligible slot; books a no-resale slot; proves no-resale listing is blocked; executes a real testnet HBAR refund/release on the no-resale slot; creates a Concierge recovery listing on the resale-eligible slot; creates and inspects a Hedera Schedule Service recovery payment proof; has Person B buy the listing; marks the pass used; and verifies the non-holder, unheld, used, and Mirror deletion guardrails.
 
+Final proof pack:
+
+- `docs/ethglobal-nyc-2026/FINAL-PROOF-PACK.md`
+- local screenshot evidence: `output/ethglobal-final-proof/screenshots/`
+- final demo script: `docs/FINAL-DEMO-SCRIPT.md`
+- final submission worksheet: `docs/SUBMISSION.md`
+
+Latest final regression proof from 2026-06-14:
+
+- `npm run ethglobal:e2e` passed with main serial `196`, refund serial `197`, open guardrail serial `198`
+- schedule `0.0.9228519` executed on testnet
+- scheduled execution tx `0.0.8504300-1781406966-580404829`
+- refund/release tx `0.0.8504300@1781406949.343880789`
+- listing receipt `6351521d-13e2-4973-9d33-08eb521fa1ca`
+- refund receipt `fb0e38dd-9ed8-4d93-9bd8-82abbaa8f7aa`
+
+Primary recorded Telegram proof for the demo story remains booking `193` for listing/schedule and booking `194` for refund/release.
+
 Telegram fixture check:
 
 ```bash

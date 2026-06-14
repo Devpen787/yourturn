@@ -1,374 +1,151 @@
 # Final Demo Script
 
-Use this as the **recording script**.
+Use this as the 2-4 minute ETHGlobal recording script.
 
-One person **speaks**.
-One person **clicks**.
+One person speaks. One person clicks. Do not narrate every field. The goal is to make the proof path obvious:
 
-Keep the tone calm and direct. Do not explain every screen. Only say what helps the audience understand:
+1. owner policy controls what can happen
+2. Person A owns a booked pass
+3. Concierge recommends a recovery action
+4. the human approves
+5. Hedera executes and produces proof
 
-1. the problem
-2. the solution
-3. why this is better
-4. what the app is proving live
+## Claim Labels
 
-If a page is already open and another account changed the pass, refresh before narrating the new state.
+- Live: in-app recovery listing, Telegram recovery/listing, Telegram refund/release, HTS pass lifecycle, HCS audit, Schedule Service proof, Agent Kit verifier.
+- Configured: live Telegram requires bot credentials, webhook secret, allowlisted chat, and `TELEGRAM_ALLOW_MUTATIONS=true`.
+- Roadmap: wallet-funded budgets, OpenClaw ACP gateway runtime, x402 facilitator settlement, remote A2A negotiation, scheduled token release/refund.
 
----
+## Proof Objects To Show
 
-## Demo setup
+- Telegram listing proof for booking `193`.
+- Telegram refund/release proof for booking `194`.
+- Schedule `0.0.9228236`.
+- Scheduled execution transaction `0.0.8504300-1781403839-567406004`.
+- Refund/release transaction `0.0.8504300@1781404315.316217004`.
+- Listing receipt `bc9155e7-17dd-451d-8f4f-1ba56e4fb99f`.
+- Refund receipt `143c5cee-8d08-468d-9f6e-d4f349857a08`.
+- Agent descriptor at `/.well-known/agent.json`.
+- Agent capability endpoint at `/api/agent/capabilities`.
 
-Use three separate browser profiles or computers if possible:
+## Recording Setup
 
-- **Browser 1:** Demo issuer
-- **Browser 2:** Demo user A
-- **Browser 3:** Demo user B
+Use these surfaces:
 
-If you only have one browser profile, do the same flow with sign-out / sign-in, but the cleanest recording uses separate sessions.
+- Browser: `http://localhost:3000/issuer`
+- Browser: `http://localhost:3000/my-bookings`
+- Browser: `http://localhost:3000/resale/193?mode=recovery`
+- Browser: `http://localhost:3000/resale/194?mode=recovery`
+- Telegram: `t.me/YourTurnConcierge_bot`
+- HashScan schedule: `https://hashscan.io/testnet/schedule/0.0.9228236`
+- HashScan scheduled execution: `https://hashscan.io/testnet/transaction/0.0.8504300-1781403839-567406004`
+- HashScan refund/release: `https://hashscan.io/testnet/transaction/0.0.8504300-1781404315-316217004`
 
-Recommended role split:
+Keep `TELEGRAM_ALLOW_MUTATIONS=false` after rehearsal. Only turn it on during the live Telegram proof step.
 
-- **Speaker:** reads the script
-- **Operator:** clicks through the product
+## Script
 
----
+### 0:00-0:20 Opening
 
-## Opening
+Speaker:
 
-### Speaker
+YourTurn helps service businesses recover value when a customer cannot attend a booked slot.
 
-Today, small and medium-sized businesses lose money and time to cancellations, no-shows, and messy booking changes.
+Instead of a cancellation becoming a manual support problem, the booking becomes a controlled pass. The customer gets a recovery path, the owner keeps policy control, and Hedera records the lifecycle.
 
-When a customer cannot make an appointment, the fallback is usually manual coordination, a lost slot, or an informal handoff the business cannot really control.
+### 0:20-0:45 Owner policy
 
-YourTurn turns that booking into a controlled, transferable pass.
+Operator:
 
-That means the customer keeps flexibility, the business keeps visibility and control, and the slot does not have to die unused.
+Open `/issuer` and show the live sessions table and policy-shaped inventory.
 
-For this demo, we will show that with a therapy-style appointment. But the same engine also works for classes, coaching, and premium experiences where resale and issuer royalties matter even more.
+Speaker:
 
-### Operator
+The provider sets which sessions can be resold or released, and those rules drive the recovery flow. This is not an open-ended resale market. The owner keeps control over the slot and the final redemption.
 
-Start on:
+### 0:45-1:10 Customer pass and Telegram entry
 
-- `/`
+Operator:
 
-Pause briefly on the homepage hero.
+Open `/my-bookings` as Person A. Show the pass tile with `Booking #193` and the Telegram Concierge card.
 
-Do not click yet.
+Speaker:
 
----
+Person A holds a booked pass. If they cannot attend, they do not need to understand tokens, schedules, or policy state. They can ask YourTurn Concierge for their bookings and use the booking number shown in the app.
 
-## Framing the product
+### 1:10-1:45 Telegram listing recovery
 
-### Speaker
+Operator:
 
-The important shift is this:
+Show the Telegram recovery preview screenshot or live chat for `recover booking 193`, then show `approve listing 193`.
 
-A booking is no longer just a calendar row.
+Speaker:
 
-It becomes a live pass that can move to another customer under provider rules.
+The Concierge checks the current holder, the owner resale policy, the expected ask, the owner royalty, and the seller net. It then asks for human approval before changing anything.
 
-The business still controls the rules, still controls final check-in, and can even earn when that slot changes hands.
+After approval, the pass is listed for resale, an audit receipt is created, and the recovery payment proof is scheduled on Hedera.
 
-That is the core story.
+### 1:45-2:15 Schedule Service proof
 
-### Operator
+Operator:
 
-Click:
+Open `/resale/193?mode=recovery`, then open HashScan schedule `0.0.9228236`.
 
-- `Browse sessions` only after the speaker finishes the framing
+Speaker:
 
-Then go to:
+This is the automation proof. The recovery action created a real Hedera Schedule Service object, and HashScan shows it executed on testnet. The app can inspect that proof and show the scheduled action status back to the user.
 
-- `/login`
+### 2:15-2:45 Telegram refund/release proof
 
----
+Operator:
 
-## Step 1: Issuer prepares inventory
+Show the Telegram `approve refund 194` success screenshot, then open `/resale/194?mode=recovery` and the refund HashScan link.
 
-### Speaker
+Speaker:
 
-First, we sign in as the business. This is the provider dashboard where the business controls the live session inventory and the operating rules behind the scenes.
+The second proof shows the other recovery path. For booking `194`, the Concierge performed a policy-gated refund/release after human approval. It sent a real testnet HBAR refund, closed the booking right, and wrote the audit proof.
 
-### Operator
+### 2:45-3:20 Agent Kit proof
 
-In the issuer browser:
+Operator:
 
-1. Sign in as **Demo issuer**
-2. Open `/issuer`
-3. Click **Start over**
-4. Complete the typed confirmation
+Open `/.well-known/agent.json`, `/api/agent/capabilities`, or the terminal output from `npm run hedera:agent-check`.
 
-Optional if you want to show setup:
+Speaker:
 
-5. Briefly show the business name and the planned session cards
+The agent has a bounded identity, tool manifest, policy gates, approval requirements, and budget checks. The verifier confirms the live tracks: Schedule Service automation, agentic Hedera payments, native Hedera services, and no Solidity.
 
-Then leave the page on the live inventory area.
+We are honest about what is not live: OpenClaw ACP and x402 are descriptors only, not gateway settlement runtimes in this demo.
 
-### Speaker
+### 3:20-3:45 Close
 
-This gives the business a clean live schedule to work from.
+Speaker:
 
-The important point is that this is not an uncontrolled resale marketplace. The provider still owns the inventory, the policy, and the final redemption step.
+The result is a booked-rights recovery flow that normal users can operate through the app or Telegram, while Hedera provides the token lifecycle, audit trail, scheduled automation, and payment proof.
 
----
+For the hackathon, our primary Hedera claims are Autonomous On-Chain Automation, AI and Agentic Payments, and No Solidity Allowed.
 
-## Step 2: Person A books
+## Short Cut If Time Is Tight
 
-### Speaker
+1. Show `/my-bookings` with `Booking #193` and Telegram entry.
+2. Show Telegram listing success for `193`.
+3. Show `/resale/193?mode=recovery` and HashScan schedule `0.0.9228236`.
+4. Show Telegram refund success for `194`.
+5. Show `npm run hedera:agent-check` result or `/api/agent/capabilities`.
 
-Now we switch to the customer side.
+## Final Rehearsal Commands
 
-Person A is booking a real session. In this case, think of it like a therapy appointment or a limited class slot.
+Run before recording:
 
-### Operator
+```bash
+npm run ethglobal:preflight
+npm run hedera:agent-check
+npm run telegram:fixture
+npm run build
+```
 
-In the User A browser:
+Optional full regression, if you are comfortable mutating demo state:
 
-1. Sign in as **Demo user A**
-2. Open `/slots`
-3. Pick one **AVAILABLE** session
-4. Click **Book**
-5. Confirm the booking in the review dialog
-
-After booking:
-
-6. Note the serial / ref number
-7. Open `/my-bookings`
-
-### Speaker
-
-At this point, Person A is the current holder of that pass.
-
-So the booking is no longer just “an entry on a calendar.” It is now a live booked right the customer can track and act on.
-
----
-
-## Step 3: Show provider visibility
-
-### Speaker
-
-And the business can immediately see who holds that pass now.
-
-### Operator
-
-Back in the issuer browser:
-
-1. Refresh if needed
-2. Find the same serial
-3. Show that the current holder is **Person A**
-
-### Speaker
-
-That is important because the provider never loses visibility when the booking moves through the system.
-
----
-
-## Step 4: Person A lists the pass
-
-### Speaker
-
-Now the real problem appears.
-
-Person A cannot make the session anymore.
-
-In most businesses, this is where the process becomes manual, messy, or revenue-destructive.
-
-With YourTurn, the customer can relist the slot safely under provider rules instead of letting it go unused.
-
-### Operator
-
-In the User A browser:
-
-1. Open `/resale/[serial]` for the same pass
-2. Enter the resale ask if needed
-3. Click **List this pass**
-4. Confirm the review dialog
-5. Open `/my-bookings` again if useful
-
-### Speaker
-
-Now the customer has listed the pass for resale.
-
-And the business can still govern that process.
-
-That is the difference between a controlled transfer and an informal swap.
-
----
-
-## Step 5: Person B buys
-
-### Speaker
-
-Now Person B takes over the slot.
-
-This is where the flexibility becomes obvious for the customer, and the revenue protection becomes obvious for the business.
-
-### Operator
-
-In the User B browser:
-
-1. Sign in as **Demo user B**
-2. Open the same `/resale/[serial]`
-3. Show the listing
-4. Click **Buy this pass**
-5. Confirm the purchase dialog
-6. Open `/my-bookings`
-
-### Speaker
-
-The pass now belongs to Person B.
-
-So the slot stays alive, the business keeps control, and the customer handoff happens inside the product instead of outside it.
-
-If this were a premium slot, like a boat-day or other high-demand experience, this is also where the secondary economics become much more valuable.
-
----
-
-## Step 6: Show holder changed
-
-### Speaker
-
-And importantly, the provider can see that change immediately.
-
-### Operator
-
-Back in the issuer browser:
-
-1. Refresh if needed
-2. Show the same serial
-3. Show that the current holder is now **Person B**
-
-### Speaker
-
-So the handoff is not invisible to the business.
-
-The system still knows exactly who the valid holder is.
-
----
-
-## Step 7: Issuer checks in and closes the lifecycle
-
-### Speaker
-
-Now the provider performs the final redemption step.
-
-This is what closes the lifecycle and prevents the same pass from being used twice.
-
-### Operator
-
-In the issuer browser:
-
-1. Use **Check in / mark used** for that same serial
-2. Type the confirmation value
-3. Submit
-4. Refresh `/issuer` once if you want the counts to catch up before the next line
-
-### Speaker
-
-This is one of the most important parts of the demo.
-
-Even though the pass could move between customers, the business still controls final check-in.
-
-That means flexibility for the customer does not come at the expense of business control.
-
----
-
-## Step 8: Show final closed state
-
-### Speaker
-
-And now we show the final state from the customer side.
-
-### Operator
-
-Sign out of issuer if needed.
-
-In the User B browser:
-
-1. Open `/slots/[serial]`
-2. Show that the pass is now closed / used
-3. Briefly show the lifecycle history
-4. Open `/resale/[serial]`
-5. Show that the page is read-only and the pass cannot be resold anymore
-
-### Speaker
-
-That is the full lifecycle:
-
-booked,
-resold,
-transferred to the new holder,
-then checked in and closed by the provider.
-
-And once it is closed, it cannot move again.
-
----
-
-## Hedera line
-
-### Speaker
-
-Why does Hedera matter here?
-
-Because it gives us a transferable asset with a visible lifecycle, resale economics, and a verifiable audit trail, while still keeping the product flow simple enough for a real service business.
-
-So this is not “blockchain for its own sake.”
-
-It is infrastructure that lets the booking behave like a controlled pass.
-
----
-
-## Closing
-
-### Speaker
-
-So the value of YourTurn is simple:
-
-it helps small and medium-sized businesses recover lost value from cancellations and no-shows,
-it gives customers more flexibility,
-and it lets the business keep control, visibility, and new revenue opportunities when bookings change hands.
-
-### Operator
-
-End on either:
-
-- `/slots/[serial]` closed state
-- or `/issuer`
-
-Choose whichever looks cleaner in the recording.
-
----
-
-## Short version
-
-If you need the compressed version for a tighter video:
-
-### Speaker
-
-Small businesses lose revenue when customers cancel or no-show. YourTurn turns a booking into a controlled, transferable pass. In this demo, Person A books a session, relists it, Person B buys it, and the provider still controls final check-in and closure. That protects revenue, improves flexibility, and opens new secondary fee opportunities.
-
-### Operator
-
-Do:
-
-1. issuer reset
-2. User A book
-3. User A list
-4. User B buy
-5. issuer show holder changed
-6. issuer mark used
-7. User B show closed slot detail and closed resale
-
----
-
-## Recording notes
-
-- Keep one serial throughout the whole recording.
-- Do not narrate every button.
-- Refresh pages quietly before speaking if another role just changed the pass.
-- If issuer counts lag after check-in, refresh `/issuer` before describing the totals.
-- Do not try to open `/slots/[serial]` while still signed in as issuer.
-- If the audience is less technical, show lifecycle history only briefly.
-- If the audience is more technical, mention that resale and final closure are verifiable and auditable.
+```bash
+npm run ethglobal:e2e
+```
