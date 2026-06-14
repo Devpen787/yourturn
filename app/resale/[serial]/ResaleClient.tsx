@@ -68,6 +68,7 @@ export function ResaleClient({
   const askNum = Number(ask) || 0;
   const customerActor = actor === "guestB" ? "guestB" : "guestA";
   const royalty = calcRoyalty(askNum);
+  const proofOnlyMode = !!initialProof;
   const askInvalid = useMemo(() => {
     if (ask.trim() === "") return false;
     return !Number.isFinite(askNum) || askNum <= 0;
@@ -82,6 +83,7 @@ export function ResaleClient({
     mirrorHolderActor != null &&
     actor === mirrorHolderActor;
   const stateBlockedMessage = useMemo(() => {
+    if (proofOnlyMode) return null;
     if (currentStatus === "AVAILABLE") {
       return "No customer holds this pass yet, so there is nothing to resell.";
     }
@@ -92,15 +94,16 @@ export function ResaleClient({
       return "This pass has already been checked in and closed. It cannot be resold.";
     }
     return null;
-  }, [currentStatus]);
+  }, [currentStatus, proofOnlyMode]);
 
   const resaleBlockedMessage = useMemo(() => {
+    if (proofOnlyMode) return null;
     if (stateBlockedMessage) return stateBlockedMessage;
     if (!resaleAllowed) {
       return "This session is not set up for resale under provider rules.";
     }
     return null;
-  }, [resaleAllowed, stateBlockedMessage]);
+  }, [proofOnlyMode, resaleAllowed, stateBlockedMessage]);
 
   const listDisabled = !!loading || !tokenId || !!resaleBlockedMessage || listPersonaMismatch;
   const buyDisabled =
@@ -109,7 +112,8 @@ export function ResaleClient({
     !!resaleBlockedMessage ||
     !initialListing?.active ||
     buyPersonaBlocksPurchase;
-  const showManualResaleControls = !!tokenId && !resaleBlockedMessage;
+  const showManualResaleControls =
+    !!tokenId && !resaleBlockedMessage && !proofOnlyMode;
 
   const mirrorHint =
     !tokenId || mirrorHolderActor == null
@@ -296,7 +300,7 @@ export function ResaleClient({
           How this demo works
         </Link>
       </p>
-      {mirrorHint ? (
+      {mirrorHint && !proofOnlyMode ? (
         <p
           className={cn(
             "rounded border p-3 text-sm",
@@ -320,7 +324,7 @@ export function ResaleClient({
         slotTitle={slotTitle}
         defaultAskPriceHbar={primaryPriceHbar}
         tokenReady={!!tokenId}
-        blockingReason={stateBlockedMessage}
+        blockingReason={proofOnlyMode ? null : stateBlockedMessage}
         resaleAllowed={resaleAllowed}
         releaseAllowed={releaseAllowed}
         initialProof={initialProof}
@@ -424,7 +428,9 @@ export function ResaleClient({
           <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
             <p className="font-medium text-slate-950">No manual resale action available</p>
             <p className="mt-1">
-              {resaleBlockedMessage ??
+              {proofOnlyMode
+                ? "The recorded recovery receipt is shown above. No new manual resale action is needed for this proof."
+                : resaleBlockedMessage ??
                 "This pass cannot use the manual resale controls in its current state."}
             </p>
           </div>

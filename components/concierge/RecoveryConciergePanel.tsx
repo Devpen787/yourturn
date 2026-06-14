@@ -99,6 +99,11 @@ function formatHbar(value: number): string {
   return `${value.toFixed(2)} ℏ`;
 }
 
+function actionFromProof(proof?: RecoveryProofDetails | null): RecoveryAction | null {
+  if (!proof) return null;
+  return proof.refundHbar != null ? "cancel_release_refund" : "create_listing";
+}
+
 export function RecoveryConciergePanel({
   serial,
   actor,
@@ -128,7 +133,8 @@ export function RecoveryConciergePanel({
   const askFieldId = useId();
   const [ask, setAsk] = useState(() => defaultAskPriceHbar.toString());
   const [action, setAction] = useState<RecoveryAction>(() =>
-    resaleAllowed ? "create_listing" : "cancel_release_refund"
+    actionFromProof(initialProof) ??
+    (resaleAllowed ? "create_listing" : "cancel_release_refund")
   );
   const [preview, setPreview] = useState<RecoveryPreview | null>(null);
   const [receipt, setReceipt] = useState<RecoveryReceipt | null>(null);
@@ -142,18 +148,22 @@ export function RecoveryConciergePanel({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<"preview" | "confirm" | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const proofOnlyMode = !!initialProof && !receipt;
 
   useEffect(() => {
     setAsk(defaultAskPriceHbar.toString());
   }, [defaultAskPriceHbar, serial]);
 
   useEffect(() => {
-    setAction(resaleAllowed ? "create_listing" : "cancel_release_refund");
+    setAction(
+      actionFromProof(initialProof) ??
+        (resaleAllowed ? "create_listing" : "cancel_release_refund")
+    );
     setPreview(null);
     setReceipt(null);
     setError(null);
     setSuccess(null);
-  }, [resaleAllowed, serial]);
+  }, [initialProof, resaleAllowed, serial]);
 
   const askNum = Number(ask) || 0;
   const askInvalid = ask.trim() !== "" && (!Number.isFinite(askNum) || askNum <= 0);
@@ -367,11 +377,14 @@ export function RecoveryConciergePanel({
         <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 id={panelTitleId} className="text-lg font-semibold text-slate-950">
-              Recover value from this booking
+              {proofOnlyMode
+                ? "Recovery receipt for this booking"
+                : "Recover value from this booking"}
             </h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-              Concierge checks the booked provider policy, previews resale or release,
-              and asks you to approve before anything changes.
+              {proofOnlyMode
+                ? "Concierge recorded the approved recovery action, provider policy basis, and Hedera proof for this booking."
+                : "Concierge checks the booked provider policy, previews resale or release, and asks you to approve before anything changes."}
             </p>
           </div>
           <span className="rounded-full bg-white/85 px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
@@ -382,7 +395,17 @@ export function RecoveryConciergePanel({
 
       <div className="space-y-4 p-4 sm:p-5">
         <div className="max-w-3xl space-y-4">
-          <div className="rounded-xl border border-white/80 bg-white/85 p-4 shadow-sm">
+          {proofOnlyMode ? (
+            <div className="rounded-xl border border-white/80 bg-white/85 p-4 text-sm text-slate-700 shadow-sm">
+              <p className="font-medium text-slate-950">{slotTitle}</p>
+              <p className="mt-1 text-xs text-slate-600">Booking #{serial}</p>
+              <p className="mt-4 leading-6">
+                This view is a receipt. It is intentionally read-only so the demo can
+                show what happened without starting another recovery action.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-white/80 bg-white/85 p-4 shadow-sm">
             <p className="text-sm font-medium text-slate-950">{slotTitle}</p>
             <p className="mt-1 text-xs text-slate-600">Ref #{serial}</p>
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -457,9 +480,11 @@ export function RecoveryConciergePanel({
                 Refund preview uses the original booking price. Concierge will only call this a refund if the testnet HBAR transfer succeeds.
               </p>
             )}
-          </div>
+            </div>
+          )}
 
-          <div className="flex flex-wrap gap-2">
+          {!proofOnlyMode ? (
+            <div className="flex flex-wrap gap-2">
             <Button
               type="button"
               variant="primary"
@@ -485,13 +510,16 @@ export function RecoveryConciergePanel({
             >
               {action === "cancel_release_refund" ? "Approve refund" : "Approve and list"}
             </Button>
-          </div>
+            </div>
+          ) : null}
 
-          <LiveFeedback
-            success={success}
-            successLink={successLink}
-            error={error}
-          />
+          {!proofOnlyMode ? (
+            <LiveFeedback
+              success={success}
+              successLink={successLink}
+              error={error}
+            />
+          ) : null}
         </div>
 
         <aside className="max-w-3xl rounded-xl border border-white/80 bg-white/85 p-4 text-sm shadow-sm">
@@ -538,7 +566,9 @@ export function RecoveryConciergePanel({
             )}
           </dl>
           <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-600">
-            {preview?.status === "recommended"
+            {visibleProof
+              ? "This receipt keeps the approved recovery action, price math, approval, and Hedera proof visible for review."
+              : preview?.status === "recommended"
               ? preview.recommendation.reason
               : preview?.status === "already_listed"
                 ? preview.recommendation.reason
