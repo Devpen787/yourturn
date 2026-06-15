@@ -4,7 +4,7 @@ Status: candidate continuity build packet.
 
 Date: 2026-06-13.
 
-## Hackathon OS classification
+## Submission classification
 
 Primary category: Agent / Autonomous Systems.
 
@@ -45,13 +45,13 @@ One-line thesis:
 
 The base product proves tokenized booked rights. The new continuity feature should prove agent-assisted recovery when a booking holder cannot use the slot.
 
-This inherits the ETHGlobal source plan in `/Users/devinsonpena/ETHGlobal/docs/ethglobal-nyc-2026/yourturn-continuity-agent-plan-2026-06-12.md` and the booked-rights F1-F7 flow catalog in `/Users/devinsonpena/ETHGlobal/docs/strategy/hedera-booked-rights-user-flows.md`.
+This builds on pre-existing YourTurn booked-rights flows and focuses the ETHGlobal continuity delta on the Concierge recovery layer.
 
-Hackathon build interpretation:
+Build interpretation:
 
-- F6 is the agent concierge layer.
-- F7 is the cancel/refund/release safety path.
-- Hedera Schedule Service is the best automation extension of F7 if we can prove it end to end.
+- Agent Concierge is the customer-facing recovery layer.
+- Release/refund is the safety path.
+- Hedera Schedule Service is the automation extension when the flow can be proven end to end.
 - Telegram is the desired channel, but the first invariant is the underlying preview -> approve -> execute -> prove flow.
 
 ## Pre-existing work

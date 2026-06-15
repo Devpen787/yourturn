@@ -4,8 +4,6 @@ YourTurn turns a booked service slot into a controlled, transferable pass on Hed
 
 This repository is the public ETHGlobal NYC 2026 continuity submission for the Hedera build.
 
-Award: **Hedera Best use of Autonomous Automation Platform**, Continuity Track, $1,000 USDC.
-
 Public demo: [https://yourturn-sage.vercel.app](https://yourturn-sage.vercel.app)
 
 ## What We Built For ETHGlobal
@@ -74,7 +72,6 @@ Start here:
 | [docs/ethglobal-nyc-2026/HEDERA-QUALIFICATION-DEFENSE.md](docs/ethglobal-nyc-2026/HEDERA-QUALIFICATION-DEFENSE.md) | Requirement-by-requirement Hedera qualification defense. |
 | [docs/ethglobal-nyc-2026/HEDERA-AGENT-KIT-INTEGRATION.md](docs/ethglobal-nyc-2026/HEDERA-AGENT-KIT-INTEGRATION.md) | Agent identity, Agent Kit runtime, HCS-14 id, tool manifest, and claim boundaries. |
 | [docs/ethglobal-nyc-2026/HEDERA-BOUNTY-MAP.md](docs/ethglobal-nyc-2026/HEDERA-BOUNTY-MAP.md) | Track-by-track qualification mapping. |
-| [docs/ethglobal-nyc-2026/POSTMORTEM.md](docs/ethglobal-nyc-2026/POSTMORTEM.md) | Post-event retrospective and repeatable hackathon lessons. |
 
 Agent endpoints when the app is running:
 

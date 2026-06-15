@@ -16,13 +16,6 @@ As of 2026, all agents entering this repo MUST follow the [PROJECT_DIRECTIVES.md
 | **Chain** | Sebastian | Investigate why slot detail can still show **no HCS events** even when lifecycle messages exist in Mirror | `lib/hedera/*`, `app/slots/[serial]/page.tsx` | Nice-to-have proof polish; do not destabilize core flow |
 | **Shared** | Either (schedule) | Keep **`docs/DEMO.md`** + **`docs/UI-MAP.md`** aligned with shipped UI (happy path + route/API table) | `docs/DEMO.md`, `docs/UI-MAP.md` | Update `UI-MAP` in same PR as route/API changes |
 
-## 2.5 Post-Hackathon Operating References
-
-Future agents should reuse these two docs instead of improvising the same submission and demo process again:
-
-- [docs/HACKATHON-OS.md](docs/HACKATHON-OS.md) — reusable operating system for future hackathon runs
-- [docs/ethglobal-nyc-2026/POSTMORTEM.md](docs/ethglobal-nyc-2026/POSTMORTEM.md) — event-specific retrospective for what worked and what failed here
-
 ## 3. Collaboration Protocol (Manual)
 
 - **Issue Claiming**: Open issue -> Comment template (Owner, Branch, Status, Files).
