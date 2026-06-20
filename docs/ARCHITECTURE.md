@@ -9,7 +9,7 @@
 
 ## Implemented stack (main branch)
 
-Runnable app is **Next.js 14** (not Vite): server `POST /api/*` routes call `@hashgraph/sdk` with `runtime = "nodejs"`. **Upstash Redis** holds slot/listing records; **Mirror REST** is the read path. See `README.md` and `docs/booked-rights-build-spec.txt` for detail.
+Runnable app is **Next.js 14** (not Vite): server `POST /api/*` routes call `@hashgraph/sdk` with `runtime = "nodejs"`. **Upstash Redis** holds slot/listing records; **Mirror REST** is the read path. See `README.md` for reviewer setup and proof links.
 
 Current implementation boundary: `lib/adapters/booking-port.ts` provides a server-side **`BookingPort`** with read methods plus preview/confirm write actions for `F1`, `F2`, `F3`, and `F4`. API routes now execute through that adapter so product flows and future agent work can share one contract. An agent-safe integration surface now exists under `app/api/agent/*`: reads, previews, confirms, and delegated approval grants.
 

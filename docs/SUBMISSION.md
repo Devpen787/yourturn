@@ -231,14 +231,14 @@ The pasted example copy about state channels, exchange onramp/offramp, MobX, Rus
 - Status: `public recording checklist prepared; private narration stays outside the public repo; video still needs recording/upload`
 - Local file path: `TBD`
 - Uploaded asset: `TBD`
-- Notes: Use the public recording checklist in `docs/FINAL-DEMO-SCRIPT.md` and `docs/DEMO-RECORDING-CHECKLIST.md`. Keep it between 2 and 4 minutes, 720p or better, with spoken audio and no background music. Lead with the human recovery story, then show Hedera proof.
+- Notes: Historical ETHGlobal recording notes are superseded for Week 5 by `docs/HEDERA-WEEK5-DEMO-SCRIPT.md`. Keep the Week 5 video short, browser-only, and proof-first.
 
 ### Future opportunities
 
 **Interested in continuing the project?**
 
 - Final answer: `Yes`
-- Notes: This matches the current repo direction and the fact that the MVP already has real Hedera proof plus follow-on product work in `docs/TASKS.md`.
+- Notes: This matches the current repo direction and the fact that the app has real Hedera proof plus a focused Week 5 policy-agent packet in `docs/HEDERA-AI-BOUNTY-WEEK5-POLICY-AGENT.md`.
 
 ### Final submission check
 

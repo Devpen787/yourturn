@@ -1,119 +1,120 @@
-# YourTurn
+# YourTurn Concierge
 
-YourTurn turns a booked service slot into a controlled, transferable pass on Hedera. Providers keep policy control; customers get a Concierge recovery path when they cannot attend.
+YourTurn Concierge is a Hedera Policy Agent for booked service recovery. When a customer cannot attend a booked service slot, the agent can help recover value only if holder state, provider rules, budget policy, and explicit approval all pass.
 
-This repository contains two submission surfaces for the same YourTurn codebase.
+Live demo: [https://yourturn-sage.vercel.app](https://yourturn-sage.vercel.app)
 
-- ETHGlobal NYC 2026 continuity packet (historical): existing event submission materials and ETHGlobal proof packs.
-- Hedera AI Bounty Week 5: active policy-agent entry with fresh proof claims and separate submission docs.
+Week 5 proof page: [https://yourturn-sage.vercel.app/week5-proof](https://yourturn-sage.vercel.app/week5-proof)
 
-Public demo: [https://yourturn-sage.vercel.app](https://yourturn-sage.vercel.app)
+## Hedera AI Bounty Week 5
 
-## Submission lane separation
+This repository's active submission lane is:
 
-Use this rule during evaluation:
+**Week 5: Hedera Policy Agent**
 
-- **ETHGlobal NYC 2026 docs** (`docs/ethglobal-nyc-2026/*`) are historical continuity artifacts from an event process.
-- **Hedera AI Bounty Week 5 docs** (`docs/HEDERA-AI-BOUNTY-WEEK5-POLICY-AGENT.md`, `docs/HEDERA-WEEK5-FINAL-STEPS.md`) are the active bounty lane.
-- For bounty review, anchor claims to the live Week 5 proof surfaces:
-  - `/week5-proof`
-  - `/api/agent/week5-proof`
-  - `/api/x402/recovery-policy`
-  - `/api/nft-studio/proof`
-  - `/api/wallet-budget/config`
+The Week 5 claim is narrow:
 
-## Submission Lanes
+> A provider sets recovery rules for a booked service slot. Person A cannot attend. YourTurn Concierge previews the allowed recovery action, blocks invalid actions, requires scoped approval or a bounded allowance budget, and returns Hedera proof for the action.
 
-### ETHGlobal NYC 2026 (continuity packet)
+The implementation uses:
 
-- Objective: public ETHGlobal continuity package for the 2026 event.
-- Scope docs: `docs/ethglobal-nyc-2026/*`
-- Use these docs for ETHGlobal-era claims, track mapping, and ETHGlobal form work.
+- `@hashgraph/hedera-agent-kit` v4
+- Agent Kit `MaxRecipientsPolicy(1)`
+- Agent Kit `RejectToolPolicy`
+- Agent Kit `HcsAuditTrailHook`
+- Hedera Token Service booking-right NFTs
+- Hedera Consensus Service audit events
+- Hedera Schedule Service payment proof
+- Mirror Node and HashScan verification
+- Hedera x402 exact payment requirements for HBAR and HTS/USDC
+- Optional WalletConnect/Reown path for user-signed bounded USDC allowance
+- Agent Lab and NFT Studio proof artifacts for reviewer inspection
 
-### Hedera AI Bounty Week 5 (active)
+## Screenshots
 
-- Objective: policy-constrained agent with HBAR/USDC payment paths under explicit policy.
-- Scope docs: `docs/HEDERA-AI-BOUNTY-WEEK5-POLICY-AGENT.md`, `docs/HEDERA-WEEK5-FINAL-STEPS.md`
-- Required public proof for this bounty should come from this lane first, especially ` /week5-proof`, `/api/agent/week5-proof`, and updated route/API documentation.
+### Policy Agent Proof
 
-## What We Built For ETHGlobal
+![Week 5 policy proof](docs/week5-assets/week5-proof.png)
 
-The ETHGlobal delta is **YourTurn Concierge**:
+### Concierge Recovery Receipt
 
-1. A provider creates service slots and recovery policy.
-2. Person A books a slot represented as an HTS NFT booking right.
-3. If Person A cannot attend, Concierge checks holder state and provider policy.
-4. Concierge recommends a recovery action, asks for explicit human approval, and executes through the same server-side Hedera paths as the app.
-5. The app returns receipts with Hedera transaction ids, HashScan links, Agent Kit proof fields, and Schedule Service proof where applicable.
+![Recovery receipt](docs/week5-assets/recovery-receipt.png)
 
-ETHGlobal primary live flows:
+### Machine-Readable Proof
 
-- Tokenized booking rights with HTS NFT serials.
-- Resale listing and resale purchase with issuer royalty.
-- Telegram Concierge preview and approval for recovery listing.
-- Telegram Concierge approval for a real testnet HBAR refund/release.
-- Hedera Schedule Service proof for an approved recovery payment.
-- HCS audit events, Mirror Node reads, HashScan verification, and no Solidity in the proof path.
+![Week 5 JSON proof](docs/week5-assets/week5-proof-json.png)
 
-## Hedera Tracks
+## Reviewer Proof Links
 
-Primary tracks:
+Use these links for bounty review:
 
-- **Autonomous On-Chain Automation Platform**: recovery listing creates and exposes an executed Hedera Schedule Service proof.
-- **AI & Agentic Payments on Hedera**: bounded Concierge applies policy, requires human approval, and executes Hedera financial/token lifecycle actions.
-- **"No Solidity Allowed" - Build with Hedera SDKs**: implementation uses Hedera SDK/native services, not Solidity.
-
-Supporting story:
-
-- **Tokenization on Hedera**: booking rights are HTS NFT serials with lifecycle operations.
-
-ETHGlobal scorecard: [docs/ethglobal-nyc-2026/HEDERA-BOUNTY-SCORECARD.md](docs/ethglobal-nyc-2026/HEDERA-BOUNTY-SCORECARD.md)
-Week 5 bounty readiness: [docs/HEDERA-AI-BOUNTY-WEEK5-POLICY-AGENT.md](docs/HEDERA-AI-BOUNTY-WEEK5-POLICY-AGENT.md)
-
-THA-ready commercial and qualification pack: [docs/THA-ROADMAP-BUSINESS-FUNDING-PLAN.md](docs/THA-ROADMAP-BUSINESS-FUNDING-PLAN.md)
-
-## Proof Links
-
-ETHGlobal proof packet: [docs/ethglobal-nyc-2026/FINAL-PROOF-PACK.md](docs/ethglobal-nyc-2026/FINAL-PROOF-PACK.md)
-
-Week 5 bounty proof packet: [docs/HEDERA-AI-BOUNTY-WEEK5-POLICY-AGENT.md](docs/HEDERA-AI-BOUNTY-WEEK5-POLICY-AGENT.md)
-
-Key final Telegram proofs:
-
-- Booking `193`: Telegram approval listed the pass and created Schedule Service proof `0.0.9228236`.
-- Schedule proof: [HashScan schedule 0.0.9228236](https://hashscan.io/#/testnet/schedule/0.0.9228236)
-- Scheduled execution: [HashScan transaction 0.0.8504300-1781403839-567406004](https://hashscan.io/#/testnet/transaction/0.0.8504300-1781403839-567406004)
-- Booking `194`: Telegram approval completed a real testnet HBAR refund/release.
-- Refund/release: [HashScan transaction 0.0.8504300-1781404315-316217004](https://hashscan.io/#/testnet/transaction/0.0.8504300-1781404315-316217004)
-
-Final automated regression also passed with fresh proof:
-
-- Main serial `196`, refund/release serial `197`, guardrail serial `198`.
-- E2E Schedule Service proof: [HashScan schedule 0.0.9228519](https://hashscan.io/#/testnet/schedule/0.0.9228519)
-- E2E scheduled execution: [HashScan transaction 0.0.8504300-1781406966-580404829](https://hashscan.io/#/testnet/transaction/0.0.8504300-1781406966-580404829)
-
-## Reviewer Map
-
-Start here:
-
-| File | Why it matters |
+| Surface | URL |
 | --- | --- |
-| [docs/SUBMISSION.md](docs/SUBMISSION.md) | ETHGlobal submission worksheet and final copy. |
-| [docs/FINAL-DEMO-SCRIPT.md](docs/FINAL-DEMO-SCRIPT.md) | Public recording checklist for the 2-4 minute demo. |
-| [docs/DEMO.md](docs/DEMO.md) | Full operator runbook and route flow. |
-| [docs/UI-MAP.md](docs/UI-MAP.md) | Routes, APIs, components, and user journeys. |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System boundaries and Hedera integration architecture. |
-| [docs/HEDERA-AI-BOUNTY-WEEK5-POLICY-AGENT.md](docs/HEDERA-AI-BOUNTY-WEEK5-POLICY-AGENT.md) | Hedera AI Bounty Week 5 policy-agent readiness, submission positioning, and gaps. |
-| [docs/ethglobal-nyc-2026/FINAL-PROOF-PACK.md](docs/ethglobal-nyc-2026/FINAL-PROOF-PACK.md) | Final proof ids, screenshots, commands, and honest gaps. |
-| [docs/THA-ROADMAP-BUSINESS-FUNDING-PLAN.md](docs/THA-ROADMAP-BUSINESS-FUNDING-PLAN.md) | THA qualification narrative + 12-month roadmap, budget runway, SWOT, and moat. |
-| [docs/ethglobal-nyc-2026/HEDERA-QUALIFICATION-DEFENSE.md](docs/ethglobal-nyc-2026/HEDERA-QUALIFICATION-DEFENSE.md) | Requirement-by-requirement Hedera qualification defense. |
-| [docs/ethglobal-nyc-2026/HEDERA-AGENT-KIT-INTEGRATION.md](docs/ethglobal-nyc-2026/HEDERA-AGENT-KIT-INTEGRATION.md) | Agent identity, Agent Kit runtime, HCS-14 id, tool manifest, and claim boundaries. |
-| [docs/ethglobal-nyc-2026/HEDERA-BOUNTY-MAP.md](docs/ethglobal-nyc-2026/HEDERA-BOUNTY-MAP.md) | Track-by-track qualification mapping. |
+| App demo | [https://yourturn-sage.vercel.app](https://yourturn-sage.vercel.app) |
+| Week 5 proof page | [https://yourturn-sage.vercel.app/week5-proof](https://yourturn-sage.vercel.app/week5-proof) |
+| Machine-readable proof | [https://yourturn-sage.vercel.app/api/agent/week5-proof](https://yourturn-sage.vercel.app/api/agent/week5-proof) |
+| x402 HBAR/USDC policy endpoint | [https://yourturn-sage.vercel.app/api/x402/recovery-policy](https://yourturn-sage.vercel.app/api/x402/recovery-policy) |
+| Wallet budget proof | [https://yourturn-sage.vercel.app/api/wallet-budget/config](https://yourturn-sage.vercel.app/api/wallet-budget/config) |
+| NFT Studio metadata/risk proof | [https://yourturn-sage.vercel.app/api/nft-studio/proof](https://yourturn-sage.vercel.app/api/nft-studio/proof) |
+| Agent card | [https://yourturn-sage.vercel.app/.well-known/agent.json](https://yourturn-sage.vercel.app/.well-known/agent.json) |
+| Capabilities | [https://yourturn-sage.vercel.app/api/agent/capabilities](https://yourturn-sage.vercel.app/api/agent/capabilities) |
 
-Agent endpoints when the app is running:
+Required feedback issue:
 
-- [GET `/.well-known/agent.json`](https://yourturn-sage.vercel.app/.well-known/agent.json)
-- [GET `/api/agent/capabilities`](https://yourturn-sage.vercel.app/api/agent/capabilities)
+- [hashgraph/hedera-agent-kit-js#940](https://github.com/hashgraph/hedera-agent-kit-js/issues/940)
+
+## Demo Path
+
+Fastest browser-only demo:
+
+1. Open [https://yourturn-sage.vercel.app/login](https://yourturn-sage.vercel.app/login).
+2. Sign in as **Demo user A**.
+3. Open [https://yourturn-sage.vercel.app/resale/193?mode=recovery](https://yourturn-sage.vercel.app/resale/193?mode=recovery).
+4. Show the Concierge recovery receipt and policy fields.
+5. Open [https://yourturn-sage.vercel.app/week5-proof](https://yourturn-sage.vercel.app/week5-proof).
+6. Open [https://yourturn-sage.vercel.app/api/agent/week5-proof](https://yourturn-sage.vercel.app/api/agent/week5-proof).
+
+Recording script:
+
+- [docs/HEDERA-WEEK5-DEMO-SCRIPT.md](docs/HEDERA-WEEK5-DEMO-SCRIPT.md)
+
+Submission runbook:
+
+- [docs/HEDERA-WEEK5-FINAL-STEPS.md](docs/HEDERA-WEEK5-FINAL-STEPS.md)
+
+Submission copy and implementation details:
+
+- [docs/HEDERA-AI-BOUNTY-WEEK5-POLICY-AGENT.md](docs/HEDERA-AI-BOUNTY-WEEK5-POLICY-AGENT.md)
+
+## Verification
+
+```bash
+npm install
+npm run hedera:agent-check
+npm run build
+npm run hedera:agent-lab-proof
+npm run hedera:nft-studio-proof
+npm run hedera:usdc-allowance-proof -- --status
+npm run hedera:x402-settlement-proof -- --status
+```
+
+What this verifies:
+
+- Agent Kit v4 runtime is present.
+- `MaxRecipientsPolicy`, `RejectToolPolicy`, and `HcsAuditTrailHook` are configured.
+- Multi-recipient transfers and destructive tools are blocked.
+- YourTurn domain policies block invalid recovery actions.
+- HBAR and USDC x402 requirements are exposed.
+- Wallet-funded USDC allowance proof is configured.
+- Agent Lab and NFT Studio packets are generated and valid.
+
+To regenerate public screenshots:
+
+```bash
+npm run hedera:week5-capture -- --base-url=https://yourturn-sage.vercel.app --serial=193 --role=guestA --out=output/week5-proof-assets
+```
+
+The committed screenshots in `docs/week5-assets/` are selected from that output.
 
 ## Run Locally
 
@@ -130,62 +131,32 @@ Open:
 - Demo user A: books and recovers a pass.
 - Demo user B: buys a listed pass.
 
-Required environment values are listed in [.env.example](.env.example). The live demo uses Hedera testnet accounts, Upstash Redis, and optional Telegram bot settings.
-
-## Verification
-
-Final verification commands:
-
-```bash
-npm run ethglobal:preflight
-npm run hedera:agent-check
-npm run telegram:fixture
-npm run ethglobal:e2e
-npm run build
-```
-
-What they check:
-
-- `ethglobal:preflight`: public docs, final proof packet, claim boundaries, and no Solidity files.
-- `hedera:agent-check`: Agent Kit runtime adapter, HCS-14 identity, capability descriptors, policy gates, approval requirements, and budget guardrails.
-- `telegram:fixture`: Telegram parser and dry-run mutation safety.
-- `ethglobal:e2e`: live app flow against Hedera testnet and Redis demo state.
-- `build`: production Next.js build.
+Required environment values are listed in [.env.example](.env.example). The live deployment uses Hedera testnet accounts, Upstash Redis, and optional Telegram bot settings.
 
 ## Claim Boundaries
 
 Live and claimed:
 
-- HTS booking-right NFTs.
-- HCS audit events.
-- Hedera Schedule Service recovery payment proof.
-- Real testnet HBAR refund/release.
-- Live Hedera x402 HBAR and HTS/USDC settlement proof.
-- Optional in-app Hedera WalletConnect/Reown path for user-signed bounded HTS/USDC allowance budgets.
-- Mirror Node and HashScan verification.
-- Hedera Agent Kit runtime/manifest alignment.
-- Agent Lab companion packet and NFT Studio metadata/risk proof artifacts for reviewers.
-- Telegram Concierge as a mutation-gated transport.
+- HTS booking-right NFTs
+- HCS audit events
+- Hedera Schedule Service recovery payment proof
+- Real testnet HBAR refund/release proof
+- Hedera x402 HBAR and HTS/USDC settlement proof
+- Optional user-signed WalletConnect/Reown USDC allowance path
+- Mirror Node and HashScan verification
+- Agent Kit runtime/policy proof
+- Agent Lab companion packet
+- NFT Studio metadata/risk proof
 
-Not claimed as live:
+Not claimed:
 
-- OpenClaw ACP gateway runtime.
-- Raw autonomous private-key signing or unattended wallet custody.
-- Fiat or stablecoin onramp.
-- Fully autonomous LLM negotiation.
+- Raw autonomous private-key custody
+- Production fiat refunds
+- Stablecoin onramp
+- OpenClaw ACP gateway runtime
+- Fully autonomous LLM negotiation
+- Every app route as an Agent Kit BaseTool
 
-## Stack
+## Historical Materials
 
-- Next.js 14 App Router
-- React 18
-- TypeScript
-- Tailwind CSS
-- `@hashgraph/sdk`
-- `@hashgraph/hedera-agent-kit`
-- Upstash Redis
-- Hedera Testnet
-- Vercel
-
-## Repo Discipline
-
-Public docs should stay focused on reviewers, judges, partners, setup, and verification. Internal planning notes belong outside the tracked public tree.
+The folder `docs/ethglobal-nyc-2026/` contains historical ETHGlobal continuity materials. For this bounty, use the Week 5 proof links and Week 5 docs above as the source of truth.

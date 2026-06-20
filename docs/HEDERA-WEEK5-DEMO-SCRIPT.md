@@ -1,114 +1,108 @@
-# Week 5 Demo Script (No-Terminal, 90–120 Seconds)
+# Week 5 Demo Script
 
-## Use this exact walkthrough for recording
+Goal: one clean 75-90 second recording. No terminal. No setup narration. Show the human problem, the policy checks, and the Hedera proof.
 
-Purpose: prove the policy layer is active, approval is human-scoped, and Hedera proof is visible, without terminal commands.
+## Tabs To Open First
 
-## Preflight (open before record)
-
-Tabs to have ready:
-
-- `https://yourturn-sage.vercel.app`
+- `https://yourturn-sage.vercel.app/login`
+- `https://yourturn-sage.vercel.app/resale/193?mode=recovery`
 - `https://yourturn-sage.vercel.app/week5-proof`
 - `https://yourturn-sage.vercel.app/api/agent/week5-proof`
-- `https://yourturn-sage.vercel.app/api/wallet-budget/config`
-- `https://yourturn-sage.vercel.app/api/x402/recovery-policy`
-- `https://yourturn-sage.vercel.app/resale/193?mode=recovery`
 
-Use these spoken lines in order. Keep each step one clear sentence.
+Sign in on the first tab as **Demo user A** before recording, then start recording on the recovery receipt tab.
 
-## 0:00–0:12 — state the problem
+## 0:00-0:15 - Problem
 
-1. Open the app and go to **`/login`**.
-2. Click **Demo user A**.
+Screen: `/resale/193?mode=recovery`
 
 Say:
 
-> “When a customer can’t attend a booked service, this app shows a practical policy-driven recovery flow instead of a manual workaround.”
+> "YourTurn solves a real service problem: Person A booked a session and cannot attend. Instead of a manual refund or support ticket, Concierge checks whether recovery is allowed."
 
-## 0:12–0:30 — open a live policy receipt
+Point at:
 
-3. Go to **`/my-bookings`**.
-4. Click **Recover booking** on a booking you can use (historical proof booking **#193** is already available).
-5. Confirm the route is **`/resale/193?mode=recovery`**.
+- `Recovery receipt for this pass`
+- `CONCIERGE RECOVERY`
 
-Say:
+## 0:15-0:35 - Policy Checks
 
-> “I’m using a real recovery receipt to show the interface + policy envelope end-to-end.”
-
-## 0:30–0:50 — show Concierge policy gates
-
-6. In the **Concierge recovery** card, read/point to the two lines: current holder, and why this action is allowed.
-7. If the action radio card is visible, click **Someone else can take my spot**.
-8. Click **Check options**.
+Screen: same receipt page
 
 Say:
 
-> “Recovery is never blind here. Concierge checks holder ownership, policy flags, duplicate listing rules, and budget permission before approval.”
+> "The agent is not free to act. It checks the current holder, provider resale rules, duplicate listing state, budget, and Agent Kit policies before a recovery action is allowed."
 
-## 0:50–1:08 — explicit approval
+Point at:
 
-9. If preview is available, click **Approve resale**.
-10. Confirm the confirmation toast / status message after approval.
+- `What Concierge checked`
+- `Current holder matches your account`
+- `Provider allows resale`
+- `Budget and Agent Kit policies allow`
 
-Say:
+## 0:35-0:55 - Approval And Receipt
 
-> “No money moves without explicit approval. The flow is bounded by policy checks and wallet budget policy.”
-
-## 1:08–1:32 — proof surface in-app
-
-11. Scroll to the receipt fields and read:
-   - action label
-   - policy basis
-   - approval id
-   - schedule id
-   - audit / HashScan link
-12. Click one proof link (HashScan or scheduled proof) and return to page.
+Screen: same receipt page, scroll slightly to `VERIFIED RECEIPT`
 
 Say:
 
-> “This receipt is the execution evidence for the same checked action — holder, policy, approval, and proof are all tied together.”
+> "After approval, the receipt keeps the action, price math, policy basis, approval id, audit transaction, and scheduled payment proof in one place."
 
-## 1:32–1:50 — no-terminal verifier views
+Point at:
 
-13. In another tab, open **`/week5-proof`**.
-14. Open the **Runtime Policy Surface** and **What This Proves** cards.
-15. Open **`/api/agent/week5-proof`** and call out the JSON status keys for:
-   - HBAR x402 settlement
-   - USDC x402 settlement
-   - USDC allowance
-16. Open **`/api/x402/recovery-policy`** and **`/api/wallet-budget/config`** briefly.
+- `Action`
+- `Policy basis`
+- `Approval`
+- `Audit tx`
+- `Schedule id`
+- `Executed at`
+
+Optional click:
+
+- `Verify schedule on HashScan`
+
+## 0:55-1:15 - Week 5 Proof Page
+
+Screen: `/week5-proof`
 
 Say:
 
-> “This is the Week 5 reviewer path: policy intent and runtime checks are machine-readable, no terminal needed.”
+> "For Week 5, the reviewer proof is separate from the customer flow. This page shows the Agent Kit policies, HBAR and USDC x402 proof, and the wallet-funded USDC allowance boundary."
 
-## 1:50–2:00 — final close
+Point at:
 
-17. Show the page title and end line:
+- `HBAR x402 settlement`
+- `USDC x402 settlement`
+- `Wallet-funded USDC allowance`
+- `Runtime Policy Surface`
 
-> “This is a policy-constrained recovery agent: holder check, provider rules, explicit approval, and auditable Hedera proof in one flow.”
+## 1:15-1:30 - Machine-Readable Proof
 
-## Branch if state is different
+Screen: `/api/agent/week5-proof`
 
-- If booking **#193** is read-only (recorded receipt mode), skip steps 7–10 and go directly to step 11.
-- If action is blocked, read the block reason, switch to the same booking number next serial, and continue from step 7.
+Say:
 
-## One-minute backup version (if you need it shorter)
+> "The same claim is machine-readable: official Agent Kit policies are present, invalid actions are blocked, and HBAR, USDC, x402, Agent Lab, and NFT Studio evidence is exposed without a terminal."
 
-1. Demo user A login.
-2. `/my-bookings` → **Recover booking**.
-3. `/resale/<booking>?mode=recovery` and show policy checks.
-4. If interactive: Check options → Approve resale.
-5. Show receipt + proof links.
-6. Open `/week5-proof` and `/api/agent/week5-proof`.
+End with:
 
-## Must-have shot list while recording
+> "This is a policy-constrained recovery agent: useful to a customer, bounded by provider rules, and verifiable on Hedera."
 
-- `Concierge recovery` panel (policy checks visible)
-- Receipt section with approval and policy fields
-- One HashScan or schedule proof link
-- `/week5-proof` runtime policy cards
-- `/api/agent/week5-proof` JSON showing HBAR/USDC policy status
+## If You Need A 60-Second Version
 
-If posting to X, include hashtags: `#HederaAgent` and `#HederaAIBounty`, and mention both `@hedera` and `@hedera_devs`.
+Use only three screens:
+
+1. `/resale/193?mode=recovery`
+2. `/week5-proof`
+3. `/api/agent/week5-proof`
+
+Say:
+
+> "Person A cannot attend a booked session. Concierge checks holder state, provider policy, duplicate listing, budget, and Agent Kit policies before recovery is allowed. The receipt shows the approved action, policy basis, approval id, audit transaction, schedule id, and HashScan proof. The Week 5 verifier page then shows the official Agent Kit policies plus HBAR and USDC x402 settlement proof and a bounded wallet-funded USDC allowance. This is not raw autonomous custody. It is useful recovery under explicit policy with Hedera proof."
+
+## Do Not Say
+
+- "Fully autonomous wallet custody."
+- "Production fiat refunds."
+- "Every app action is an Agent Kit tool."
+- "OpenClaw is live."
+- "USDC is a fiat onramp."

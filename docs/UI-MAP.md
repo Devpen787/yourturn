@@ -187,7 +187,7 @@ Keep that split visible in copy and controls. If a customer page starts explaini
 - `docs/MARKET-VOCABULARY.md` — Web2 booking / class / ticket terminology vs our copy
 - `docs/AGENT-INTEGRATION.md` — concrete backend and agent request / response examples for `/api/agent/*`
 - `docs/DEMO.md` — shipped walkthrough
-- `docs/INTERNAL.md` — local-only audits and checklists (`docs/internal/`, gitignored)
+- `docs/HEDERA-WEEK5-DEMO-SCRIPT.md` — short reviewer recording script
 
 ## Trust reminder (demo)
 

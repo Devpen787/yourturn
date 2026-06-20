@@ -11,7 +11,6 @@ const requiredFiles = [
   "docs/UI-MAP.md",
   "docs/SUBMISSION.md",
   "docs/FINAL-DEMO-SCRIPT.md",
-  "docs/DEMO-RECORDING-CHECKLIST.md",
   "docs/ethglobal-nyc-2026/README.md",
   "docs/ethglobal-nyc-2026/FINAL-PROOF-PACK.md",
   "docs/ethglobal-nyc-2026/HEDERA-BOUNTY-MAP.md",
@@ -46,25 +45,15 @@ const textChecks = [
     ],
   },
   {
-    file: "docs/DEMO-RECORDING-CHECKLIST.md",
-    mustInclude: [
-      "2-4 minutes",
-      "720p",
-      "No speeding footage",
-      "output/ethglobal-final-proof/screenshots",
-      "OpenClaw ACP and x402 are documented future gateway integrations",
-    ],
-  },
-  {
     file: "README.md",
     mustInclude: [
       "YourTurn",
-      "Autonomous On-Chain Automation Platform",
-      "AI & Agentic Payments on Hedera",
-      "No Solidity",
-      "0.0.9228236",
+      "Hedera AI Bounty Week 5",
+      "MaxRecipientsPolicy",
+      "RejectToolPolicy",
+      "x402",
       "OpenClaw ACP gateway runtime",
-      "Not claimed as live",
+      "Not claimed",
     ],
   },
   {

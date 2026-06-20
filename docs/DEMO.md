@@ -1,6 +1,6 @@
 # Demo
 
-For the **spoken pitch layer** above this runbook, see `docs/DEMO-STORY.md`.
+For the short Week 5 recording script, see `docs/HEDERA-WEEK5-DEMO-SCRIPT.md`.
 
 ## Hero scenario
 
@@ -232,8 +232,8 @@ Use a separate held pass from the resale path.
 
 ## Related docs
 
-- `docs/DEMO-STORY.md` — spoken pitch, scenario framing, why Hedera, wow features
+- `docs/HEDERA-WEEK5-DEMO-SCRIPT.md` — short Week 5 recording script
+- `docs/HEDERA-WEEK5-FINAL-STEPS.md` — final bounty submission checklist
+- `docs/HEDERA-AI-BOUNTY-WEEK5-POLICY-AGENT.md` — Week 5 claim and proof packet
 - `docs/UI-MAP.md` — routes, components, APIs, flow diagram
-- `docs/SPEC.md` — acceptance criteria for F1, F2, F3, F4, F7
-- `docs/TASKS.md` — implementation checklist and deferrals
-- `docs/INTERNAL.md` — local-only working notes (gitignored `docs/internal/`), not part of the public tree
+- `docs/SPEC.md` — acceptance criteria for the booking-right product surface
