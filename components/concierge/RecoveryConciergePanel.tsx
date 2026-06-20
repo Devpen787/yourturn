@@ -223,6 +223,9 @@ export function RecoveryConciergePanel({
     baseVisibleProof && inspectedScheduleProof
       ? { ...baseVisibleProof, scheduleProof: inspectedScheduleProof }
       : baseVisibleProof;
+  const displayActorLabel = proofOnlyMode
+    ? visibleProof?.actorLabel ?? personLabel(actor)
+    : personLabel(actor);
 
   const canConfirm = useMemo(
     () =>
@@ -387,7 +390,7 @@ export function RecoveryConciergePanel({
             </p>
           </div>
           <span className="rounded-full bg-white/85 px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
-            {personLabel(actor)}
+            {displayActorLabel}
           </span>
         </div>
       </div>

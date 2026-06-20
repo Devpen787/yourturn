@@ -59,9 +59,15 @@ function NavLink({
   );
 }
 
-function showProviderInNav(pathname: string): boolean {
+function showProviderInNav(pathname: string, sessionUser: SessionUser): boolean {
   if (process.env.NEXT_PUBLIC_SHOW_PROVIDER_NAV_ON_CUSTOMER_PAGES === "true") {
     return true;
+  }
+  if (sessionUser?.appRole === "issuer") {
+    return true;
+  }
+  if (sessionUser?.appRole === "user") {
+    return pathname.startsWith("/issuer");
   }
   if (pathname === "/" || pathname.startsWith("/issuer")) {
     return true;
@@ -78,7 +84,7 @@ export function SiteHeader({
   const router = useRouter();
   const [logoutBusy, setLogoutBusy] = useState(false);
   const homeActive = pathname === "/";
-  const navItems = showProviderInNav(pathname)
+  const navItems = showProviderInNav(pathname, sessionUser)
     ? NAV
     : NAV.filter((item) => item.href !== "/issuer");
 
