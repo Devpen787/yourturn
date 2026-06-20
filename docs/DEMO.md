@@ -29,11 +29,12 @@ Current demo limits:
 - Concierge recovery is live for resale-first recovery and release/refund recovery: it previews the policy-valid action, asks for approval, executes the Hedera action, and returns a receipt with an Agent Kit-guided trace
 - resale recovery creates a listing and a Hedera Schedule Service recovery payment proof when the booked policy allows it
 - release/refund recovery moves a real testnet HBAR refund to the holder, returns the NFT to treasury, closes the pass, and writes HCS audit proof
+- optional WalletConnect/Reown approval on the Concierge page lets Person A connect a Hedera testnet wallet and sign a bounded HTS/USDC allowance budget before policy/x402 spending
 - listing a pass is the seller approval step; there is no second approval after the buyer clicks purchase
 - buying a listed pass transfers it immediately if the API accepts the action
 - `/brand-lab/ethglobal` is a hidden static Wave 1 sandbox for premium target states only; it is not product proof and does not call live APIs
 - Telegram webhook command handling is fixture-tested and mutation-gated, but live Telegram delivery requires bot credentials and an allowlisted chat; allowlisted Telegram can preview recovery and approve listing/refund actions through the same server recovery paths
-- there is still no wallet connect, fiat/onramp, or user-funded budget allowance in the shipped browser demo
+- there is still no fiat/onramp in the shipped browser demo; wallet-funded USDC allowance is available through the optional WalletConnect panel when `NEXT_PUBLIC_REOWN_PROJECT_ID` is configured, and still requires the connected user wallet to sign
 
 ## Clean regression command
 
@@ -42,6 +43,9 @@ Use this before final rehearsal when you need a fresh proof pass:
 ```bash
 npm run dev:clean
 npm run ethglobal:e2e
+npm run hedera:agent-check
+npm run hedera:agent-lab-proof
+npm run hedera:nft-studio-proof
 ```
 
 Run the app in one terminal and the E2E command in another. The E2E command intentionally mutates demo testnet/Redis state. It logs in as issuer, Person A, and Person B; saves a 3-session plan; resets the demo; books a resale-eligible slot; books a no-resale slot; proves no-resale listing is blocked; executes a real testnet HBAR refund/release on the no-resale slot; creates a Concierge recovery listing on the resale-eligible slot; creates and inspects a Hedera Schedule Service recovery payment proof; has Person B buy the listing; marks the pass used; and verifies the non-holder, unheld, used, and Mirror deletion guardrails.
@@ -79,15 +83,18 @@ npm run telegram:fixture
 
 This fixture exercises the webhook parser and confirms the fixture path cannot mutate state. A live Telegram demo additionally needs `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, and `TELEGRAM_ALLOWED_CHAT_IDS`; set `TELEGRAM_ALLOW_MUTATIONS=true` only after dry-run messages work from the allowlisted chat.
 
-Supported Telegram Concierge commands:
+Supported Telegram Concierge messages:
 
 - `show my bookings`
+- `I can't make booking 123`
+- `Sell booking 123`
+- `Refund booking 123`
 - `recover booking 123`
 - `approve listing 123`
 - `approve refund 123`
 - shortcuts: `/bookings`, `/recover 123`, `/list 123`, `/refund 123`
 
-Users find the booking number in **My bookings**; each pass now shows it as **Booking #123**. `recover booking 123` previews the resale ask, owner royalty, seller net, and in-app Concierge link. `approve listing 123` uses the same bounded recovery listing path as the app: it mints a scoped server-side approval, creates the listing, creates a Hedera Schedule Service proof, stores a Hedera Agent Kit proof receipt, and replies with the listing and proof links. `approve refund 123` remains the separate release/refund path and sends a real testnet HBAR refund only when mutations are enabled.
+Users find the booking number in **My bookings**; each pass now shows it as **Booking #123**. The Telegram adapter accepts plain-English recovery messages and maps them to the same bounded Agent Kit-backed actions. `recover booking 123` previews the resale ask, provider share, amount Person A recovers, and in-app Concierge link. `Sell booking 123` / `approve listing 123` use the same bounded recovery listing path as the app: it mints a scoped server-side approval, creates the listing, creates a Hedera Schedule Service proof, stores a Hedera Agent Kit proof receipt, and replies with the listing and proof links. `Refund booking 123` / `approve refund 123` remain the separate release/refund path and send a real testnet HBAR refund only when mutations are enabled.
 
 Agent proof checker:
 
@@ -98,6 +105,20 @@ npm run hedera:agent-check
 This verifies the `yourturn-concierge` manifest, policy gates, approval requirements, and blocked-state scenarios used by the Hedera Agent Kit proof receipts.
 
 The same check also verifies the Agent Kit runtime adapter, HCS-14 identity, A2A/capabilities descriptors, and demo budget overflow block.
+
+Hedera Week 5 reviewer proof:
+
+- Hidden page: `/week5-proof`
+- JSON proof: `/api/agent/week5-proof`
+
+These are verifier surfaces, not product navigation. They show the official Agent Kit policies, bounded USDC allowance proof, HBAR/USDC x402 settlement tx ids, and the policy controls without requiring a terminal during demo review.
+
+Week 5 companion proof artifacts:
+
+- Agent Lab packet: `docs/agent-lab/YOURTURN-CONCIERGE-AGENT-LAB.md`
+- Agent Lab verifier: `npm run hedera:agent-lab-proof`
+- NFT Studio metadata/risk proof API: `/api/nft-studio/proof`
+- NFT Studio local packet: `npm run hedera:nft-studio-proof`
 
 ## Economic framing for the live demo
 
@@ -146,9 +167,10 @@ The Hedera demo actors underneath are still `guestA` / `guestB` / `issuer`, but 
 ### C. Person A — resale (`F2`)
 
 13. From **`/my-bookings`**, choose **Recover booking** on the held pass, which opens **`/resale/[serial]?mode=recovery`**.
-14. User A is already the locked customer for this browser. Use **Preview recovery** to call `POST /api/recovery/preview`.
-15. Review the Concierge recommendation, then choose **Approve and list** to call `POST /api/recovery/confirm`.
+14. User A is already the locked customer for this browser. Choose the plain-English outcome, then use **Check options** to call `POST /api/recovery/preview`.
+15. Review the Concierge recommendation, then choose **Approve resale** to call `POST /api/recovery/confirm`.
 16. Show the verified recovery receipt: approval id, audit tx, policy snapshot, schedule id, scheduled payment status, Hedera Agent Kit proof, and HashScan links.
+16a. Optional Week 5 proof: in the **Wallet-funded policy budget** panel, connect a Hedera testnet wallet and approve the bounded USDC budget. This is not required for the recovery listing path, but it proves the product path for wallet-funded policy budgets.
 17. If the schedule is still pending, wait for the scheduled execution window and use **Inspect schedule proof**; the receipt should update from `scheduled` to `executed` using Mirror proof.
 18. Refresh **`/resale/[serial]`** if useful and show that the proof state remains visible.
 19. Explain the economics honestly: the current MVP proves a fixed **10%** HTS royalty on resale, and the holder may list above cost, at cost, or below cost.
@@ -159,7 +181,7 @@ Use a separate held pass from the resale path.
 
 1. From **`/my-bookings`**, choose **Recover booking** on a held pass whose provider policy allows release.
 2. On **`/resale/[serial]?mode=recovery`**, choose **Release + refund** when available.
-3. Use **Preview recovery** to confirm the refund amount and policy basis.
+3. Use **Check options** to confirm the refund amount and policy basis.
 4. Choose **Approve release**. The server executes a real testnet HBAR refund transfer from treasury to Person A, returns the NFT to treasury, burns/closes it, and writes the HCS `CANCEL_RELEASED` event.
 5. Show the receipt fields: refund amount, release/refund tx, close tx, audit tx, approval id, Hedera Agent Kit proof, and HashScan links.
 6. Refresh **`/slots/[serial]`** and **`/issuer`** to show the pass is closed and the recovery proof remains visible.

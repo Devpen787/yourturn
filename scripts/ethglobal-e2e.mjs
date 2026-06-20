@@ -120,7 +120,8 @@ async function main() {
     assert(
       capabilities?.identity?.id?.startsWith("uaid:aid:") &&
         capabilities?.protocols?.openclaw?.status === "descriptor_only" &&
-        capabilities?.protocols?.x402?.status === "descriptor_only",
+        (capabilities?.protocols?.x402?.status === "payment_required_endpoint_live" ||
+          capabilities?.protocols?.x402?.status === "settlement_enabled"),
       "agent capabilities expose honest protocol descriptors",
       capabilities
     )

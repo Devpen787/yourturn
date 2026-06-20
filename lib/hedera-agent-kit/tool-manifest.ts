@@ -8,13 +8,17 @@ export type YourTurnToolId =
   | "yourturn.recovery.preview_refund_release"
   | "yourturn.recovery.confirm_refund_release"
   | "yourturn.automation.inspect_schedule"
-  | "yourturn.budget.inspect";
+  | "yourturn.budget.inspect"
+  | "yourturn.wallet_budget.inspect_allowance"
+  | "yourturn.x402.quote_recovery";
 
 export type HederaServiceUsed =
   | "Hedera Agent Kit"
   | "Hedera Token Service"
   | "Hedera Consensus Service"
   | "Hedera Schedule Service"
+  | "Hedera x402 exact"
+  | "HTS USDC"
   | "Mirror Node"
   | "HashScan"
   | "HCS-14";
@@ -147,7 +151,7 @@ export const YOURTURN_AGENT_TOOLS: YourTurnToolManifestEntry[] = [
   {
     id: "yourturn.budget.inspect",
     description:
-      "Inspect the demo-funded Concierge budget boundary before a value-moving recovery action.",
+      "Inspect the demo-funded HBAR Concierge budget boundary before a value-moving recovery action.",
     requiredInput: ["actor", "toolId", "amountHbar"],
     hederaServices: ["Hedera Agent Kit", "Mirror Node"],
     mutation: "none",
@@ -160,6 +164,47 @@ export const YOURTURN_AGENT_TOOLS: YourTurnToolManifestEntry[] = [
       "remainingHbar",
       "requestedHbar",
       "budgetSource",
+    ],
+  },
+  {
+    id: "yourturn.wallet_budget.inspect_allowance",
+    description:
+      "Inspect a configured wallet-funded HTS/USDC allowance budget for autonomous policy execution.",
+    requiredInput: ["actor", "asset", "tokenId", "spenderAccountId"],
+    hederaServices: ["Hedera Agent Kit", "Hedera Token Service", "HTS USDC", "Mirror Node"],
+    mutation: "none",
+    requiresHumanApproval: false,
+    policyGates: ["budget_allows_payment", "allowance_configured"],
+    proofOutputs: [
+      "budgetId",
+      "asset",
+      "tokenId",
+      "spenderAccountId",
+      "ownerAccountId",
+      "limitAtomicUnits",
+      "remainingAtomicUnits",
+      "allowanceTxId",
+      "status",
+    ],
+  },
+  {
+    id: "yourturn.x402.quote_recovery",
+    description:
+      "Quote a Hedera x402 exact payment requirement for a policy-gated recovery request.",
+    requiredInput: ["resource", "asset", "amount", "payTo", "facilitator"],
+    hederaServices: ["Hedera Agent Kit", "Hedera x402 exact", "Hedera Token Service", "HTS USDC"],
+    mutation: "none",
+    requiresHumanApproval: false,
+    policyGates: ["x402_payment_required", "budget_allows_payment"],
+    proofOutputs: [
+      "resource",
+      "network",
+      "scheme",
+      "asset",
+      "amount",
+      "payTo",
+      "facilitator",
+      "feePayer",
     ],
   },
 ];
@@ -181,6 +226,22 @@ export function bountyCoverage() {
       status: "live",
       proof:
         "yourturn.recovery.confirm_refund_release executes a real testnet HBAR refund/release after policy checks and approval; recovery scheduling is also budget-gated.",
+    },
+    policyAutonomy: {
+      status: process.env.YOURTURN_POLICY_USDC_ALLOWANCE_TX_ID ? "live" : "configured",
+      proof: process.env.YOURTURN_POLICY_USDC_ALLOWANCE_TX_ID
+        ? `Wallet-funded HTS/USDC allowance budget is backed by allowance tx ${process.env.YOURTURN_POLICY_USDC_ALLOWANCE_TX_ID}.`
+        : "Wallet-funded HTS/USDC allowance budgets are represented in the Agent Kit manifest and verifier; live claim requires a real allowance transaction id.",
+    },
+    x402: {
+      status: process.env.YOURTURN_X402_HBAR_SETTLEMENT_TX_ID ? "live" : "configured",
+      proof: process.env.YOURTURN_X402_HBAR_SETTLEMENT_TX_ID
+        ? `The agent settled Hedera x402 exact payments through HBAR tx ${process.env.YOURTURN_X402_HBAR_SETTLEMENT_TX_ID}${
+            process.env.YOURTURN_X402_USDC_SETTLEMENT_TX_ID
+              ? ` and USDC tx ${process.env.YOURTURN_X402_USDC_SETTLEMENT_TX_ID}`
+              : ""
+          }.`
+        : "The agent exposes Hedera x402 exact payment requirements for recovery requests; live settlement claim requires a signed X-PAYMENT payload and facilitator verification.",
     },
     noSolidity: {
       status: "live",

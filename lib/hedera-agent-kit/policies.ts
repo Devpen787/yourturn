@@ -14,7 +14,9 @@ export type AgentPolicyCheckId =
   | "approval_present"
   | "schedule_references_serial"
   | "actor_can_view_schedule"
-  | "budget_allows_payment";
+  | "budget_allows_payment"
+  | "allowance_configured"
+  | "x402_payment_required";
 
 export type AgentPolicyCheckResult = {
   id: AgentPolicyCheckId;
@@ -42,6 +44,8 @@ export type RecoveryPolicyInput = {
   scheduleSerial?: number;
   budget?: ConciergeBudget;
   budgetAmountHbar?: number;
+  budgetAmountAtomicUnits?: string;
+  x402PaymentRequired?: boolean;
 };
 
 function result(
@@ -166,6 +170,7 @@ function budgetAllowsPayment(input: RecoveryPolicyInput): AgentPolicyCheckResult
     budget: input.budget,
     toolId: input.toolId,
     requestedHbar: input.budgetAmountHbar ?? 0,
+    requestedAtomicUnits: input.budgetAmountAtomicUnits,
   });
   return {
     id: check.id,
@@ -173,6 +178,34 @@ function budgetAllowsPayment(input: RecoveryPolicyInput): AgentPolicyCheckResult
     status: check.status,
     detail: check.detail,
   };
+}
+
+function allowanceConfigured(input: RecoveryPolicyInput): AgentPolicyCheckResult {
+  const passed =
+    input.budget?.source === "wallet_allowance_configured" &&
+    !!input.budget.spenderAccountId &&
+    !!input.budget.ownerAccountId &&
+    !!input.budget.asset.assetId;
+  return result(
+    "allowance_configured",
+    "Wallet allowance configured",
+    passed,
+    passed
+      ? `Configured ${input.budget?.asset.symbol} allowance budget from ${input.budget?.ownerAccountId} to ${input.budget?.spenderAccountId}; status=${input.budget?.status}.`
+      : "Wallet-funded allowance budget is missing owner, spender, or asset configuration."
+  );
+}
+
+function x402PaymentRequired(input: RecoveryPolicyInput): AgentPolicyCheckResult {
+  const passed = input.x402PaymentRequired === true;
+  return result(
+    "x402_payment_required",
+    "x402 payment required",
+    passed,
+    passed
+      ? "The recovery resource exposes a Hedera x402 exact payment requirement before settlement."
+      : "No Hedera x402 payment requirement was supplied for this resource."
+  );
 }
 
 function scheduleReferencesSerial(input: RecoveryPolicyInput): AgentPolicyCheckResult {
@@ -231,6 +264,12 @@ export function evaluateYourTurnAgentPolicies(
   }
   if (input.toolId === "yourturn.budget.inspect") {
     return [budgetAllowsPayment(input)];
+  }
+  if (input.toolId === "yourturn.wallet_budget.inspect_allowance") {
+    return [budgetAllowsPayment(input), allowanceConfigured(input)];
+  }
+  if (input.toolId === "yourturn.x402.quote_recovery") {
+    return [x402PaymentRequired(input), budgetAllowsPayment(input)];
   }
   return common;
 }

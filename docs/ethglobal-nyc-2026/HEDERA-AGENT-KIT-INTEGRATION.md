@@ -4,6 +4,8 @@ Status: live verifier layer for ETHGlobal NYC 2026.
 
 Date: 2026-06-14.
 
+Week 5 update: on 2026-06-19, the Agent Kit runtime added official Hedera Agent Kit policy hooks, token allowance tooling, configured HTS/USDC allowance budgets, a Hedera x402 exact payment-required endpoint, optional WalletConnect/Reown allowance approval, plus Agent Lab and NFT Studio proof artifacts for the Hedera AI Bounty Week 5 policy-agent track. See `docs/HEDERA-AI-BOUNTY-WEEK5-POLICY-AGENT.md`.
+
 ## Discovery
 
 The Hedera AI & Agentic Payments bounty asks for an AI agent or multi-agent system that executes at least one payment, token transfer, or financial operation on Hedera testnet. Hedera's current Agent Kit docs describe a plugin/tool model, hooks and policies, and Hedera-native actions such as HBAR transfers, token actions, and schedule-service actions.
@@ -23,6 +25,12 @@ YourTurn's shipped path is a bounded Concierge agent, not an unconstrained auton
 - Agent identity: `yourturn-concierge`, version `2026.06.13-wave9`.
 - Tool manifest: `lib/hedera-agent-kit/tool-manifest.ts`.
 - Runtime adapter: `lib/hedera-agent-kit/runtime.ts` instantiates `HederaAgentAPI`, loads the YourTurn plugin, and discovers selected core Agent Kit tools.
+- Official HAK policies: `lib/hedera-agent-kit/runtime.ts` attaches `MaxRecipientsPolicy(1)` and `RejectToolPolicy` through `context.hooks`.
+- Allowance-funded policy budget: `lib/hedera-agent-kit/budget.ts` models configured HTS/USDC allowance budgets for bounded autonomous execution.
+- Wallet-funded consent path: `components/wallet/WalletBudgetConnector.tsx`, `/api/wallet-budget/config`, and `/api/wallet-budget/allowance-request` let a connected Hedera wallet sign the bounded allowance.
+- Hedera x402 exact: `/api/x402/recovery-policy` exposes `402 Payment Required` requirements for HBAR and HTS/USDC recovery-policy quotes.
+- Agent Lab packet: `docs/agent-lab/yourturn-concierge-agent-lab.ts` and `npm run hedera:agent-lab-proof`.
+- NFT Studio packet: `/api/nft-studio/proof`, `lib/nft-studio/booking-rights.ts`, and `npm run hedera:nft-studio-proof`.
 - HCS-14 identity: `lib/hedera-agent-kit/identity.ts` generates a deterministic `uaid:aid` descriptor.
 - A2A/capabilities endpoints: `/.well-known/agent.json` and `/api/agent/capabilities`.
 - Budget guardrail: `lib/hedera-agent-kit/budget.ts` enforces a demo-funded Concierge budget before scheduled recovery payment proof.
@@ -95,6 +103,20 @@ Expected result:
 - deterministic HCS-14 `uaid:aid` is generated
 - A2A descriptor is available at `/.well-known/agent.json`
 - all mutation tools require human approval
+- Agent Kit runtime contains `MaxRecipientsPolicy` and `RejectToolPolicy`
+- `RejectToolPolicy` blocks destructive account tools
+- `MaxRecipientsPolicy` blocks multi-recipient HBAR transfers
+- Agent Kit runtime exposes token allowance approval and fungible-token transfer-with-allowance tools
+- configured HTS/USDC allowance policy passes inspection
+- Hedera x402 exact requirements include both HBAR and HTS/USDC
+- operator proof scripts exist for real HTS/USDC allowance approval and signed Hedera x402 settlement:
+  - `npm run hedera:usdc-allowance-proof`
+  - `npm run hedera:x402-settlement-proof`
+- live HBAR x402 settlement succeeded: `0.0.7162784@1781897754.732455686`
+- live USDC x402 settlement succeeded: `0.0.7162784@1781898426.444560516`
+- live HTS/USDC allowance succeeded: `0.0.8504405@1781897770.436631261`
+- WalletConnect/Reown browser path is present for connected-wallet allowance approval
+- Agent Lab and NFT Studio proof scripts pass
 - valid listing policies pass
 - valid refund policies pass
 - non-holder, resale-disabled, and duplicate-listing scenarios block correctly
@@ -127,19 +149,19 @@ No Solidity track:
 ## Not claimed
 
 - OpenClaw ACP Gateway runtime is not configured; this repo exposes an honest descriptor only.
-- x402 facilitator-backed settlement is not integrated; this repo exposes an honest descriptor only.
+- x402 payment requirements are exposed through `/api/x402/recovery-policy`; HBAR and USDC settlement have both been proven through Blocky402 on Hedera testnet.
 - A2A is exposed as an agent-card descriptor, not a live remote negotiation runtime.
 - HCS-14 identity is generated as a deterministic draft `uaid:aid` descriptor.
-- Wallet-funded user budgets are not integrated; the current budget is a server-enforced demo budget over server-managed testnet accounts.
+- Wallet-funded user budgets are available through HTS/USDC allowance metadata and an optional WalletConnect/Reown approval panel; live allowance proof exists for a bounded 5 USDC allowance.
 - Calendar conflict detection is not integrated.
-- This is not a fully autonomous LLM agent. It is a bounded, policy-gated Concierge with human approval before value movement.
+- This is not raw autonomous private-key signing. It is a bounded, policy-gated Concierge that can be human-approved or pre-authorized by wallet allowance within policy limits.
 
 ## Next proof step
 
 The best next upgrade is not more copy. It is either:
 
-1. Add a real wallet allowance or budget funding flow.
-2. Add OpenClaw Gateway-backed ACP execution.
-3. Add facilitator-backed x402 settlement for a paid agent/service request.
+1. Deploy the Week 5 branch with `HEDERA_X402_SETTLEMENT_ENABLED=true` only after confirming the hosted environment should settle paid quote requests.
+2. Keep the Circle faucet-funded Guest A account topped up if the public demo will settle repeated USDC x402 requests.
+3. Add OpenClaw Gateway-backed ACP execution.
 
 Only claim these after they are wired and verified.

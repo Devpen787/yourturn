@@ -82,16 +82,20 @@ const {
   YOURTURN_TOOL_MANIFEST_VERSION,
   bountyCoverage,
 } = await import("../lib/hedera-agent-kit/tool-manifest.ts");
-const { getDemoConciergeBudget } = await import("../lib/hedera-agent-kit/budget.ts");
+const { getDemoConciergeBudget, getConfiguredUsdcAllowanceBudget } = await import("../lib/hedera-agent-kit/budget.ts");
 const { buildHcs14AgentIdentity } = await import(
   "../lib/hedera-agent-kit/identity.ts"
 );
 const { inspectYourTurnHederaAgentRuntime } = await import(
   "../lib/hedera-agent-kit/runtime.ts"
 );
+const { HAK_REJECTED_TOOL_METHODS, buildYourTurnHakPolicies } = await import(
+  "../lib/hedera-agent-kit/runtime.ts"
+);
 const { buildAgentProtocolDescriptors } = await import(
   "../lib/agent-protocols/descriptors.ts"
 );
+const { buildHederaX402PaymentRequirements } = await import("../lib/x402/hedera.ts");
 const { evaluateYourTurnAgentPolicies, policyChecksPassed } = await import(
   "../lib/hedera-agent-kit/policies.ts"
 );
@@ -173,6 +177,22 @@ const blockedBudget = evaluateYourTurnAgentPolicies({
   },
   budgetAmountHbar: 0.01,
 });
+const configuredUsdcBudget = getConfiguredUsdcAllowanceBudget("guestA");
+const configuredUsdcAllowance = evaluateYourTurnAgentPolicies({
+  toolId: "yourturn.wallet_budget.inspect_allowance",
+  slot: makeSlot({ serial: 908 }),
+  actorAccountId: "0.0.1001",
+  budget: configuredUsdcBudget,
+  budgetAmountAtomicUnits: "10000",
+});
+const x402Quote = evaluateYourTurnAgentPolicies({
+  toolId: "yourturn.x402.quote_recovery",
+  slot: makeSlot({ serial: 909 }),
+  actorAccountId: "0.0.1001",
+  budget: configuredUsdcBudget,
+  budgetAmountAtomicUnits: "10000",
+  x402PaymentRequired: true,
+});
 
 const policyScenarios = {
   validListing: summarizeChecks(validListing),
@@ -182,6 +202,8 @@ const policyScenarios = {
   blockedDuplicateListing: summarizeChecks(blockedDuplicateListing),
   scheduleInspect: summarizeChecks(scheduleInspect),
   blockedBudget: summarizeChecks(blockedBudget),
+  configuredUsdcAllowance: summarizeChecks(configuredUsdcAllowance),
+  x402Quote: summarizeChecks(x402Quote),
 };
 
 const policyAssertions = [
@@ -192,6 +214,8 @@ const policyAssertions = [
   assert(!policyChecksPassed(blockedDuplicateListing), "duplicate listing is blocked"),
   assert(policyChecksPassed(scheduleInspect), "schedule inspection policies pass"),
   assert(!policyChecksPassed(blockedBudget), "budget overflow is blocked"),
+  assert(policyChecksPassed(configuredUsdcAllowance), "configured USDC allowance policies pass"),
+  assert(policyChecksPassed(x402Quote), "x402 quote policies pass"),
 ];
 
 const identity = buildHcs14AgentIdentity({
@@ -204,6 +228,66 @@ const runtime = await inspectYourTurnHederaAgentRuntime();
 assert(runtime.hasYourTurnPlugin, "Agent Kit runtime has YourTurn plugin");
 assert(runtime.hasCoreTransferTool, "Agent Kit runtime has core transfer tool");
 assert(runtime.hasCoreAllowanceTool, "Agent Kit runtime has core allowance tool");
+assert(runtime.hasCoreTokenAllowanceTool, "Agent Kit runtime has token allowance approval tool");
+assert(
+  runtime.hasCoreUsdcTransferWithAllowanceTool,
+  "Agent Kit runtime has fungible token transfer-with-allowance tool"
+);
+assert(
+  runtime.hakPolicies.some((policy) => policy.name === "Max Recipients Policy"),
+  "Agent Kit runtime has MaxRecipientsPolicy"
+);
+assert(
+  runtime.hakPolicies.some((policy) => policy.name === "Reject Tool Call"),
+  "Agent Kit runtime has RejectToolPolicy"
+);
+if (runtime.auditTopicId) {
+  assert(runtime.hasHcsAuditTrailHook, "Agent Kit runtime has HcsAuditTrailHook");
+}
+
+const hakPolicies = buildYourTurnHakPolicies();
+const rejectPolicy = hakPolicies.find((policy) => policy.name === "Reject Tool Call");
+const maxRecipientsPolicy = hakPolicies.find(
+  (policy) => policy.name === "Max Recipients Policy"
+);
+assert(rejectPolicy, "RejectToolPolicy can be constructed");
+assert(maxRecipientsPolicy, "MaxRecipientsPolicy can be constructed");
+
+let rejectedDeleteAccount = false;
+try {
+  await rejectPolicy.preToolExecutionHook(
+    {
+      context: { hooks: hakPolicies },
+      rawParams: {},
+      client: {},
+    },
+    HAK_REJECTED_TOOL_METHODS[0]
+  );
+} catch {
+  rejectedDeleteAccount = true;
+}
+assert(rejectedDeleteAccount, "RejectToolPolicy blocks destructive account tool");
+
+let rejectedBulkRecipients = false;
+try {
+  await maxRecipientsPolicy.postParamsNormalizationHook(
+    {
+      context: { hooks: hakPolicies },
+      rawParams: {},
+      normalisedParams: {
+        hbarTransfers: [
+          { accountId: "0.0.1001", amount: 1 },
+          { accountId: "0.0.1002", amount: 1 },
+        ],
+      },
+      client: {},
+    },
+    "transfer_hbar_tool"
+  );
+} catch {
+  rejectedBulkRecipients = true;
+}
+assert(rejectedBulkRecipients, "MaxRecipientsPolicy blocks multi-recipient HBAR transfer");
 
 const protocolDescriptors = buildAgentProtocolDescriptors("http://localhost:3000");
 assert(
@@ -215,8 +299,18 @@ assert(
   "OpenClaw descriptor is honest"
 );
 assert(
-  protocolDescriptors.x402.status === "descriptor_only",
-  "x402 descriptor is honest"
+  protocolDescriptors.x402.status === "payment_required_endpoint_live" ||
+    protocolDescriptors.x402.status === "settlement_enabled",
+  "x402 descriptor exposes Hedera payment-required endpoint"
+);
+const x402Requirements = buildHederaX402PaymentRequirements("http://localhost:3000");
+assert(
+  x402Requirements.some((requirement) => requirement.assetSymbol === "HBAR"),
+  "x402 requirements include HBAR"
+);
+assert(
+  x402Requirements.some((requirement) => requirement.assetSymbol === "USDC"),
+  "x402 requirements include HTS USDC"
 );
 
 const output = {
@@ -233,7 +327,13 @@ const output = {
     toolMethods: runtime.toolMethods,
     hasCoreTransferTool: runtime.hasCoreTransferTool,
     hasCoreAllowanceTool: runtime.hasCoreAllowanceTool,
+    hasCoreTokenAllowanceTool: runtime.hasCoreTokenAllowanceTool,
+    hasCoreUsdcTransferWithAllowanceTool:
+      runtime.hasCoreUsdcTransferWithAllowanceTool,
     hasYourTurnPlugin: runtime.hasYourTurnPlugin,
+    hasHcsAuditTrailHook: runtime.hasHcsAuditTrailHook,
+    auditTopicId: runtime.auditTopicId,
+    hakPolicies: runtime.hakPolicies,
   },
   toolsChecked: YOURTURN_AGENT_TOOLS.map((tool) => ({
     id: tool.id,
@@ -243,19 +343,40 @@ const output = {
   })),
   manifestChecks: manifestChecks.length,
   policiesChecked: policyAssertions,
+  hakPoliciesChecked: [
+    "Agent Kit runtime includes MaxRecipientsPolicy",
+    "Agent Kit runtime includes RejectToolPolicy",
+    runtime.auditTopicId
+      ? "Agent Kit runtime includes HcsAuditTrailHook"
+      : "Agent Kit HcsAuditTrailHook is enabled when a BOOKED_RIGHTS_TOPIC_ID or stored audit topic exists",
+    "RejectToolPolicy blocks destructive account tools",
+    "MaxRecipientsPolicy blocks multi-recipient HBAR transfers",
+  ],
   policyScenarios,
   protocols: {
     a2a: "live descriptor at /.well-known/agent.json and /api/agent/capabilities",
     hcs14: "live deterministic UAID descriptor",
     openclaw: "descriptor only; no Gateway-backed ACP runtime configured",
-    x402: "descriptor only; no facilitator-backed HTTP 402 settlement configured",
+    x402:
+      "Hedera exact payment-required endpoint exposed at /api/x402/recovery-policy",
+    hederaX402:
+      "payment-required endpoint exposes Hedera exact requirements for HBAR and HTS USDC; settlement requires signed X-PAYMENT payload and facilitator verification",
   },
   bountyCoverage: bountyCoverage(),
+  x402Requirements,
   remainingGaps: [
     "OpenClaw ACP Gateway runtime is not configured; descriptor only.",
-    "x402 facilitator-backed settlement is not integrated; descriptor only.",
+    process.env.YOURTURN_X402_USDC_SETTLEMENT_TX_ID
+      ? "x402 HBAR and USDC settlement are proven on Hedera testnet."
+      : process.env.YOURTURN_X402_HBAR_SETTLEMENT_TX_ID
+        ? "USDC x402 settlement still requires funding the payer with Hedera testnet USDC."
+        : "x402 payment requirements are exposed; full settlement requires a signed X-PAYMENT payload and enabled facilitator verification.",
     "A2A is exposed as an agent card descriptor, not a remote multi-agent negotiation runtime.",
-    "Wallet connect, wallet-funded allowances, and fiat/stablecoin onramp are not integrated.",
+    process.env.NEXT_PUBLIC_REOWN_PROJECT_ID
+      ? process.env.YOURTURN_POLICY_USDC_ALLOWANCE_TX_ID
+        ? "WalletConnect UI is available for bounded USDC allowance approval; a live operator allowance tx id is also configured."
+        : "WalletConnect UI is available for bounded USDC allowance approval; a live claim still requires a connected Hedera wallet signature."
+      : "WalletConnect UI is present but disabled until NEXT_PUBLIC_REOWN_PROJECT_ID is configured.",
     "Scheduled token release/refund remains future scope.",
   ],
 };

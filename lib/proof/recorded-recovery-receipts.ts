@@ -75,6 +75,10 @@ function agentProof(args: {
       "Inspect a Hedera Schedule Service proof for a recovery action.",
     "yourturn.budget.inspect":
       "Inspect the demo-funded Concierge budget boundary before a value-moving recovery action.",
+    "yourturn.wallet_budget.inspect_allowance":
+      "Inspect a configured wallet-funded HTS/USDC allowance budget for autonomous policy execution.",
+    "yourturn.x402.quote_recovery":
+      "Quote a Hedera x402 exact payment requirement for a policy-gated recovery request.",
   };
 
   return {

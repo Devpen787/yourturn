@@ -3,6 +3,11 @@ import {
   buildRecoveryPaymentAgentTrace,
   buildRefundReleaseAgentTrace,
 } from "@/lib/agent/concierge-agent";
+import {
+  buildConciergeHelpMessages,
+  buildMissingBookingMessages,
+  getConciergeHumanCopy,
+} from "@/lib/agent/concierge-humanize";
 import { buildHederaAgentProof } from "@/lib/hedera-agent-kit/agent-proof";
 import { getDemoConciergeBudget } from "@/lib/hedera-agent-kit/budget";
 import {
@@ -70,17 +75,30 @@ export function parseTelegramCommand(text: string): TelegramCommand {
     normalized === "/start" ||
     normalized === "/help" ||
     normalized === "help" ||
-    normalized.includes("what can you do")
+    normalized.includes("what can you do") ||
+    normalized.includes("how does this work") ||
+    normalized.includes("what should i do") ||
+    normalized.includes("options")
   ) {
     return { kind: "help", actor };
   }
   if (normalized === "/bookings" || normalized.includes("my bookings")) {
     return { kind: "show_bookings", actor };
   }
-  if (normalized.includes("approve") && normalized.includes("refund")) {
+  if (
+    normalized.includes("approve") &&
+    (normalized.includes("refund") || normalized.includes("release"))
+  ) {
     return { kind: "approve_refund", actor, serial };
   }
-  if (normalized.startsWith("/refund")) {
+  if (
+    normalized.startsWith("/refund") ||
+    normalized.includes("refund booking") ||
+    normalized.includes("money back") ||
+    normalized.includes("give it back") ||
+    normalized.includes("release booking") ||
+    normalized.includes("cancel booking")
+  ) {
     return { kind: "approve_refund", actor, serial };
   }
   if (
@@ -88,11 +106,18 @@ export function parseTelegramCommand(text: string): TelegramCommand {
     (normalized.includes("list") ||
       normalized.includes("listing") ||
       normalized.includes("resale") ||
-      normalized.includes("recover"))
+      normalized.includes("recover") ||
+      normalized.includes("sell"))
   ) {
     return { kind: "approve_listing", actor, serial };
   }
-  if (normalized.startsWith("/list")) {
+  if (
+    normalized.startsWith("/list") ||
+    normalized.includes("sell booking") ||
+    normalized.includes("sell my booking") ||
+    normalized.includes("someone else can take") ||
+    normalized.includes("find a buyer")
+  ) {
     return { kind: "approve_listing", actor, serial };
   }
   if (
@@ -100,6 +125,12 @@ export function parseTelegramCommand(text: string): TelegramCommand {
     normalized.includes("cannot attend") ||
     normalized.includes("recover") ||
     normalized.includes("can't make") ||
+    normalized.includes("cant make") ||
+    normalized.includes("can not make") ||
+    normalized.includes("can't go") ||
+    normalized.includes("cant go") ||
+    normalized.includes("cannot go") ||
+    normalized.includes("miss my") ||
     normalized.includes("list for resale") ||
     normalized.startsWith("/recover")
   ) {
@@ -116,12 +147,11 @@ function personLabel(actor: TelegramActor): string {
 }
 
 function missingBookingNumberMessages(actor: TelegramActor, appBaseUrl: string): string[] {
-  return [
-    `Please include the booking number for ${personLabel(actor)}.`,
-    "You can find it in YourTurn > My bookings. It appears as Booking #123 on each pass.",
-    `My bookings: ${appBaseUrl}/my-bookings`,
-    "Example: approve listing 123",
-  ];
+  return buildMissingBookingMessages(
+    personLabel(actor),
+    appBaseUrl,
+    "sell booking 123"
+  );
 }
 
 async function resolveHeldSerial(actor: TelegramActor, explicitSerial?: number): Promise<number | null> {
@@ -153,9 +183,10 @@ async function showBookings(actor: TelegramActor, appBaseUrl: string): Promise<s
   return [
     `${personLabel(actor)} active bookings:`,
     ...bookingLines,
-    "To recover one, send: recover booking 123",
-    "To approve a resale listing, send: approve listing 123",
-    "To approve a release/refund, send: approve refund 123",
+    "Tell me what you need in normal words:",
+    "\"I can't make booking 123\"",
+    "\"Sell booking 123\"",
+    "\"Refund booking 123\"",
   ];
 }
 
@@ -183,20 +214,24 @@ async function recoverBooking(
     ];
   }
   try {
+    const copy = getConciergeHumanCopy("create_listing");
     const preview = await bookingPort.previewCreateListing({
       seller: { kind: "demoActor", id: actor },
       serial,
       askPriceHbar: slot.primaryPriceHbar,
     });
     return [
-      `Recovery preview for ${personLabel(actor)}.`,
+      `I can help ${personLabel(actor)} recover this booking.`,
       `Booking #${serial}: ${slot.title}`,
-      `Ask: ${preview.details.askPriceHbar.toFixed(2)} HBAR.`,
-      `Owner royalty: ${preview.details.royaltyHbar.toFixed(2)} HBAR.`,
-      `Seller net: ${preview.details.sellerNetHbar.toFixed(2)} HBAR.`,
+      copy.summary,
+      `Another customer would pay: ${preview.details.askPriceHbar.toFixed(2)} HBAR.`,
+      `Provider share: ${preview.details.royaltyHbar.toFixed(2)} HBAR.`,
+      `You recover: ${preview.details.sellerNetHbar.toFixed(2)} HBAR.`,
+      `Checks: ${copy.checks.join(" / ")}.`,
+      `Nothing has changed yet.`,
       `Open Concierge: ${appBaseUrl}/resale/${serial}?mode=recovery`,
-      `To approve listing from Telegram, send: approve listing ${serial}`,
-      `For release/refund instead, send: approve refund ${serial}`,
+      `To approve resale here, send: sell booking ${serial}`,
+      `If you want to give it back instead, send: refund booking ${serial}`,
     ];
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
@@ -235,7 +270,7 @@ async function approveListing(
       mutated: false,
       messages: [
         `Telegram listing approval is dry-run safe right now.`,
-        `Open the approval surface: ${appBaseUrl}/resale/${serial}?mode=recovery`,
+        `No listing was created. Open Concierge to approve in the app: ${appBaseUrl}/resale/${serial}?mode=recovery`,
         `Enable TELEGRAM_ALLOW_MUTATIONS=true with an allowlisted chat to execute from Telegram.`,
       ],
     };
@@ -388,11 +423,11 @@ async function approveListing(
   return {
     mutated: true,
     messages: [
-      `Approved and listed booking #${serial} from Telegram.`,
-      `Ask: ${result.listing.askPriceHbar.toFixed(2)} HBAR.`,
-      `Seller net: ${result.listing.sellerNetHbar.toFixed(2)} HBAR after owner royalty.`,
-      `Schedule proof: ${scheduleProof.scheduleId}`,
-      `Listing proof: ${result.hashscanUrl}`,
+      `Done: booking #${serial} is listed for resale.`,
+      `Another customer can pay: ${result.listing.askPriceHbar.toFixed(2)} HBAR.`,
+      `You recover: ${result.listing.sellerNetHbar.toFixed(2)} HBAR after the provider share.`,
+      `Hedera schedule proof: ${scheduleProof.scheduleId}`,
+      `Network proof: ${result.hashscanUrl}`,
       `Receipt: ${appBaseUrl}/resale/${serial}?mode=recovery`,
     ],
   };
@@ -408,7 +443,7 @@ async function approveRefund(
     return {
       mutated: false,
       messages: missingBookingNumberMessages(actor, appBaseUrl).map((message) =>
-        message === "Example: approve listing 123" ? "Example: approve refund 123" : message
+        message === "Example: sell booking 123" ? "Example: refund booking 123" : message
       ),
     };
   }
@@ -427,7 +462,7 @@ async function approveRefund(
       mutated: false,
       messages: [
         `Telegram approval is fixture-tested but mutation-gated.`,
-        `Open the approval surface: ${appBaseUrl}/resale/${serial}?mode=recovery`,
+        `No refund was sent. Open Concierge to approve in the app: ${appBaseUrl}/resale/${serial}?mode=recovery`,
       ],
     };
   }
@@ -523,9 +558,9 @@ async function approveRefund(
   return {
     mutated: true,
     messages: [
-      `Approved and completed refund release for booking #${serial}.`,
-      `Refund: ${result.refundHbar.toFixed(2)} HBAR testnet.`,
-      `Proof: ${releaseHashscanUrl ?? result.hashscanUrls.audit}`,
+      `Done: booking #${serial} was released and closed.`,
+      `Refund sent: ${result.refundHbar.toFixed(2)} testnet HBAR.`,
+      `Network proof: ${releaseHashscanUrl ?? result.hashscanUrls.audit}`,
       `Receipt: ${appBaseUrl}/resale/${serial}?mode=recovery`,
     ],
   };
@@ -590,16 +625,7 @@ export async function handleTelegramUpdate(
     chatId,
     actor: command.actor,
     command: command.kind,
-    messages: [
-      "YourTurn Concierge can help recover bookings you cannot use.",
-      "Find your booking number in YourTurn > My bookings. It appears as Booking #123 on each pass.",
-      "Commands:",
-      "show my bookings",
-      "recover booking 123",
-      "approve listing 123",
-      "approve refund 123",
-      "Shortcuts also work: /bookings, /recover 123, /list 123, /refund 123",
-    ],
+    messages: buildConciergeHelpMessages(options.appBaseUrl),
     mutated: false,
   };
 }

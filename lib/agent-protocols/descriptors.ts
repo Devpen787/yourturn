@@ -4,6 +4,10 @@ import {
   YOURTURN_AGENT_VERSION,
   YOURTURN_AGENT_TOOLS,
 } from "../hedera-agent-kit/tool-manifest.ts";
+import {
+  buildHederaX402PaymentRequirements,
+  getHederaX402Facilitator,
+} from "../x402/hedera.ts";
 
 export function buildA2AAgentCard(baseUrl = "http://localhost:3000") {
   const identity = buildHcs14AgentIdentity();
@@ -26,6 +30,8 @@ export function buildA2AAgentCard(baseUrl = "http://localhost:3000") {
       pushNotifications: false,
       stateTransitionHistory: true,
       humanApprovalRequired: true,
+      walletAllowanceAutonomy: "configured",
+      x402PaymentRequiredEndpoint: `${baseUrl}/api/x402/recovery-policy`,
     },
     skills: YOURTURN_AGENT_TOOLS.map((tool) => ({
       id: tool.id,
@@ -54,20 +60,28 @@ export function buildOpenClawAcpDescriptor(baseUrl = "http://localhost:3000") {
 }
 
 export function buildX402Descriptor(baseUrl = "http://localhost:3000") {
+  const facilitator = getHederaX402Facilitator();
   return {
     protocol: "x402",
-    status: "descriptor_only",
+    status:
+      facilitator.settlementStatus === "live"
+        ? "settlement_enabled"
+        : "payment_required_endpoint_live",
     reason:
-      "The app does not run a facilitator-backed x402 settlement flow yet; Hedera HBAR transfers are proven through direct testnet transactions.",
+      facilitator.settlementStatus === "live"
+        ? "Hedera x402 exact payment requirements are exposed and settlement mode is enabled for this deployment."
+        : "Hedera x402 exact payment requirements are exposed; live settlement requires a signed X-PAYMENT payload and facilitator verification.",
     protectedResources: [
       {
         method: "POST",
-        path: "/api/recovery/confirm",
+        path: "/api/x402/recovery-policy",
         description:
-          "Value-moving Concierge confirmation. It currently uses signed demo sessions and scoped approval grants, not HTTP 402 payment challenge settlement.",
+          "Payment-required recovery-policy quote endpoint using Hedera x402 exact requirements for HBAR or HTS/USDC.",
       },
     ],
-    futurePaymentRequiredEndpoint: `${baseUrl}/api/recovery/confirm`,
+    paymentRequiredEndpoint: `${baseUrl}/api/x402/recovery-policy`,
+    facilitator,
+    accepts: buildHederaX402PaymentRequirements(baseUrl),
   };
 }
 

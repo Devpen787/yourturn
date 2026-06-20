@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { LiveFeedback } from "@/components/ui/LiveFeedback";
 import { RecoveryProofCard } from "@/components/proof/RecoveryProofCard";
+import { WalletBudgetConnector } from "@/components/wallet/WalletBudgetConnector";
 import { calcRoyalty, calcSellerNet } from "@/lib/domain/fees";
+import { getConciergeHumanCopy } from "@/lib/agent/concierge-humanize";
 import type { HederaAgentProof } from "@/lib/hedera-agent-kit/agent-proof";
 import type { ConciergeAgentTrace, ScheduleAutomationProof } from "@/lib/types/automation";
 import type { RecoveryProofDetails } from "@/lib/types/recovery-proof";
@@ -178,6 +180,7 @@ export function RecoveryConciergePanel({
       : null;
   const displayRoyalty = previewListing?.royaltyHbar ?? calcRoyalty(askNum);
   const displayNet = previewListing?.sellerNetHbar ?? calcSellerNet(askNum);
+  const humanCopy = getConciergeHumanCopy(action);
   const receiptProof: RecoveryProofDetails | null = receipt
       ? {
         title:
@@ -271,11 +274,7 @@ export function RecoveryConciergePanel({
       } else if (data.status === "already_listed") {
         setSuccess("This pass already has an active resale listing.");
       } else {
-        setSuccess(
-          action === "cancel_release_refund"
-            ? "Concierge found a policy-valid release and test HBAR refund option."
-            : "Concierge found a policy-valid resale recovery option."
-        );
+        setSuccess(humanCopy.previewSuccess);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -307,8 +306,8 @@ export function RecoveryConciergePanel({
       setReceipt(data.receipt);
       setSuccess(
         data.receipt?.action === "cancel_release_refund"
-          ? `${personLabel(actor)} approved release. Ref #${serial} was closed and a real testnet HBAR refund was sent.`
-          : `${personLabel(actor)} approved recovery. Ref #${serial} is now listed for resale.`
+          ? `${personLabel(actor)} approved release. Booking #${serial} was closed and a real testnet HBAR refund was sent.`
+          : `${personLabel(actor)} approved recovery. Booking #${serial} is now listed for resale.`
       );
       setSuccessLink(
         data.receipt?.hashscanUrl
@@ -379,12 +378,12 @@ export function RecoveryConciergePanel({
             <h2 id={panelTitleId} className="text-lg font-semibold text-slate-950">
               {proofOnlyMode
                 ? "Recovery receipt for this booking"
-                : "Recover value from this booking"}
+                : "Tell Concierge what you need"}
             </h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
               {proofOnlyMode
                 ? "Concierge recorded the approved recovery action, provider policy basis, and Hedera proof for this booking."
-                : "Concierge checks the booked provider policy, previews resale or release, and asks you to approve before anything changes."}
+                : "Use normal customer language: sell the booking if someone else can take it, or release it when the provider allows a refund. Concierge checks the rules and asks before anything changes."}
             </p>
           </div>
           <span className="rounded-full bg-white/85 px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
@@ -407,7 +406,11 @@ export function RecoveryConciergePanel({
           ) : (
             <div className="rounded-xl border border-white/80 bg-white/85 p-4 shadow-sm">
             <p className="text-sm font-medium text-slate-950">{slotTitle}</p>
-            <p className="mt-1 text-xs text-slate-600">Ref #{serial}</p>
+            <p className="mt-1 text-xs text-slate-600">Booking #{serial}</p>
+            <div className="mt-4 rounded-lg border border-sky-100 bg-sky-50 p-3 text-xs leading-5 text-sky-950">
+              <p className="font-semibold">Concierge guide</p>
+              <p className="mt-1">{humanCopy.summary}</p>
+            </div>
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
               <button
                 type="button"
@@ -425,9 +428,10 @@ export function RecoveryConciergePanel({
                   setReceipt(null);
                 }}
               >
-                <span className="block font-semibold">List for resale</span>
+                <span className="block text-xs opacity-75">I need help because</span>
+                <span className="mt-1 block font-semibold">Someone else can take my spot</span>
                 <span className="mt-1 block text-xs opacity-80">
-                  Another customer can buy the pass under provider rules.
+                  Concierge checks provider rules and prepares a resale listing.
                 </span>
               </button>
               <button
@@ -446,16 +450,17 @@ export function RecoveryConciergePanel({
                   setReceipt(null);
                 }}
               >
-                <span className="block font-semibold">Release + refund</span>
+                <span className="block text-xs opacity-75">I need help because</span>
+                <span className="mt-1 block font-semibold">I want to give it back</span>
                 <span className="mt-1 block text-xs opacity-80">
-                  Close the pass and send a real testnet HBAR refund.
+                  Concierge checks refund rules before closing the booking.
                 </span>
               </button>
             </div>
             {action === "create_listing" ? (
               <>
                 <label className="mt-4 grid gap-1 text-sm" htmlFor={askFieldId}>
-                  <span className="font-medium text-slate-800">Resale ask</span>
+                  <span className="font-medium text-slate-800">Price another customer would pay</span>
                   <input
                     id={askFieldId}
                     className={cn(
@@ -471,17 +476,20 @@ export function RecoveryConciergePanel({
                   />
                 </label>
                 <p className="mt-2 text-xs text-slate-600">
-                  Defaults to the original booking price when available. You can list at,
-                  below, or above that price.
+                  You can keep the original price, lower it to recover some value, or raise it if demand is high.
                 </p>
               </>
             ) : (
               <p className="mt-4 rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-xs leading-5 text-emerald-950">
-                Refund preview uses the original booking price. Concierge will only call this a refund if the testnet HBAR transfer succeeds.
+                Concierge uses the original booking price. It only calls this complete after the testnet HBAR refund succeeds.
               </p>
             )}
             </div>
           )}
+
+          {!proofOnlyMode ? (
+            <WalletBudgetConnector actorLabel={personLabel(actor)} />
+          ) : null}
 
           {!proofOnlyMode ? (
             <div className="flex flex-wrap gap-2">
@@ -489,7 +497,7 @@ export function RecoveryConciergePanel({
               type="button"
               variant="primary"
               loading={loading === "preview"}
-              loadingLabel="Checking…"
+              loadingLabel={humanCopy.previewingLabel}
               disabled={
                 !tokenReady ||
                 !!blockingReason ||
@@ -498,17 +506,17 @@ export function RecoveryConciergePanel({
               }
               onClick={() => void previewRecovery()}
             >
-              Preview recovery
+              {humanCopy.previewLabel}
             </Button>
             <Button
               type="button"
               variant="primarySuccess"
               loading={loading === "confirm"}
-              loadingLabel={action === "cancel_release_refund" ? "Refunding…" : "Listing…"}
+              loadingLabel={humanCopy.workingLabel}
               disabled={!canConfirm || loading === "preview"}
               onClick={() => setConfirmOpen(true)}
             >
-              {action === "cancel_release_refund" ? "Approve refund" : "Approve and list"}
+              {humanCopy.approvalLabel}
             </Button>
             </div>
           ) : null}
@@ -523,7 +531,18 @@ export function RecoveryConciergePanel({
         </div>
 
         <aside className="max-w-3xl rounded-xl border border-white/80 bg-white/85 p-4 text-sm shadow-sm">
-          <p className="font-semibold text-slate-950">Preview</p>
+          <p className="font-semibold text-slate-950">
+            {visibleProof || preview?.status === "recommended"
+              ? "What Concierge checked"
+              : "What Concierge will check"}
+          </p>
+          <ul className="mt-3 grid gap-2 text-xs text-slate-700 sm:grid-cols-2">
+            {humanCopy.checks.map((check) => (
+              <li key={check} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                {check}
+              </li>
+            ))}
+          </ul>
           <dl className="mt-3 grid gap-2 sm:grid-cols-3">
             <div className="flex justify-between gap-4">
               <dt className="text-slate-600">
@@ -540,13 +559,13 @@ export function RecoveryConciergePanel({
             {action === "create_listing" ? (
               <>
               <div className="flex justify-between gap-4">
-              <dt className="text-slate-600">Owner royalty</dt>
+              <dt className="text-slate-600">Provider share</dt>
               <dd className="font-medium text-slate-950">
                 {formatHbar(displayRoyalty)}
               </dd>
             </div>
             <div className="flex justify-between gap-4">
-              <dt className="text-slate-600">Seller net</dt>
+              <dt className="text-slate-600">You recover</dt>
               <dd className="font-medium text-slate-950">
                 {formatHbar(displayNet)}
               </dd>
@@ -555,11 +574,11 @@ export function RecoveryConciergePanel({
             ) : (
               <>
                 <div className="flex justify-between gap-4">
-                  <dt className="text-slate-600">Release effect</dt>
+                  <dt className="text-slate-600">What changes</dt>
                   <dd className="font-medium text-slate-950">Pass closes</dd>
                 </div>
                 <div className="flex justify-between gap-4">
-                  <dt className="text-slate-600">Payment type</dt>
+                  <dt className="text-slate-600">Refund rail</dt>
                   <dd className="font-medium text-slate-950">Testnet HBAR</dd>
                 </div>
               </>
@@ -569,11 +588,11 @@ export function RecoveryConciergePanel({
             {visibleProof
               ? "This receipt keeps the approved recovery action, price math, approval, and Hedera proof visible for review."
               : preview?.status === "recommended"
-              ? preview.recommendation.reason
+              ? `${humanCopy.previewSuccess} ${humanCopy.proofPlainEnglish}`
               : preview?.status === "already_listed"
                 ? preview.recommendation.reason
                 : blockingReason ??
-                  "Preview checks live holder state and provider resale rules before approval."}
+                  "Concierge checks live holder state and provider rules before approval."}
           </div>
           {visibleProof ? (
             <div className="mt-4 space-y-2">
@@ -599,16 +618,16 @@ export function RecoveryConciergePanel({
         title={
           action === "cancel_release_refund"
             ? "Approve release and refund"
-            : "Approve Concierge recovery"
+            : "Approve resale recovery"
         }
         description={
           action === "cancel_release_refund"
             ? "This approval returns the pass to the provider, closes it, and sends a real testnet HBAR refund to the current holder."
-            : "This approval creates a resale listing for the current pass. Another customer can then buy it through the existing resale flow."
+            : "This approval creates a resale listing for the current booking. Another customer can then buy it through the existing resale flow."
         }
         details={[
           { label: "Seller", value: personLabel(actor) },
-          { label: "Pass", value: `${slotTitle} · Ref #${serial}` },
+          { label: "Booking", value: `${slotTitle} · Booking #${serial}` },
           ...(action === "cancel_release_refund"
             ? [
                 {
@@ -619,20 +638,18 @@ export function RecoveryConciergePanel({
               ]
             : [
                 { label: "Ask", value: formatHbar(previewListing?.askPriceHbar ?? askNum) },
-                { label: "Owner royalty", value: formatHbar(displayRoyalty) },
-                { label: "Seller net", value: formatHbar(displayNet) },
+                { label: "Provider share", value: formatHbar(displayRoyalty) },
+                { label: "You recover", value: formatHbar(displayNet) },
               ]),
         ]}
         warning={
           action === "cancel_release_refund"
-            ? "This moves real testnet HBAR from the provider treasury to the holder and closes the booking right."
-            : "Concierge cannot list anything until you approve this step."
+            ? humanCopy.approvalWarning
+            : humanCopy.approvalWarning
         }
-        confirmLabel={
-          action === "cancel_release_refund" ? "Approve refund" : "Approve and list"
-        }
+        confirmLabel={humanCopy.approvalLabel}
         loading={loading === "confirm"}
-        loadingLabel={action === "cancel_release_refund" ? "Refunding…" : "Listing…"}
+        loadingLabel={humanCopy.workingLabel}
         onClose={() => {
           if (loading == null) setConfirmOpen(false);
         }}
