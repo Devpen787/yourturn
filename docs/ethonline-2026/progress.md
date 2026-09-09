@@ -70,3 +70,25 @@ Append one block per meaningful run:
 - Failed/open: no Hedera ETHOnline sponsor acceptance item is green yet; no serial-scoped allowance, revoke, transfer, USDC recovery, or testnet claim was executed in this increment.
 - Claim impact: foundation gate only. This is CI evidence, not LIVE/TESTNET Hedera evidence.
 - Exact next action: create `feature/ethonline-hedera` from the latest reviewed foundation head and implement PRD 01 serial-scoped NFT allowance/revocation with real Hedera testnet evidence.
+
+## World entries
+
+### 2026-09-09 22:56 Europe/Zurich — World worker 01
+- Branch/SHA: `feature/ethonline-world` @ `5b27ec45c9b2405f3f468e33d2cd20ab6fe3e7b7`; draft PR #22.
+- Mission: define a fail-closed World human-backed-agent trust boundary without changing Hedera booking/settlement semantics.
+- Changed: added `lib/world-agentkit/trust-boundary.ts`, deterministic contract checks, CI coverage, and current AgentKit qualification/integration contract docs.
+- Verification actually run: GitHub Actions run `34403769815` passed install, production build, inherited Hedera policy/proof check, `npm run world:contract-check`, and continuity-baseline checks.
+- Evidence: CI proves the normalized post-verification gate blocks spoofed source, non-human-backed, AgentBook-unresolved, wrong-resource, expired and invalid-time evidence; public summary omits agent address and raw `humanId`.
+- Failed/open: no official `@worldcoin/agentkit` runtime integration yet; no live request validation, AgentBook resolution, Sandbox proof, or feedback artifact. These remain RED.
+- Claim impact: CI-green groundwork only. It narrows the trust boundary and privacy rules but is not sponsor qualification evidence by itself.
+- Exact next action: implement the official low-level verifier adapter after branch/security gates are clean.
+
+### 2026-09-09 23:16 Europe/Zurich — World security repair
+- Branch/SHA: `feature/ethonline-world` @ `f41eaafcac6eabe68fafb8cd9e5eb84664c1d88b`.
+- Mission: repair SEC-WORLD-001/002 before any World-backed recovery write path.
+- Changed: exact equality between the World-verified requester and the independently resolved delegated agent; EVM-address validation/canonicalization; 30-second maximum future clock skew; negative fixtures for wrong/malformed agent and future timestamps; public summary remains privacy-minimized.
+- Verification actually run: exact-head continuity run `34405732527` SUCCESS.
+- Evidence: CI/contract only. Independent Security Attacker subsequently closed SEC-WORLD-001/002 at contract level.
+- Failed/open: SEC-WORLD-003 remains OPEN; no official AgentKit cryptographic verification, live AgentBook resolution, World Sandbox evidence, sponsor feedback document, or live recovery write-path proof exists.
+- Claim impact: hardened groundwork, not World qualification.
+- Exact next action: realign the branch to frozen foundation `89ded956...`; then add the official `@worldcoin/agentkit` verifier/AgentBook adapter as a separate bounded increment.
