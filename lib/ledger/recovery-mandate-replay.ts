@@ -1,14 +1,19 @@
 import { createHash } from "node:crypto";
-import { getRedis } from "@/lib/store/redis";
 import type {
   RecoveryMandateReplayClaim,
   RecoveryMandateReplayStore,
-} from "@/lib/ledger/recovery-mandate";
+} from "./recovery-mandate";
 
 const BIGINT_ZERO = BigInt(0);
 const MAX_SAFE_INTEGER_BIGINT = BigInt(Number.MAX_SAFE_INTEGER);
 
-type AtomicSetRedis = Pick<ReturnType<typeof getRedis>, "set">;
+export type RecoveryMandateAtomicSetStore = {
+  set(
+    key: string,
+    value: string,
+    options: { nx: true; ex: number }
+  ): Promise<unknown>;
+};
 
 export function recoveryMandateReplayKey(
   mandateId: string,
@@ -23,7 +28,7 @@ export function recoveryMandateReplayKey(
 }
 
 export function createRedisRecoveryMandateReplayStore(
-  redis: AtomicSetRedis = getRedis()
+  redis: RecoveryMandateAtomicSetStore
 ): RecoveryMandateReplayStore {
   return {
     async consumeOnce(input: RecoveryMandateReplayClaim): Promise<boolean> {
