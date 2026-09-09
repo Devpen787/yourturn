@@ -24,7 +24,12 @@ jobs:
           cache: npm
 
       - name: Install
-        run: npm ci
+        # Baseline repo currently has a peer-range conflict between
+        # hedera-wallet-connect 2.1.3 (@hiero-ledger/sdk 2.79.0) and
+        # Hedera Agent Kit v4 (@hiero-ledger/sdk ^2.81.0). Preserve the
+        # existing lockfile/runtime for the continuity baseline instead of
+        # changing dependencies in the process-only foundation PR.
+        run: npm ci --legacy-peer-deps
 
       - name: Production build
         run: npm run build
