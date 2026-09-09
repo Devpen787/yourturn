@@ -4,6 +4,14 @@
 
 Ledger should protect the moment a human grants or expands agent authority. It must materially change the authorization boundary; a logo or generic wallet connection does not qualify.
 
+## Current official Continuity bar
+
+Rechecked 2026-09-09 against https://developers.ledger.com/ethonline.
+
+For Continuity, Ledger wants a clear before/after showing what the existing product could not do until Ledger was added. The same quality bar applies across tracks: real user value, clear autonomous-vs-explicit-approval boundaries, concrete Ledger primitives, and a practical demo/runnable repo or recorded walkthrough.
+
+**Every Ledger submission must also include tooling/DX feedback** covering the docs/SDK experience, gaps/confusing flows/missing context, and specific improvements; screenshots or PRs are encouraged. This feedback is part of the judged deliverable, not optional cleanup.
+
 ## Preferred path order
 
 ### L0 — hardware-backed mandate creation
@@ -53,6 +61,17 @@ The customer should see one sentence before device approval, e.g.:
 
 No raw JSON/signature prompt as the hero UX.
 
+## Required Ledger feedback artifact
+
+Before qualification can turn green, add a sponsor feedback document that records:
+
+- overall experience with Ledger docs and SDKs;
+- exact gaps, confusing flows, or missing context hit during this integration;
+- concrete suggested improvements;
+- screenshots, reproduction notes, or upstream PR links where useful.
+
+The feedback must be grounded in the integration actually attempted, not written generically before using the tools.
+
 ## Kill rule
 
 Timebox the supported-path spike. If a real Ledger Agent Stack / device-backed flow is not working quickly enough, record the blocker and replace Ledger with the approved fallback sponsor rather than destabilizing Hedera + World.
@@ -65,5 +84,7 @@ Timebox the supported-path spike. If a real Ledger Agent Stack / device-backed f
 4. Can a captured signature be replayed?
 5. Does the signed content exactly match the human-readable mandate?
 6. Are we claiming Hedera signing when Ledger only signed an off-chain/EVM authorization artifact?
+7. Is the required Ledger tooling/DX feedback concrete and based on the actual integration?
+8. Can a judge run or follow the demonstrated path without Devinson explaining hidden steps live?
 
 Fail on uncertainty.
