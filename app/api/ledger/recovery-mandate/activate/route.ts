@@ -1,0 +1,93 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { requireGuestAppUser } from "@/lib/auth/guest-api-auth";
+import {
+  createRedisRecoveryMandateReplayStore,
+  type RecoveryMandateAtomicSetStore,
+} from "@/lib/ledger/recovery-mandate-replay";
+import {
+  activatePreparedRecoveryMandate,
+  type RecoveryMandateStateStore,
+} from "@/lib/ledger/recovery-mandate-state";
+import { getRedis } from "@/lib/store/redis";
+import { fail } from "@/lib/validation/api";
+
+export const runtime = "nodejs";
+
+const activateBodySchema = z.object({
+  mandateId: z.string().uuid(),
+  signature: z.string().regex(/^0x[0-9a-fA-F]+$/).min(132).max(132),
+});
+
+type LedgerMandateRedis = RecoveryMandateStateStore & RecoveryMandateAtomicSetStore;
+
+export async function POST(req: Request) {
+  try {
+    const network = process.env.HEDERA_NETWORK ?? "testnet";
+    if (network !== "testnet") {
+      return NextResponse.json(
+        fail(
+          "Ledger Recovery Mandate activation is locked to Hedera testnet for ETHOnline evidence.",
+          "NOT_CONFIGURED"
+        ),
+        { status: 503 }
+      );
+    }
+
+    const appUser = await requireGuestAppUser();
+    if (appUser instanceof NextResponse) return appUser;
+
+    const parsed = activateBodySchema.safeParse(await req.json());
+    if (!parsed.success) {
+      return NextResponse.json(
+        fail(parsed.error.message, "VALIDATION_ERROR"),
+        { status: 400 }
+      );
+    }
+
+    // This route deliberately does not mint or accept the legacy reusable
+    // approval-grant bearer token. The prepared server-side mandate is the
+    // complete expectation; its signature is consumed once through durable
+    // Redis before an active authority record can exist.
+    const redis = getRedis() as unknown as LedgerMandateRedis;
+    const replayStore = createRedisRecoveryMandateReplayStore(redis);
+    const { verified, active } = await activatePreparedRecoveryMandate({
+      store: redis,
+      replayStore,
+      mandateId: parsed.data.mandateId,
+      ownerId: appUser.id,
+      signature: parsed.data.signature,
+    });
+
+    return NextResponse.json({
+      ok: true as const,
+      network,
+      evidenceLevel: "CONFIGURED" as const,
+      mandateId: verified.mandate.mandateId,
+      digest: verified.digest,
+      signerAddress: verified.recoveredSignerAddress,
+      state: active.state,
+      activatedAt: active.activatedAt,
+      expiresAt: active.mandate.expiresAt,
+      authority: {
+        agentId: active.mandate.agentId,
+        bookingTokenId: active.mandate.bookingTokenId,
+        bookingSerial: active.mandate.bookingSerial,
+        allowedAction: active.mandate.allowedAction,
+        minimumRecoveryAtomicUnits: active.mandate.minimumRecoveryAtomicUnits,
+        settlementAsset: active.mandate.settlementAsset,
+        cancellationAllowed: active.mandate.cancellationAllowed,
+      },
+      claimBoundary:
+        "A cryptographically valid EIP-712 signature can activate the exact prepared mandate once. Hardware provenance remains unproven until the identical payload is signed on a Ledger through DMK.",
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    const isConflict =
+      /already|not found|expired|does not belong|could not be stored/i.test(msg);
+    return NextResponse.json(
+      fail(msg, isConflict ? "CONFLICT" : "VALIDATION_ERROR"),
+      { status: isConflict ? 409 : 400 }
+    );
+  }
+}
