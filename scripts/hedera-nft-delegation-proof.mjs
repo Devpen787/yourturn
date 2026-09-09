@@ -252,6 +252,12 @@ async function currentOwner(tokenId, serial, queryActor) {
   }
 }
 
+function errorSummary(error) {
+  return error instanceof Error
+    ? { name: error.name, message: error.message }
+    : { name: "UnknownError", message: String(error) };
+}
+
 async function liveLifecycle(args) {
   if ((process.env.HEDERA_NETWORK ?? "testnet").toLowerCase() !== "testnet") {
     throw new Error("hedera:nft-delegation-proof refuses non-testnet execution");
@@ -266,49 +272,172 @@ async function liveLifecycle(args) {
   const owner = resolveActor(args.owner, true);
   const spender = resolveActor(args.spender, true);
   const receiver = resolveActor(args.receiver, false);
+  const ownerAccountId = owner.accountId.toString();
   const base = {
     tokenId: args.token,
     serial: args.serial,
-    ownerAccountId: owner.accountId.toString(),
+    ownerAccountId,
     spenderAccountId: spender.accountId.toString(),
   };
   const wrong = { ...base, serial: args.wrongSerial };
+  const evidence = {};
+  let allowanceMayBeLive = false;
+  let targetOwnershipMoved = false;
+  let lifecycleError = null;
 
-  const approve = await submitOwnerTransaction(buildSerialScopedNftAllowance(base), owner);
+  try {
+    const targetOwnerBefore = await currentOwner(args.token, args.serial, owner);
+    const wrongSerialOwnerBefore = await currentOwner(args.token, args.wrongSerial, owner);
+    evidence.preconditions = {
+      expectedOwnerAccountId: ownerAccountId,
+      targetSerial: args.serial,
+      targetOwnerBefore,
+      wrongSerial: args.wrongSerial,
+      wrongSerialOwnerBefore,
+    };
 
-  const wrongSerialAttempt = await attemptApprovedTransfer(
-    wrong,
-    receiver.accountId.toString(),
-    spender
-  );
-  if (wrongSerialAttempt.ok || !wrongSerialAttempt.deniedForMissingAllowance) {
-    throw new Error(`wrong-serial test did not prove SPENDER_DOES_NOT_HAVE_ALLOWANCE: ${JSON.stringify(wrongSerialAttempt)}`);
+    if (targetOwnerBefore !== ownerAccountId) {
+      throw new Error(
+        `target serial ${args.serial} is not owner-held: expected ${ownerAccountId}, got ${targetOwnerBefore}`
+      );
+    }
+    if (wrongSerialOwnerBefore !== ownerAccountId) {
+      throw new Error(
+        `wrong serial ${args.wrongSerial} is not owner-held: expected ${ownerAccountId}, got ${wrongSerialOwnerBefore}`
+      );
+    }
+
+    evidence.approve = await submitOwnerTransaction(buildSerialScopedNftAllowance(base), owner);
+    allowanceMayBeLive = true;
+
+    evidence.wrongSerialAttempt = await attemptApprovedTransfer(
+      wrong,
+      receiver.accountId.toString(),
+      spender
+    );
+    if (
+      evidence.wrongSerialAttempt.ok ||
+      !evidence.wrongSerialAttempt.deniedForMissingAllowance
+    ) {
+      throw new Error(
+        `wrong-serial test did not prove SPENDER_DOES_NOT_HAVE_ALLOWANCE: ${JSON.stringify(evidence.wrongSerialAttempt)}`
+      );
+    }
+
+    evidence.wrongSerialOwnerAfter = await currentOwner(
+      args.token,
+      args.wrongSerial,
+      owner
+    );
+    if (evidence.wrongSerialOwnerAfter !== ownerAccountId) {
+      throw new Error(
+        `wrong serial ownership changed during negative test: expected ${ownerAccountId}, got ${evidence.wrongSerialOwnerAfter}`
+      );
+    }
+
+    evidence.revoke = await submitOwnerTransaction(buildSerialScopedNftRevocation(base), owner);
+    allowanceMayBeLive = false;
+
+    evidence.postRevokeAttempt = await attemptApprovedTransfer(
+      base,
+      receiver.accountId.toString(),
+      spender
+    );
+    if (evidence.postRevokeAttempt.ok) {
+      targetOwnershipMoved = true;
+      throw new Error(
+        `post-revoke transfer unexpectedly succeeded: ${JSON.stringify(evidence.postRevokeAttempt)}`
+      );
+    }
+    if (!evidence.postRevokeAttempt.deniedForMissingAllowance) {
+      throw new Error(
+        `post-revoke test did not prove SPENDER_DOES_NOT_HAVE_ALLOWANCE: ${JSON.stringify(evidence.postRevokeAttempt)}`
+      );
+    }
+
+    evidence.reapprove = await submitOwnerTransaction(buildSerialScopedNftAllowance(base), owner);
+    allowanceMayBeLive = true;
+
+    evidence.permittedTransfer = await attemptApprovedTransfer(
+      base,
+      receiver.accountId.toString(),
+      spender
+    );
+    if (!evidence.permittedTransfer.ok) {
+      throw new Error(
+        `permitted serial transfer failed: ${JSON.stringify(evidence.permittedTransfer)}`
+      );
+    }
+
+    // A successful receipt means the target NFT moved; the old owner's serial allowance
+    // is no longer actionable and cleanup must not try to revoke an NFT it no longer owns.
+    targetOwnershipMoved = true;
+    allowanceMayBeLive = false;
+
+    evidence.ownerAfter = await currentOwner(args.token, args.serial, spender);
+    if (evidence.ownerAfter !== receiver.accountId.toString()) {
+      throw new Error(
+        `Mirror/node NFT ownership mismatch: expected ${receiver.accountId}, got ${evidence.ownerAfter}`
+      );
+    }
+  } catch (error) {
+    lifecycleError = error;
+  } finally {
+    if (allowanceMayBeLive && !targetOwnershipMoved) {
+      try {
+        const cleanupRevoke = await submitOwnerTransaction(
+          buildSerialScopedNftRevocation(base),
+          owner
+        );
+        evidence.cleanup = {
+          attempted: true,
+          success: true,
+          reason: "proof_interrupted_with_possible_live_allowance",
+          revoke: cleanupRevoke,
+        };
+        allowanceMayBeLive = false;
+      } catch (cleanupError) {
+        evidence.cleanup = {
+          attempted: true,
+          success: false,
+          reason: "proof_interrupted_with_possible_live_allowance",
+          error: errorSummary(cleanupError),
+        };
+        lifecycleError = lifecycleError
+          ? new AggregateError(
+              [lifecycleError, cleanupError],
+              "Hedera delegation lifecycle failed and cleanup revocation also failed"
+            )
+          : cleanupError;
+      }
+    } else {
+      evidence.cleanup = {
+        attempted: false,
+        success: true,
+        reason: targetOwnershipMoved
+          ? "target_serial_already_transferred"
+          : "no_live_allowance_expected",
+      };
+    }
   }
 
-  const revoke = await submitOwnerTransaction(buildSerialScopedNftRevocation(base), owner);
-
-  const postRevokeAttempt = await attemptApprovedTransfer(
-    base,
-    receiver.accountId.toString(),
-    spender
-  );
-  if (postRevokeAttempt.ok || !postRevokeAttempt.deniedForMissingAllowance) {
-    throw new Error(`post-revoke test did not prove SPENDER_DOES_NOT_HAVE_ALLOWANCE: ${JSON.stringify(postRevokeAttempt)}`);
-  }
-
-  const reapprove = await submitOwnerTransaction(buildSerialScopedNftAllowance(base), owner);
-  const permittedTransfer = await attemptApprovedTransfer(
-    base,
-    receiver.accountId.toString(),
-    spender
-  );
-  if (!permittedTransfer.ok) {
-    throw new Error(`permitted serial transfer failed: ${JSON.stringify(permittedTransfer)}`);
-  }
-
-  const ownerAfter = await currentOwner(args.token, args.serial, spender);
-  if (ownerAfter !== receiver.accountId.toString()) {
-    throw new Error(`Mirror/node NFT ownership mismatch: expected ${receiver.accountId}, got ${ownerAfter}`);
+  if (lifecycleError) {
+    console.error(
+      JSON.stringify(
+        {
+          ok: false,
+          evidenceLevel: "LIVE/TESTNET_ATTEMPT",
+          status: "serial_scoped_delegation_lifecycle_failed",
+          network: "testnet",
+          authority: describeSerialScopedAuthority(base),
+          evidence,
+          error: errorSummary(lifecycleError),
+        },
+        null,
+        2
+      )
+    );
+    throw lifecycleError;
   }
 
   return {
@@ -319,15 +448,7 @@ async function liveLifecycle(args) {
     authority: describeSerialScopedAuthority(base),
     receiverAccountId: receiver.accountId.toString(),
     wrongSerial: args.wrongSerial,
-    evidence: {
-      approve,
-      wrongSerialAttempt,
-      revoke,
-      postRevokeAttempt,
-      reapprove,
-      permittedTransfer,
-      ownerAfter,
-    },
+    evidence,
   };
 }
 
