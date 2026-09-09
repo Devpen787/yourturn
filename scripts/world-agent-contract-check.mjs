@@ -119,7 +119,7 @@ const otherWallet = new Wallet("0x8b3a350cf5c34c9194ca3a545d4b37d4c9088a3d31cb26
 const resourceUri = "https://yourturn.example/api/recovery/confirm";
 
 const liveStyleStore = memoryNonceStore();
-const header = await signedHeader(wallet, resourceUri, "agentkit-nonce-0001");
+const header = await signedHeader(wallet, resourceUri, "agentkitnonce0001");
 const first = await verifyWorldAgentRequest({
   agentkitHeader: header,
   expectedResourceUri: resourceUri,
@@ -150,7 +150,7 @@ assert.match(replay.detail ?? "", /Nonce validation failed/i);
 // A signature mutation is rejected by the official signature verifier and does
 // not consume the nonce because consumption happens after cryptographic proof.
 const tamperedSignature = mutateHeader(
-  await signedHeader(wallet, resourceUri, "agentkit-nonce-0002"),
+  await signedHeader(wallet, resourceUri, "agentkitnonce0002"),
   payload => {
     payload.signature = `${payload.signature.slice(0, -1)}${payload.signature.endsWith("0") ? "1" : "0"}`;
   }
@@ -170,7 +170,7 @@ assert.equal(tampered.reason, "agentkit_signature_invalid");
 const previewHeader = await signedHeader(
   wallet,
   "https://yourturn.example/api/recovery/preview",
-  "agentkit-nonce-0003"
+  "agentkitnonce0003"
 );
 const wrongResource = await verifyWorldAgentRequest({
   agentkitHeader: previewHeader,
@@ -183,7 +183,7 @@ assert.equal(wrongResource.status, "blocked");
 assert.equal(wrongResource.reason, "exact_resource_mismatch");
 
 const unresolved = await verifyWorldAgentRequest({
-  agentkitHeader: await signedHeader(wallet, resourceUri, "agentkit-nonce-0004"),
+  agentkitHeader: await signedHeader(wallet, resourceUri, "agentkitnonce0004"),
   expectedResourceUri: resourceUri,
   expectedAgentAddress: wallet.address,
   nonceStore: memoryNonceStore(),
@@ -195,7 +195,7 @@ assert.equal(unresolved.reason, "agentbook_unresolved");
 // Even another legitimately signed + AgentBook-resolved agent is not the agent
 // independently delegated by the YourTurn Recovery Mandate.
 const wrongAgent = await verifyWorldAgentRequest({
-  agentkitHeader: await signedHeader(otherWallet, resourceUri, "agentkit-nonce-0005"),
+  agentkitHeader: await signedHeader(otherWallet, resourceUri, "agentkitnonce0005"),
   expectedResourceUri: resourceUri,
   expectedAgentAddress: wallet.address,
   nonceStore: memoryNonceStore(),
