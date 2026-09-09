@@ -1,0 +1,26 @@
+schemaVersion: 2
+
+name: yourturn-ethonline-2026-continuity
+description: >-
+  Build and verify YourTurn Delegated Recovery as a substantive ETHOnline 2026
+  Continuity upgrade. Preserve the June baseline, add Hedera-native delegated
+  booking authority and USDC recovery, then integrate sponsor trust layers.
+
+baseline:
+  commands:
+    - name: install
+      command: npm ci
+    - name: build
+      command: npm run build
+    - name: hedera-agent-check
+      command: npm run hedera:agent-check
+
+prd:
+  - .harness/prds/01-hedera-authority-spike.md
+  - .harness/prds/02-delegation-policy.md
+  - .harness/prds/03-usdc-recovery.md
+  - .harness/prds/04-hero-ux.md
+
+# Keep deterministic validation authoritative first. Add Playwright/semantic/onchain
+# tiers only once the environment is proven by `npx hedera-harness doctor`.
+# Never put network secrets in this file.
