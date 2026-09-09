@@ -10,8 +10,8 @@ import {
   evaluateWorldAgentGate,
   type WorldAgentGateDecision,
   type WorldAgentVerification,
-} from "./trust-boundary";
-import type { WorldAgentNonceStore } from "./nonce-store";
+} from "./trust-boundary.ts";
+import type { WorldAgentNonceStore } from "./nonce-store.ts";
 
 export const WORLD_AGENT_VERIFICATION_TTL_MS = 60_000;
 
