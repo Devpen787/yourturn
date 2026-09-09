@@ -23,6 +23,7 @@ export type WorldAgentRequestBlockReason =
   | "agentkit_signature_invalid"
   | "agentbook_unavailable"
   | "agentbook_unresolved"
+  | "nonce_store_unavailable"
   | "nonce_replayed"
   | Exclude<WorldAgentGateDecision, { status: "allowed" }>['reason'];
 
@@ -100,10 +101,19 @@ export async function verifyWorldAgentRequest(options: {
   }
 
   const nonceKey = { nonce: payload.nonce, resourceUri: expectedResourceUri };
-  const validation = await validateAgentkitMessage(payload, expectedResourceUri, {
-    ...(maxAgeMs === undefined ? {} : { maxAge: maxAgeMs }),
-    checkNonce: () => nonceStore.isFresh(nonceKey),
-  });
+  let validation;
+  try {
+    validation = await validateAgentkitMessage(payload, expectedResourceUri, {
+      ...(maxAgeMs === undefined ? {} : { maxAge: maxAgeMs }),
+      checkNonce: () => nonceStore.isFresh(nonceKey),
+    });
+  } catch (error) {
+    return {
+      status: "blocked",
+      reason: "nonce_store_unavailable",
+      detail: error instanceof Error ? error.message : "Nonce freshness check failed",
+    };
+  }
   if (!validation.valid) {
     return {
       status: "blocked",
@@ -145,8 +155,16 @@ export async function verifyWorldAgentRequest(options: {
   // Consume only after cryptographic verification + AgentBook resolution. A
   // forged request cannot burn a valid nonce, and SET-NX style stores ensure
   // concurrent copies of the same verified request cannot both proceed.
-  if (!(await nonceStore.consume(nonceKey))) {
-    return { status: "blocked", reason: "nonce_replayed" };
+  try {
+    if (!(await nonceStore.consume(nonceKey))) {
+      return { status: "blocked", reason: "nonce_replayed" };
+    }
+  } catch (error) {
+    return {
+      status: "blocked",
+      reason: "nonce_store_unavailable",
+      detail: error instanceof Error ? error.message : "Nonce consumption failed",
+    };
   }
 
   const verifiedAtMs = options.nowMs ?? Date.now();
