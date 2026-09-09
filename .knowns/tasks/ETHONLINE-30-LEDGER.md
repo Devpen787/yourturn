@@ -1,0 +1,35 @@
+# ETHONLINE-30 — Ledger Continuity
+
+## Objective
+
+Put device-backed human approval at the authority boundary: creating or expanding an agent Recovery Mandate.
+
+## Read first
+
+- `docs/ethonline-2026/CONTINUITY_BASELINE.md`
+- `docs/ethonline-2026/sponsors/LEDGER.md`
+- `docs/ethonline-2026/ACCEPTANCE.json`
+
+## Build order
+
+1. spike the currently supported Ledger Agent Stack/Key Ring signing/approval path;
+2. choose one honest integration path and document exactly what it signs/protects;
+3. bind approval to agent + booking serial + scope + minimum + expiry + nonce;
+4. implement approve and reject paths;
+5. reject stale/replayed approvals;
+6. integrate escalation UX;
+7. independent claim-boundary review.
+
+## Timebox / fallback
+
+If a real device-backed path is not working within the agreed timebox, mark the blocker and stop. Do not destabilize Hedera + World. Replace this sponsor slot with the approved fallback rather than simulating Ledger.
+
+## Never
+
+- claim a Hedera transaction was Ledger-signed unless proven;
+- display raw opaque payload as the hero approval UX;
+- treat hardware approval as a replacement for YourTurn provider/mandate policy.
+
+## Handoff
+
+Update `docs/ethonline-2026/progress.md` with supported capability, exact claim boundary, evidence and next action.
