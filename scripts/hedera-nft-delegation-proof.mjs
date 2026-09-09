@@ -307,8 +307,10 @@ async function liveLifecycle(args) {
       );
     }
 
-    evidence.approve = await submitOwnerTransaction(buildSerialScopedNftAllowance(base), owner);
+    // Pessimistically assume the allowance may become live before submission. If execute()
+    // reaches a node but receipt retrieval fails, finally must still revoke the serial.
     allowanceMayBeLive = true;
+    evidence.approve = await submitOwnerTransaction(buildSerialScopedNftAllowance(base), owner);
 
     evidence.wrongSerialAttempt = await attemptApprovedTransfer(
       wrong,
@@ -355,8 +357,10 @@ async function liveLifecycle(args) {
       );
     }
 
-    evidence.reapprove = await submitOwnerTransaction(buildSerialScopedNftAllowance(base), owner);
+    // Same pessimistic rule applies to reapproval: cleanup must cover submit/receipt
+    // uncertainty, not only the fully confirmed success path.
     allowanceMayBeLive = true;
+    evidence.reapprove = await submitOwnerTransaction(buildSerialScopedNftAllowance(base), owner);
 
     evidence.permittedTransfer = await attemptApprovedTransfer(
       base,
