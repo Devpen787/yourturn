@@ -16,7 +16,7 @@
     "hedera:nft-studio-proof": "node scripts/nft-studio-proof.mjs",
     "hedera:agent-lab-proof": "node scripts/agent-lab-proof.mjs",
     "hedera:week5-capture": "node scripts/capture-week5-demo-assets.mjs",
-    "ledger:mandate-check": "node scripts/ledger-recovery-mandate-check.mjs",
+    "ledger:mandate-check": "node scripts/ledger-recovery-mandate-check.mjs && node scripts/ledger-recovery-mandate-runtime-check.mjs",
     "telegram:fixture": "node scripts/telegram-fixture-test.mjs",
     "docs:brand-appendix": "node scripts/generate-brand-ui-appendix.mjs"
   },
