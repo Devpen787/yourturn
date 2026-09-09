@@ -20,7 +20,11 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Node 22 can execute the repo's erasable TypeScript imports used by
+          # scripts/hedera-agent-check.mjs without adding a new loader or
+          # mutating the June dependency baseline. It also satisfies current
+          # wallet-standard engine requirements that warn on Node 20.
+          node-version: 22
           cache: npm
 
       - name: Install
