@@ -150,13 +150,15 @@ If a run cannot execute code/tests in its environment, it must **not** pretend t
 - World and Ledger must not rewrite the Hedera transaction core.
 - Integrator merges only green, non-overlapping work.
 
-Recommended branch pattern:
+Canonical branch pattern:
 
 - `feature/ethonline-2026-foundation`
-- `feature/ethonline-hedera-delegation`
-- `feature/ethonline-world-agentkit`
-- `feature/ethonline-ledger-approval`
+- `feature/ethonline-hedera`
+- `feature/ethonline-world`
+- `feature/ethonline-ledger`
 - `feature/ethonline-integration`
+
+Do not invent alternate sponsor branch names; this list must remain aligned with `AGENTS.md`, Command Center #2 and Worker Branch Policy #15.
 
 ## Forbidden unattended actions
 
