@@ -47,30 +47,47 @@ export type RecoveryMandate = {
   issuedAt: bigint;
 };
 
-export type RecoveryMandateExpectation = Partial<
-  Pick<
-    RecoveryMandate,
-    | "ownerId"
-    | "agentId"
-    | "bookingTokenId"
-    | "bookingSerial"
-    | "allowedAction"
-    | "minimumRecoveryAtomicUnits"
-    | "settlementAsset"
-    | "cancellationAllowed"
-  >
+export type RecoveryMandateAuthorizationExpectation = Pick<
+  RecoveryMandate,
+  | "mandateId"
+  | "ownerId"
+  | "agentId"
+  | "bookingTokenId"
+  | "bookingSerial"
+  | "allowedAction"
+  | "minimumRecoveryAtomicUnits"
+  | "settlementAsset"
+  | "expiresAt"
+  | "nonce"
+  | "cancellationAllowed"
+  | "issuedAt"
 >;
 
-export type VerifyRecoveryMandateInput = {
+export type VerifyRecoveryMandateSignatureInput = {
   mandate: RecoveryMandate;
   signature: string;
   expectedSignerAddress: string;
-  expected?: RecoveryMandateExpectation;
-  consumedMandateIds?: ReadonlySet<string>;
-  consumedNonces?: ReadonlySet<string>;
   nowUnixSeconds?: bigint;
   maxFutureIssuedAtSkewSeconds?: number;
 };
+
+export type RecoveryMandateReplayClaim = {
+  mandateId: string;
+  nonce: string;
+  digest: string;
+  expiresAt: bigint;
+  nowUnixSeconds: bigint;
+};
+
+export type RecoveryMandateReplayStore = {
+  consumeOnce(input: RecoveryMandateReplayClaim): Promise<boolean>;
+};
+
+export type AuthorizeRecoveryMandateOnceInput =
+  VerifyRecoveryMandateSignatureInput & {
+    expected: RecoveryMandateAuthorizationExpectation;
+    replayStore: RecoveryMandateReplayStore;
+  };
 
 export type VerifiedRecoveryMandate = {
   mandate: RecoveryMandate;
@@ -96,14 +113,63 @@ function assertUint(name: string, value: bigint, max: bigint): void {
   }
 }
 
-function assertExpectedValue<T>(
-  name: string,
+function assertBoundValue<T>(
+  name: keyof RecoveryMandateAuthorizationExpectation,
   actual: T,
   expected: T | undefined
 ): void {
-  if (expected !== undefined && actual !== expected) {
+  if (expected === undefined) {
+    throw new Error(`Recovery mandate authorization expectation ${name} is required`);
+  }
+  if (actual !== expected) {
     throw new Error(`Recovery mandate ${name} mismatch`);
   }
+}
+
+function assertAuthorizationExpectation(
+  mandate: RecoveryMandate,
+  expected: RecoveryMandateAuthorizationExpectation
+): void {
+  if (!expected || typeof expected !== "object") {
+    throw new Error("Recovery mandate authorization expectation is required");
+  }
+
+  assertBoundValue("mandateId", mandate.mandateId, expected.mandateId);
+  assertBoundValue("ownerId", mandate.ownerId, expected.ownerId);
+  assertBoundValue("agentId", mandate.agentId, expected.agentId);
+  assertBoundValue(
+    "bookingTokenId",
+    mandate.bookingTokenId,
+    expected.bookingTokenId
+  );
+  assertBoundValue(
+    "bookingSerial",
+    mandate.bookingSerial,
+    expected.bookingSerial
+  );
+  assertBoundValue(
+    "allowedAction",
+    mandate.allowedAction,
+    expected.allowedAction
+  );
+  assertBoundValue(
+    "minimumRecoveryAtomicUnits",
+    mandate.minimumRecoveryAtomicUnits,
+    expected.minimumRecoveryAtomicUnits
+  );
+  assertBoundValue(
+    "settlementAsset",
+    mandate.settlementAsset,
+    expected.settlementAsset
+  );
+  assertBoundValue("expiresAt", mandate.expiresAt, expected.expiresAt);
+  assertBoundValue("nonce", mandate.nonce, expected.nonce);
+  assertBoundValue(
+    "cancellationAllowed",
+    mandate.cancellationAllowed,
+    expected.cancellationAllowed
+  );
+  assertBoundValue("issuedAt", mandate.issuedAt, expected.issuedAt);
 }
 
 export function validateRecoveryMandate(mandate: RecoveryMandate): RecoveryMandate {
@@ -155,8 +221,8 @@ export function hashRecoveryMandate(mandate: RecoveryMandate): string {
   return TypedDataEncoder.hash(domain, types, value);
 }
 
-export function verifyRecoveryMandateAuthorization(
-  input: VerifyRecoveryMandateInput
+export function verifyRecoveryMandateSignature(
+  input: VerifyRecoveryMandateSignatureInput
 ): VerifiedRecoveryMandate {
   const { domain, types, value } = buildRecoveryMandateTypedData(input.mandate);
   const nowUnixSeconds =
@@ -180,12 +246,6 @@ export function verifyRecoveryMandateAuthorization(
   ) {
     throw new Error("Recovery mandate issuedAt is too far in the future");
   }
-  if (input.consumedMandateIds?.has(value.mandateId)) {
-    throw new Error("Recovery mandate id has already been consumed or revoked");
-  }
-  if (input.consumedNonces?.has(value.nonce)) {
-    throw new Error("Recovery mandate nonce has already been consumed");
-  }
 
   const expectedSignerAddress = getAddress(input.expectedSignerAddress);
   if (getAddress(value.ledgerSignerAddress) !== expectedSignerAddress) {
@@ -199,43 +259,38 @@ export function verifyRecoveryMandateAuthorization(
     throw new Error("Recovery mandate signature signer mismatch");
   }
 
-  const expected = input.expected ?? {};
-  assertExpectedValue("ownerId", value.ownerId, expected.ownerId);
-  assertExpectedValue("agentId", value.agentId, expected.agentId);
-  assertExpectedValue(
-    "bookingTokenId",
-    value.bookingTokenId,
-    expected.bookingTokenId
-  );
-  assertExpectedValue(
-    "bookingSerial",
-    value.bookingSerial,
-    expected.bookingSerial
-  );
-  assertExpectedValue(
-    "allowedAction",
-    value.allowedAction,
-    expected.allowedAction
-  );
-  assertExpectedValue(
-    "minimumRecoveryAtomicUnits",
-    value.minimumRecoveryAtomicUnits,
-    expected.minimumRecoveryAtomicUnits
-  );
-  assertExpectedValue(
-    "settlementAsset",
-    value.settlementAsset,
-    expected.settlementAsset
-  );
-  assertExpectedValue(
-    "cancellationAllowed",
-    value.cancellationAllowed,
-    expected.cancellationAllowed
-  );
-
   return {
     mandate: value,
     digest: TypedDataEncoder.hash(domain, types, value),
     recoveredSignerAddress,
   };
+}
+
+export async function authorizeRecoveryMandateOnce(
+  input: AuthorizeRecoveryMandateOnceInput
+): Promise<VerifiedRecoveryMandate> {
+  const nowUnixSeconds =
+    input.nowUnixSeconds ?? BigInt(Math.floor(Date.now() / 1000));
+  const verified = verifyRecoveryMandateSignature({
+    mandate: input.mandate,
+    signature: input.signature,
+    expectedSignerAddress: input.expectedSignerAddress,
+    nowUnixSeconds,
+    maxFutureIssuedAtSkewSeconds: input.maxFutureIssuedAtSkewSeconds,
+  });
+
+  assertAuthorizationExpectation(verified.mandate, input.expected);
+
+  const consumed = await input.replayStore.consumeOnce({
+    mandateId: verified.mandate.mandateId,
+    nonce: verified.mandate.nonce,
+    digest: verified.digest,
+    expiresAt: verified.mandate.expiresAt,
+    nowUnixSeconds,
+  });
+  if (!consumed) {
+    throw new Error("Recovery mandate has already been consumed");
+  }
+
+  return verified;
 }

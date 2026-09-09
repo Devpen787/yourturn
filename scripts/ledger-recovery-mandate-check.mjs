@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import { Wallet } from "ethers";
 import {
   RECOVERY_MANDATE_DOMAIN,
+  authorizeRecoveryMandateOnce,
   buildRecoveryMandateTypedData,
-  verifyRecoveryMandateAuthorization,
+  verifyRecoveryMandateSignature,
 } from "../lib/ledger/recovery-mandate.ts";
+import { createRedisRecoveryMandateReplayStore } from "../lib/ledger/recovery-mandate-replay.ts";
 
 const NOW = 1_800_000_000n;
 const TEST_PRIVATE_KEY =
@@ -30,82 +32,145 @@ function makeMandate(overrides = {}) {
   };
 }
 
+function expectationFor(mandate) {
+  return {
+    mandateId: mandate.mandateId,
+    ownerId: mandate.ownerId,
+    agentId: mandate.agentId,
+    bookingTokenId: mandate.bookingTokenId,
+    bookingSerial: mandate.bookingSerial,
+    allowedAction: mandate.allowedAction,
+    minimumRecoveryAtomicUnits: mandate.minimumRecoveryAtomicUnits,
+    settlementAsset: mandate.settlementAsset,
+    expiresAt: mandate.expiresAt,
+    nonce: mandate.nonce,
+    cancellationAllowed: mandate.cancellationAllowed,
+    issuedAt: mandate.issuedAt,
+  };
+}
+
 async function signMandate(mandate, domain = RECOVERY_MANDATE_DOMAIN) {
   const { types, value } = buildRecoveryMandateTypedData(mandate);
   return wallet.signTypedData(domain, types, value);
 }
 
+function createAtomicRedisFixture() {
+  const records = new Map();
+  return {
+    records,
+    async set(key, value, options) {
+      assert.equal(options?.nx, true, "replay marker must use SET NX");
+      assert.ok(
+        Number.isInteger(options?.ex) && options.ex > 0,
+        "replay marker must expire with the mandate"
+      );
+      if (records.has(key)) return null;
+      records.set(key, { value, options });
+      return "OK";
+    },
+  };
+}
+
+function createReplayStore() {
+  return createRedisRecoveryMandateReplayStore(createAtomicRedisFixture());
+}
+
 const mandate = makeMandate();
 const signature = await signMandate(mandate);
-const expected = {
-  ownerId: mandate.ownerId,
-  agentId: mandate.agentId,
-  bookingTokenId: mandate.bookingTokenId,
-  bookingSerial: mandate.bookingSerial,
-  allowedAction: mandate.allowedAction,
-  minimumRecoveryAtomicUnits: mandate.minimumRecoveryAtomicUnits,
-  settlementAsset: mandate.settlementAsset,
-  cancellationAllowed: mandate.cancellationAllowed,
-};
+const expected = expectationFor(mandate);
 
-const verified = verifyRecoveryMandateAuthorization({
+const signatureOnly = verifyRecoveryMandateSignature({
+  mandate,
+  signature,
+  expectedSignerAddress: wallet.address,
+  nowUnixSeconds: NOW,
+});
+assert.equal(signatureOnly.recoveredSignerAddress, wallet.address);
+assert.match(signatureOnly.digest, /^0x[0-9a-f]{64}$/i);
+
+const replayStore = createReplayStore();
+const verified = await authorizeRecoveryMandateOnce({
   mandate,
   signature,
   expectedSignerAddress: wallet.address,
   expected,
+  replayStore,
   nowUnixSeconds: NOW,
 });
 assert.equal(verified.recoveredSignerAddress, wallet.address);
-assert.match(verified.digest, /^0x[0-9a-f]{64}$/i);
 
-assert.throws(
-  () =>
-    verifyRecoveryMandateAuthorization({
-      mandate: { ...mandate, bookingSerial: 194n },
-      signature,
-      expectedSignerAddress: wallet.address,
-      expected,
-      nowUnixSeconds: NOW,
-    }),
+await assert.rejects(
+  authorizeRecoveryMandateOnce({
+    mandate,
+    signature,
+    expectedSignerAddress: wallet.address,
+    expected,
+    replayStore,
+    nowUnixSeconds: NOW,
+  }),
+  /already been consumed/
+);
+
+await assert.rejects(
+  authorizeRecoveryMandateOnce({
+    mandate: { ...mandate, bookingSerial: 194n },
+    signature,
+    expectedSignerAddress: wallet.address,
+    expected,
+    replayStore: createReplayStore(),
+    nowUnixSeconds: NOW,
+  }),
   /signature signer mismatch/
 );
 
-assert.throws(
-  () =>
-    verifyRecoveryMandateAuthorization({
-      mandate,
-      signature,
-      expectedSignerAddress: wallet.address,
-      expected: { ...expected, agentId: "different-agent" },
-      nowUnixSeconds: NOW,
-    }),
+await assert.rejects(
+  authorizeRecoveryMandateOnce({
+    mandate,
+    signature,
+    expectedSignerAddress: wallet.address,
+    expected: { ...expected, agentId: "different-agent" },
+    replayStore: createReplayStore(),
+    nowUnixSeconds: NOW,
+  }),
   /agentId mismatch/
 );
 
-assert.throws(
-  () =>
-    verifyRecoveryMandateAuthorization({
-      mandate,
-      signature,
-      expectedSignerAddress: wallet.address,
-      expected,
-      consumedNonces: new Set([mandate.nonce]),
-      nowUnixSeconds: NOW,
-    }),
-  /nonce has already been consumed/
+await assert.rejects(
+  authorizeRecoveryMandateOnce({
+    mandate,
+    signature,
+    expectedSignerAddress: wallet.address,
+    expected: { ...expected, expiresAt: expected.expiresAt + 1n },
+    replayStore: createReplayStore(),
+    nowUnixSeconds: NOW,
+  }),
+  /expiresAt mismatch/
 );
 
-assert.throws(
-  () =>
-    verifyRecoveryMandateAuthorization({
-      mandate,
-      signature,
-      expectedSignerAddress: wallet.address,
-      expected,
-      consumedMandateIds: new Set([mandate.mandateId]),
-      nowUnixSeconds: NOW,
-    }),
-  /id has already been consumed or revoked/
+await assert.rejects(
+  authorizeRecoveryMandateOnce({
+    mandate,
+    signature,
+    expectedSignerAddress: wallet.address,
+    expected: { ...expected, nonce: "different-nonce" },
+    replayStore: createReplayStore(),
+    nowUnixSeconds: NOW,
+  }),
+  /nonce mismatch/
+);
+
+const incompleteExpected = { ...expected };
+delete incompleteExpected.minimumRecoveryAtomicUnits;
+await assert.rejects(
+  authorizeRecoveryMandateOnce({
+    mandate,
+    signature,
+    expectedSignerAddress: wallet.address,
+    expected: incompleteExpected,
+    replayStore: createReplayStore(),
+    nowUnixSeconds: NOW,
+  }),
+  /expectation minimumRecoveryAtomicUnits is required/
 );
 
 const expiredMandate = makeMandate({
@@ -115,14 +180,15 @@ const expiredMandate = makeMandate({
   expiresAt: NOW - 1n,
 });
 const expiredSignature = await signMandate(expiredMandate);
-assert.throws(
-  () =>
-    verifyRecoveryMandateAuthorization({
-      mandate: expiredMandate,
-      signature: expiredSignature,
-      expectedSignerAddress: wallet.address,
-      nowUnixSeconds: NOW,
-    }),
+await assert.rejects(
+  authorizeRecoveryMandateOnce({
+    mandate: expiredMandate,
+    signature: expiredSignature,
+    expectedSignerAddress: wallet.address,
+    expected: expectationFor(expiredMandate),
+    replayStore: createReplayStore(),
+    nowUnixSeconds: NOW,
+  }),
   /has expired/
 );
 
@@ -133,14 +199,15 @@ const futureMandate = makeMandate({
   expiresAt: NOW + 7_200n,
 });
 const futureSignature = await signMandate(futureMandate);
-assert.throws(
-  () =>
-    verifyRecoveryMandateAuthorization({
-      mandate: futureMandate,
-      signature: futureSignature,
-      expectedSignerAddress: wallet.address,
-      nowUnixSeconds: NOW,
-    }),
+await assert.rejects(
+  authorizeRecoveryMandateOnce({
+    mandate: futureMandate,
+    signature: futureSignature,
+    expectedSignerAddress: wallet.address,
+    expected: expectationFor(futureMandate),
+    replayStore: createReplayStore(),
+    nowUnixSeconds: NOW,
+  }),
   /issuedAt is too far in the future/
 );
 
@@ -148,36 +215,76 @@ const wrongDomainSignature = await signMandate(mandate, {
   ...RECOVERY_MANDATE_DOMAIN,
   chainId: 295,
 });
-assert.throws(
-  () =>
-    verifyRecoveryMandateAuthorization({
-      mandate,
-      signature: wrongDomainSignature,
-      expectedSignerAddress: wallet.address,
-      expected,
-      nowUnixSeconds: NOW,
-    }),
+await assert.rejects(
+  authorizeRecoveryMandateOnce({
+    mandate,
+    signature: wrongDomainSignature,
+    expectedSignerAddress: wallet.address,
+    expected,
+    replayStore: createReplayStore(),
+    nowUnixSeconds: NOW,
+  }),
   /signature signer mismatch/
+);
+
+const concurrentMandate = makeMandate({
+  mandateId: "mandate-concurrent",
+  nonce: "ledger-mandate-nonce-concurrent",
+});
+const concurrentSignature = await signMandate(concurrentMandate);
+const concurrentExpected = expectationFor(concurrentMandate);
+const concurrentReplayStore = createReplayStore();
+const concurrentResults = await Promise.allSettled([
+  authorizeRecoveryMandateOnce({
+    mandate: concurrentMandate,
+    signature: concurrentSignature,
+    expectedSignerAddress: wallet.address,
+    expected: concurrentExpected,
+    replayStore: concurrentReplayStore,
+    nowUnixSeconds: NOW,
+  }),
+  authorizeRecoveryMandateOnce({
+    mandate: concurrentMandate,
+    signature: concurrentSignature,
+    expectedSignerAddress: wallet.address,
+    expected: concurrentExpected,
+    replayStore: concurrentReplayStore,
+    nowUnixSeconds: NOW,
+  }),
+]);
+assert.equal(
+  concurrentResults.filter((result) => result.status === "fulfilled").length,
+  1,
+  "exactly one concurrent authorization may consume a mandate"
+);
+assert.equal(
+  concurrentResults.filter((result) => result.status === "rejected").length,
+  1,
+  "the duplicate concurrent authorization must fail"
 );
 
 console.log(
   JSON.stringify(
     {
       ok: true,
-      evidenceLevel: "SIMULATED",
+      evidenceLevel: "CI_SIMULATED",
       checks: [
-        "valid EIP-712 mandate verifies",
+        "signature verification is separate from runtime authorization",
+        "complete mandate expectation is mandatory for authorization",
+        "agent, serial, minimum, asset, expiry and nonce remain load-bearing",
+        "atomic SET NX replay claim allows exactly one concurrent authorization",
+        "same signed mandate cannot be authorized twice",
         "serial mutation rejected",
         "wrong expected agent rejected",
-        "consumed nonce rejected",
-        "consumed/revoked mandate id rejected",
+        "missing required expectation rejected",
         "expired mandate rejected",
         "future-issued mandate rejected beyond clock skew",
         "wrong EIP-712 chain domain rejected",
       ],
+      durableReplayStore: "Upstash Redis SET NX marker keyed by mandateId+nonce until expiry",
       deviceProof: false,
       claimBoundary:
-        "Deterministic EIP-712 contract fixture only; no Ledger device approval or Hedera transaction signing is claimed.",
+        "EIP-712 authorization/replay contract is CI-backed, but no Ledger device approval/rejection or Hedera transaction signing is claimed.",
     },
     null,
     2
