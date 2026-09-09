@@ -48,6 +48,11 @@ jobs:
           HEDERA_TREASURY_ID: '0.0.9002'
         run: npm run hedera:agent-check
 
+      - name: Hedera serial-scoped NFT delegation check
+        # Deterministic transaction-shape proof only. It must stay clearly below
+        # LIVE/TESTNET evidence until the same lifecycle executes on Hedera.
+        run: npm run hedera:nft-delegation-proof
+
       - name: Continuity baseline must remain documented
         run: |
           grep -q 'd0b5f875afb4f2b29af29bc5972cf1edc404d473' docs/ethonline-2026/CONTINUITY_BASELINE.md
