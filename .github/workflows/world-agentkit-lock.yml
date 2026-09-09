@@ -1,0 +1,43 @@
+name: World AgentKit lock refresh
+
+on:
+  push:
+    branches:
+      - feature/ethonline-world
+    paths:
+      - '.github/workflows/world-agentkit-lock.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-lock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout World branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/ethonline-world
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Pin official World AgentKit package and refresh lockfile
+        run: npm install @worldcoin/agentkit@0.2.1 --save-exact --package-lock-only --legacy-peer-deps
+
+      - name: Commit dependency metadata if changed
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add package.json package-lock.json
+          if git diff --cached --quiet; then
+            echo 'AgentKit dependency metadata already current.'
+            exit 0
+          fi
+          git commit -m 'chore(world): pin official AgentKit 0.2.1'
+          git push origin HEAD:feature/ethonline-world
