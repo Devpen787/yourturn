@@ -92,3 +92,15 @@ Append one block per meaningful run:
 - Failed/open: SEC-WORLD-003 remains OPEN; no official AgentKit cryptographic verification, live AgentBook resolution, World Sandbox evidence, sponsor feedback document, or live recovery write-path proof exists.
 - Claim impact: hardened groundwork, not World qualification.
 - Exact next action: realign the branch to frozen foundation `89ded956...`; then add the official `@worldcoin/agentkit` verifier/AgentBook adapter as a separate bounded increment.
+
+### 2026-09-10 00:17 Europe/Zurich — World branch-hygiene repair
+- Branch/SHA: `feature/ethonline-world` code checkpoint `4e96bb713761be6239ffc6d76494b08ad97010a9`; this handoff commit follows that checkpoint.
+- Mission: clear the existing branch divergence / non-mergeable PR gate before adding another World primitive.
+- Changed: rebuilt the exact World trust-boundary increment directly on frozen foundation `89ded956e67c343b7abefc36e33044c6064a7798`, preserving the security-fixed code, contract tests, CI hook and integration contract while taking the frozen foundation as the sole parent. PR #22 is now mergeable; compare is 1 ahead / 0 behind before this handoff-doc commit. No product/runtime authority behavior was expanded.
+- Docs reviewed: current ETHOnline 2026 World AgentKit Continuity wording; current AgentKit integration guide + SDK reference; AgentBook registration/resolution path; World ID Sandbox semantics/access docs; official `worldcoin/agentkit` repository confirms current `@worldcoin/agentkit` and `@worldcoin/agentkit-core` package version `0.2.1`.
+- Branch archaeology: immutable `codex/ethglobal-final-public@d0b5f875...` = REUSE as before-state truth; `main` + `feat/product-issuer-holder-ux` = REFERENCE only for this increment because no auth/session/customer UX seam changed; no pre-event World AgentKit integration was found to reuse.
+- Verification actually run: GitHub Actions run `34411211754` SUCCESS on `4e96bb...`: install, production build, inherited Hedera Agent Kit check, `npm run world:contract-check`, and continuity-baseline guard all passed. PR #22 became mergeable after realignment.
+- Evidence: CI + repository topology only. This proves branch compatibility and preserves deterministic World contract behavior; it does **not** prove AgentKit cryptography, AgentBook, Sandbox or a World-backed recovery write.
+- Failed/open: SEC-WORLD-003 remains open. `@worldcoin/agentkit` is not yet installed in YourTurn; official request/signature verification, live AgentBook resolution, Sandbox remote proof, feedback document and World-gated recovery behavior remain RED.
+- Claim impact: branch-hygiene blocker is cleared; World sponsor qualification remains RED.
+- Exact next action: one separate bounded increment installing official `@worldcoin/agentkit@0.2.1` and implementing the low-level server verifier adapter (`parseAgentkitHeader` -> validation incl. nonce hook -> signature verification -> AgentBook lookup -> privacy-minimized `WorldAgentVerification`) with deterministic tamper/resource/unresolved/replay negatives. Do not wire Hedera settlement until that adapter is green and independently attacked.
