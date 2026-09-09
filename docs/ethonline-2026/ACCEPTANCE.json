@@ -24,7 +24,10 @@
     "usdc_customer_settlement_live": false,
     "usdc_testnet_token_is_official_circle_token": false,
     "atomic_usdc_plus_nft_settlement_live": false,
-    "x402_service_consumed_by_new_agent_live": false
+    "x402_service_consumed_by_new_agent_live": false,
+    "continuity_public_readme_before_after_complete": false,
+    "continuity_demo_under_5_minutes_ready": false,
+    "agentic_payments_secondary_eligibility_confirmed": false
   },
   "world": {
     "agentkit_request_validation_live": false,
@@ -37,11 +40,15 @@
     "supported_ledger_path_selected": false,
     "device_backed_mandate_or_escalation_live": false,
     "reject_path_verified": false,
-    "ledger_claim_boundary_documented": false
+    "ledger_claim_boundary_documented": false,
+    "ledger_before_after_complete": false,
+    "ledger_dx_feedback_document_complete": false,
+    "runnable_repo_or_recorded_walkthrough_complete": false
   },
   "continuity": {
     "before_after_table_complete": false,
     "all_new_claims_diff_from_baseline": false,
+    "public_readme_clearly_separates_baseline_and_new_work": false,
     "hedera_independent_review_green": false,
     "world_independent_review_green": false,
     "ledger_independent_review_green": false,
