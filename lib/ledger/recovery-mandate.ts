@@ -78,8 +78,10 @@ export type VerifiedRecoveryMandate = {
   recoveredSignerAddress: string;
 };
 
-const UINT64_MAX = (1n << 64n) - 1n;
-const UINT256_MAX = (1n << 256n) - 1n;
+const BIGINT_ZERO = BigInt(0);
+const BIGINT_ONE = BigInt(1);
+const UINT64_MAX = (BIGINT_ONE << BigInt(64)) - BIGINT_ONE;
+const UINT256_MAX = (BIGINT_ONE << BigInt(256)) - BIGINT_ONE;
 const HEDERA_TOKEN_ID = /^0\.0\.[1-9]\d*$/;
 
 function assertText(name: string, value: string, maxLength = 256): void {
@@ -89,7 +91,7 @@ function assertText(name: string, value: string, maxLength = 256): void {
 }
 
 function assertUint(name: string, value: bigint, max: bigint): void {
-  if (typeof value !== "bigint" || value < 0n || value > max) {
+  if (typeof value !== "bigint" || value < BIGINT_ZERO || value > max) {
     throw new Error(`${name} is outside its unsigned integer range`);
   }
 }
@@ -121,7 +123,7 @@ export function validateRecoveryMandate(mandate: RecoveryMandate): RecoveryManda
   mandate.ledgerSignerAddress = getAddress(mandate.ledgerSignerAddress);
 
   assertUint("bookingSerial", mandate.bookingSerial, UINT64_MAX);
-  if (mandate.bookingSerial === 0n) {
+  if (mandate.bookingSerial === BIGINT_ZERO) {
     throw new Error("bookingSerial must be greater than zero");
   }
   assertUint(
