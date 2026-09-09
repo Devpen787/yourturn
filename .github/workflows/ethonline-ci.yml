@@ -39,6 +39,13 @@ jobs:
         run: npm run build
 
       - name: Hedera Agent Kit policy/proof check
+        # The baseline checker validates the configured wallet-allowance policy.
+        # CI has no demo-account secrets, so use explicit non-secret fixture IDs.
+        # No allowance tx id is set, therefore this remains CONFIGURED evidence,
+        # never LIVE/TESTNET evidence.
+        env:
+          HEDERA_GUEST_A_ID: '0.0.9001'
+          HEDERA_TREASURY_ID: '0.0.9002'
         run: npm run hedera:agent-check
 
       - name: Continuity baseline must remain documented
