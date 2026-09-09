@@ -11,6 +11,7 @@
     "ethglobal:preflight": "node scripts/ethglobal-preflight.mjs",
     "ethglobal:e2e": "node scripts/ethglobal-e2e.mjs",
     "hedera:agent-check": "NODE_OPTIONS=--no-warnings node scripts/hedera-agent-check.mjs",
+    "hedera:nft-delegation-proof": "NODE_OPTIONS=--no-warnings node scripts/hedera-nft-delegation-proof.mjs",
     "hedera:usdc-allowance-proof": "node scripts/hedera-usdc-allowance-proof.mjs",
     "hedera:x402-settlement-proof": "node scripts/x402-hedera-settlement-proof.mjs",
     "hedera:nft-studio-proof": "node scripts/nft-studio-proof.mjs",
@@ -44,7 +45,7 @@
   "devDependencies": {
     "@types/node": "20.14.10",
     "@types/react": "18.3.3",
-    "@types/react-dom": "18.3.0",
+    "@types/react-dom": "18.3.3",
     "autoprefixer": "10.4.19",
     "eslint": "8.57.0",
     "eslint-config-next": "14.2.18",
