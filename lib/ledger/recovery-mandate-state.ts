@@ -3,8 +3,11 @@ import type {
   RecoveryMandateAuthorizationExpectation,
   RecoveryMandateReplayStore,
   VerifiedRecoveryMandate,
-} from "./recovery-mandate";
-import { authorizeRecoveryMandateOnce, validateRecoveryMandate } from "./recovery-mandate";
+} from "./recovery-mandate.ts";
+import {
+  authorizeRecoveryMandateOnce,
+  validateRecoveryMandate,
+} from "./recovery-mandate.ts";
 
 const BIGINT_ZERO = BigInt(0);
 const MAX_SAFE_INTEGER_BIGINT = BigInt(Number.MAX_SAFE_INTEGER);
