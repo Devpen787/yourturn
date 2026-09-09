@@ -28,15 +28,15 @@ When working on any `ethonline-2026` branch, this repository's **repo-local** ET
 
 ## Active task branches
 
-Use task-based names:
+Canonical sponsor branch names are:
 
 - `feature/ethonline-2026-foundation`
-- `feature/ethonline-hedera-delegation`
-- `feature/ethonline-world-agentkit`
-- `feature/ethonline-ledger-approval`
+- `feature/ethonline-hedera`
+- `feature/ethonline-world`
+- `feature/ethonline-ledger`
 - `feature/ethonline-integration`
 
-Sponsor branches must not rewrite each other's cores. Shared interface changes land through a small foundation change first.
+Do not create alternate sponsor branch names such as `feature/ethonline-hedera-delegation`, `feature/ethonline-world-agentkit`, or `feature/ethonline-ledger-approval`. Sponsor branches must not rewrite each other's cores. Shared interface changes land through a small foundation change first.
 
 ## Minimum verification
 
