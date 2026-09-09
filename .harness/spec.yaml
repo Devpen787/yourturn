@@ -1,0 +1,30 @@
+schemaVersion: 2
+
+name: yourturn-ethonline-2026-continuity
+description: >-
+  Build and verify YourTurn Delegated Recovery as a substantive ETHOnline 2026
+  Continuity upgrade. Preserve the June baseline, add Hedera-native delegated
+  booking authority and USDC recovery, then integrate sponsor trust layers.
+
+baseline:
+  commands:
+    - name: install
+      command: npm ci --legacy-peer-deps
+    - name: build
+      command: npm run build
+    - name: hedera-agent-check
+      command: npm run hedera:agent-check
+
+prd:
+  - .harness/prds/01-hedera-authority-spike.md
+  - .harness/prds/02-delegation-policy.md
+  - .harness/prds/03-usdc-recovery.md
+  - .harness/prds/04-hero-ux.md
+
+# The legacy-peer-deps flag preserves the June dependency baseline while the repo
+# contains a peer-range mismatch between hedera-wallet-connect 2.1.3 and HAK v4.
+# Dependency modernization is a separate task and must not be smuggled into a
+# process-only foundation change.
+# Keep deterministic validation authoritative first. Add Playwright/semantic/onchain
+# tiers only once the environment is proven by `npx hedera-harness doctor`.
+# Never put network secrets in this file.
