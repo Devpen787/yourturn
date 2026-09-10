@@ -335,7 +335,7 @@ export default function Xc01Client() {
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Before you commit</p>
               <h2 className="mt-3 text-xl font-semibold">45 USDC creates the recovery opportunity.</h2>
               <p className="mt-3 text-sm leading-6 text-slate-300">
-                YourTurn still rechecks availability, Studio A's rules, and the final holder state before showing Friday Yoga as yours.
+                YourTurn still rechecks availability, Studio A&apos;s rules, and the final holder state before showing Friday Yoga as yours.
               </p>
               <button type="button" onClick={() => setStep("paymentPending")} className="mt-6 inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950">
                 Commit 45 USDC
@@ -454,7 +454,7 @@ export default function Xc01Client() {
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Ready for handoff</p>
               <h2 className="mt-3 text-xl font-semibold">YourTurn can evaluate this opportunity.</h2>
               <p className="mt-3 text-sm leading-6 text-slate-300">
-                Bob only sees his own booking, eligibility, payment, and resulting holder state. The current holder's private authorization ceremony stays private.
+                Bob only sees his own booking, eligibility, payment, and resulting holder state. The current holder&apos;s private authorization ceremony stays private.
               </p>
               <button type="button" onClick={() => setStep("reconciling")} className="mt-6 inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-slate-100">
                 Check handoff status
@@ -491,7 +491,7 @@ export default function Xc01Client() {
               </div>
             </dl>
             <p className="mt-5 text-sm leading-6 text-slate-600">
-              YourTurn does not show Friday Yoga as Bob's booking until payment and the authoritative holder change agree.
+              YourTurn does not show Friday Yoga as Bob&apos;s booking until payment and the authoritative holder change agree.
             </p>
           </div>
           <button type="button" onClick={() => setStep("bobSuccess")} className={`${primaryButton} mt-5`}>
@@ -523,7 +523,7 @@ export default function Xc01Client() {
               </div>
             </dl>
             <p className="mt-5 text-sm leading-6 text-slate-700">
-              Bob should not attempt check-in yet. Maya's completion and Studio A's current-holder view must agree before this state can become successful.
+              Bob should not attempt check-in yet. Maya&apos;s completion and Studio A&apos;s current-holder view must agree before this state can become successful.
             </p>
           </div>
           <button type="button" onClick={() => setStep("reconciling")} className={`${primaryButton} mt-5`}>Check again</button>
