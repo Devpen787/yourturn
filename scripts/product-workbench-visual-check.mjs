@@ -14,6 +14,8 @@ const bannedCustomerCopy = [
   "Try the booking journey",
 ];
 
+const legacyBookingCopy = ["live pass", "list your pass for resale"];
+
 async function assertVisible(page, text) {
   const matches = page.getByText(text, { exact: false });
   const count = await matches.count();
@@ -30,6 +32,15 @@ async function assertNoPrototypeCopy(page) {
   for (const phrase of bannedCustomerCopy) {
     if (body.includes(phrase)) {
       throw new Error(`Customer-visible prototype copy leaked: ${phrase}`);
+    }
+  }
+}
+
+async function assertNoLegacyBookingCopy(page) {
+  const body = (await page.locator("body").innerText()).toLowerCase();
+  for (const phrase of legacyBookingCopy) {
+    if (body.includes(phrase)) {
+      throw new Error(`Legacy pass vocabulary leaked into booking-first customer copy: ${phrase}`);
     }
   }
 }
@@ -60,6 +71,25 @@ async function assertCanonicalBookingLinks(page) {
   }
 }
 
+async function assertMobileLandingHeader(page, viewport) {
+  if (viewport.width > 400) {
+    return;
+  }
+
+  const providerLink = page.getByRole("link", { name: "Provider dashboard", exact: true });
+  if ((await providerLink.count()) > 0 && (await providerLink.first().isVisible())) {
+    throw new Error("Provider dashboard must not dominate the compact customer landing header");
+  }
+
+  const registerLink = page.getByRole("link", { name: "Register", exact: true });
+  if ((await registerLink.count()) > 0 && (await registerLink.first().isVisible())) {
+    throw new Error("Register must collapse out of the compact 390px landing header");
+  }
+
+  await assertVisible(page, "My bookings");
+  await assertVisible(page, "Sign in");
+}
+
 async function screenshot(page, prefix, name) {
   await page.screenshot({
     path: path.join(outDir, `${prefix}-${name}.png`),
@@ -75,6 +105,8 @@ async function runJourney(browser, viewport, prefix) {
   await assertVisible(page, "Book the spot.");
   await assertVisible(page, "Open my bookings");
   await assertCanonicalBookingLinks(page);
+  await assertNoLegacyBookingCopy(page);
+  await assertMobileLandingHeader(page, viewport);
   await screenshot(page, prefix, "01-landing");
 
   await page.getByRole("link", { name: "Open my bookings" }).first().click();
@@ -91,13 +123,17 @@ async function runJourney(browser, viewport, prefix) {
 
   await page.getByText("View booking →", { exact: true }).click();
   await assertVisible(page, "What do you want to do?");
+  await assertVisible(page, "Change plans");
+  await assertNoPrototypeCopy(page);
+  await screenshot(page, prefix, "04-booking-detail");
+
   await page.getByRole("button", { name: "Change plans" }).click();
   await assertVisible(page, "What would help most?");
 
   await page.getByRole("button", { name: /Find someone to take it/ }).click();
   await assertVisible(page, "isn’t available for Friday Yoga right now");
   await assertNoPrototypeCopy(page);
-  await screenshot(page, prefix, "04-change-plans");
+  await screenshot(page, prefix, "05-change-plans");
 
   await page.getByRole("button", { name: /Let YourTurn handle it/ }).click();
   await assertVisible(page, "Only this booking");
@@ -106,7 +142,7 @@ async function runJourney(browser, viewport, prefix) {
   await assertVisible(page, "Tomorrow · 17:00");
   await assertVisible(page, "Cancel this booking.");
   await assertNoPrototypeCopy(page);
-  await screenshot(page, prefix, "05-recovery-limits");
+  await screenshot(page, prefix, "06-recovery-limits");
 
   await page.getByRole("checkbox").check();
   const continueButton = page.getByRole("button", { name: "Continue to secure approval" });
@@ -122,7 +158,7 @@ async function runJourney(browser, viewport, prefix) {
     throw new Error("UX-only candidate must not expose an enabled authorization action");
   }
   await assertNoPrototypeCopy(page);
-  await screenshot(page, prefix, "06-authorization-boundary");
+  await screenshot(page, prefix, "07-authorization-boundary");
 
   await page.getByRole("link", { name: "My bookings" }).click();
   await page.waitForURL(/\/product-preview\?view=bookings/);
