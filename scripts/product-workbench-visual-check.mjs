@@ -35,6 +35,7 @@ async function assertNoPrototypeCopy(page) {
 }
 
 async function assertCanonicalBookingLinks(page) {
+  const canonicalLandingEntry = "/product-preview";
   const bookingLinks = page.getByRole("link", { name: "Open my bookings" });
   const bookingLinkCount = await bookingLinks.count();
   if (bookingLinkCount < 1) {
@@ -43,15 +44,19 @@ async function assertCanonicalBookingLinks(page) {
 
   for (let index = 0; index < bookingLinkCount; index += 1) {
     const href = await bookingLinks.nth(index).getAttribute("href");
-    if (!href?.startsWith("/product-preview")) {
-      throw new Error(`Landing booking CTA escaped canonical candidate: ${href ?? "missing href"}`);
+    if (href !== canonicalLandingEntry) {
+      throw new Error(
+        `Landing booking CTA diverged from canonical entry state: ${href ?? "missing href"}`
+      );
     }
   }
 
   const headerLink = page.getByRole("link", { name: "My bookings", exact: true }).first();
   const headerHref = await headerLink.getAttribute("href");
-  if (!headerHref?.startsWith("/product-preview")) {
-    throw new Error(`Home header My bookings escaped canonical candidate: ${headerHref ?? "missing href"}`);
+  if (headerHref !== canonicalLandingEntry) {
+    throw new Error(
+      `Home header My bookings diverged from canonical entry state: ${headerHref ?? "missing href"}`
+    );
   }
 }
 
@@ -73,7 +78,7 @@ async function runJourney(browser, viewport, prefix) {
   await screenshot(page, prefix, "01-landing");
 
   await page.getByRole("link", { name: "Open my bookings" }).first().click();
-  await page.waitForURL(/\/product-preview/);
+  await page.waitForURL(/\/product-preview$/);
   await assertNoPrototypeCopy(page);
   await assertVisible(page, "Maya Keller");
   await screenshot(page, prefix, "02-entry");
