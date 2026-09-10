@@ -12,7 +12,7 @@ Status vocabulary: `candidate`, `review`, `GOLDEN-READY`, `Golden`, `implemented
 | YT-06 Agent working | Holder sees the exact human-backed delegated agent working | Golden | P0 |
 | YT-07 Block / escalate | Out-of-scope offer is blocked and escalation boundary is clear | Golden | P0 |
 | YT-08 Successful recovery | In-scope offer completes transfer + settlement | Golden | P0 |
-| YT-09 New holder | Buyer sees and can use the transferred booking | queued / bridge | P1 |
+| YT-09 New holder | Buyer sees and can use the transferred booking | queued / XC-01 bridge | P1 |
 | YT-10 Activity & proof | Both parties can understand what happened; reviewer can inspect evidence | queued / bridge | P1 |
 
 ## Golden product truth
@@ -66,33 +66,54 @@ Golden freezes **product behavior and presentation**, not evidence class.
 
 The YT-05→YT-08 UX executable still contains fixture/demo sponsor transitions where real sponsor integration is not yet wired. Those fixtures must not be presented as LIVE. Integration must replace them with real Ledger / World / Hedera state while preserving the approved customer journey.
 
-## Active product-workbench gate
+## Post-Golden architecture gate
 
-The holder-recovery hero YT-01→YT-08 is now Golden. Do **not** jump directly into a holder-only YT-09/YT-10 extension.
+The holder-recovery hero YT-01→YT-08 is Golden and the required post-Golden product contract has now been established:
+- `DESIGN.md` — Golden-derived visual/product contract;
+- `GLOSSARY.md` — domain language and `Avoid:` aliases;
+- `CRAFT.md` — state/accessibility/responsive/copy/interaction rules;
+- `integration-ledger.md` — Golden fixture-to-real implementation acceptance map;
+- stakeholder coverage gate — applied;
+- `next-slice.md` — connected continuation selected.
 
-Before the next complete product slice:
-1. extract a concrete YourTurn `DESIGN.md` / design contract from the approved Golden evidence per issue #40;
-2. establish the domain glossary and reusable craft/review rules;
-3. apply `stakeholder-coverage-gate.md` and issue #39;
-4. map the acquirer lane and provider lane against the same Golden product/design contract;
-5. choose the smallest connected next slice that respects:
+Do **not** treat YT-09/YT-10 as an isolated holder-only next set.
+
+## Selected next set
+
+### XC-01 — Eligible next holder + provider-recognized handoff
+
+Status: **architecture selected; executable candidate not yet built**.
+
+Connected story:
+
+`Studio A pre-defined recovery rules → Bob finds/evaluates Friday Yoga → Bob satisfies eligibility + commits to the 45 USDC acquisition → existing Golden Maya recovery accepts inside scope → Maya sees You recovered 45 USDC → Bob receives Friday Yoga as a normal usable booking → Studio A sees Bob as the authoritative current holder`
+
+Minimum lane coverage:
+- acquirer A-01→A-04, narrowly;
+- provider P-03, P-06, P-07, narrowly;
+- Golden YT-08 holder semantics unchanged;
+- A-05/P-08 check-in is the immediate completion follow-up if existing normal fulfilment paths cannot be reused truthfully inside the first connected candidate.
+
+Core permission rule:
 
 `provider rules ∩ holder mandate ∩ acquirer eligibility/payment`
 
-YT-09 and YT-10 remain bridge concepts into the acquirer/history experience, but they are not sufficient by themselves to define the next complete product slice.
+Provider policy is pre-defined and load-bearing; a compliant recovery does not require provider staff to manually approve the individual transfer.
 
 ## Golden-to-integration requirement
 
-Before YT-05→YT-08 is treated as integrated product truth, create/use the acceptance ledger requested in issue #40. For every Golden state/action map:
-- intended customer behavior;
-- UI/component owner;
-- backend/sponsor owner;
-- current evidence source (`FIXTURE`, `LIVE/TESTNET`, `CI`, etc.);
-- real interface/action that replaces the fixture;
-- acceptance/evidence needed;
-- failure/rollback behavior.
+`integration-ledger.md` now records the acceptance boundary for Golden YT-05→YT-08. Key open implementation truths remain:
+- Ledger runtime guards are CI_CONFIGURED but hardware/device provenance and downstream Hedera consumption require real proof;
+- World has a bounded LIVE/SIGNED-ROUTE human-backed-agent proof, but it must be bound to the actual Recovery-Mandate execution path without exposing raw human identity or substituting the legacy approval-grant model for Ledger authority;
+- Hedera policy/atomic-USDC semantics are CI/LOCAL and RETURN_BYTES are unsigned/unsubmitted until a real sign/submit/receipt/state-reconciliation path proves settlement.
 
-A transaction receipt or holder-only success screen does not count as complete product coverage.
+The Golden prototype is design/product evidence, not automatically the production implementation owner.
+
+## Exact next action
+
+Build one canonical **XC-01** candidate under `DESIGN.md`, `GLOSSARY.md`, `CRAFT.md`, `integration-ledger.md`, `stakeholder-journeys.md`, `stakeholder-coverage-gate.md`, and `next-slice.md`.
+
+Any material executable UX change must run production build + real Chromium desktop/mobile evidence and return to Product Reviewer #34 for direct PNG inspection. Reviewer may mark `GOLDEN-READY`; Devinson explicitly approves before freeze.
 
 ## Completion principle
 
