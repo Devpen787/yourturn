@@ -87,12 +87,12 @@ function ProductPreviewHeader() {
           <BrandLockup variant="calendarTurn" markClassName="h-8 w-8" />
         </Link>
         <nav className="flex min-w-0 items-center gap-2" aria-label="Customer">
-          <Link
+          <a
             href="/product-preview?view=bookings"
             className="rounded-md px-2.5 py-2 text-sm font-semibold text-slate-950 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus focus-visible:ring-offset-2"
           >
             My bookings
-          </Link>
+          </a>
           <span className="hidden max-w-[14rem] truncate rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 sm:inline-block">
             Maya Keller
           </span>
