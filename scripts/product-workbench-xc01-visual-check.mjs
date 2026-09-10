@@ -33,6 +33,34 @@ async function assertNoLegacyPersonaOrProofLeak(page) {
   }
 }
 
+async function assertAudienceHeader(page) {
+  const url = new URL(page.url());
+  const view = url.searchParams.get("view") ?? "";
+  if (!view.startsWith("xc-")) return;
+
+  const headerText = (await page.locator("header").textContent()) ?? "";
+  if (view.startsWith("xc-provider")) {
+    if (!headerText.includes("Studio A") || !headerText.includes("Friday Yoga")) {
+      throw new Error(`Provider XC-01 header missing Studio A/Friday Yoga context: ${headerText}`);
+    }
+    if (headerText.includes("Maya Keller") || headerText.includes("Bob")) {
+      throw new Error(`Provider XC-01 header leaked customer identity: ${headerText}`);
+    }
+    return;
+  }
+
+  if (!headerText.includes("Bob") || headerText.includes("Maya Keller")) {
+    throw new Error(`Acquirer XC-01 header must identify Bob without Maya leakage: ${headerText}`);
+  }
+  if (view === "xc-bob-success") {
+    if (!headerText.includes("My bookings")) {
+      throw new Error(`Bob success header must return to My bookings: ${headerText}`);
+    }
+  } else if (!headerText.includes("Find a spot")) {
+    throw new Error(`Bob acquisition header must stay in Find a spot: ${headerText}`);
+  }
+}
+
 async function assertNoHorizontalScroll(page) {
   const overflow = await page.evaluate(() => {
     const root = document.documentElement;
@@ -46,6 +74,7 @@ async function assertNoHorizontalScroll(page) {
 async function screenshot(page, prefix, name) {
   await assertNoHorizontalScroll(page);
   await assertNoLegacyPersonaOrProofLeak(page);
+  await assertAudienceHeader(page);
   await page.screenshot({
     path: path.join(outDir, `${prefix}-${name}.png`),
     fullPage: true,
@@ -218,6 +247,7 @@ async function runBreakpointSmoke(browser, width) {
     await page.goto(`${baseUrl}/product-preview?view=${view}`, { waitUntil: "networkidle" });
     await assertNoHorizontalScroll(page);
     await assertNoLegacyPersonaOrProofLeak(page);
+    await assertAudienceHeader(page);
   }
   await context.close();
 }
@@ -236,5 +266,5 @@ try {
 }
 
 console.log(
-  "Product Workbench XC-01 visual check passed provider policy/block, Bob availability/eligibility/payment/handoff, partial reconciliation, usable booking, provider holder-change states, and responsive smoke widths."
+  "Product Workbench XC-01 visual check passed provider policy/block, Bob availability/eligibility/payment/handoff, partial reconciliation, usable booking, provider holder-change states, audience headers, and responsive smoke widths."
 );

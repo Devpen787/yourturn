@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { BrandLockup } from "@/components/brand-lab/brandLogoVariants";
 import { cn } from "@/lib/cn";
@@ -14,6 +14,8 @@ type SessionUser =
       hederaPersona: "guestA" | "guestB" | null;
     }
   | null;
+
+type ProductPreviewHeaderMode = "maya" | "bob" | "bob-bookings" | "provider";
 
 const NAV = [
   {
@@ -78,7 +80,17 @@ function showProviderInNav(pathname: string, sessionUser: SessionUser): boolean 
   return false;
 }
 
-function ProductPreviewHeader() {
+function ProductPreviewHeader({ mode }: { mode: ProductPreviewHeaderMode }) {
+  const nav =
+    mode === "provider"
+      ? { href: "/product-preview?view=xc-provider-policy", label: "Friday Yoga", ariaLabel: "Provider" }
+      : mode === "bob"
+        ? { href: "/product-preview?view=xc-find", label: "Find a spot", ariaLabel: "Customer" }
+        : mode === "bob-bookings"
+          ? { href: "/product-preview?view=xc-bob-success", label: "My bookings", ariaLabel: "Customer" }
+          : { href: "/product-preview?view=bookings", label: "My bookings", ariaLabel: "Customer" };
+  const identity = mode === "provider" ? "Studio A" : mode === "bob" || mode === "bob-bookings" ? "Bob" : "Maya Keller";
+
   return (
     <header className="border-b border-slate-200/90 bg-white/90 shadow-sm shadow-slate-900/[0.03] backdrop-blur-md">
       <div className="mx-auto flex min-h-[3.25rem] max-w-5xl items-center justify-between gap-4 px-4 py-2.5 sm:py-3">
@@ -89,15 +101,15 @@ function ProductPreviewHeader() {
         >
           <BrandLockup variant="calendarTurn" markClassName="h-8 w-8" />
         </Link>
-        <nav className="flex min-w-0 items-center gap-2" aria-label="Customer">
+        <nav className="flex min-w-0 items-center gap-2" aria-label={nav.ariaLabel}>
           <a
-            href="/product-preview?view=bookings"
+            href={nav.href}
             className="rounded-md px-2.5 py-2 text-sm font-semibold text-slate-950 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus focus-visible:ring-offset-2"
           >
-            My bookings
+            {nav.label}
           </a>
           <span className="hidden max-w-[14rem] truncate rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 sm:inline-block">
-            Maya Keller
+            {identity}
           </span>
         </nav>
       </div>
@@ -111,12 +123,21 @@ export function SiteHeader({
   sessionUser?: SessionUser;
 }) {
   const pathname = usePathname() ?? "";
+  const searchParams = useSearchParams();
   const router = useRouter();
   const [logoutBusy, setLogoutBusy] = useState(false);
   const homeActive = pathname === "/";
 
   if (pathname.startsWith("/product-preview")) {
-    return <ProductPreviewHeader />;
+    const view = searchParams.get("view");
+    const mode: ProductPreviewHeaderMode = view?.startsWith("xc-provider")
+      ? "provider"
+      : view === "xc-bob-success"
+        ? "bob-bookings"
+        : view?.startsWith("xc-")
+          ? "bob"
+          : "maya";
+    return <ProductPreviewHeader mode={mode} />;
   }
 
   const navItems = showProviderInNav(pathname, sessionUser)
