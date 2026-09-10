@@ -99,6 +99,13 @@ child.stderr.on("data", (chunk) => {
 try {
   await waitForServer(child);
 
+  const nonLoopbackHost = await request({ host: `attacker.example:${port}` });
+  assert.equal(
+    nonLoopbackHost.status,
+    404,
+    `non-loopback Host control should be blocked, got ${nonLoopbackHost.status}: ${nonLoopbackHost.body}`,
+  );
+
   const crossOrigin = await request({
     origin: "https://attacker.example",
   });
@@ -138,6 +145,7 @@ try {
   console.log(
     JSON.stringify(
       {
+        nonLoopbackHostBlocked: true,
         crossOriginBlocked: true,
         remoteHeaders: {
           "x-forwarded-for": remoteIp,
