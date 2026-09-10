@@ -8,10 +8,10 @@ Status vocabulary: `candidate`, `review`, `GOLDEN-READY`, `Golden`, `implemented
 | YT-02 My Bookings | Holder sees owned bookings and their meaningful states | Golden | P0 |
 | YT-03 Booking detail | Holder can use a booking or change plans | Golden | P0 |
 | YT-04 Recovery setup | Holder defines what YourTurn may do | Golden | P0 |
-| YT-05 Delegate | Holder understands and authorizes the mandate with Ledger | review | P0 |
-| YT-06 Agent working | Holder sees the exact human-backed delegated agent working | review | P0 |
-| YT-07 Block / escalate | Out-of-scope offer is blocked and escalation boundary is clear | review | P0 |
-| YT-08 Successful recovery | In-scope offer completes transfer + settlement | review | P0 |
+| YT-05 Delegate | Holder understands and authorizes the mandate with Ledger | GOLDEN-READY | P0 |
+| YT-06 Agent working | Holder sees the exact human-backed delegated agent working | GOLDEN-READY | P0 |
+| YT-07 Block / escalate | Out-of-scope offer is blocked and escalation boundary is clear | GOLDEN-READY | P0 |
+| YT-08 Successful recovery | In-scope offer completes transfer + settlement | GOLDEN-READY | P0 |
 | YT-09 New holder | Buyer sees and can use the transferred booking | queued | P1 |
 | YT-10 Activity & proof | Both parties can understand what happened; reviewer can inspect evidence | queued | P1 |
 
@@ -42,9 +42,9 @@ The Golden authority contract is:
 
 Exact executable candidate:
 
-`3b3ed50000b70718e43caaf4af36f1076a46755b`
+`92df1f0b253ae028b09f90975162a3315a30b994`
 
-Current classification: **review pending independent direct PNG inspection**.
+Current classification: **GOLDEN-READY**, not `Golden`. Devinson's explicit approval of this exact executable is the remaining freeze gate.
 
 Implemented continuous story:
 
@@ -62,6 +62,7 @@ Implemented product states:
 - cancelled with no authority created;
 - identical human-readable mandate details to YT-04: Friday Yoga only, 40 USDC minimum, tomorrow 17:00, cancellation forbidden;
 - replacement-authority path repeats the same Ledger boundary rather than mutating a live mandate;
+- replacement authorization explicitly preserves the current 40 USDC authority until the replacement is approved;
 - no implication that Ledger signs Hedera HTS transactions; Ledger authorizes the off-chain Recovery Mandate.
 
 Ledger interface anchor: `feature/ethonline-ledger@1d50b01c619687950bd87130baf30a3ae2b4a927`.
@@ -75,7 +76,7 @@ Implemented product states:
 - `Exact delegated agent verified`;
 - public `Human-backed` status;
 - no raw World human identifier in normal UI;
-- active minimum / Friday-Yoga-only / no-cancel-no-widen rules remain legible;
+- active minimum / expiry / Friday-Yoga-only / no-cancel-no-widen rules remain legible;
 - clear `Stop recovery` action;
 - collapsed reviewer proof surface keeps World evidence secondary and currently labels fixture state truthfully.
 
@@ -112,16 +113,15 @@ Hedera interface anchor: `feature/ethonline-hedera@12c591afc21c035062a8e939f7abe
 
 ## Exact-head proof for current review set
 
-For executable candidate `3b3ed50000b70718e43caaf4af36f1076a46755b`:
-- ETHOnline Continuity Gate `34476233086`: **SUCCESS**.
-- Product Workbench Visual Check `34476226564`: **SUCCESS**.
+For executable candidate `92df1f0b253ae028b09f90975162a3315a30b994`:
+- ETHOnline Continuity Gate `34483781514`: **SUCCESS**.
+- Product Workbench Visual Check `34483776864`: **SUCCESS**.
 - Production build/start: **SUCCESS**.
 - Chromium interaction run: **SUCCESS** at desktop `1440×1000` and mobile `390×844`.
-- Evidence artifact: `product-workbench-rendered-evidence` / `10151698292`.
+- Evidence artifact: `product-workbench-rendered-evidence` / `10154834167`.
 - Artifact upload: **40 PNGs**, 20 checkpoints × two viewports.
-- Visual script covers Golden YT-01→YT-04 plus YT-05 Ledger not-ready/waiting/rejected/cancelled/approved, YT-06 recovery-active, YT-07 blocked + reauthorization seam, YT-08 allowed/success/proof/after-recovery booking state.
-
-The candidate has not been visually approved merely because these automated checks are green. Product Reviewer #34 must download and inspect the actual PNGs for this exact executable candidate.
+- Product Reviewer #34 directly inspected all 40 exact-head PNGs and classified the exact executable `GOLDEN-READY`.
+- The repaired renders verify that replacement authorization preserves the existing 40 USDC authority and that `Recovery active` visibly retains expiry `Tomorrow · 17:00`.
 
 ## YT-05→YT-08 visual/product rules
 
@@ -133,20 +133,25 @@ The candidate has not been visually approved merely because these automated chec
 - Product Reviewer #34 must inspect the actual PNG artifact for the exact executable candidate before `GOLDEN-READY`.
 - Devinson must explicitly approve the exact candidate before YT-05→YT-08 can become Golden.
 
-## Next set after Golden approval
+## Next gate after Golden approval
 
-**YT-09 → YT-10**
+Do **not** jump directly into a holder-only YT-09/YT-10 extension.
 
-Close the product loop from the other side:
-- Bob sees Friday Yoga as a normal usable booking;
-- Alice/Maya and Bob can understand the completed transfer/recovery history;
-- reviewer proof exposes the underlying Ledger / World / Hedera evidence without turning the customer experience into a protocol console.
+After YT-05→YT-08 is human-approved Golden:
+1. freeze the exact YT-05→YT-08 executable and record its Golden evidence;
+2. extract the compact YourTurn `DESIGN.md` / design contract and domain glossary from approved Golden evidence as required by #40;
+3. apply `stakeholder-coverage-gate.md` and issue #39 to map the acquirer and provider lanes;
+4. choose the smallest connected next slice that respects `provider rules ∩ holder mandate ∩ acquirer eligibility/payment`;
+5. before this Golden holder flow is treated as integrated product truth, create/use the Golden-to-integration acceptance ledger requested in #40 so every fixture state has a real implementation/evidence owner.
+
+YT-09 and YT-10 remain useful bridge concepts, but they are not sufficient on their own to define the next complete product slice.
 
 ## Completion principle
 
-The hackathon product journey is not complete until the state is visible on both sides:
+The hackathon product journey is not complete until the state is visible on all relevant sides:
 
+- provider policy permits the recovery and the authoritative holder change is coherent;
 - previous holder no longer owns the booking and has recovered value;
 - new holder owns a usable Friday Yoga booking.
 
-A transaction receipt alone does not count as journey completion.
+A transaction receipt or holder-only success screen does not count as complete product coverage.
