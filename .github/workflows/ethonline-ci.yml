@@ -54,6 +54,9 @@ jobs:
       - name: World recovery write gate adversarial check
         run: npm run world:recovery-write-check
 
+      - name: Independent World nonce-ordering security retest
+        run: node --experimental-transform-types scripts/security/world-004-nonce-ordering-attack.mjs
+
       - name: World signed recovery live-proof runner self-test
         # Offline fixture only: validates exact-resource AgentKit signing and
         # verification without pretending to be LIVE/AGENTBOOK or a live write.
