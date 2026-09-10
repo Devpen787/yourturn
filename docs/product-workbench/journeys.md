@@ -1,13 +1,13 @@
 # Journey Registry
 
-Status vocabulary: `candidate`, `review`, `Golden`, `implemented`, `blocked`.
+Status vocabulary: `candidate`, `review`, `GOLDEN-READY`, `Golden`, `implemented`, `blocked`.
 
 | Journey | User outcome | Status | ETHOnline priority |
 | --- | --- | --- | --- |
-| YT-01 Understand & enter | Visitor understands YourTurn and can enter the product | candidate | P0 |
-| YT-02 My Bookings | Holder sees owned bookings and their meaningful states | candidate | P0 |
-| YT-03 Booking detail | Holder can use a booking or change plans | candidate | P0 |
-| YT-04 Recovery setup | Holder defines what YourTurn may do | candidate | P0 |
+| YT-01 Understand & enter | Visitor understands YourTurn and can enter the product | review | P0 |
+| YT-02 My Bookings | Holder sees owned bookings and their meaningful states | review | P0 |
+| YT-03 Booking detail | Holder can use a booking or change plans | review | P0 |
+| YT-04 Recovery setup | Holder defines what YourTurn may do | review | P0 |
 | YT-05 Delegate | Holder understands and authorizes the mandate with Ledger | queued | P0 |
 | YT-06 Agent working | Holder sees the exact human-backed delegated agent working | queued | P0 |
 | YT-07 Block / escalate | Out-of-scope offer is blocked and escalation boundary is clear | queued | P0 |
@@ -19,9 +19,13 @@ Status vocabulary: `candidate`, `review`, `Golden`, `implemented`, `blocked`.
 
 **YT-01 → YT-04**
 
-Review this as one continuous customer story:
+Canonical candidate route: `/product-preview`.
 
-`Landing → enter → My Bookings → Friday Yoga → Change plans → Let YourTurn handle it → minimum/expiry/actions → continue to authorization`
+Current independent classification: **REVIEWABLE**, not `GOLDEN-READY` and not `Golden`.
+
+The candidate runs as one continuous customer story:
+
+`Landing → enter → My Bookings → Friday Yoga → Change plans → Let YourTurn handle it → minimum/expiry/actions → secure-approval handoff`
 
 ### Required demo fixture
 
@@ -32,11 +36,21 @@ Status: Confirmed
 Recovery mandate candidate:
 - minimum recovery: 40 USDC
 - expiry: tomorrow 17:00
-- allowed: resell / transfer as required to complete approved recovery
-- forbidden: cancel
+- allowed: find an eligible buyer / transfer as required to complete approved recovery
+- forbidden: cancel, lower the minimum, touch another booking
 - authority applies only to this booking
 
-## Next set after approval
+## Review findings before GOLDEN-READY
+
+1. Replace prototype-style landing CTA `Try the booking journey` with normal customer language.
+2. Remove prototype meta-copy from the three non-agent `Change plans` choices; use a believable product-native state.
+3. Obtain rendered interaction/responsive evidence at desktop and mobile width. A green production build alone is not a visual freeze.
+
+## Human freeze gate
+
+The independent reviewer can mark an exact candidate `GOLDEN-READY`. Devinson must explicitly approve that exact candidate before it becomes `Golden`.
+
+## Next set after Golden approval
 
 **YT-05 → YT-08**
 
