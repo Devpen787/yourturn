@@ -29,7 +29,7 @@ export function StartFlowCta() {
               Browse sessions
             </Link>
             <Link
-              href="/product-preview?view=bookings"
+              href="/product-preview"
               className={cn(
                 getButtonClassName("secondary"),
                 "rounded-full no-underline"
