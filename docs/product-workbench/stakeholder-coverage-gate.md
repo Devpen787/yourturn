@@ -32,9 +32,9 @@ A blockchain transaction, agent receipt, or holder-only success screen is not en
 
 ## Current gate state
 
-YT-01→YT-08 is now human-approved Golden. This gate is therefore active for the next product expansion.
+YT-01→YT-08 is human-approved Golden, so stakeholder coverage is active for the next product expansion.
 
-It has been applied to the selected continuation documented in `next-slice.md`:
+Coverage has been applied to the **proposed** continuation documented in `next-slice.md`:
 
 **XC-01 — Eligible next holder + provider-recognized handoff**.
 
@@ -51,11 +51,13 @@ Coverage result:
 - acquirer outcome: Bob receives Friday Yoga as a normal usable booking with a credible fulfil/check-in path;
 - cross-perspective rule: Maya, Bob and Studio A must reconcile from one underlying booking transition.
 
-This passes the architecture gate for **one XC-01 candidate**. It does not pre-approve any executable UI, fixture behavior, sponsor integration or Golden freeze.
+This completes the **coverage application only**. It does not approve the architecture contract, authorize executable work, pre-approve fixture behavior, sponsor integration, or a Golden freeze. The current authority gate is Product Reviewer #34 on `architecture-review.md`. XC-01 remains proposed until that package is classified `REVIEWABLE`.
 
 ## Implementation preconditions for XC-01
 
-Before material UX implementation:
+Executable work remains blocked until Product Reviewer #34 classifies the architecture/product contract `REVIEWABLE`.
+
+Only after that classification:
 - read `DESIGN.md`, `GLOSSARY.md`, `CRAFT.md`, `integration-ledger.md`, and `next-slice.md`;
 - mine/reuse prior slots/resale/provider work rather than rebuilding from zero;
 - keep Golden YT-01→YT-08 product behavior unchanged;
@@ -63,8 +65,17 @@ Before material UX implementation:
 - identify new fixture-backed states explicitly and never present them as LIVE;
 - retain production build + real Chromium desktop/mobile evidence + direct Product Reviewer PNG inspection for every material candidate.
 
+A pre-existing exploratory XC-01 executable in branch history may be mined only after architecture approval; its historical green CI does not self-authorize or advance it.
+
 ## Sequencing
 
 The old `do not interrupt YT-05→YT-08` hold is complete because that set is Golden.
 
-The next allowed product-workbench step is now the single connected XC-01 candidate. YT-09/YT-10 remain bridge concepts inside the broader acquirer/provider architecture rather than a standalone holder-only next set.
+Current sequence:
+1. stakeholder coverage applied;
+2. XC-01 recorded as the proposed smallest connected slice;
+3. Product Reviewer #34 classifies the architecture/product contract `REVISE` or `REVIEWABLE`;
+4. only after `REVIEWABLE`, explicitly authorize one canonical XC-01 candidate;
+5. route that exact executable through build, rendered evidence, direct PNG review, and explicit human freeze if it later reaches `GOLDEN-READY`.
+
+YT-09/YT-10 remain bridge concepts inside the broader acquirer/provider architecture rather than a standalone holder-only next set.
