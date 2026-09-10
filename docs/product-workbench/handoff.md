@@ -6,7 +6,7 @@
 ## Current product truth
 YourTurn is a booking product. ETHOnline adds **Delegated Recovery** inside that booking journey.
 
-The approved holder-recovery hero is now **YT-01 → YT-08 Golden**.
+The holder-recovery hero is **YT-01 → YT-08 Golden**.
 
 ## Golden records
 
@@ -48,59 +48,102 @@ Important frozen semantics:
 
 The approved UX freezes product behavior/presentation, **not sponsor evidence class**.
 
-Sponsor-dependent transitions are still fixture/demo state where real integration has not replaced them. Never upgrade those to LIVE through copy.
+Sponsor-dependent transitions remain fixture/demo state where real integration has not replaced them. Never upgrade those to LIVE through copy.
 
 Sponsor implementation ownership remains:
 - **Ledger:** real device-backed approve/reject/cancel of the Recovery Mandate;
 - **World:** human-backed requester + exact delegated-agent verification;
 - **Hedera:** booking authority, transfer, settlement and public proof.
 
-## Active product-workbench phase
+## Post-Golden product contract is established
 
-The holder-recovery hero is complete at the UX/workbench level. The next phase is **architecture + integration contract before further journey implementation**.
+Issue #40's required architecture/process outputs now exist:
+- `DESIGN.md` — Golden-derived visual/product design contract;
+- `GLOSSARY.md` — domain vocabulary + `Avoid:` aliases;
+- `CRAFT.md` — state coverage, accessibility, responsive, copy and interaction rules;
+- `integration-ledger.md` — Golden fixture → real owner/interface/evidence/failure map;
+- `stakeholder-coverage-gate.md` — now applied to the next continuation;
+- `next-slice.md` — selected connected acquirer/provider slice.
 
-Read and apply:
-- issue #39 — Acquirer + Provider lanes;
-- issue #40 — OpenDesign process lessons;
-- `stakeholder-journeys.md`;
-- `stakeholder-coverage-gate.md`.
+These are source-of-truth artifacts, not permission to mutate Golden YT-01→YT-08.
 
-Do **not** jump directly into a holder-only YT-09/YT-10 implementation.
+## Integration evidence anchors mined
 
-### Exact next product actions
-1. Extract a compact YourTurn `DESIGN.md` / design contract from the approved Golden screenshots and existing strongest YourTurn work. Do not redesign the Golden flow.
-2. Create the domain glossary with preferred customer terms and `Avoid:` aliases.
-3. Create the Golden-to-integration acceptance ledger for YT-05→YT-08.
-4. Map the smallest connected acquirer + provider continuation before choosing the next executable journey set.
+### Ledger
+Latest inspected branch head: `feature/ethonline-ledger@dfb3fec6328c5db22aa6b6eb222b5e0a57f3b54a`.
 
-Core product rule:
+Concrete Recovery-Mandate interfaces include:
+- `/api/ledger/recovery-mandate/prepare`;
+- `/api/ledger/recovery-mandate/activate`;
+- active mandate/replay/live-booking-state guards.
+
+Current runtime proof is `CI_CONFIGURED` and explicitly does **not** prove Ledger hardware provenance or downstream Hedera recovery consumption. Keep the device-proof and integration gap open until real evidence closes it.
+
+### World
+Latest inspected branch head: `feature/ethonline-world@2ab04f4420cccc2c090cd5f5634e447d399eb139`.
+
+Current bounded proof demonstrates an AgentKit-signed `/api/agent/confirm` path with `human-backed-agent`, exact delegated-agent matching and privacy-safe output. It is LIVE/SIGNED-ROUTE for the bounded create-listing proof, not proof of booking ownership/provider entitlement and not yet the full Recovery-Mandate execution path.
+
+### Hedera
+Latest inspected branch head: `feature/ethonline-hedera@40890aab7729075edbf5efac5f5367f4b5a022e1`.
+
+Current HAK/policy seam includes `preparePolicyAuthorizedUsdcRecovery(...)`, `BookingRightDelegationPolicy`, and `yourturn_delegated_recovery_settle_nft_usdc` in `RETURN_BYTES` mode. Current proof is CI/LOCAL testnet semantics and explicitly returns unsigned, unsubmitted bytes; do not represent it as LIVE settlement until actual signing/submission/receipt/state reconciliation exists.
+
+See `integration-ledger.md` for state-by-state acceptance boundaries.
+
+## Stakeholder gate result
+
+The stakeholder gate is now applied. The next product slice is not a holder-only YT-09/YT-10 extension.
+
+Selected slice:
+
+### XC-01 — Eligible next holder + provider-recognized handoff
+
+`Studio A pre-defined recovery rules → Bob finds/evaluates Friday Yoga → Bob satisfies eligibility + commits to the 45 USDC acquisition → Golden Maya recovery accepts inside scope → Maya sees You recovered 45 USDC → Bob receives Friday Yoga as a normal usable booking → Studio A sees Bob as the authoritative current holder`
+
+Load-bearing coverage:
+- acquirer A-01→A-04, narrowly;
+- provider P-03, P-06, P-07, narrowly;
+- existing Golden Maya YT-08 handoff unchanged;
+- A-05/P-08 check-in immediately follows if it cannot be truthfully reused from existing normal fulfilment paths without widening the first candidate.
+
+Durable permission rule:
 
 `provider rules ∩ holder mandate ∩ acquirer eligibility/payment`
 
-Provider rules must be pre-defined/load-bearing; a compliant transfer should not require provider staff to approve each recovery manually.
+Provider policy must be pre-defined and load-bearing. No manual Studio A approval popup for each compliant recovery.
 
-## Golden-to-integration acceptance ledger requirement
+## Prior UX to reuse/adapt for XC-01
 
-For every Golden state/action, map:
-- intended customer behavior;
-- UI/component owner;
-- backend/sponsor owner;
-- current source/evidence (`FIXTURE`, `LIVE/TESTNET`, `CI`, etc.);
-- real interface/action replacing the fixture;
-- acceptance/evidence required;
-- failure/rollback behavior.
+From `feat/product-issuer-holder-ux`:
+- `app/slots/page.tsx` / `SlotsClient.tsx`: live session state, browse/status/loading/error patterns;
+- `app/resale/[serial]/ResaleClient.tsx`: buyer/seller separation, provider-rule blocking, pending/error/success purchase, holder refresh;
+- `app/issuer/IssuerPanel.tsx`: session/inventory/policy/holder operational patterns.
 
-The Golden prototype is product/design evidence, not automatically the production implementation owner.
+Reuse those behaviors where strong. Do **not** carry forward `Person A/B`, `pass`, `issuer`, raw refs/account IDs, HBAR-first price language, HashScan-first success, or a generic admin-dashboard visual hierarchy into the next Golden candidate.
+
+## Exact next action
+
+**BUILD one XC-01 candidate only.**
+
+Before editing the executable:
+- use `DESIGN.md`, `GLOSSARY.md`, `CRAFT.md`, `integration-ledger.md`, and `next-slice.md` as the current contract;
+- preserve the two frozen Golden executable contracts;
+- extend the canonical product workbench rather than creating a competing route;
+- keep technical sponsor proof secondary and new sponsor-dependent states explicit fixture/non-LIVE until integrated;
+- apply relevant pending/empty/error/success/edge coverage from `CRAFT.md` to new acquirer/provider states.
+
+Every material executable UX change must run:
+1. strongest available production build;
+2. real Chromium journey;
+3. exact-head screenshots for every meaningful changed/adjacent state at desktop `~1440×1000` and mobile `~390×844`;
+4. `product-workbench-rendered-evidence` upload bound to the exact executable SHA;
+5. direct Product Reviewer #34 PNG inspection.
+
+Do not self-certify Golden. Reviewer may mark exact candidate `GOLDEN-READY`; Devinson explicitly approves before freeze.
 
 ## Integration guardrail
 
-Do not treat YT-05→YT-08 as fully integrated until fixture transitions are replaced by real sponsor-backed behavior under the acceptance ledger and the integrated result survives security/reviewer gates.
+Do not treat YT-05→YT-08 as fully integrated until `integration-ledger.md` acceptance items are replaced by real sponsor-backed behavior and the integrated result survives security/reviewer gates.
 
-If sponsor implementation conflicts with the Golden product contract, record the precise mismatch in Product Workbench #31 rather than silently changing the UX or backend semantics.
-
-## Completion principle
-
-The whole product loop is complete only when:
-- provider policy permits the recovery and provider state reflects the valid new holder;
-- Maya no longer has a usable booking and receives the recovered value;
-- Bob has the same Friday Yoga booking as a normal usable booking and can fulfil/check in.
+If sponsor implementation conflicts with the Golden product contract, record the precise mismatch in Product Workbench #31 rather than silently changing UX or backend semantics.
