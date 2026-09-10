@@ -80,11 +80,12 @@ const env = {
   PORT: String(port),
 };
 
-// Bind to all interfaces to model the exact failure the local-only guard claims
-// to prevent. No RP key is configured, so this test cannot sign anything.
+// Run the same Next development-server shape used by `npm run dev`. This is the
+// human Sandbox path documented by the candidate. No RP key is configured, so
+// the test cannot sign anything; a 503 key error means the local guard was passed.
 const child = spawn(
   process.execPath,
-  ["node_modules/next/dist/bin/next", "start", "-p", String(port), "-H", "0.0.0.0"],
+  ["node_modules/next/dist/bin/next", "dev", "-p", String(port)],
   { env, stdio: ["ignore", "pipe", "pipe"] },
 );
 
@@ -145,6 +146,7 @@ try {
   console.log(
     JSON.stringify(
       {
+        serverShape: "next dev (same as npm run dev)",
         nonLoopbackHostBlocked: true,
         crossOriginBlocked: true,
         remoteHeaders: {
