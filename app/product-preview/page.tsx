@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useState } from "react";
 
 type Step = "enter" | "bookings" | "detail" | "plans" | "setup" | "approval";
 
@@ -49,7 +50,13 @@ function BookingIdentity({ compact = false }: { compact?: boolean }) {
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
         {booking.date}
       </p>
-      <h2 className={compact ? "text-xl font-semibold text-slate-950" : "text-2xl font-semibold tracking-tight text-slate-950"}>
+      <h2
+        className={
+          compact
+            ? "text-xl font-semibold text-slate-950"
+            : "text-2xl font-semibold tracking-tight text-slate-950"
+        }
+      >
         {booking.title} · {booking.time}
       </h2>
       <p className="text-sm text-slate-600">
@@ -72,35 +79,34 @@ function StepFrame({
 }) {
   return (
     <section className="mx-auto w-full max-w-4xl py-4 sm:py-8">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{eyebrow}</p>
-      <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">{title}</h1>
-      {intro ? <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">{intro}</p> : null}
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+        {eyebrow}
+      </p>
+      <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+        {title}
+      </h1>
+      {intro ? (
+        <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">{intro}</p>
+      ) : null}
       <div className="mt-7">{children}</div>
     </section>
   );
 }
 
 export default function ProductPreviewPage() {
-  const [step, setStep] = useState<Step>("enter");
+  const searchParams = useSearchParams();
+  const [step, setStep] = useState<Step>(() =>
+    searchParams.get("view") === "bookings" ? "bookings" : "enter"
+  );
   const [confirmedScope, setConfirmedScope] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const progress = useMemo(() => {
-    const order: Step[] = ["enter", "bookings", "detail", "plans", "setup", "approval"];
-    return order.indexOf(step) + 1;
-  }, [step]);
-
   function chooseUnavailable(label: string) {
-    setNotice(`${label} is a valid change-plans path. This first journey is testing assisted recovery.`);
+    setNotice(`${label} isn’t available for Friday Yoga right now.`);
   }
 
   return (
     <div className="pb-16">
-      <div className="mb-4 flex items-center justify-between gap-3 text-xs text-slate-500">
-        <span>Product journey preview</span>
-        <span aria-label={`Step ${progress} of 6`}>{progress} / 6</span>
-      </div>
-
       {step === "enter" && (
         <StepFrame
           eyebrow="YourTurn"
@@ -109,9 +115,11 @@ export default function ProductPreviewPage() {
         >
           <div className="grid overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm lg:grid-cols-[1.05fr_0.95fr]">
             <div className="bg-slate-950 p-7 text-white sm:p-9">
-              <p className="text-sm font-medium text-slate-300">A booking that still works for you.</p>
+              <p className="text-sm font-medium text-slate-300">Your next booking</p>
               <div className="mt-10 rounded-[1.5rem] border border-white/10 bg-white/10 p-5 backdrop-blur">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">This Friday</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">
+                  This Friday
+                </p>
                 <p className="mt-3 text-2xl font-semibold">Friday Yoga · 18:00</p>
                 <p className="mt-2 text-sm text-slate-300">Studio A · Zürich</p>
                 <div className="mt-5 inline-flex rounded-full bg-emerald-300/15 px-3 py-1.5 text-xs font-semibold text-emerald-100 ring-1 ring-emerald-200/20">
@@ -124,32 +132,25 @@ export default function ProductPreviewPage() {
             </div>
 
             <div className="p-7 sm:p-9">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Welcome back</p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Open your bookings</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                For this product preview, continue with a prepared customer account and booking.
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Welcome back
               </p>
-              <button type="button" onClick={() => setStep("bookings")} className={`${primaryButton} mt-7 w-full`}>
-                Continue as Maya
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
+                Maya Keller
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Continue with the prepared customer account to manage Friday Yoga.
+              </p>
+              <button
+                type="button"
+                onClick={() => setStep("bookings")}
+                className={`${primaryButton} mt-7 w-full`}
+              >
+                Open my bookings
               </button>
-              <div className="my-6 flex items-center gap-3 text-xs text-slate-400">
-                <div className="h-px flex-1 bg-slate-200" />
-                <span>or</span>
-                <div className="h-px flex-1 bg-slate-200" />
-              </div>
-              <div className="space-y-3">
-                <label className="block text-sm font-medium text-slate-700" htmlFor="preview-email">Email</label>
-                <input
-                  id="preview-email"
-                  type="email"
-                  placeholder="you@example.com"
-                  className="min-h-[48px] w-full rounded-xl border border-slate-200 px-4 text-sm text-slate-900 outline-none ring-0 transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
-                />
-                <button type="button" onClick={() => setStep("bookings")} className={`${secondaryButton} w-full`}>
-                  Continue with email
-                </button>
-              </div>
-              <p className="mt-6 text-xs leading-5 text-slate-500">No recovery action is submitted by this preview.</p>
+              <p className="mt-4 text-center text-xs leading-5 text-slate-500">
+                Demo account · no recovery action starts until you approve its limits.
+              </p>
             </div>
           </div>
         </StepFrame>
@@ -169,16 +170,22 @@ export default function ProductPreviewPage() {
             >
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <BookingIdentity />
-                <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-100">Confirmed</span>
+                <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-100">
+                  Confirmed
+                </span>
               </div>
               <div className="mt-8 flex items-center justify-between border-t border-slate-100 pt-5">
                 <span className="text-sm text-slate-500">Your next booking</span>
-                <span className="text-sm font-semibold text-slate-950 group-hover:translate-x-0.5">View booking →</span>
+                <span className="text-sm font-semibold text-slate-950 group-hover:translate-x-0.5">
+                  View booking →
+                </span>
               </div>
             </button>
 
             <aside className="rounded-[1.75rem] bg-slate-950 p-6 text-white">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Plans changed?</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                Plans changed?
+              </p>
               <h2 className="mt-3 text-xl font-semibold">Keep the booking useful.</h2>
               <p className="mt-3 text-sm leading-6 text-slate-300">
                 Open a booking to see the options available for that specific spot.
@@ -197,7 +204,9 @@ export default function ProductPreviewPage() {
                       <p className="mt-1 text-sm text-slate-600">{item.time}</p>
                       <p className="mt-1 text-sm text-slate-500">{item.venue}</p>
                     </div>
-                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">{item.status}</span>
+                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                      {item.status}
+                    </span>
                   </div>
                 </div>
               ))}
@@ -214,23 +223,33 @@ export default function ProductPreviewPage() {
               <div className="p-7 sm:p-9">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <BookingIdentity />
-                  <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-100">Confirmed</span>
+                  <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-100">
+                    Confirmed
+                  </span>
                 </div>
                 <dl className="mt-8 grid gap-5 border-t border-slate-100 pt-6 sm:grid-cols-2">
                   <div>
-                    <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Booked for</dt>
+                    <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                      Booked for
+                    </dt>
                     <dd className="mt-1.5 text-sm font-medium text-slate-900">Maya Keller</dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Original price</dt>
+                    <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                      Original price
+                    </dt>
                     <dd className="mt-1.5 text-sm font-medium text-slate-900">{booking.price}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Check-in</dt>
+                    <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                      Check-in
+                    </dt>
                     <dd className="mt-1.5 text-sm font-medium text-slate-900">Opens 30 min before</dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Changes</dt>
+                    <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                      Changes
+                    </dt>
                     <dd className="mt-1.5 text-sm font-medium text-slate-900">Allowed under studio rules</dd>
                   </div>
                 </dl>
@@ -243,17 +262,32 @@ export default function ProductPreviewPage() {
                   </p>
                 </div>
                 <div className="mt-8 space-y-3">
-                  <button type="button" onClick={() => setNotice("Your booking stays confirmed and ready for check-in.")} className={`${secondaryButton} w-full`}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setNotice("Your booking stays confirmed and ready for check-in.")
+                    }
+                    className={`${secondaryButton} w-full`}
+                  >
                     Use booking
                   </button>
-                  <button type="button" onClick={() => { setNotice(null); setStep("plans"); }} className={`${primaryButton} w-full`}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNotice(null);
+                      setStep("plans");
+                    }}
+                    className={`${primaryButton} w-full`}
+                  >
                     Change plans
                   </button>
                 </div>
               </div>
             </div>
           </div>
-          {notice ? <p className="mt-4 rounded-xl bg-slate-100 px-4 py-3 text-sm text-slate-700">{notice}</p> : null}
+          {notice ? (
+            <p className="mt-4 rounded-xl bg-slate-100 px-4 py-3 text-sm text-slate-700">{notice}</p>
+          ) : null}
         </StepFrame>
       )}
 
@@ -263,7 +297,12 @@ export default function ProductPreviewPage() {
           title="What would help most?"
           intro="These options apply only to Friday Yoga. Nothing else in your account changes."
         >
-          <BackButton onClick={() => { setNotice(null); setStep("detail"); }} />
+          <BackButton
+            onClick={() => {
+              setNotice(null);
+              setStep("detail");
+            }}
+          />
           <div className="mt-4 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
             <BookingIdentity compact />
           </div>
@@ -287,7 +326,10 @@ export default function ProductPreviewPage() {
 
             <button
               type="button"
-              onClick={() => { setNotice(null); setStep("setup"); }}
+              onClick={() => {
+                setNotice(null);
+                setStep("setup");
+              }}
               className="rounded-[1.5rem] border border-slate-950 bg-slate-950 p-5 text-left text-white shadow-sm transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
             >
               <div className="flex items-start justify-between gap-3">
@@ -297,11 +339,15 @@ export default function ProductPreviewPage() {
                     Set your limits once. YourTurn can look for a recovery that stays inside them and come back to you if anything needs more permission.
                   </p>
                 </div>
-                <span className="text-xl" aria-hidden="true">→</span>
+                <span className="text-xl" aria-hidden="true">
+                  →
+                </span>
               </div>
             </button>
           </div>
-          {notice ? <p className="mt-4 rounded-xl bg-slate-100 px-4 py-3 text-sm text-slate-700">{notice}</p> : null}
+          {notice ? (
+            <p className="mt-4 rounded-xl bg-slate-100 px-4 py-3 text-sm text-slate-700">{notice}</p>
+          ) : null}
         </StepFrame>
       )}
 
@@ -314,11 +360,15 @@ export default function ProductPreviewPage() {
           <BackButton onClick={() => setStep("plans")} />
           <div className="mt-4 grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
             <aside className="rounded-[1.75rem] bg-slate-950 p-6 text-white">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Only this booking</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                Only this booking
+              </p>
               <div className="mt-4">
                 <p className="text-2xl font-semibold">{booking.title} · {booking.time}</p>
                 <p className="mt-2 text-sm text-slate-300">{booking.date}</p>
-                <p className="mt-1 text-sm text-slate-300">{booking.venue} · {booking.location}</p>
+                <p className="mt-1 text-sm text-slate-300">
+                  {booking.venue} · {booking.location}
+                </p>
               </div>
               <div className="mt-7 rounded-2xl border border-white/10 bg-white/5 p-4">
                 <p className="text-sm font-semibold">No account-wide permission</p>
@@ -331,28 +381,48 @@ export default function ProductPreviewPage() {
             <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
               <div className="grid gap-5 sm:grid-cols-2">
                 <div>
-                  <label className="text-sm font-semibold text-slate-900" htmlFor="minimum">Minimum recovery</label>
+                  <label className="text-sm font-semibold text-slate-900" htmlFor="minimum">
+                    Minimum recovery
+                  </label>
                   <div className="mt-2 flex min-h-[52px] items-center rounded-xl border border-slate-200 bg-slate-50 px-4">
-                    <input id="minimum" value="40" readOnly className="w-full bg-transparent text-xl font-semibold text-slate-950 outline-none" />
+                    <input
+                      id="minimum"
+                      value="40"
+                      readOnly
+                      className="w-full bg-transparent text-xl font-semibold text-slate-950 outline-none"
+                    />
                     <span className="text-sm font-semibold text-slate-500">USDC</span>
                   </div>
-                  <p className="mt-2 text-xs leading-5 text-slate-500">Offers below 40 are rejected automatically.</p>
+                  <p className="mt-2 text-xs leading-5 text-slate-500">
+                    Offers below 40 are rejected automatically.
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-slate-900">Expires</p>
                   <div className="mt-2 flex min-h-[52px] items-center rounded-xl border border-slate-200 bg-slate-50 px-4 text-base font-semibold text-slate-950">
                     Tomorrow · 17:00
                   </div>
-                  <p className="mt-2 text-xs leading-5 text-slate-500">After that, YourTurn must ask you again.</p>
+                  <p className="mt-2 text-xs leading-5 text-slate-500">
+                    After that, YourTurn must ask you again.
+                  </p>
                 </div>
               </div>
 
               <div className="mt-7 border-t border-slate-100 pt-6">
                 <h2 className="text-sm font-semibold text-slate-950">YourTurn may</h2>
                 <ul className="mt-3 space-y-3 text-sm text-slate-700">
-                  <li className="flex gap-3"><span className="mt-0.5 text-emerald-600">✓</span><span>Accept an eligible offer of 40 USDC or more.</span></li>
-                  <li className="flex gap-3"><span className="mt-0.5 text-emerald-600">✓</span><span>Transfer this Friday Yoga booking after the recovery is secured.</span></li>
-                  <li className="flex gap-3"><span className="mt-0.5 text-emerald-600">✓</span><span>Keep you updated as the recovery progresses.</span></li>
+                  <li className="flex gap-3">
+                    <span className="mt-0.5 text-emerald-600">✓</span>
+                    <span>Accept an eligible offer of 40 USDC or more.</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="mt-0.5 text-emerald-600">✓</span>
+                    <span>Transfer this Friday Yoga booking after the recovery is secured.</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="mt-0.5 text-emerald-600">✓</span>
+                    <span>Keep you updated as the recovery progresses.</span>
+                  </li>
                 </ul>
               </div>
 
@@ -401,7 +471,9 @@ export default function ProductPreviewPage() {
             <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <BookingIdentity compact />
-                <span className="rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 ring-1 ring-amber-100">Not authorized yet</span>
+                <span className="rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 ring-1 ring-amber-100">
+                  Not authorized yet
+                </span>
               </div>
               <dl className="mt-6 grid gap-4 border-t border-slate-100 pt-5 sm:grid-cols-2">
                 <div>
@@ -424,17 +496,23 @@ export default function ProductPreviewPage() {
             </div>
 
             <aside className="rounded-[1.75rem] bg-slate-950 p-6 text-white sm:p-7">
-              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-xl" aria-hidden="true">✓</div>
-              <h2 className="mt-5 text-xl font-semibold">Approval handoff is ready.</h2>
+              <div
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-xl"
+                aria-hidden="true"
+              >
+                ✓
+              </div>
+              <h2 className="mt-5 text-xl font-semibold">Confirm on your secure device.</h2>
               <p className="mt-3 text-sm leading-6 text-slate-300">
-                The product journey now has a clear boundary for device-backed authorization without exposing technical details to the customer.
+                Only the limits shown here can be authorized. Your booking remains confirmed until approval succeeds.
               </p>
-              <button type="button" disabled className="mt-6 inline-flex min-h-[44px] w-full cursor-not-allowed items-center justify-center rounded-full bg-white/20 px-5 py-2.5 text-sm font-semibold text-white/70">
+              <button
+                type="button"
+                disabled
+                className="mt-6 inline-flex min-h-[44px] w-full cursor-not-allowed items-center justify-center rounded-full bg-white/20 px-5 py-2.5 text-sm font-semibold text-white/70"
+              >
                 Approve on secure device
               </button>
-              <p className="mt-3 text-xs leading-5 text-slate-400">
-                This UX candidate stops here. No authorization or recovery action has been submitted.
-              </p>
             </aside>
           </div>
         </StepFrame>
