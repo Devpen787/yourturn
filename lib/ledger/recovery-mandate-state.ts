@@ -47,6 +47,10 @@ export type ActiveRecoveryMandateRecord = {
   recoveredSignerAddress: string;
 };
 
+export type RecoveryMandateActivationRevalidator = (
+  mandate: RecoveryMandate
+) => Promise<void>;
+
 function assertSafeTtl(expiresAt: bigint, nowUnixSeconds: bigint): number {
   const ttl = expiresAt - nowUnixSeconds;
   if (ttl <= BIGINT_ZERO) {
@@ -169,6 +173,7 @@ export async function activatePreparedRecoveryMandate(input: {
   mandateId: string;
   ownerId: string;
   signature: string;
+  revalidateMutableAuthority: RecoveryMandateActivationRevalidator;
   nowUnixSeconds?: bigint;
 }): Promise<{
   verified: VerifiedRecoveryMandate;
@@ -182,6 +187,17 @@ export async function activatePreparedRecoveryMandate(input: {
     ownerId: input.ownerId,
   });
 
+  if (typeof input.revalidateMutableAuthority !== "function") {
+    throw new Error(
+      "Recovery mandate activation requires live booking authority revalidation"
+    );
+  }
+
+  // Do not burn a valid one-shot signature if the booking is already stale at
+  // the start of activation. The caller must re-read holder/status/policy/listing
+  // from authoritative product state here rather than trust prepared data.
+  await input.revalidateMutableAuthority(mandate);
+
   const verified = await authorizeRecoveryMandateOnce({
     mandate,
     signature: input.signature,
@@ -190,6 +206,13 @@ export async function activatePreparedRecoveryMandate(input: {
     replayStore: input.replayStore,
     nowUnixSeconds,
   });
+
+  // Replay is now consumed. Re-read the mutable predicates again immediately
+  // before final authority creation so a state transition racing signature
+  // verification cannot silently promote stale prepared authority. If this
+  // second check fails, no active record is written and the consumed mandate
+  // cannot be retried; the owner must prepare/sign a fresh mandate.
+  await input.revalidateMutableAuthority(verified.mandate);
 
   const ttlSeconds = assertSafeTtl(mandate.expiresAt, nowUnixSeconds);
   const active: ActiveRecoveryMandateRecord = {
