@@ -119,9 +119,9 @@ Useful prior seams already inspected for the next slice:
 
 Treat these as REUSE/ADAPT material. Do not carry forward `Person A/B`, `pass`, `issuer`, raw refs/account IDs, HBAR-first pricing or HashScan-first success as the new customer hierarchy.
 
-## Selected connected continuation
+## Proposed connected continuation
 
-The stakeholder gate has now been applied. The selected smallest connected next slice is recorded in `next-slice.md`:
+The stakeholder coverage gate has been applied. The smallest connected continuation currently proposed in `next-slice.md` is:
 
 **XC-01 — Eligible next holder + provider-recognized handoff**
 
@@ -134,6 +134,8 @@ XC-01 intentionally spans only the load-bearing parts of:
 
 A-05/P-08 check-in is the immediate completion follow-up if it cannot be reused truthfully from existing normal booking/provider paths without widening the first candidate. A-06/YT-10 history follows after the state is real enough to explain.
 
+This proposal is **not yet executable authorization**. Product Reviewer #34 must first classify the architecture/product contract in `architecture-review.md` as `REVIEWABLE`. Until then, the exploratory XC-01 executable already present in branch history remains historical implementation evidence only and must not be advanced, reviewed as the active candidate, or frozen.
+
 ## Sequencing rule
 
 Current order:
@@ -141,8 +143,9 @@ Current order:
 2. `DESIGN.md`, `GLOSSARY.md`, `CRAFT.md` — **established**;
 3. `integration-ledger.md` — **established for Golden→real wiring**;
 4. stakeholder coverage gate — **applied**;
-5. XC-01 architecture — **selected**;
-6. build one canonical XC-01 candidate, then production build + Chromium desktop/mobile evidence + direct Product Reviewer PNG inspection;
-7. freeze only after `GOLDEN-READY` + explicit Devinson approval.
+5. XC-01 architecture — **proposed**;
+6. Product Reviewer #34 architecture/product-contract classification — **pending; must reach `REVIEWABLE` before executable work is authorized**;
+7. only after `REVIEWABLE`, explicitly authorize one canonical XC-01 candidate, then production build + Chromium desktop/mobile evidence + direct Product Reviewer PNG inspection;
+8. freeze only after `GOLDEN-READY` + explicit Devinson approval.
 
 No future journey set should be called complete unless stakeholder coverage is checked against this document and `stakeholder-coverage-gate.md`.
