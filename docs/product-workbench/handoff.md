@@ -39,13 +39,13 @@ Sponsor implementation must plug into this Golden product contract without silen
 ## Current active set
 `YT-05 → YT-08`
 
-Status: **review**.
+Status: **GOLDEN-READY**, not Golden.
 
 Exact executable candidate:
 
 `d5309a96d532ee107011c2a5cefc3000b9e4932f`
 
-Product Reviewer #34 must directly inspect the exact-head desktop/mobile PNG evidence for this repaired candidate and classify it `REVISE`, `REVIEWABLE`, or `GOLDEN-READY`. Do not treat the prior `92df1f0b...` classification as applying to this changed executable.
+Product Reviewer #34 directly inspected all 44 exact-head desktop/mobile PNGs and classified this exact executable `GOLDEN-READY`. No further product change is requested. Hold this executable unchanged until Devinson explicitly approves it for freeze.
 
 The branch may contain later **docs-only** descendants for required workbench truth synchronization; they do not change the executable candidate above.
 
@@ -132,21 +132,19 @@ Executable candidate: `d5309a96d532ee107011c2a5cefc3000b9e4932f`.
 - Artifact: `product-workbench-rendered-evidence` / `10160672183`.
 - Exact-head runner captures **44 PNGs**: 22 meaningful checkpoints × two viewports.
 - Replacement-reject and replacement-cancel states are both asserted and captured; the gate verifies contradictory no-authority copy is absent and that the flow can return to active 40-USDC recovery.
-- Product Reviewer #34 direct PNG re-review is pending for this exact executable.
+- Product Reviewer #34 directly inspected all 44 PNGs and returned **GOLDEN-READY** with no remaining blocking five-lens defect.
 
 ## Exact next action
 
-**Product Reviewer #34 decision only.**
+**Human freeze decision only.**
 
-Hold exact executable `d5309a96d532ee107011c2a5cefc3000b9e4932f` unchanged while #34 directly inspects artifact `10160672183` and classifies it.
+Devinson must explicitly approve exact executable `d5309a96d532ee107011c2a5cefc3000b9e4932f` before YT-05→YT-08 becomes Golden.
 
-Until that classification:
+While approval is pending:
 - do not mutate the executable for speculative polish;
 - do not start YT-09/YT-10;
 - do not activate stakeholder/acquirer/provider implementation;
 - do not treat fixture transitions as integrated product truth.
-
-If #34 marks this exact executable `GOLDEN-READY`, stop for Devinson's explicit approval before freeze.
 
 After exact human approval:
 1. freeze YT-05→YT-08 and create its Golden record;
