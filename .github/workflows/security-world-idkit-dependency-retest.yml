@@ -1,0 +1,175 @@
+name: Security World IDKit Dependency Retest
+
+on:
+  push:
+    branches:
+      - feature/ethonline-security-world-idkit-dependency-retest
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  idkit-dependency-delta:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Prove exact World IDKit delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_WORLD=2ab04f4420cccc2c090cd5f5634e447d399eb139
+          echo "head=$(git rev-parse HEAD)"
+          echo "base_world=$BASE_WORLD"
+          git diff --name-status "$BASE_WORLD" HEAD -- package.json package-lock.json
+          echo "idkit_source_imports_begin"
+          grep -RIn --exclude-dir=node_modules --exclude-dir=.git --exclude='package-lock.json' --exclude='package.json' '@worldcoin/idkit' app lib components scripts 2>/dev/null || true
+          echo "idkit_source_imports_end"
+          git show "$BASE_WORLD:package-lock.json" > base-package-lock.json
+
+      - name: Audit exact IDKit head without mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --legacy-peer-deps
+          npm audit --omit=dev --json > head-audit.json || true
+          npm ls @worldcoin/idkit --all --json > idkit-tree.json || true
+          npm explain @worldcoin/idkit > idkit-explain.txt || true
+
+      - name: Audit pre-IDKit World parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_WORLD=2ab04f4420cccc2c090cd5f5634e447d399eb139
+          git worktree add --detach /tmp/world-base "$BASE_WORLD"
+          cd /tmp/world-base
+          npm ci --legacy-peer-deps
+          npm audit --omit=dev --json > "$GITHUB_WORKSPACE/base-audit.json" || true
+
+      - name: Compare production audit and lockfile delta
+        id: compare
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('fs');
+          const {execFileSync} = require('child_process');
+
+          const headAudit = JSON.parse(fs.readFileSync('head-audit.json', 'utf8'));
+          const baseAudit = JSON.parse(fs.readFileSync('base-audit.json', 'utf8'));
+          const headLock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+          const baseLock = JSON.parse(fs.readFileSync('base-package-lock.json', 'utf8'));
+
+          const sevRank = {info:0, low:1, moderate:2, high:3, critical:4};
+          const pkgName = (key) => {
+            if (!key) return null;
+            const parts = key.split('/node_modules/');
+            const tail = parts[parts.length - 1];
+            if (tail.startsWith('@')) {
+              const seg = tail.split('/');
+              return seg.length >= 2 ? `${seg[0]}/${seg[1]}` : tail;
+            }
+            return tail.split('/')[0];
+          };
+
+          const basePackages = baseLock.packages || {};
+          const headPackages = headLock.packages || {};
+          const added = [];
+          const changed = [];
+          for (const [key, meta] of Object.entries(headPackages)) {
+            if (!key) continue;
+            const before = basePackages[key];
+            if (!before) added.push({key, name: pkgName(key), version: meta.version || null, hasInstallScript: Boolean(meta.hasInstallScript)});
+            else if ((before.version || null) !== (meta.version || null)) changed.push({key, name: pkgName(key), before: before.version || null, after: meta.version || null});
+          }
+
+          const summarizeAudit = (raw) => Object.fromEntries(Object.entries(raw.vulnerabilities || {}).map(([name, v]) => [name, {
+            severity: v.severity,
+            isDirect: Boolean(v.isDirect),
+            range: v.range,
+            nodes: v.nodes || [],
+            via: (v.via || []).map(x => typeof x === 'string' ? x : ({source:x.source, name:x.name, severity:x.severity, title:x.title, range:x.range}))
+          }]));
+          const baseV = summarizeAudit(baseAudit);
+          const headV = summarizeAudit(headAudit);
+
+          const newOrWorse = [];
+          for (const [name, v] of Object.entries(headV)) {
+            const old = baseV[name];
+            if (!old || (sevRank[v.severity] || 0) > (sevRank[old.severity] || 0)) {
+              newOrWorse.push({name, ...v, previousSeverity: old?.severity || null});
+            }
+          }
+
+          const changedNames = new Set([...added.map(x => x.name), ...changed.map(x => x.name)]);
+          const changedGraphVulns = Object.entries(headV)
+            .filter(([name, v]) => changedNames.has(name) && (sevRank[v.severity] || 0) >= sevRank.high)
+            .map(([name, v]) => ({name, ...v}));
+          const material = newOrWorse.filter(v => (sevRank[v.severity] || 0) >= sevRank.high);
+          const highCriticalDelta = [...new Map([...material, ...changedGraphVulns].map(v => [v.name, v])).values()];
+
+          let imports = '';
+          try {
+            imports = execFileSync('bash', ['-lc', "grep -RIn --exclude-dir=node_modules --exclude-dir=.git --exclude='package-lock.json' --exclude='package.json' '@worldcoin/idkit' app lib components scripts 2>/dev/null || true"], {encoding:'utf8'}).trim();
+          } catch {}
+
+          const result = {
+            baseWorld: '2ab04f4420cccc2c090cd5f5634e447d399eb139',
+            head: process.env.GITHUB_SHA,
+            runtimeSourceImports: imports ? imports.split('\n') : [],
+            addedPackages: added,
+            versionChangedPackages: changed,
+            baseProductionCounts: baseAudit.metadata?.vulnerabilities || null,
+            headProductionCounts: headAudit.metadata?.vulnerabilities || null,
+            newOrWorseVulnerabilities: newOrWorse,
+            highCriticalChangedGraphVulnerabilities: highCriticalDelta
+          };
+          fs.writeFileSync('world-idkit-dependency-delta.json', JSON.stringify(result, null, 2));
+          console.log(JSON.stringify(result, null, 2));
+
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `material_count=${highCriticalDelta.length}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `runtime_import_count=${result.runtimeSourceImports.length}\n`);
+          NODE
+
+      - name: Record material high/critical dependency finding in Security #16
+        if: steps.compare.outputs.material_count != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          SUMMARY=$(node -e 'const r=require("./world-idkit-dependency-delta.json"); console.log(r.highCriticalChangedGraphVulnerabilities.map(v=>`- ${v.name}: ${v.severity} (previous=${v.previousSeverity||"none"})`).join("\n"))')
+          gh issue comment 16 --repo Devpen787/yourturn --body "### SECURITY — World IDKit dependency delta exposes new HIGH/CRITICAL audit surface\n\nExact attacked head: \`$GITHUB_SHA\` on \`feature/ethonline-security-world-idkit-dependency-retest\`. Compared against pre-IDKit World head \`2ab04f4420cccc2c090cd5f5634e447d399eb139\` with production-only \`npm audit\` and exact lockfile package delta.\n\n$SUMMARY\n\nThis is a dependency-triage finding only; exploitability/reachability still requires package-specific validation before integration blocking severity is finalized. No merge/deploy/secret/fund action occurred."
+          echo "Material new high/critical dependency surface detected."
+          exit 1
+
+      - name: Pass clean dependency delta
+        if: steps.compare.outputs.material_count == '0'
+        shell: bash
+        run: |
+          echo "No new or worsened HIGH/CRITICAL production-audit vulnerability is attributable to the World IDKit lockfile delta."
+          echo "runtime_source_import_count=${{ steps.compare.outputs.runtime_import_count }}"
+
+      - name: Upload independent evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-world-idkit-dependency-retest
+          path: |
+            world-idkit-dependency-delta.json
+            head-audit.json
+            base-audit.json
+            idkit-tree.json
+            idkit-explain.txt
+          if-no-files-found: warn
