@@ -43,6 +43,12 @@ Use this gate for each candidate journey before calling it Golden.
 
 ## Freeze decision
 
-Only mark `Golden` when the flow is understandable, connected and implementable without redesign.
+The independent reviewer may classify a candidate `GOLDEN-READY`, but may not freeze it.
 
-If not, record the precise reason and keep it `candidate` or `review`; do not create a second competing canonical version.
+A journey becomes `Golden` only after:
+1. the flow is understandable, connected and implementable without redesign;
+2. build/render/relevant interaction evidence is acceptable;
+3. the reviewer marks the exact candidate `GOLDEN-READY`; and
+4. Devinson explicitly approves that candidate for freeze.
+
+Until that explicit approval is recorded, keep it `candidate` or `review` even if it is technically ready. Do not create a second competing canonical version.
