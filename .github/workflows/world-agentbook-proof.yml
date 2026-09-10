@@ -7,6 +7,11 @@ on:
         description: "Public EVM address already registered through AgentBook + World ID"
         required: true
         type: string
+  push:
+    branches:
+      - 'feature/ethonline-world'
+    paths:
+      - '.github/workflows/world-agentbook-proof.yml'
 
 permissions:
   contents: read
@@ -32,7 +37,7 @@ jobs:
 
       - name: Resolve agent through canonical AgentBook verifier
         env:
-          WORLD_AGENT_ADDRESS: ${{ inputs.agent_address }}
+          WORLD_AGENT_ADDRESS: ${{ github.event.inputs.agent_address || '0xef1c84eab9cc74bcbae321b75cf2d916ee329163' }}
         run: |
           set -o pipefail
           npm run world:agentbook-live-check 2>&1 | tee world-agentbook-proof.json
