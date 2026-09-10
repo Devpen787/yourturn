@@ -1,24 +1,31 @@
 import assert from "node:assert/strict";
 import http from "node:http";
+import os from "node:os";
 import { spawn } from "node:child_process";
 
 const port = 32147;
 const path = "/api/world-id/sandbox/rp-context";
-const remoteIp = "203.0.113.77";
 
-function request({ host = `localhost:${port}`, origin }) {
+function firstNonLoopbackIpv4() {
+  for (const entries of Object.values(os.networkInterfaces())) {
+    for (const entry of entries ?? []) {
+      const isIpv4 = entry.family === "IPv4" || entry.family === 4;
+      if (isIpv4 && !entry.internal && entry.address !== "127.0.0.1") {
+        return entry.address;
+      }
+    }
+  }
+  throw new Error("No non-loopback IPv4 interface available for boundary attack");
+}
+
+function request({ connectHost, host = `localhost:${port}`, origin }) {
   return new Promise((resolve, reject) => {
-    const headers = {
-      host,
-      "x-forwarded-for": remoteIp,
-      "x-real-ip": remoteIp,
-      forwarded: `for=${remoteIp};proto=http;host=${host}`,
-    };
+    const headers = { host };
     if (origin !== undefined) headers.origin = origin;
 
     const req = http.request(
       {
-        hostname: "127.0.0.1",
+        hostname: connectHost,
         port,
         path,
         method: "POST",
@@ -99,27 +106,32 @@ child.stderr.on("data", (chunk) => {
 
 try {
   await waitForServer(child);
+  const nonLoopbackIp = firstNonLoopbackIpv4();
 
-  // Remote-marked request with a non-loopback Host. A true peer/local boundary
-  // must reject this before touching signer configuration. Current `next dev`
-  // rewrites the route Request URL to its internal localhost origin, so the guard
-  // accepts it when Origin is absent.
-  const hostileHostNoOrigin = await request({ host: `attacker.example:${port}` });
+  // Reach the dev server through an actual non-loopback interface rather than
+  // 127.0.0.1. A true loopback-only transport boundary would not accept this
+  // connection. The hostile Host additionally proves request.url is not a safe
+  // substitute for the external connection/Host boundary in this Next shape.
+  const nonLoopbackNoOrigin = await request({
+    connectHost: nonLoopbackIp,
+    host: `attacker.example:${port}`,
+  });
   assert.equal(
-    hostileHostNoOrigin.status,
+    nonLoopbackNoOrigin.status,
     503,
-    `expected hostile Host/no-Origin request to demonstrate guard bypass, got ${hostileHostNoOrigin.status}: ${hostileHostNoOrigin.body}`,
+    `expected non-loopback connection to demonstrate guard bypass, got ${nonLoopbackNoOrigin.status}: ${nonLoopbackNoOrigin.body}`,
   );
   assert.equal(
-    hostileHostNoOrigin.json?.code,
+    nonLoopbackNoOrigin.json?.code,
     "WORLD_ID_RP_SIGNING_KEY_NOT_CONFIGURED",
-    `hostile Host/no-Origin request did not reach signer configuration: ${hostileHostNoOrigin.body}`,
+    `non-loopback connection did not reach signer configuration: ${nonLoopbackNoOrigin.body}`,
   );
 
-  // Browser-style cross-origin traffic is separately rejected. This control shows
-  // Origin comparison works but is not a substitute for the claimed local-only
-  // transport boundary because non-browser/no-Origin requests are accepted.
+  // Browser cross-origin traffic is separately rejected. That defense does not
+  // make the route local-only because clients without Origin still reach it.
   const crossOrigin = await request({
+    connectHost: nonLoopbackIp,
+    host: `attacker.example:${port}`,
     origin: "https://attacker.example",
   });
   assert.equal(
@@ -128,7 +140,7 @@ try {
     `mismatched browser Origin should be blocked, got ${crossOrigin.status}: ${crossOrigin.body}`,
   );
 
-  const loopbackNoOrigin = await request({});
+  const loopbackNoOrigin = await request({ connectHost: "127.0.0.1" });
   assert.equal(loopbackNoOrigin.status, 503);
   assert.equal(loopbackNoOrigin.json?.code, "WORLD_ID_RP_SIGNING_KEY_NOT_CONFIGURED");
 
@@ -137,10 +149,10 @@ try {
     JSON.stringify(
       {
         serverShape: "next dev without explicit hostname",
-        remoteMarker: remoteIp,
+        nonLoopbackInterface: nonLoopbackIp,
         hostileHost: `attacker.example:${port}`,
-        hostileHostNoOriginPassedGuard: true,
-        reachedCode: hostileHostNoOrigin.json?.code,
+        nonLoopbackConnectionPassedGuard: true,
+        reachedCode: nonLoopbackNoOrigin.json?.code,
         crossOriginBrowserRequestBlocked: true,
         signingKeyConfigured: false,
         signatureProduced: false,
