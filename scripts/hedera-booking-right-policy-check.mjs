@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { Transaction, TransferTransaction } from "@hiero-ledger/sdk";
 import {
   BookingRightDelegationPolicy,
   BookingRightDelegationPolicyError,
@@ -10,6 +11,7 @@ import {
   YOURTURN_DELEGATED_RECOVERY_TRANSFER_NFT_TOOL,
   createDelegatedRecoveryReturnBytesRuntime,
 } from "../lib/hedera-agent-kit/delegated-recovery-plugin.ts";
+import { preparePolicyAuthorizedDelegatedRecovery } from "../lib/hedera-agent-kit/policy-authorized-delegated-recovery.ts";
 
 const nowMs = Date.parse("2026-09-10T03:00:00Z");
 const authority = {
@@ -175,8 +177,8 @@ await expectReason("NONCE_CONFLICT", {
   invocationPatch: { recovery: { asset: delegation.minimumRecovery.asset, atomicUnits: "46000000" } },
 });
 
-// Prove this is not a sidecar evaluator: attach the policy to the actual HAK v4
-// BaseTool context and let BaseTool invoke AbstractPolicy.preToolExecutionHook.
+// Retain the direct HAK lifecycle proof, but do not mistake this manually wired
+// fixture for the H2 product preparation boundary tested below.
 const hakStore = createStore();
 const hakPolicy = new BookingRightDelegationPolicy(
   delegation,
@@ -210,6 +212,164 @@ try {
   hakRuntime.client.close();
 }
 
+async function runProtected({
+  delegationPatch = {},
+  invocationPatch = {},
+  action = "RECOVER",
+  store = createStore(),
+} = {}) {
+  const resolvedDelegation = { ...delegation, ...delegationPatch };
+  const resolvedInvocation = {
+    ...baseInvocation,
+    action,
+    nonce: `protected-${action.toLowerCase()}-001`,
+    ...invocationPatch,
+  };
+  return preparePolicyAuthorizedDelegatedRecovery({
+    delegation: resolvedDelegation,
+    invocation: resolvedInvocation,
+    nonceStore: store,
+    now: () => nowMs,
+  });
+}
+
+function assertProtectedStop(result, reason, outcome = null) {
+  assert.equal(result.ok, false, `${reason} must not prepare transaction bytes`);
+  assert.equal(result.transactionBytesProduced, false);
+  assert.equal(result.decision.reason, reason);
+  if (outcome) assert.equal(result.decision.outcome, outcome);
+}
+
+// SEC-HEDERA-005: exercise the exact exported H2 product/demo boundary. Provider
+// denial/review uses a deliberately malformed receiver sentinel: if the HAK
+// BaseTool reached normalization/coreAction instead of stopping in the policy
+// pre-hook, this would not produce the required provider decision.
+const providerBlocked = await runProtected({
+  invocationPatch: {
+    providerPolicy: { id: delegation.providerPolicyId, state: "BLOCK" },
+    receiverAccountId: "not-a-hedera-account",
+  },
+});
+assertProtectedStop(providerBlocked, "PROVIDER_POLICY_DENIED", "BLOCK");
+
+const providerReview = await runProtected({
+  invocationPatch: {
+    providerPolicy: { id: delegation.providerPolicyId, state: "REVIEW" },
+    receiverAccountId: "not-a-hedera-account",
+  },
+});
+assertProtectedStop(providerReview, "PROVIDER_POLICY_REVIEW", "ESCALATE");
+
+for (const [reason, options] of [
+  ["DELEGATION_EXPIRED", { delegationPatch: { expiresAtMs: nowMs } }],
+  ["DELEGATION_REVOKED", { delegationPatch: { revokedAtMs: nowMs - 1 } }],
+  ["HOLDER_MISMATCH", { invocationPatch: { currentHolderAccountId: "0.0.1999" } }],
+  ["AGENT_MISMATCH", { invocationPatch: { agentAccountId: "0.0.7999" } }],
+  ["RECOVERY_ASSET_MISMATCH", { invocationPatch: { recovery: { asset: { kind: "HBAR" }, atomicUnits: "45000000" } } }],
+  ["BELOW_MINIMUM_RECOVERY", { invocationPatch: { recovery: { asset: delegation.minimumRecovery.asset, atomicUnits: "39999999" } } }],
+]) {
+  const result = await runProtected(options);
+  assertProtectedStop(result, reason);
+}
+
+const unavailableResult = await runProtected({
+  store: createStore({ unavailable: true }),
+});
+assertProtectedStop(unavailableResult, "REPLAY_STORE_UNAVAILABLE", "ESCALATE");
+
+const protectedValidStore = createStore();
+const protectedValid = await runProtected({
+  store: protectedValidStore,
+  invocationPatch: { nonce: "protected-valid-001" },
+});
+assert.equal(protectedValid.ok, true);
+assert.equal(protectedValid.transactionBytesProduced, true);
+assert.equal(protectedValid.decision.outcome, "ALLOW");
+assert.equal(protectedValid.envelope.mode, "RETURN_BYTES");
+assert.equal(protectedValid.envelope.signed, false);
+assert.equal(protectedValid.envelope.submitted, false);
+assert.equal(protectedValid.envelope.payerAccountId, authority.spenderAccountId);
+const protectedTransfer = Transaction.fromBytes(
+  Buffer.from(protectedValid.envelope.bytesBase64, "base64")
+);
+assert.ok(protectedTransfer instanceof TransferTransaction);
+assert.equal(
+  protectedTransfer.transactionId?.accountId?.toString(),
+  authority.spenderAccountId
+);
+const protectedTransferEntries = [...protectedTransfer.nftTransfers];
+assert.equal(protectedTransferEntries.length, 1);
+assert.equal(protectedTransferEntries[0][0].toString(), authority.tokenId);
+assert.equal(protectedTransferEntries[0][1].length, 1);
+assert.equal(Number(protectedTransferEntries[0][1][0].serial.toString()), authority.serial);
+assert.equal(protectedTransferEntries[0][1][0].sender.toString(), authority.ownerAccountId);
+assert.equal(protectedTransferEntries[0][1][0].recipient.toString(), receiverAccountId);
+assert.equal(protectedTransferEntries[0][1][0].isApproved, true);
+
+const productReplayStore = createStore();
+const firstReplay = await runProtected({
+  store: productReplayStore,
+  invocationPatch: { nonce: "protected-replay-001" },
+});
+assert.equal(firstReplay.ok, true);
+const secondReplay = await runProtected({
+  store: productReplayStore,
+  invocationPatch: { nonce: "protected-replay-001" },
+});
+assertProtectedStop(secondReplay, "IDEMPOTENT_REPLAY", "BLOCK");
+
+const productConflictStore = createStore();
+const firstConflict = await runProtected({
+  store: productConflictStore,
+  invocationPatch: { nonce: "protected-conflict-001" },
+});
+assert.equal(firstConflict.ok, true);
+const conflictingReplay = await runProtected({
+  store: productConflictStore,
+  invocationPatch: {
+    nonce: "protected-conflict-001",
+    recovery: {
+      asset: delegation.minimumRecovery.asset,
+      atomicUnits: "46000000",
+    },
+  },
+});
+assertProtectedStop(conflictingReplay, "NONCE_CONFLICT", "BLOCK");
+
+const concurrentStore = createStore();
+const concurrentResults = await Promise.all([
+  runProtected({
+    store: concurrentStore,
+    invocationPatch: { nonce: "protected-concurrent-001" },
+  }),
+  runProtected({
+    store: concurrentStore,
+    invocationPatch: { nonce: "protected-concurrent-001" },
+  }),
+]);
+assert.equal(concurrentResults.filter((result) => result.ok).length, 1);
+const concurrentBlocked = concurrentResults.find((result) => !result.ok);
+assert.ok(concurrentBlocked);
+assertProtectedStop(concurrentBlocked, "IDEMPOTENT_REPLAY", "BLOCK");
+
+// All three H2 action surfaces use the same guarded entry point. These checks
+// prove DELEGATE/REVOKE cannot accidentally route through the legacy H1 wrappers.
+for (const [action, expectedType, expectedPayer] of [
+  ["DELEGATE", "AccountAllowanceApproveTransaction", authority.ownerAccountId],
+  ["REVOKE", "AccountAllowanceDeleteTransaction", authority.ownerAccountId],
+]) {
+  const actionResult = await runProtected({
+    action,
+    store: createStore(),
+    invocationPatch: { nonce: `protected-${action.toLowerCase()}-valid` },
+  });
+  assert.equal(actionResult.ok, true);
+  assert.equal(actionResult.envelope.transactionType, expectedType);
+  assert.equal(actionResult.envelope.payerAccountId, expectedPayer);
+  assert.equal(actionResult.envelope.signed, false);
+  assert.equal(actionResult.envelope.submitted, false);
+}
+
 const policySource = readFileSync(
   new URL("../lib/hedera-agent-kit/booking-right-delegation-policy.ts", import.meta.url),
   "utf8"
@@ -221,13 +381,33 @@ assert.match(policySource, /ex:\s*args\.ttlSeconds/);
 assert.match(policySource, /getRedis\(\)/);
 assert.doesNotMatch(policySource, /new Map\(/, "production policy must not use process-memory replay fallback");
 
+const protectedRouteSource = readFileSync(
+  new URL("../lib/hedera-agent-kit/policy-authorized-delegated-recovery.ts", import.meta.url),
+  "utf8"
+);
+const hookAttachIndex = protectedRouteSource.indexOf("runtime.context.hooks =");
+const executeIndex = protectedRouteSource.indexOf("tool.execute(");
+assert.ok(hookAttachIndex >= 0, "H2 route must attach BookingRightDelegationPolicy to HAK context.hooks");
+assert.ok(executeIndex > hookAttachIndex, "H2 policy hook must be attached before BaseTool.execute");
+for (const policylessH1Helper of [
+  "prepareSerialAllowanceForOwner",
+  "prepareSerialRevocationForOwner",
+  "prepareApprovedSerialTransferForSpender",
+]) {
+  assert.equal(
+    protectedRouteSource.includes(policylessH1Helper),
+    false,
+    `H2 product route must not fall back to policyless H1 helper ${policylessH1Helper}`
+  );
+}
+
 console.log(
   JSON.stringify(
     {
       ok: true,
       evidenceLevel: "CI/LOCAL",
       status: "booking_right_delegation_policy_verified",
-      hakLifecycle: "AbstractPolicy.preToolExecutionHook -> BaseTool",
+      hakLifecycle: "BookingRightDelegationPolicy -> context.hooks -> BaseTool -> RETURN_BYTES",
       decisionModel: ["ALLOW", "BLOCK", "ESCALATE"],
       bindings: [
         "delegated_agent",
@@ -248,6 +428,7 @@ console.log(
         missingStoreBehavior: "ESCALATE_FAIL_CLOSED",
         duplicateBehavior: "BLOCK_IDEMPOTENT_REPLAY",
         conflictBehavior: "BLOCK_NONCE_CONFLICT",
+        concurrentBehavior: "ONE_ALLOW_ONE_BLOCK",
       },
       assertions: {
         exactMatchAllowed: true,
@@ -257,8 +438,13 @@ console.log(
         statelessDenialsDoNotConsumeNonce: true,
         exactReplayDoesNotPrepareSecondTransaction: true,
         nonceConflictBlocked: true,
-        actualHakBaseToolLifecycleInvokedPolicy: true,
-        returnBytesPreparedAfterPolicyAllow: true,
+        concurrentReplayAllowsExactlyOne: true,
+        replayStoreUnavailableFailsClosed: true,
+        exactProductRouteAttachesHakPolicyBeforeExecution: true,
+        blockedProductRouteProducesNoReturnBytes: true,
+        productRouteCannotFallbackToPolicylessH1Helpers: true,
+        validProductRouteReturnsExactSerialApprovedTransferBytes: true,
+        delegateAndRevokeAlsoUseGuardedProductRoute: true,
         noProductionMemoryReplayFallback: true,
       },
     },
