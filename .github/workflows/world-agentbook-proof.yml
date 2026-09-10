@@ -1,0 +1,45 @@
+name: World AgentBook Live Proof
+
+on:
+  workflow_dispatch:
+    inputs:
+      agent_address:
+        description: "Public EVM address already registered through AgentBook + World ID"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  agentbook-live-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout World branch
+        uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Resolve agent through canonical AgentBook verifier
+        env:
+          WORLD_AGENT_ADDRESS: ${{ inputs.agent_address }}
+        run: |
+          set -o pipefail
+          npm run world:agentbook-live-check 2>&1 | tee world-agentbook-proof.json
+
+      - name: Upload privacy-safe proof artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: world-agentbook-live-proof
+          path: world-agentbook-proof.json
+          if-no-files-found: error
+          retention-days: 14
