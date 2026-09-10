@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   AccountAllowanceApproveTransaction,
   AccountAllowanceDeleteTransaction,
@@ -6,6 +7,8 @@ import {
   TransferTransaction,
 } from "@hiero-ledger/sdk";
 import {
+  YOURTURN_DELEGATED_RECOVERY_APPROVE_NFT_TOOL,
+  createDelegatedRecoveryReturnBytesRuntime,
   prepareApprovedSerialTransferForSpender,
   prepareSerialAllowanceForOwner,
   prepareSerialRevocationForOwner,
@@ -18,6 +21,24 @@ const authority = {
   spenderAccountId: "0.0.1002",
 };
 const receiverAccountId = "0.0.1003";
+
+const pluginSource = readFileSync(
+  new URL("../lib/hedera-agent-kit/delegated-recovery-plugin.ts", import.meta.url),
+  "utf8"
+);
+for (const forbidden of [
+  "PrivateKey",
+  ".setOperator(",
+  "HEDERA_GUEST_A_KEY",
+  "HEDERA_TREASURY_KEY",
+  "process.env",
+]) {
+  assert.equal(
+    pluginSource.includes(forbidden),
+    false,
+    `non-custodial plugin must not contain ${forbidden}`
+  );
+}
 
 function decode(envelope) {
   assert.equal(envelope.mode, "RETURN_BYTES");
@@ -78,6 +99,27 @@ await assert.rejects(
   /unrecognized|unknown/i
 );
 
+const adversarialRuntime = createDelegatedRecoveryReturnBytesRuntime(
+  authority.ownerAccountId
+);
+try {
+  const approveTool = adversarialRuntime.tools.find(
+    (tool) => tool.method === YOURTURN_DELEGATED_RECOVERY_APPROVE_NFT_TOOL
+  );
+  assert.ok(approveTool);
+  const payerMismatchResult = await approveTool.execute(
+    adversarialRuntime.client,
+    adversarialRuntime.context,
+    { ...authority, ownerAccountId: "0.0.9999" }
+  );
+  assert.match(
+    payerMismatchResult?.raw?.error ?? "",
+    /delegated_recovery_payer_mismatch/
+  );
+} finally {
+  adversarialRuntime.client.close();
+}
+
 console.log(
   JSON.stringify(
     {
@@ -115,8 +157,10 @@ console.log(
         ownerApprovalPreparedWithoutBackendKey: true,
         ownerRevocationPreparedWithoutBackendKey: true,
         spenderTransferPreparedWithoutBackendKey: true,
+        sourceContainsNoKeyLoadingPath: true,
         singleSerialOnly: true,
         allSerialsRejected: true,
+        mismatchedContextPayerRejected: true,
         noTransactionSubmitted: true,
       },
     },

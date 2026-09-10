@@ -8,7 +8,14 @@ import {
   type Plugin,
   type RawTransactionResponse,
 } from "@hashgraph/hedera-agent-kit";
-import { AccountId, Client, Transaction } from "@hiero-ledger/sdk";
+import {
+  AccountAllowanceApproveTransaction,
+  AccountAllowanceDeleteTransaction,
+  AccountId,
+  Client,
+  Transaction,
+  TransferTransaction,
+} from "@hiero-ledger/sdk";
 import { z } from "zod";
 import {
   buildApprovedSerialTransfer,
@@ -44,6 +51,17 @@ type TransferParams = z.infer<typeof transferParameters>;
 
 function canonicalAccountId(value: string): string {
   return AccountId.fromString(value).toString();
+}
+
+function describeTransactionType(transaction: Transaction): string {
+  if (transaction instanceof AccountAllowanceApproveTransaction) {
+    return "AccountAllowanceApproveTransaction";
+  }
+  if (transaction instanceof AccountAllowanceDeleteTransaction) {
+    return "AccountAllowanceDeleteTransaction";
+  }
+  if (transaction instanceof TransferTransaction) return "TransferTransaction";
+  return "Transaction";
 }
 
 function requireContextPayer(context: Context, expectedAccountId: string): void {
@@ -226,7 +244,7 @@ async function prepareReturnBytes(
       bytesBase64: Buffer.from(result.bytes).toString("base64"),
       transactionId,
       payerAccountId: expectedPayer,
-      transactionType: transaction.constructor.name,
+      transactionType: describeTransactionType(transaction),
       mode: "RETURN_BYTES",
       signed: false,
       submitted: false,
