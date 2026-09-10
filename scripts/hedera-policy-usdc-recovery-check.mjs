@@ -115,6 +115,34 @@ assert.equal(decoded.hbarTransfers.size, 0);
 assert.equal(decoded.nftTransfers.size, 1);
 assert.equal(decoded.tokenTransfers.size, 1);
 
+async function expectInvalidAllowedActions(name, allowedActions) {
+  const store = createStore();
+  const result = await preparePolicyAuthorizedUsdcRecovery({
+    delegation: { ...delegation, allowedActions },
+    invocation: invocation(`invalid-actions-${name}-001`),
+    nonceStore: store,
+    now: () => nowMs,
+  });
+  assert.equal(result.ok, false, `${name} must not authorize recovery`);
+  assert.equal(result.transactionBytesProduced, false, `${name} must not produce RETURN_BYTES`);
+  assert.equal(result.decision.outcome, "BLOCK", `${name} must fail closed`);
+  assert.equal(result.decision.reason, "INVALID_DELEGATION", `${name} must be classified as malformed delegation state`);
+  assert.equal(store.reservations, 0, `${name} must fail before nonce reservation`);
+}
+
+for (const [name, allowedActions] of [
+  ["recover-string", "RECOVER"],
+  ["substring-string", "NOT_RECOVER_ALLOWED"],
+  ["null", null],
+  ["object", { 0: "RECOVER", length: 1 }],
+  ["unknown-member", ["TRANSFER"]],
+  ["mixed-invalid", ["RECOVER", "TRANSFER"]],
+  ["mixed-null", ["RECOVER", null]],
+  ["wrong-case", ["recover"]],
+]) {
+  await expectInvalidAllowedActions(name, allowedActions);
+}
+
 async function expectProtectedStop({
   nonce,
   amount = HEDERA_USDC_MIN_RECOVERY_ATOMIC_UNITS,
@@ -324,6 +352,14 @@ console.log(
         h2PolicyAttachedBeforeBytes: true,
         exactSettlementBoundToPolicyQuote: true,
         holderIsSettlementRecipient: true,
+        invalidAllowedActionsRejectedBeforeNonce: true,
+        recoverStringRejectedAsInvalidDelegation: true,
+        substringStringRejectedAsInvalidDelegation: true,
+        nullAllowedActionsRejectedAsInvalidDelegation: true,
+        objectAllowedActionsRejectedAsInvalidDelegation: true,
+        unknownAllowedActionRejectedAsInvalidDelegation: true,
+        mixedInvalidAllowedActionsRejectedAsInvalidDelegation: true,
+        wrongCaseAllowedActionRejectedAsInvalidDelegation: true,
         wrongTokenRejectedBeforeNonce: true,
         wrongSerialRejectedBeforeNonce: true,
         wrongSpenderRejectedBeforeNonce: true,
