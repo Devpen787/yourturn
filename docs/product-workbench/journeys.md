@@ -8,10 +8,10 @@ Status vocabulary: `candidate`, `review`, `GOLDEN-READY`, `Golden`, `implemented
 | YT-02 My Bookings | Holder sees owned bookings and their meaningful states | Golden | P0 |
 | YT-03 Booking detail | Holder can use a booking or change plans | Golden | P0 |
 | YT-04 Recovery setup | Holder defines what YourTurn may do | Golden | P0 |
-| YT-05 Delegate | Holder understands and authorizes the mandate with Ledger | GOLDEN-READY | P0 |
-| YT-06 Agent working | Holder sees the exact human-backed delegated agent working | GOLDEN-READY | P0 |
-| YT-07 Block / escalate | Out-of-scope offer is blocked and escalation boundary is clear | GOLDEN-READY | P0 |
-| YT-08 Successful recovery | In-scope offer completes transfer + settlement | GOLDEN-READY | P0 |
+| YT-05 Delegate | Holder understands and authorizes the mandate with Ledger | review | P0 |
+| YT-06 Agent working | Holder sees the exact human-backed delegated agent working | review | P0 |
+| YT-07 Block / escalate | Out-of-scope offer is blocked and escalation boundary is clear | review | P0 |
+| YT-08 Successful recovery | In-scope offer completes transfer + settlement | review | P0 |
 | YT-09 New holder | Buyer sees and can use the transferred booking | queued | P1 |
 | YT-10 Activity & proof | Both parties can understand what happened; reviewer can inspect evidence | queued | P1 |
 
@@ -42,13 +42,13 @@ The Golden authority contract is:
 
 Exact executable candidate:
 
-`92df1f0b253ae028b09f90975162a3315a30b994`
+`d5309a96d532ee107011c2a5cefc3000b9e4932f`
 
-Current classification: **GOLDEN-READY**, not `Golden`. Devinson's explicit approval of this exact executable is the remaining freeze gate.
+Current classification: **review**. Product Reviewer #34 must directly inspect the exact-head PNG artifact and classify only `REVISE`, `REVIEWABLE`, or `GOLDEN-READY`.
 
 Implemented continuous story:
 
-`secure approval → Ledger not ready → waiting for Ledger → approve / reject / cancel → verified human-backed delegated agent starts recovery → 32 USDC offer BLOCKED → optional new-authorization seam for lower minimum → 45 USDC offer ALLOWED → transfer + settlement completion state → You recovered 45 USDC → Friday Yoga removed from Maya's usable bookings`
+`secure approval → Ledger not ready → waiting for Ledger → approve / reject / cancel → verified human-backed delegated agent starts recovery → 32 USDC offer BLOCKED → optional new-authorization seam for lower minimum → replacement reject/cancel preserves current 40 USDC recovery → 45 USDC offer ALLOWED → transfer + settlement completion state → You recovered 45 USDC → Friday Yoga removed from Maya's usable bookings`
 
 ### YT-05 — Delegate
 
@@ -58,11 +58,12 @@ Implemented product states:
 - device not ready / connect-device state;
 - awaiting confirmation on device;
 - approved;
-- rejected with no authority created;
-- cancelled with no authority created;
+- initial authorization rejected with no authority created;
+- initial authorization cancelled with no authority created;
 - identical human-readable mandate details to YT-04: Friday Yoga only, 40 USDC minimum, tomorrow 17:00, cancellation forbidden;
 - replacement-authority path repeats the same Ledger boundary rather than mutating a live mandate;
 - replacement authorization explicitly preserves the current 40 USDC authority until the replacement is approved;
+- rejecting or cancelling the proposed 30 USDC replacement leaves the existing 40 USDC mandate active and unchanged, with a clear return to active recovery;
 - no implication that Ledger signs Hedera HTS transactions; Ledger authorizes the off-chain Recovery Mandate.
 
 Ledger interface anchor: `feature/ethonline-ledger@1d50b01c619687950bd87130baf30a3ae2b4a927`.
@@ -94,7 +95,8 @@ Implemented product states:
 - no owner intervention is required merely because the invalid offer arrived;
 - `Keep looking` preserves the current authority;
 - `Lower my minimum` opens a new authority decision with current 40 USDC vs proposed 30 USDC;
-- proposed 30 USDC routes back to Ledger approval while the current 40 USDC authority stays active unless replacement approval succeeds.
+- proposed 30 USDC routes back to Ledger approval while the current 40 USDC authority stays active unless replacement approval succeeds;
+- replacement rejection/cancellation does not terminate the current 40 USDC recovery authority.
 
 ### YT-08 — Successful recovery
 
@@ -113,15 +115,15 @@ Hedera interface anchor: `feature/ethonline-hedera@12c591afc21c035062a8e939f7abe
 
 ## Exact-head proof for current review set
 
-For executable candidate `92df1f0b253ae028b09f90975162a3315a30b994`:
-- ETHOnline Continuity Gate `34483781514`: **SUCCESS**.
-- Product Workbench Visual Check `34483776864`: **SUCCESS**.
+For executable candidate `d5309a96d532ee107011c2a5cefc3000b9e4932f`:
+- ETHOnline Continuity Gate `34497826067`: **SUCCESS**.
+- Product Workbench Visual Check `34497819955`: **SUCCESS**.
 - Production build/start: **SUCCESS**.
 - Chromium interaction run: **SUCCESS** at desktop `1440×1000` and mobile `390×844`.
-- Evidence artifact: `product-workbench-rendered-evidence` / `10154834167`.
-- Artifact upload: **40 PNGs**, 20 checkpoints × two viewports.
-- Product Reviewer #34 directly inspected all 40 exact-head PNGs and classified the exact executable `GOLDEN-READY`.
-- The repaired renders verify that replacement authorization preserves the existing 40 USDC authority and that `Recovery active` visibly retains expiry `Tomorrow · 17:00`.
+- Evidence artifact: `product-workbench-rendered-evidence` / `10160672183`.
+- Exact-head runner captures **44 PNGs**: 22 meaningful checkpoints × two viewports.
+- Coverage includes replacement-Ledger rejection and replacement-Ledger cancellation, verifies contradictory no-authority copy is absent, and verifies return to active 40-USDC recovery.
+- Product Reviewer #34 re-review is pending direct inspection of this exact-head artifact.
 
 ## YT-05→YT-08 visual/product rules
 
