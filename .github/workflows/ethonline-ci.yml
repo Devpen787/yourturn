@@ -60,6 +60,12 @@ jobs:
         # external wallet signature/broadcast step is intentionally out-of-band.
         run: npm run hedera:delegated-recovery-hak-check
 
+      - name: Independent SEC-HEDERA-004 denial-classification retest
+        # Security-branch-only adversarial check. No key loading, submission,
+        # network mutation, or funds. Uses real Hiero SDK Status values to prove
+        # local/generic message text cannot impersonate an expected denial.
+        run: node scripts/security-hedera-004-retest.mjs
+
       - name: Hedera BookingRight delegation policy + replay check
         # ETHOnline-new HAK v4 AbstractPolicy behavior. This stays CI/LOCAL: it
         # proves policy gating and durable nonce semantics before transaction
