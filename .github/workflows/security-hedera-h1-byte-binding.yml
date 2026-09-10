@@ -1,0 +1,32 @@
+name: Security Hedera H1 Byte-Binding Attack
+
+on:
+  push:
+    branches:
+      - 'feature/ethonline-security-hedera-h1-byte-binding'
+    paths:
+      - 'scripts/security-hedera-h1-byte-binding.mjs'
+      - '.github/workflows/security-hedera-h1-byte-binding.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  h1-byte-binding-attack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout attacker branch
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci --legacy-peer-deps
+
+      - name: Reproduce H1 metadata-byte binding gap
+        run: node scripts/security-hedera-h1-byte-binding.mjs
