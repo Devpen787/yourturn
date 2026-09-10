@@ -18,7 +18,17 @@ Put device-backed human approval at the authority boundary: creating or expandin
 4. implement approve and reject paths;
 5. reject stale/replayed approvals;
 6. integrate escalation UX;
-7. independent claim-boundary review.
+7. produce the required Ledger tooling/DX feedback from the actual integration experience;
+8. capture a practical runnable path or recorded walkthrough and the Continuity before/after;
+9. independent claim-boundary review.
+
+## Done when
+
+- a supported Ledger primitive materially changes the authority boundary;
+- approve/reject/replay behavior is evidenced at the correct level;
+- the before/after clearly states what YourTurn could not do before Ledger;
+- the required Ledger feedback document contains specific docs/SDK gaps and improvement suggestions grounded in the work;
+- a judge can run or follow the demonstrated path without hidden verbal steps.
 
 ## Timebox / fallback
 
@@ -28,7 +38,8 @@ If a real device-backed path is not working within the agreed timebox, mark the 
 
 - claim a Hedera transaction was Ledger-signed unless proven;
 - display raw opaque payload as the hero approval UX;
-- treat hardware approval as a replacement for YourTurn provider/mandate policy.
+- treat hardware approval as a replacement for YourTurn provider/mandate policy;
+- omit the required Ledger tooling/DX feedback artifact.
 
 ## Handoff
 
