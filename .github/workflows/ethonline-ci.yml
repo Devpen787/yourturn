@@ -53,6 +53,13 @@ jobs:
         # LIVE/TESTNET evidence until the same lifecycle executes on Hedera.
         run: npm run hedera:nft-delegation-proof
 
+      - name: Hedera Agent Kit delegated recovery RETURN_BYTES check
+        # ETHOnline-new HAK surface. It proves HAK v4 prepares the exact
+        # serial-only approve/revoke/approved-transfer transactions without
+        # loading a private key or submitting them. This remains CI/LOCAL; the
+        # external wallet signature/broadcast step is intentionally out-of-band.
+        run: npm run hedera:delegated-recovery-hak-check
+
       - name: Continuity baseline must remain documented
         run: |
           grep -q 'd0b5f875afb4f2b29af29bc5972cf1edc404d473' docs/ethonline-2026/CONTINUITY_BASELINE.md
