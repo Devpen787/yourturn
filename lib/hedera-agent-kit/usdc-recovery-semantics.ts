@@ -65,7 +65,9 @@ export function validateAtomicUsdcRecoveryTransaction(
     expected.settlementAmountAtomicUnits
   );
 
-  const nftEntries = [...transaction.nftTransfers];
+  // Array.from keeps this validator compatible with the repo's current TS target
+  // while consuming the SDK ObjectMap iterator without changing tsconfig.
+  const nftEntries = Array.from(transaction.nftTransfers);
   if (nftEntries.length !== 1) {
     throw new Error("usdc_recovery_nft_scope_widened");
   }
@@ -90,7 +92,7 @@ export function validateAtomicUsdcRecoveryTransaction(
     throw new Error("usdc_recovery_nft_not_approved");
   }
 
-  const fungibleEntries = [...transaction.tokenTransfers];
+  const fungibleEntries = Array.from(transaction.tokenTransfers);
   if (fungibleEntries.length !== 1) {
     throw new Error("usdc_recovery_fungible_scope_widened");
   }
