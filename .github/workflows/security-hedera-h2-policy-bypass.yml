@@ -1,0 +1,29 @@
+name: Security Hedera H2 Policy Bypass Attack
+
+on:
+  push:
+    branches:
+      - 'feature/ethonline-security-hedera-h2-policy-bypass'
+
+permissions:
+  contents: read
+
+jobs:
+  attack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci --legacy-peer-deps
+
+      - name: Reproduce H2 policy bypass on exported RETURN_BYTES preparation
+        run: NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/security/hedera-h2-policy-bypass-repro.mjs
