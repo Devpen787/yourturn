@@ -3,7 +3,25 @@
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 
-type Step = "enter" | "bookings" | "detail" | "plans" | "setup" | "approval";
+type Step =
+  | "enter"
+  | "bookings"
+  | "detail"
+  | "plans"
+  | "setup"
+  | "approval"
+  | "ledgerNotReady"
+  | "ledgerWaiting"
+  | "ledgerRejected"
+  | "ledgerCancelled"
+  | "ledgerApproved"
+  | "recoveryActive"
+  | "offerBlocked"
+  | "reauthorize"
+  | "offerAllowed"
+  | "recoverySuccess";
+
+type ProofStage = "ledger" | "agent" | "blocked" | "success";
 
 const booking = {
   title: "Friday Yoga",
@@ -29,6 +47,26 @@ const secondaryBookings = [
   },
 ];
 
+// UX-only integration fixtures. Sponsor-backed actions replace these state transitions later.
+// The branch heads are recorded so the integration seams stay anchored to real workstream truth.
+const fixtureEvidence = {
+  ledger: {
+    head: "1d50b01c",
+    summary:
+      "Ledger DMK EIP-712 Recovery Mandate: approval requires typed-data interaction, an exclusive Completed terminal state, and a signature; reject/cancel persist no signature.",
+  },
+  world: {
+    head: "2ab04f44",
+    summary:
+      "World AgentKit / AgentBook seam: public human-backed-agent trust signal, exact delegated-agent match, and no raw human identifier in product output.",
+  },
+  hedera: {
+    head: "12c591af",
+    summary:
+      "Hedera atomic-recovery seam: exact booking transfer plus exact HTS USDC settlement, with byte-level scope validation before signing.",
+  },
+} as const;
+
 const buttonBase =
   "inline-flex min-h-[44px] items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2";
 const primaryButton = `${buttonBase} bg-slate-950 text-white hover:bg-slate-800`;
@@ -41,6 +79,30 @@ function BackButton({ onClick }: { onClick: () => void }) {
     <button type="button" onClick={onClick} className={quietButton}>
       ← Back
     </button>
+  );
+}
+
+function StatusPill({
+  children,
+  tone = "slate",
+}: {
+  children: React.ReactNode;
+  tone?: "slate" | "green" | "amber" | "rose" | "blue";
+}) {
+  const tones = {
+    slate: "bg-slate-100 text-slate-700 ring-slate-200",
+    green: "bg-emerald-50 text-emerald-800 ring-emerald-100",
+    amber: "bg-amber-50 text-amber-800 ring-amber-100",
+    rose: "bg-rose-50 text-rose-800 ring-rose-100",
+    blue: "bg-sky-50 text-sky-800 ring-sky-100",
+  };
+
+  return (
+    <span
+      className={`inline-flex rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ${tones[tone]}`}
+    >
+      {children}
+    </span>
   );
 }
 
@@ -93,16 +155,161 @@ function StepFrame({
   );
 }
 
+function MandateFacts({ minimum }: { minimum: number }) {
+  return (
+    <dl className="grid gap-4 border-t border-slate-100 pt-5 sm:grid-cols-2">
+      <div>
+        <dt className="text-xs uppercase tracking-[0.14em] text-slate-400">Minimum</dt>
+        <dd className="mt-1 font-semibold text-slate-950">{minimum} USDC</dd>
+      </div>
+      <div>
+        <dt className="text-xs uppercase tracking-[0.14em] text-slate-400">Expires</dt>
+        <dd className="mt-1 font-semibold text-slate-950">Tomorrow · 17:00</dd>
+      </div>
+      <div>
+        <dt className="text-xs uppercase tracking-[0.14em] text-slate-400">Cancellation</dt>
+        <dd className="mt-1 font-semibold text-slate-950">Not allowed</dd>
+      </div>
+      <div>
+        <dt className="text-xs uppercase tracking-[0.14em] text-slate-400">Scope</dt>
+        <dd className="mt-1 font-semibold text-slate-950">Friday Yoga only</dd>
+      </div>
+    </dl>
+  );
+}
+
+function ProofDrawer({ stage }: { stage: ProofStage }) {
+  const stageCopy: Record<ProofStage, { title: string; body: string }> = {
+    ledger: {
+      title: "Ledger authorization seam",
+      body: fixtureEvidence.ledger.summary,
+    },
+    agent: {
+      title: "Delegated-agent verification seam",
+      body: fixtureEvidence.world.summary,
+    },
+    blocked: {
+      title: "Policy decision seam",
+      body:
+        "This candidate models 32 USDC as below the active minimum. Integration must prove no booking transfer and no settlement occurred for the blocked offer.",
+    },
+    success: {
+      title: "Recovery settlement seam",
+      body: fixtureEvidence.hedera.summary,
+    },
+  };
+
+  const evidence = stageCopy[stage];
+  return (
+    <details className="mt-5 rounded-2xl border border-slate-200 bg-white">
+      <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-900">
+        View technical proof
+      </summary>
+      <div className="border-t border-slate-100 px-5 py-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusPill tone="amber">FIXTURE</StatusPill>
+          <p className="text-sm font-semibold text-slate-950">{evidence.title}</p>
+        </div>
+        <p className="mt-3 text-sm leading-6 text-slate-600">{evidence.body}</p>
+        <p className="mt-3 text-xs leading-5 text-slate-500">
+          This workbench state is intentionally non-LIVE until the sponsor implementation is wired. It
+          exists to lock the product contract and proof slot without inventing production evidence.
+        </p>
+      </div>
+    </details>
+  );
+}
+
+function AgentCard({ minimum }: { minimum: number }) {
+  return (
+    <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+            Recovery agent
+          </p>
+          <h2 className="mt-2 text-xl font-semibold text-slate-950">Exact delegated agent verified</h2>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">
+            YourTurn verified that the agent working on this recovery is the exact one covered by your
+            authorization and is backed by a verified human.
+          </p>
+        </div>
+        <StatusPill tone="green">Human-backed</StatusPill>
+      </div>
+      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        <div className="rounded-2xl bg-slate-50 p-4">
+          <p className="text-xs uppercase tracking-[0.14em] text-slate-400">May accept</p>
+          <p className="mt-1 text-sm font-semibold text-slate-950">{minimum} USDC or more</p>
+        </div>
+        <div className="rounded-2xl bg-slate-50 p-4">
+          <p className="text-xs uppercase tracking-[0.14em] text-slate-400">May touch</p>
+          <p className="mt-1 text-sm font-semibold text-slate-950">Friday Yoga only</p>
+        </div>
+        <div className="rounded-2xl bg-slate-50 p-4">
+          <p className="text-xs uppercase tracking-[0.14em] text-slate-400">Cannot</p>
+          <p className="mt-1 text-sm font-semibold text-slate-950">Cancel or widen limits</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function initialStep(view: string | null): Step {
+  const map: Record<string, Step> = {
+    bookings: "bookings",
+    "ledger-not-ready": "ledgerNotReady",
+    "ledger-waiting": "ledgerWaiting",
+    "ledger-rejected": "ledgerRejected",
+    "ledger-cancelled": "ledgerCancelled",
+    "ledger-approved": "ledgerApproved",
+    "recovery-active": "recoveryActive",
+    "offer-blocked": "offerBlocked",
+    reauthorize: "reauthorize",
+    "offer-allowed": "offerAllowed",
+    "recovery-success": "recoverySuccess",
+  };
+  return view && map[view] ? map[view] : "enter";
+}
+
 export default function ProductPreviewPage() {
   const searchParams = useSearchParams();
-  const [step, setStep] = useState<Step>(() =>
-    searchParams.get("view") === "bookings" ? "bookings" : "enter"
-  );
+  const startingStep = initialStep(searchParams.get("view"));
+  const [step, setStep] = useState<Step>(startingStep);
   const [confirmedScope, setConfirmedScope] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [activeMinimum, setActiveMinimum] = useState(40);
+  const [approvalMinimum, setApprovalMinimum] = useState(
+    searchParams.get("view") === "reauthorize" ? 30 : 40
+  );
+  const [offerAmount, setOfferAmount] = useState(
+    searchParams.get("view") === "offer-allowed" ||
+      searchParams.get("view") === "recovery-success"
+      ? 45
+      : 32
+  );
+  const [recovered, setRecovered] = useState(startingStep === "recoverySuccess");
+  const [recoveredAmount, setRecoveredAmount] = useState(
+    startingStep === "recoverySuccess" ? 45 : 0
+  );
 
   function chooseUnavailable(label: string) {
     setNotice(`${label} isn’t available for Friday Yoga right now.`);
+  }
+
+  function showLatestOffer() {
+    setOfferAmount(32);
+    setStep(activeMinimum <= 32 ? "offerAllowed" : "offerBlocked");
+  }
+
+  function approveCurrentMandate() {
+    setActiveMinimum(approvalMinimum);
+    setStep("ledgerApproved");
+  }
+
+  function completeRecovery() {
+    setRecovered(true);
+    setRecoveredAmount(offerAmount);
+    setStep("recoverySuccess");
   }
 
   return (
@@ -162,36 +369,62 @@ export default function ProductPreviewPage() {
           title="Good evening, Maya."
           intro="Everything you have coming up — ready to use, change, or pass on when the rules allow it."
         >
-          <div className="grid gap-4 lg:grid-cols-[1.25fr_0.75fr]">
-            <button
-              type="button"
-              onClick={() => setStep("detail")}
-              className="group rounded-[1.75rem] border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <BookingIdentity />
-                <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-100">
-                  Confirmed
-                </span>
-              </div>
-              <div className="mt-8 flex items-center justify-between border-t border-slate-100 pt-5">
-                <span className="text-sm text-slate-500">Your next booking</span>
-                <span className="text-sm font-semibold text-slate-950 group-hover:translate-x-0.5">
-                  View booking →
-                </span>
-              </div>
-            </button>
+          {!recovered ? (
+            <div className="grid gap-4 lg:grid-cols-[1.25fr_0.75fr]">
+              <button
+                type="button"
+                onClick={() => setStep("detail")}
+                className="group rounded-[1.75rem] border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <BookingIdentity />
+                  <StatusPill tone="green">Confirmed</StatusPill>
+                </div>
+                <div className="mt-8 flex items-center justify-between border-t border-slate-100 pt-5">
+                  <span className="text-sm text-slate-500">Your next booking</span>
+                  <span className="text-sm font-semibold text-slate-950 group-hover:translate-x-0.5">
+                    View booking →
+                  </span>
+                </div>
+              </button>
 
-            <aside className="rounded-[1.75rem] bg-slate-950 p-6 text-white">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                Plans changed?
-              </p>
-              <h2 className="mt-3 text-xl font-semibold">Keep the booking useful.</h2>
-              <p className="mt-3 text-sm leading-6 text-slate-300">
-                Open a booking to see the options available for that specific spot.
-              </p>
-            </aside>
-          </div>
+              <aside className="rounded-[1.75rem] bg-slate-950 p-6 text-white">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  Plans changed?
+                </p>
+                <h2 className="mt-3 text-xl font-semibold">Keep the booking useful.</h2>
+                <p className="mt-3 text-sm leading-6 text-slate-300">
+                  Open a booking to see the options available for that specific spot.
+                </p>
+              </aside>
+            </div>
+          ) : (
+            <div className="grid gap-4 lg:grid-cols-[1.25fr_0.75fr]">
+              <div className="rounded-[1.75rem] border border-emerald-100 bg-emerald-50 p-6">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                      Recently recovered
+                    </p>
+                    <h2 className="mt-2 text-xl font-semibold text-slate-950">Friday Yoga</h2>
+                    <p className="mt-2 text-sm text-slate-600">
+                      This booking has been transferred and is no longer available for your check-in.
+                    </p>
+                  </div>
+                  <StatusPill tone="green">Recovered {recoveredAmount || 45} USDC</StatusPill>
+                </div>
+              </div>
+              <aside className="rounded-[1.75rem] bg-slate-950 p-6 text-white">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  Recovery complete
+                </p>
+                <h2 className="mt-3 text-xl font-semibold">The booking moved on.</h2>
+                <p className="mt-3 text-sm leading-6 text-slate-300">
+                  Your other bookings are unchanged.
+                </p>
+              </aside>
+            </div>
+          )}
 
           <div className="mt-7">
             <h2 className="text-sm font-semibold text-slate-900">Later</h2>
@@ -223,9 +456,7 @@ export default function ProductPreviewPage() {
               <div className="p-7 sm:p-9">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <BookingIdentity />
-                  <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-100">
-                    Confirmed
-                  </span>
+                  <StatusPill tone="green">Confirmed</StatusPill>
                 </div>
                 <dl className="mt-8 grid gap-5 border-t border-slate-100 pt-6 sm:grid-cols-2">
                   <div>
@@ -450,7 +681,10 @@ export default function ProductPreviewPage() {
               <button
                 type="button"
                 disabled={!confirmedScope}
-                onClick={() => setStep("approval")}
+                onClick={() => {
+                  setApprovalMinimum(40);
+                  setStep("approval");
+                }}
                 className={`${primaryButton} mt-6 w-full disabled:cursor-not-allowed disabled:bg-slate-300`}
               >
                 Continue to secure approval
@@ -471,28 +705,11 @@ export default function ProductPreviewPage() {
             <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <BookingIdentity compact />
-                <span className="rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 ring-1 ring-amber-100">
-                  Not authorized yet
-                </span>
+                <StatusPill tone="amber">Not authorized yet</StatusPill>
               </div>
-              <dl className="mt-6 grid gap-4 border-t border-slate-100 pt-5 sm:grid-cols-2">
-                <div>
-                  <dt className="text-xs uppercase tracking-[0.14em] text-slate-400">Minimum</dt>
-                  <dd className="mt-1 font-semibold text-slate-950">40 USDC</dd>
-                </div>
-                <div>
-                  <dt className="text-xs uppercase tracking-[0.14em] text-slate-400">Expires</dt>
-                  <dd className="mt-1 font-semibold text-slate-950">Tomorrow · 17:00</dd>
-                </div>
-                <div>
-                  <dt className="text-xs uppercase tracking-[0.14em] text-slate-400">Cancellation</dt>
-                  <dd className="mt-1 font-semibold text-slate-950">Not allowed</dd>
-                </div>
-                <div>
-                  <dt className="text-xs uppercase tracking-[0.14em] text-slate-400">Scope</dt>
-                  <dd className="mt-1 font-semibold text-slate-950">Friday Yoga only</dd>
-                </div>
-              </dl>
+              <div className="mt-6">
+                <MandateFacts minimum={40} />
+              </div>
             </div>
 
             <aside className="rounded-[1.75rem] bg-slate-950 p-6 text-white sm:p-7">
@@ -508,13 +725,433 @@ export default function ProductPreviewPage() {
               </p>
               <button
                 type="button"
-                disabled
-                className="mt-6 inline-flex min-h-[44px] w-full cursor-not-allowed items-center justify-center rounded-full bg-white/20 px-5 py-2.5 text-sm font-semibold text-white/70"
+                onClick={() => {
+                  setApprovalMinimum(40);
+                  setStep("ledgerNotReady");
+                }}
+                className="mt-6 inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-white/20 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
               >
                 Approve on secure device
               </button>
             </aside>
           </div>
+        </StepFrame>
+      )}
+
+      {step === "ledgerNotReady" && (
+        <StepFrame
+          eyebrow="Secure approval"
+          title="Connect your Ledger to authorize recovery."
+          intro={`YourTurn will ask the device to approve only the ${approvalMinimum} USDC minimum Recovery Mandate shown here. No recovery authority exists yet.`}
+        >
+          <BackButton
+            onClick={() => setStep(approvalMinimum === activeMinimum ? "approval" : "reauthorize")}
+          />
+          <div className="mt-4 grid gap-5 lg:grid-cols-[1fr_0.85fr]">
+            <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <BookingIdentity compact />
+                <StatusPill tone="amber">Needs your approval</StatusPill>
+              </div>
+              <div className="mt-6">
+                <MandateFacts minimum={approvalMinimum} />
+              </div>
+              {approvalMinimum !== activeMinimum ? (
+                <p className="mt-5 rounded-2xl bg-amber-50 p-4 text-sm leading-6 text-amber-900 ring-1 ring-amber-100">
+                  Your current {activeMinimum} USDC authority stays active unless this replacement is approved.
+                </p>
+              ) : null}
+            </div>
+
+            <aside className="rounded-[1.75rem] bg-slate-950 p-6 text-white sm:p-7">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-xl">
+                ◇
+              </div>
+              <h2 className="mt-5 text-xl font-semibold">Ledger not connected.</h2>
+              <p className="mt-3 text-sm leading-6 text-slate-300">
+                Connect your secure device, unlock it, and keep it with you while you review the mandate.
+              </p>
+              <button
+                type="button"
+                onClick={() => setStep("ledgerWaiting")}
+                className="mt-6 inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+              >
+                Connect Ledger
+              </button>
+              {approvalMinimum !== activeMinimum ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setApprovalMinimum(activeMinimum);
+                    setStep("offerBlocked");
+                  }}
+                  className="mt-3 inline-flex min-h-[44px] w-full items-center justify-center rounded-full border border-white/20 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
+                >
+                  Keep current {activeMinimum} USDC rule
+                </button>
+              ) : null}
+            </aside>
+          </div>
+          <ProofDrawer stage="ledger" />
+        </StepFrame>
+      )}
+
+      {step === "ledgerWaiting" && (
+        <StepFrame
+          eyebrow="Secure approval"
+          title="Check the mandate on your Ledger."
+          intro="YourTurn is waiting for the secure-device result. Approving creates only the booking-scoped mandate below; rejecting or cancelling creates no authority."
+        >
+          <div className="grid gap-5 lg:grid-cols-[1fr_0.85fr]">
+            <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <BookingIdentity compact />
+                <StatusPill tone="amber">Waiting for Ledger</StatusPill>
+              </div>
+              <div className="mt-6">
+                <MandateFacts minimum={approvalMinimum} />
+              </div>
+            </div>
+            <aside className="rounded-[1.75rem] bg-slate-950 p-6 text-white sm:p-7">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-xl">
+                …
+              </div>
+              <h2 className="mt-5 text-xl font-semibold">Waiting for your Ledger.</h2>
+              <p className="mt-3 text-sm leading-6 text-slate-300">
+                Review the Recovery Mandate on the device. YourTurn cannot treat silence, rejection, or cancellation as approval.
+              </p>
+              <button
+                type="button"
+                onClick={approveCurrentMandate}
+                className="mt-6 inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
+              >
+                Check approval status
+              </button>
+              <button
+                type="button"
+                onClick={() => setStep("ledgerCancelled")}
+                className="mt-3 inline-flex min-h-[44px] w-full items-center justify-center rounded-full border border-white/20 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
+              >
+                Cancel approval
+              </button>
+            </aside>
+          </div>
+          <ProofDrawer stage="ledger" />
+        </StepFrame>
+      )}
+
+      {step === "ledgerRejected" && (
+        <StepFrame
+          eyebrow="Secure approval"
+          title="Approval was rejected on your Ledger."
+          intro="Nothing changed. Friday Yoga is still yours, no recovery authority was created, and YourTurn cannot start working."
+        >
+          <div className="rounded-[1.75rem] border border-rose-100 bg-white p-6 shadow-sm sm:p-7">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <BookingIdentity compact />
+              <StatusPill tone="rose">Not authorized</StatusPill>
+            </div>
+            <div className="mt-6 rounded-2xl bg-rose-50 p-4 text-sm leading-6 text-rose-900 ring-1 ring-rose-100">
+              Device rejection means no mandate signature and no recovery authority. Your booking remains confirmed.
+            </div>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <button type="button" onClick={() => setStep("ledgerNotReady")} className={primaryButton}>
+                Try again
+              </button>
+              <button type="button" onClick={() => setStep("detail")} className={secondaryButton}>
+                Back to booking
+              </button>
+            </div>
+          </div>
+          <ProofDrawer stage="ledger" />
+        </StepFrame>
+      )}
+
+      {step === "ledgerCancelled" && (
+        <StepFrame
+          eyebrow="Secure approval"
+          title="Approval cancelled."
+          intro="No mandate was created. Friday Yoga is still confirmed and YourTurn has no recovery authority."
+        >
+          <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <BookingIdentity compact />
+              <StatusPill>Not authorized</StatusPill>
+            </div>
+            <p className="mt-6 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+              Cancelling the device ceremony is terminal for this attempt. It does not silently approve or preserve a partial mandate.
+            </p>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <button type="button" onClick={() => setStep("ledgerNotReady")} className={primaryButton}>
+                Try again
+              </button>
+              <button type="button" onClick={() => setStep("detail")} className={secondaryButton}>
+                Back to booking
+              </button>
+            </div>
+          </div>
+          <ProofDrawer stage="ledger" />
+        </StepFrame>
+      )}
+
+      {step === "ledgerApproved" && (
+        <StepFrame
+          eyebrow="Recovery authorized"
+          title="Approved on your Ledger."
+          intro={`YourTurn can now work on Friday Yoga inside the ${activeMinimum} USDC minimum, expiry, and no-cancellation rules you approved.`}
+        >
+          <div className="grid gap-5 lg:grid-cols-[1fr_0.85fr]">
+            <div className="rounded-[1.75rem] border border-emerald-100 bg-white p-6 shadow-sm sm:p-7">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <BookingIdentity compact />
+                <StatusPill tone="green">Authorized</StatusPill>
+              </div>
+              <div className="mt-6">
+                <MandateFacts minimum={activeMinimum} />
+              </div>
+            </div>
+            <aside className="rounded-[1.75rem] bg-slate-950 p-6 text-white sm:p-7">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-300/15 text-xl text-emerald-100">
+                ✓
+              </div>
+              <h2 className="mt-5 text-xl font-semibold">The mandate is ready.</h2>
+              <p className="mt-3 text-sm leading-6 text-slate-300">
+                YourTurn still cannot cancel this booking, lower your minimum, or touch another booking.
+              </p>
+              <button
+                type="button"
+                onClick={() => setStep("recoveryActive")}
+                className="mt-6 inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
+              >
+                View active recovery
+              </button>
+            </aside>
+          </div>
+          <ProofDrawer stage="ledger" />
+        </StepFrame>
+      )}
+
+      {step === "recoveryActive" && (
+        <StepFrame
+          eyebrow="Recovery active"
+          title="YourTurn is looking for the right recovery."
+          intro={`It can accept an eligible offer of ${activeMinimum} USDC or more. Anything below your active rule is rejected automatically.`}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+            <BookingIdentity compact />
+            <StatusPill tone="blue">Recovery active</StatusPill>
+          </div>
+          <div className="mt-5">
+            <AgentCard minimum={activeMinimum} />
+          </div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <button type="button" onClick={showLatestOffer} className={primaryButton}>
+              See latest offer
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setNotice("Recovery stopped. Friday Yoga remains yours and no further offers will be accepted.");
+                setStep("detail");
+              }}
+              className={secondaryButton}
+            >
+              Stop recovery
+            </button>
+          </div>
+          <ProofDrawer stage="agent" />
+        </StepFrame>
+      )}
+
+      {step === "offerBlocked" && (
+        <StepFrame
+          eyebrow="Offer blocked"
+          title="32 USDC was not accepted."
+          intro={`It is below your ${activeMinimum} USDC minimum, so YourTurn kept the booking and continued recovery without interrupting you.`}
+        >
+          <div className="grid gap-5 lg:grid-cols-[1fr_0.9fr]">
+            <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <BookingIdentity compact />
+                <StatusPill tone="rose">Offer blocked</StatusPill>
+              </div>
+              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <p className="text-xs uppercase tracking-[0.14em] text-slate-400">Offer</p>
+                  <p className="mt-1 text-xl font-semibold text-slate-950">32 USDC</p>
+                </div>
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <p className="text-xs uppercase tracking-[0.14em] text-slate-400">Your minimum</p>
+                  <p className="mt-1 text-xl font-semibold text-slate-950">{activeMinimum} USDC</p>
+                </div>
+                <div className="rounded-2xl bg-rose-50 p-4">
+                  <p className="text-xs uppercase tracking-[0.14em] text-rose-500">Result</p>
+                  <p className="mt-1 text-sm font-semibold text-rose-900">Not accepted</p>
+                </div>
+              </div>
+              <p className="mt-5 text-sm leading-6 text-slate-600">
+                Friday Yoga stays yours. No booking transfer. No settlement. No new approval needed just because a bad offer appeared.
+              </p>
+            </div>
+            <aside className="rounded-[1.75rem] bg-slate-950 p-6 text-white sm:p-7">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                Your rule held
+              </p>
+              <h2 className="mt-3 text-xl font-semibold">YourTurn keeps looking.</h2>
+              <p className="mt-3 text-sm leading-6 text-slate-300">
+                You only need to come back if you want to change the authority itself.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setOfferAmount(45);
+                  setStep("offerAllowed");
+                }}
+                className="mt-6 inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
+              >
+                Keep looking
+              </button>
+              <button
+                type="button"
+                onClick={() => setStep("reauthorize")}
+                className="mt-3 inline-flex min-h-[44px] w-full items-center justify-center rounded-full border border-white/20 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
+              >
+                Lower my minimum
+              </button>
+            </aside>
+          </div>
+          <ProofDrawer stage="blocked" />
+        </StepFrame>
+      )}
+
+      {step === "reauthorize" && (
+        <StepFrame
+          eyebrow="Needs your approval"
+          title="Lowering your minimum needs a new authorization."
+          intro={`Your current ${activeMinimum} USDC authority stays unchanged unless you approve a replacement on your Ledger.`}
+        >
+          <BackButton onClick={() => setStep("offerBlocked")} />
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="rounded-[1.75rem] border border-emerald-100 bg-emerald-50 p-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                Current authority
+              </p>
+              <p className="mt-3 text-3xl font-semibold text-slate-950">{activeMinimum} USDC</p>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Still active. Nothing has been widened or overwritten.
+              </p>
+            </div>
+            <div className="rounded-[1.75rem] border border-amber-100 bg-amber-50 p-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
+                Proposed replacement
+              </p>
+              <p className="mt-3 text-3xl font-semibold text-slate-950">30 USDC</p>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Needs a new secure-device approval before it can take effect.
+              </p>
+            </div>
+          </div>
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => {
+                setApprovalMinimum(30);
+                setStep("ledgerNotReady");
+              }}
+              className={primaryButton}
+            >
+              Review 30 USDC authorization
+            </button>
+            <button type="button" onClick={() => setStep("offerBlocked")} className={secondaryButton}>
+              Keep 40 USDC minimum
+            </button>
+          </div>
+        </StepFrame>
+      )}
+
+      {step === "offerAllowed" && (
+        <StepFrame
+          eyebrow="Offer in scope"
+          title={`${offerAmount} USDC is within your limits.`}
+          intro={`The offer meets your ${activeMinimum} USDC minimum. YourTurn can complete this recovery without asking you again because it is inside the mandate you approved.`}
+        >
+          <div className="grid gap-5 lg:grid-cols-[1fr_0.9fr]">
+            <div className="rounded-[1.75rem] border border-emerald-100 bg-white p-6 shadow-sm sm:p-7">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <BookingIdentity compact />
+                <StatusPill tone="green">Within your limits</StatusPill>
+              </div>
+              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                <div className="rounded-2xl bg-emerald-50 p-4">
+                  <p className="text-xs uppercase tracking-[0.14em] text-emerald-600">Offer</p>
+                  <p className="mt-1 text-xl font-semibold text-slate-950">{offerAmount} USDC</p>
+                </div>
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <p className="text-xs uppercase tracking-[0.14em] text-slate-400">Minimum</p>
+                  <p className="mt-1 text-xl font-semibold text-slate-950">{activeMinimum} USDC</p>
+                </div>
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <p className="text-xs uppercase tracking-[0.14em] text-slate-400">Approval</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-950">No new prompt</p>
+                </div>
+              </div>
+              <p className="mt-5 text-sm leading-6 text-slate-600">
+                YourTurn is completing the booking transfer and settlement as one bounded recovery outcome.
+              </p>
+            </div>
+            <aside className="rounded-[1.75rem] bg-slate-950 p-6 text-white sm:p-7">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                Completing recovery
+              </p>
+              <h2 className="mt-3 text-xl font-semibold">No extra permission needed.</h2>
+              <p className="mt-3 text-sm leading-6 text-slate-300">
+                The offer is already inside the authority you approved. You can simply check the result.
+              </p>
+              <button
+                type="button"
+                onClick={completeRecovery}
+                className="mt-6 inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
+              >
+                Refresh recovery status
+              </button>
+            </aside>
+          </div>
+          <ProofDrawer stage="success" />
+        </StepFrame>
+      )}
+
+      {step === "recoverySuccess" && (
+        <StepFrame
+          eyebrow="Recovery complete"
+          title={`You recovered ${recoveredAmount || offerAmount || 45} USDC.`}
+          intro="Friday Yoga has been transferred and the recovery is complete. It is no longer available as one of your usable bookings."
+        >
+          <div className="grid gap-5 lg:grid-cols-[1fr_0.9fr]">
+            <div className="rounded-[1.75rem] border border-emerald-100 bg-emerald-50 p-6 sm:p-7">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                Recovered value
+              </p>
+              <p className="mt-3 text-4xl font-semibold tracking-tight text-slate-950">
+                {recoveredAmount || offerAmount || 45} USDC
+              </p>
+              <p className="mt-3 text-sm leading-6 text-slate-600">
+                The accepted recovery was inside your approved minimum and completed without another permission request.
+              </p>
+            </div>
+            <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <BookingIdentity compact />
+                <StatusPill>Transferred</StatusPill>
+              </div>
+              <p className="mt-5 text-sm leading-6 text-slate-600">
+                Friday Yoga moved to an eligible new holder. It cannot be checked in or changed from Maya’s account anymore.
+              </p>
+            </div>
+          </div>
+          <button type="button" onClick={() => setStep("bookings")} className={`${primaryButton} mt-5`}>
+            Back to my bookings
+          </button>
+          <ProofDrawer stage="success" />
         </StepFrame>
       )}
     </div>
