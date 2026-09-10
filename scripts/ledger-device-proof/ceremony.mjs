@@ -1,5 +1,31 @@
 const REQUIRED_METHOD = "@ledgerhq/device-signer-kit-ethereum signTypedData";
 const REQUIRED_PATH = "44'/60'/0'/0/0";
+const REQUIRED_DOMAIN = Object.freeze({
+  name: "YourTurn Recovery Mandate",
+  version: "1",
+  chainId: 296,
+});
+const REQUIRED_DOMAIN_TYPES = Object.freeze([
+  { name: "name", type: "string" },
+  { name: "version", type: "string" },
+  { name: "chainId", type: "uint256" },
+  { name: "salt", type: "bytes32" },
+]);
+const REQUIRED_MANDATE_TYPES = Object.freeze([
+  { name: "mandateId", type: "string" },
+  { name: "ownerId", type: "string" },
+  { name: "ledgerSignerAddress", type: "address" },
+  { name: "agentId", type: "string" },
+  { name: "bookingTokenId", type: "string" },
+  { name: "bookingSerial", type: "uint64" },
+  { name: "allowedAction", type: "string" },
+  { name: "minimumRecoveryAtomicUnits", type: "uint256" },
+  { name: "settlementAsset", type: "string" },
+  { name: "expiresAt", type: "uint64" },
+  { name: "nonce", type: "string" },
+  { name: "cancellationAllowed", type: "bool" },
+  { name: "issuedAt", type: "uint64" },
+]);
 
 function isObject(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -27,6 +53,12 @@ function stringifyScalar(value) {
   return typeof value === "string" ? value : "";
 }
 
+function assertExactTypeArray(actual, expected, label) {
+  if (!Array.isArray(actual) || JSON.stringify(actual) !== JSON.stringify(expected)) {
+    throw new Error(`${label} diverges from the canonical Recovery Mandate schema`);
+  }
+}
+
 export function validatePreparedEnvelope(raw) {
   if (!isObject(raw) || raw.ok !== true) {
     throw new Error("prepared envelope must be a successful prepare response");
@@ -37,6 +69,9 @@ export function validatePreparedEnvelope(raw) {
 
   const mandateId = requireString(raw.mandateId, "mandateId");
   const network = requireString(raw.network, "network");
+  if (network !== "testnet") {
+    throw new Error("device proof is locked to the ETHOnline Hedera testnet path");
+  }
   if (!isObject(raw.ledger)) throw new Error("ledger envelope is required");
   if (raw.ledger.method !== REQUIRED_METHOD) {
     throw new Error(`ledger.method must be ${REQUIRED_METHOD}`);
@@ -61,11 +96,27 @@ export function validatePreparedEnvelope(raw) {
   if (!isObject(typedData.domain) || !isObject(typedData.types) || !isObject(typedData.message)) {
     throw new Error("typed data domain/types/message are required");
   }
-  if (!Array.isArray(typedData.types.EIP712Domain)) {
-    throw new Error("typed data EIP712Domain types are required");
+  if (
+    typedData.domain.name !== REQUIRED_DOMAIN.name ||
+    typedData.domain.version !== REQUIRED_DOMAIN.version ||
+    Number(typedData.domain.chainId) !== REQUIRED_DOMAIN.chainId ||
+    !/^0x[0-9a-fA-F]{64}$/.test(String(typedData.domain.salt ?? "")) ||
+    Object.keys(typedData.domain).sort().join(",") !== "chainId,name,salt,version"
+  ) {
+    throw new Error("typed data domain diverges from the canonical Recovery Mandate domain");
   }
-  if (!Array.isArray(typedData.types.RecoveryMandate)) {
-    throw new Error("typed data RecoveryMandate types are required");
+  assertExactTypeArray(
+    typedData.types.EIP712Domain,
+    REQUIRED_DOMAIN_TYPES,
+    "typed data EIP712Domain"
+  );
+  assertExactTypeArray(
+    typedData.types.RecoveryMandate,
+    REQUIRED_MANDATE_TYPES,
+    "typed data RecoveryMandate"
+  );
+  if (Object.keys(typedData.types).sort().join(",") !== "EIP712Domain,RecoveryMandate") {
+    throw new Error("typed data contains unexpected type definitions");
   }
 
   const message = typedData.message;
@@ -82,24 +133,16 @@ export function validatePreparedEnvelope(raw) {
 
   const outerMandate = raw.mandate;
   if (!isObject(outerMandate)) throw new Error("mandate snapshot is required");
-  for (const key of [
-    "mandateId",
-    "ownerId",
-    "ledgerSignerAddress",
-    "agentId",
-    "bookingTokenId",
-    "bookingSerial",
-    "allowedAction",
-    "minimumRecoveryAtomicUnits",
-    "settlementAsset",
-    "expiresAt",
-    "nonce",
-    "cancellationAllowed",
-    "issuedAt",
-  ]) {
+  for (const { name: key } of REQUIRED_MANDATE_TYPES) {
     if (stringifyScalar(outerMandate[key]) !== stringifyScalar(message[key])) {
       throw new Error(`mandate snapshot diverges from signed typed data at ${key}`);
     }
+  }
+  if (
+    Object.keys(message).sort().join(",") !==
+      REQUIRED_MANDATE_TYPES.map(({ name }) => name).sort().join(",")
+  ) {
+    throw new Error("typed data message contains unexpected Recovery Mandate fields");
   }
 
   if (message.allowedAction !== "resale") {
