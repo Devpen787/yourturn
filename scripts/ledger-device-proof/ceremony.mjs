@@ -211,6 +211,12 @@ export function sawStoppedState(events) {
   );
 }
 
+export function sawCompletedState(events) {
+  return events.some(
+    (event) => String(event?.status ?? "").toLowerCase() === "completed"
+  );
+}
+
 export function assertExpectedCeremonyResult({
   expectation,
   events,
@@ -231,9 +237,13 @@ export function assertExpectedCeremonyResult({
     (event) => String(event?.errorCode ?? "").toLowerCase() === "6982"
   );
   const stopped = sawStoppedState(events);
+  const completed = sawCompletedState(events);
   const hasSignature = Boolean(signature);
 
   if (expectation === "approve") {
+    if (!completed) {
+      throw new Error("approve ceremony did not observe the DMK Completed terminal state");
+    }
     if (!hasSignature) throw new Error("approve ceremony completed without a signature");
     if (rejected || stopped || cancelRequested) {
       throw new Error("approve ceremony also contained reject/cancel state");
@@ -246,13 +256,16 @@ export function assertExpectedCeremonyResult({
   }
   if (expectation === "reject") {
     if (!rejected) throw new Error("reject ceremony did not return Ledger user-cancel code 6982");
-    if (stopped || cancelRequested) {
-      throw new Error("reject ceremony also contained host-cancel state");
+    if (completed || stopped || cancelRequested) {
+      throw new Error("reject ceremony also contained completed/host-cancel state");
     }
     return "rejected";
   }
   if (!cancelRequested) {
     throw new Error("cancel ceremony never invoked the DMK action cancel() handle");
+  }
+  if (completed) {
+    throw new Error("cancel ceremony also completed the signing action; fail closed");
   }
   if (rejected) {
     throw new Error("cancel ceremony observed device rejection instead of DMK cancellation");
@@ -266,6 +279,7 @@ export function assertExpectedCeremonyResult({
 export const LEDGER_DEVICE_PROOF_CONTRACT = Object.freeze({
   method: REQUIRED_METHOD,
   derivationPath: REQUIRED_PATH,
+  approveTerminalStatus: "Completed",
   rejectErrorCode: "6982",
   cancelTerminalStatus: "Stopped",
 });
