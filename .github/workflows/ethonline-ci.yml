@@ -65,6 +65,12 @@ jobs:
         # trip and backend verification succeed.
         run: npm run world:sandbox-check
 
+      - name: Independent World Sandbox loopback-boundary attack
+        # Attacker-only integration reproducer. No RP key is configured and no
+        # World request is signed; this exercises the built Next.js route with
+        # a spoofed loopback Host plus explicitly remote forwarding metadata.
+        run: node scripts/security-world-sandbox-loopback-bypass.mjs
+
       - name: Continuity baseline must remain documented
         run: |
           grep -q 'd0b5f875afb4f2b29af29bc5972cf1edc404d473' docs/ethonline-2026/CONTINUITY_BASELINE.md
