@@ -67,9 +67,22 @@ Do not treat any one source branch as the complete UX answer.
 - `invariants.md` — shared UI/product rules that should not drift between journeys.
 - `review-checklist.md` — candidate and Golden review gate.
 - `handoff.md` — exact current state, next action and sponsor integration boundaries.
+- `golden/` — human-approved frozen journey records bound to exact executable candidates.
+
+## Golden product truth
+
+**YT-01 through YT-04** are frozen Golden at executable candidate `24bbf0d7516499069f5102ae4bf724b0cb376b94`.
+
+See `golden/yt-01-04.md`.
 
 ## Current experiment
 
-Build and test one continuous clickable candidate covering **YT-01 through YT-04** before widening scope.
+Build and test one continuous clickable candidate covering **YT-05 through YT-08**, continuing from the Golden secure-approval handoff on `/product-preview`.
 
-The candidate must end with a believable handoff into the live sponsor-backed recovery sequence, not a dead-end mockup.
+The candidate should make the sponsor-backed recovery sequence feel like one normal product experience:
+
+`Ledger mandate approval → recovery active with exact human-backed delegated agent → 32 USDC blocked → 45 USDC allowed → booking transfer + settlement → You recovered 45 USDC`
+
+Sponsor-dependent states may be fixture/demo state in the UX-only branch until integration, but must never be presented as LIVE without real evidence.
+
+Rendered desktop/mobile screenshot inspection is a hard review gate before `GOLDEN-READY`, and Devinson must explicitly approve the exact candidate before freeze.
