@@ -39,19 +39,19 @@ Sponsor implementation must plug into this Golden product contract without silen
 ## Current active set
 `YT-05 → YT-08`
 
-Status: **GOLDEN-READY**, not `Golden`.
+Status: **review**.
 
 Exact executable candidate:
 
-`92df1f0b253ae028b09f90975162a3315a30b994`
+`d5309a96d532ee107011c2a5cefc3000b9e4932f`
 
-Product Reviewer #34 directly inspected the exact-head desktop/mobile PNG evidence and found no remaining material blocker. Devinson's explicit approval of this exact executable is the remaining freeze gate.
+Product Reviewer #34 must directly inspect the exact-head desktop/mobile PNG evidence for this repaired candidate and classify it `REVISE`, `REVIEWABLE`, or `GOLDEN-READY`. Do not treat the prior `92df1f0b...` classification as applying to this changed executable.
 
-The branch may contain later **docs-only** descendants for truth synchronization; they do not change the executable candidate above.
+The branch may contain later **docs-only** descendants for required workbench truth synchronization; they do not change the executable candidate above.
 
 Customer story implemented:
 
-`secure approval → Ledger not ready → waiting for Ledger → approve / reject / cancel → recovery active with exact human-backed delegated agent → 32 USDC offer blocked → optional new-authority path to lower the minimum → keep 40 USDC rule → 45 USDC offer inside scope → recovery completes → You recovered 45 USDC → Friday Yoga leaves Maya's usable-booking state`
+`secure approval → Ledger not ready → waiting for Ledger → approve / reject / cancel → recovery active with exact human-backed delegated agent → 32 USDC offer blocked → optional new-authority path to lower the minimum → replacement reject/cancel preserves active 40 USDC recovery → 45 USDC offer inside scope → recovery completes → You recovered 45 USDC → Friday Yoga leaves Maya's usable-booking state`
 
 ### YT-05 — Delegate
 
@@ -60,9 +60,12 @@ Implemented customer states:
 - exact Friday Yoga / 40 USDC / tomorrow 17:00 / no-cancel mandate repeated from Golden YT-04;
 - waiting for the secure-device result;
 - approved on Ledger;
-- rejected on Ledger with no authority created;
-- host/device ceremony cancelled with no authority created;
-- replacement-authority flow repeats the same ceremony for a proposed lower minimum while the current 40 USDC authority remains active until replacement approval.
+- initial authorization rejected on Ledger with no authority created;
+- initial authorization cancelled with no authority created;
+- replacement-authority flow repeats the same ceremony for a proposed lower minimum while the current 40 USDC authority remains active until replacement approval;
+- replacement rejection explicitly leaves the proposed 30 USDC mandate unapproved while the existing 40 USDC recovery authority stays active and unchanged;
+- replacement cancellation explicitly leaves the proposed 30 USDC mandate cancelled while the existing 40 USDC recovery authority stays active and unchanged;
+- both replacement failure states preserve the current 40 USDC / tomorrow 17:00 / Friday-Yoga-only / no-cancel rules and provide a clear return to active recovery plus retry.
 
 The UX contract is anchored to Ledger branch `feature/ethonline-ledger` head `1d50b01c619687950bd87130baf30a3ae2b4a927`:
 - Recovery Mandate uses Ledger DMK EIP-712 typed-data signing;
@@ -91,7 +94,8 @@ Implemented negative path:
 - the customer is not interrupted merely because the bad offer arrived;
 - `Keep looking` preserves the current authority;
 - `Lower my minimum` opens a new-authority decision showing current 40 USDC vs proposed 30 USDC;
-- proposed 30 USDC routes back to Ledger authorization and the current 40 USDC authority remains active until replacement approval.
+- proposed 30 USDC routes back to Ledger authorization and the current 40 USDC authority remains active until replacement approval;
+- rejecting or cancelling the replacement returns cleanly to the still-active 40 USDC recovery rather than falsely claiming recovery authority disappeared.
 
 ### YT-08 — Successful recovery
 
@@ -119,30 +123,32 @@ The YT-05→YT-08 executable currently models sponsor-dependent transitions as e
 
 ## Exact-head verification for YT-05 → YT-08
 
-Executable candidate: `92df1f0b253ae028b09f90975162a3315a30b994`.
+Executable candidate: `d5309a96d532ee107011c2a5cefc3000b9e4932f`.
 
-- ETHOnline Continuity Gate `34483781514`: **SUCCESS**.
-- Product Workbench Visual Check `34483776864`: **SUCCESS**.
+- ETHOnline Continuity Gate `34497826067`: **SUCCESS**.
+- Product Workbench Visual Check `34497819955`: **SUCCESS**.
 - Production Next.js build: **SUCCESS**.
 - Real Chromium journey: **SUCCESS** at desktop `1440×1000` and mobile `390×844`.
-- Artifact: `product-workbench-rendered-evidence` / `10154834167`.
-- Artifact contains **40 PNGs**: 20 meaningful checkpoints × two viewports.
-- Product Reviewer #34 directly inspected all 40 PNGs for this exact SHA and classified it **GOLDEN-READY**.
-- The two prior authority-clarity defects are visibly closed: replacement authorization preserves the existing 40 USDC authority, and active recovery retains expiry `Tomorrow · 17:00`.
+- Artifact: `product-workbench-rendered-evidence` / `10160672183`.
+- Exact-head runner captures **44 PNGs**: 22 meaningful checkpoints × two viewports.
+- Replacement-reject and replacement-cancel states are both asserted and captured; the gate verifies contradictory no-authority copy is absent and that the flow can return to active 40-USDC recovery.
+- Product Reviewer #34 direct PNG re-review is pending for this exact executable.
 
 ## Exact next action
 
-**Human freeze decision only.**
+**Product Reviewer #34 decision only.**
 
-Devinson must explicitly approve exact executable `92df1f0b253ae028b09f90975162a3315a30b994` before YT-05→YT-08 becomes `Golden`.
+Hold exact executable `d5309a96d532ee107011c2a5cefc3000b9e4932f` unchanged while #34 directly inspects artifact `10160672183` and classifies it.
 
-Until that approval is recorded:
+Until that classification:
 - do not mutate the executable for speculative polish;
 - do not start YT-09/YT-10;
 - do not activate stakeholder/acquirer/provider implementation;
 - do not treat fixture transitions as integrated product truth.
 
-After exact approval:
+If #34 marks this exact executable `GOLDEN-READY`, stop for Devinson's explicit approval before freeze.
+
+After exact human approval:
 1. freeze YT-05→YT-08 and create its Golden record;
 2. extract the YourTurn `DESIGN.md` / design contract and domain glossary from approved Golden evidence per #40;
 3. apply `stakeholder-coverage-gate.md` and #39, map acquirer/provider lanes, then choose the smallest connected next slice;
