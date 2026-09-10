@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { Wallet } from "ethers";
+import { resolveEnrolledLedgerSignerAddress } from "../lib/ledger/ledger-signer-enrollment.ts";
 import { buildRecoveryMandateTypedData } from "../lib/ledger/recovery-mandate.ts";
 import { createRedisRecoveryMandateReplayStore } from "../lib/ledger/recovery-mandate-replay.ts";
 import {
@@ -13,6 +14,35 @@ const NOW = BigInt(1_800_000_000);
 const TEST_PRIVATE_KEY =
   "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412b95e0d3dc89116";
 const wallet = new Wallet(TEST_PRIVATE_KEY);
+const substituteWallet = Wallet.createRandom();
+
+const configuredSigners = {
+  LEDGER_GUEST_A_SIGNER_ADDRESS: wallet.address,
+  LEDGER_GUEST_B_SIGNER_ADDRESS: substituteWallet.address,
+};
+assert.equal(
+  resolveEnrolledLedgerSignerAddress("guestA", configuredSigners),
+  wallet.address,
+  "guestA signer must come from server-side enrollment configuration"
+);
+assert.equal(
+  resolveEnrolledLedgerSignerAddress("guestB", configuredSigners),
+  substituteWallet.address,
+  "guestB signer must have an independent server-side enrollment"
+);
+assert.throws(
+  () => resolveEnrolledLedgerSignerAddress("guestA", {}),
+  /not configured/,
+  "missing server enrollment must fail closed"
+);
+assert.throws(
+  () =>
+    resolveEnrolledLedgerSignerAddress("guestA", {
+      LEDGER_GUEST_A_SIGNER_ADDRESS: "not-an-evm-address",
+    }),
+  /invalid/,
+  "malformed server enrollment must fail closed"
+);
 
 function makeMandate(overrides = {}) {
   return {
@@ -127,9 +157,8 @@ await storePreparedRecoveryMandate({
   ownerId: badSignatureMandate.ownerId,
   nowUnixSeconds: NOW,
 });
-const wrongWallet = Wallet.createRandom();
 const badTyped = buildRecoveryMandateTypedData(badSignatureMandate);
-const wrongSignature = await wrongWallet.signTypedData(
+const wrongSignature = await substituteWallet.signTypedData(
   badTyped.domain,
   badTyped.types,
   badTyped.value
@@ -180,6 +209,26 @@ assert.match(activateRoute, /activatePreparedRecoveryMandate/);
 assert.match(prepareRoute, /YOURTURN_AGENT_NAME/);
 assert.match(prepareRoute, /slot\.policySnapshot\.resaleAllowed/);
 assert.match(prepareRoute, /slot\.holderAccountId/);
+assert.match(
+  prepareRoute,
+  /resolveEnrolledLedgerSignerAddress\(\s*appUser\.hederaPersona\s*\)/,
+  "prepare must resolve the expected signer from authenticated server-side enrollment"
+);
+assert.match(
+  prepareRoute,
+  /\.strict\(\)/,
+  "prepare request schema must reject unknown signer-override fields"
+);
+assert.doesNotMatch(
+  prepareRoute,
+  /ledgerSignerAddress:\s*z\./,
+  "prepare request must not accept ledgerSignerAddress from the client"
+);
+assert.match(
+  prepareRoute,
+  /signerSource:\s*"server_enrollment"/,
+  "prepared evidence should expose that signer identity came from server enrollment"
+);
 
 console.log(
   JSON.stringify(
@@ -188,6 +237,9 @@ console.log(
       evidenceLevel: "CI_CONFIGURED",
       checks: [
         "prepared mandate is bound to authenticated owner state",
+        "expected Ledger signer is resolved from server-controlled enrollment keyed by signed session persona",
+        "client signer override is absent from and rejected by the strict prepare schema",
+        "missing or malformed signer enrollment fails closed",
         "wrong session owner cannot activate another owner's mandate",
         "bad signature does not consume the valid mandate",
         "concurrent duplicate activation has exactly one winner",
@@ -199,7 +251,7 @@ console.log(
       deviceProof: false,
       downstreamRecoveryExecution: false,
       claimBoundary:
-        "CI proves a separate durable one-shot mandate activation path and DMK-ready payload preparation. It does not prove Ledger hardware provenance or that active mandate state is yet consumed by Hedera recovery execution.",
+        "CI proves client signer substitution is removed and the dedicated one-shot mandate path is bound to independent server enrollment. It does not prove Ledger hardware provenance or that active mandate state is yet consumed by Hedera recovery execution.",
     },
     null,
     2

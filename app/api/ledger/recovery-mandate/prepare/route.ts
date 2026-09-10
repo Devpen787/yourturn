@@ -9,6 +9,10 @@ import {
 import { YOURTURN_AGENT_NAME } from "@/lib/hedera-agent-kit/tool-manifest";
 import { accountsEqual, getActorCredentials } from "@/lib/hedera/client";
 import {
+  LedgerSignerEnrollmentError,
+  resolveEnrolledLedgerSignerAddress,
+} from "@/lib/ledger/ledger-signer-enrollment";
+import {
   RECOVERY_MANDATE_DOMAIN,
   RECOVERY_MANDATE_TYPES,
   buildRecoveryMandateTypedData,
@@ -23,13 +27,14 @@ import { fail } from "@/lib/validation/api";
 
 export const runtime = "nodejs";
 
-const prepareBodySchema = z.object({
-  actor: z.enum(["guestA", "guestB"]),
-  serial: z.number().int().positive(),
-  ledgerSignerAddress: z.string().min(1),
-  minimumRecoveryAtomicUnits: z.string().regex(/^[1-9]\d*$/),
-  expiresInSeconds: z.number().int().min(300).max(24 * 60 * 60),
-});
+const prepareBodySchema = z
+  .object({
+    actor: z.enum(["guestA", "guestB"]),
+    serial: z.number().int().positive(),
+    minimumRecoveryAtomicUnits: z.string().regex(/^[1-9]\d*$/),
+    expiresInSeconds: z.number().int().min(300).max(24 * 60 * 60),
+  })
+  .strict();
 
 const EIP712_DOMAIN_TYPES = [
   { name: "name", type: "string" },
@@ -84,6 +89,24 @@ export async function POST(req: Request) {
     const denied = enforceLockedGuestActor(appUser, parsed.data.actor);
     if (denied) return denied;
 
+    if (!appUser.hederaPersona) {
+      return NextResponse.json(
+        fail(
+          "This account does not have an independently enrolled Ledger signer.",
+          "NOT_CONFIGURED"
+        ),
+        { status: 503 }
+      );
+    }
+
+    // The signer comes only from server-controlled enrollment keyed by the
+    // signed session persona. It is intentionally absent from the request
+    // schema so a compromised browser/session cannot substitute a software
+    // wallet as the expected Ledger signer.
+    const ledgerSignerAddress = resolveEnrolledLedgerSignerAddress(
+      appUser.hederaPersona
+    );
+
     const slot = await bookingPort.getSlot(parsed.data.serial);
     if (!slot) {
       return NextResponse.json(
@@ -127,7 +150,7 @@ export async function POST(req: Request) {
     const mandate: RecoveryMandate = {
       mandateId: randomUUID(),
       ownerId: appUser.id,
-      ledgerSignerAddress: parsed.data.ledgerSignerAddress,
+      ledgerSignerAddress,
       agentId: YOURTURN_AGENT_NAME,
       bookingTokenId: slot.tokenId,
       bookingSerial: BigInt(slot.serial),
@@ -166,24 +189,28 @@ export async function POST(req: Request) {
       mandate: message,
       ledger: {
         signerAddress: typed.value.ledgerSignerAddress,
+        signerSource: "server_enrollment" as const,
         derivationPath: "44'/60'/0'/0/0",
         method: "@ledgerhq/device-signer-kit-ethereum signTypedData",
         typedData: {
-          domain: typed.domain,
+          domain: RECOVERY_MANDATE_DOMAIN,
           types: {
             EIP712Domain: EIP712_DOMAIN_TYPES,
-            ...typed.types,
+            ...RECOVERY_MANDATE_TYPES,
           },
           primaryType: "RecoveryMandate",
           message,
         },
       },
       claimBoundary:
-        "Prepared server-bound EIP-712 data only. No Ledger hardware approval is claimed until this exact payload is signed/rejected on a real device.",
+        "Prepared server-bound EIP-712 data with an independently configured signer. No Ledger hardware approval is claimed until this exact payload is signed/rejected on a real device.",
     });
   } catch (e) {
     if (e instanceof BookingPortError) {
       return NextResponse.json(fail(e.message, e.code), { status: e.status });
+    }
+    if (e instanceof LedgerSignerEnrollmentError) {
+      return NextResponse.json(fail(e.message, "NOT_CONFIGURED"), { status: 503 });
     }
     const msg = e instanceof Error ? e.message : String(e);
     return NextResponse.json(fail(msg, "INTERNAL_ERROR"), { status: 500 });
