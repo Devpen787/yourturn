@@ -53,8 +53,8 @@ async function assertAudienceHeader(page) {
     throw new Error(`Acquirer XC-01 header must identify Bob without Maya leakage: ${headerText}`);
   }
   if (view === "xc-bob-success") {
-    if (!headerText.includes("My bookings")) {
-      throw new Error(`Bob success header must return to My bookings: ${headerText}`);
+    if (!headerText.includes("My bookings") || headerText.includes("Find a spot")) {
+      throw new Error(`Bob success header must return to My bookings and leave acquisition context: ${headerText}`);
     }
   } else if (!headerText.includes("Find a spot")) {
     throw new Error(`Bob acquisition header must stay in Find a spot: ${headerText}`);
@@ -211,15 +211,18 @@ async function runXc01(browser, viewport, prefix) {
   );
 
   await page.getByRole("button", { name: "Refresh booking" }).click();
+  await page.waitForURL((url) => url.searchParams.get("view") === "xc-bob-success");
   await assertVisible(page, "Friday Yoga is now yours.");
   await assertVisible(page, "Booked for");
   await assertVisible(page, "Bob");
   await assertVisible(page, "Confirmed");
   await assertVisible(page, "Use booking");
+  await assertAudienceHeader(page);
   await screenshot(page, prefix, "34-xc-bob-booking");
 
   await page.getByRole("button", { name: "Use booking" }).click();
   await assertVisible(page, "Check-in opens 30 minutes before Friday Yoga.");
+  await assertAudienceHeader(page);
   await screenshot(page, prefix, "35-xc-bob-use-booking");
 
   await inspectDirectState(
@@ -266,5 +269,5 @@ try {
 }
 
 console.log(
-  "Product Workbench XC-01 visual check passed provider policy/block, Bob availability/eligibility/payment/handoff, partial reconciliation, usable booking, provider holder-change states, audience headers, and responsive smoke widths."
+  "Product Workbench XC-01 visual check passed provider policy/block, Bob availability/eligibility/payment/handoff, partial reconciliation, usable booking, provider holder-change states, ownership-shell transition, audience headers, and responsive smoke widths."
 );
