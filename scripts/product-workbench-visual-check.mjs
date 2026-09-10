@@ -34,6 +34,27 @@ async function assertNoPrototypeCopy(page) {
   }
 }
 
+async function assertCanonicalBookingLinks(page) {
+  const bookingLinks = page.getByRole("link", { name: "Open my bookings" });
+  const bookingLinkCount = await bookingLinks.count();
+  if (bookingLinkCount < 1) {
+    throw new Error("Expected at least one Open my bookings link on landing");
+  }
+
+  for (let index = 0; index < bookingLinkCount; index += 1) {
+    const href = await bookingLinks.nth(index).getAttribute("href");
+    if (!href?.startsWith("/product-preview")) {
+      throw new Error(`Landing booking CTA escaped canonical candidate: ${href ?? "missing href"}`);
+    }
+  }
+
+  const headerLink = page.getByRole("link", { name: "My bookings", exact: true }).first();
+  const headerHref = await headerLink.getAttribute("href");
+  if (!headerHref?.startsWith("/product-preview")) {
+    throw new Error(`Home header My bookings escaped canonical candidate: ${headerHref ?? "missing href"}`);
+  }
+}
+
 async function screenshot(page, prefix, name) {
   await page.screenshot({
     path: path.join(outDir, `${prefix}-${name}.png`),
@@ -48,6 +69,7 @@ async function runJourney(browser, viewport, prefix) {
   await page.goto(baseUrl, { waitUntil: "networkidle" });
   await assertVisible(page, "Book the spot.");
   await assertVisible(page, "Open my bookings");
+  await assertCanonicalBookingLinks(page);
   await screenshot(page, prefix, "01-landing");
 
   await page.getByRole("link", { name: "Open my bookings" }).first().click();
