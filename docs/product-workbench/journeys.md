@@ -104,7 +104,7 @@ Provider policy is pre-defined and load-bearing; a compliant recovery does not r
 
 `integration-ledger.md` now records the acceptance boundary for Golden YT-05→YT-08. Key open implementation truths remain:
 - Ledger runtime guards are CI_CONFIGURED but hardware/device provenance and downstream Hedera consumption require real proof;
-- World has a bounded LIVE/SIGNED-ROUTE human-backed-agent proof, but it must be bound to the actual Recovery-Mandate execution path without exposing raw human identity or substituting the legacy approval-grant model for Ledger authority;
+- World AgentBook registration/resolution is **LIVE**, while the bounded signed `create_listing` route harness is **CI/READY, NOT LIVE**; the registered-agent signed recovery mutation and separate World ID Sandbox proof remain outstanding, and World must still be bound to the actual Recovery-Mandate execution path without exposing raw human identity or substituting the legacy approval-grant model for Ledger authority;
 - Hedera policy/atomic-USDC semantics are CI/LOCAL and RETURN_BYTES are unsigned/unsubmitted until a real sign/submit/receipt/state-reconciliation path proves settlement.
 
 The Golden prototype is design/product evidence, not automatically the production implementation owner.
