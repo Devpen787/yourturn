@@ -152,21 +152,6 @@ export async function verifyWorldAgentRequest(options: {
     return { status: "blocked", reason: "agentbook_unresolved" };
   }
 
-  // Consume only after cryptographic verification + AgentBook resolution. A
-  // forged request cannot burn a valid nonce, and SET-NX style stores ensure
-  // concurrent copies of the same verified request cannot both proceed.
-  try {
-    if (!(await nonceStore.consume(nonceKey))) {
-      return { status: "blocked", reason: "nonce_replayed" };
-    }
-  } catch (error) {
-    return {
-      status: "blocked",
-      reason: "nonce_store_unavailable",
-      detail: error instanceof Error ? error.message : "Nonce consumption failed",
-    };
-  }
-
   const verifiedAtMs = options.nowMs ?? Date.now();
   const verification: WorldAgentVerification = {
     source: "world-agentkit",
@@ -178,6 +163,10 @@ export async function verifyWorldAgentRequest(options: {
     expiresAt: verificationExpiry(payload.expirationTime, verifiedAtMs),
   };
 
+  // Apply YourTurn's independently supplied delegated-agent/resource policy
+  // before mutating replay state. Otherwise a different valid AgentBook-backed
+  // agent that learns/reuses a pending nonce could burn the delegated agent's
+  // resource+nonce entry even though that requester is not authorized here.
   const gate = evaluateWorldAgentGate(
     verification,
     expectedResourceUri,
@@ -186,6 +175,21 @@ export async function verifyWorldAgentRequest(options: {
   );
   if (gate.status === "blocked") {
     return { status: "blocked", reason: gate.reason };
+  }
+
+  // Consume only after cryptographic verification + AgentBook resolution +
+  // exact delegated-agent policy binding. SET-NX style stores ensure concurrent
+  // copies of the same fully authorized request cannot both proceed.
+  try {
+    if (!(await nonceStore.consume(nonceKey))) {
+      return { status: "blocked", reason: "nonce_replayed" };
+    }
+  } catch (error) {
+    return {
+      status: "blocked",
+      reason: "nonce_store_unavailable",
+      detail: error instanceof Error ? error.message : "Nonce consumption failed",
+    };
   }
 
   return {
