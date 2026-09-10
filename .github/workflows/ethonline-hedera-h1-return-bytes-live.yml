@@ -218,6 +218,7 @@ jobs:
             ['reapprove', 'h1-reapprove-envelope.json', 'h1-reapprove-result.json'],
             ['permittedTransfer', 'h1-transfer-envelope.json', 'h1-transfer-result.json'],
           ];
+          const successfulLabels = new Set(['approve', 'revoke', 'reapprove', 'permittedTransfer']);
           const bindings = pairs.map(([label, envelopeFile, resultFile]) => {
             const envelope = read(envelopeFile);
             const result = read(resultFile);
@@ -228,6 +229,18 @@ jobs:
             assert.equal(result.transactionId, envelope.envelope.transactionId, `${label}: transaction id drift`);
             assert.equal(result.semanticByteBindingVerifiedBeforeSigning, true, `${label}: semantic validation missing`);
             assert.equal(result.payerAccountId, envelope.envelope.payerAccountId, `${label}: payer drift`);
+            assert.equal(result.ok, true, `${label}: signer result not successful`);
+            if (successfulLabels.has(label)) {
+              assert.equal(result.status, 'externally_signed_return_bytes_submitted', `${label}: unexpected success classification`);
+              assert.equal(result.receiptStatus, 'SUCCESS', `${label}: missing successful Hedera receipt`);
+              assert.equal(result.expectedStatus ?? null, null, `${label}: unexpected denial expectation`);
+            } else {
+              assert.equal(label, 'revokedTransferDenial');
+              assert.equal(result.status, 'externally_signed_return_bytes_expected_denial', `${label}: denial classification mismatch`);
+              assert.equal(result.receiptStatus, 'SPENDER_DOES_NOT_HAVE_ALLOWANCE', `${label}: denial lacks exact Hedera status`);
+              assert.equal(result.expectedStatus, 'SPENDER_DOES_NOT_HAVE_ALLOWANCE', `${label}: denial expectation drift`);
+              assert.equal(result.deniedAsExpected, true, `${label}: denial not explicitly confirmed`);
+            }
             return {
               label,
               action: envelope.action,
