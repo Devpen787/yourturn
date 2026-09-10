@@ -1,0 +1,66 @@
+name: Product Workbench Visual Check
+
+on:
+  push:
+    branches:
+      - ux/yourturn-product-workbench
+    paths:
+      - app/product-preview/**
+      - components/SiteHeader.tsx
+      - components/home/**
+      - scripts/product-workbench-visual-check.mjs
+      - .github/workflows/product-workbench-visual.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  product-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install app dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Install Playwright for this verification run
+        run: |
+          npm install --no-save --package-lock=false --legacy-peer-deps playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Production build
+        run: npm run build
+
+      - name: Start product candidate
+        run: |
+          npm run start -- -p 3000 > /tmp/yourturn-product-preview.log 2>&1 &
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:3000/product-preview > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/yourturn-product-preview.log
+          exit 1
+
+      - name: Run rendered journey check
+        env:
+          PRODUCT_WORKBENCH_BASE_URL: http://127.0.0.1:3000
+        run: node scripts/product-workbench-visual-check.mjs
+
+      - name: Upload desktop and mobile evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: product-workbench-rendered-evidence
+          path: artifacts/product-workbench/*.png
+          if-no-files-found: warn
