@@ -1,6 +1,6 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 type XcStep =
@@ -185,6 +185,7 @@ function ProviderRules({ blocked = false }: { blocked?: boolean }) {
 
 export default function Xc01Client() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [step, setStep] = useState<XcStep>(initialXcStep(searchParams.get("view")));
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -494,7 +495,15 @@ export default function Xc01Client() {
               YourTurn does not show Friday Yoga as Bob&apos;s booking until payment and the authoritative holder change agree.
             </p>
           </div>
-          <button type="button" onClick={() => setStep("bobSuccess")} className={`${primaryButton} mt-5`}>
+          <button
+            type="button"
+            onClick={() => {
+              setNotice(null);
+              setStep("bobSuccess");
+              router.replace("/product-preview?view=xc-bob-success", { scroll: false });
+            }}
+            className={`${primaryButton} mt-5`}
+          >
             Refresh booking
           </button>
           <ProofDrawer kind="handoff" />
