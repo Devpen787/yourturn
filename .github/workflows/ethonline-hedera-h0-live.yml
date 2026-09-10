@@ -19,8 +19,10 @@ jobs:
       # Public testnet identities/resources are pinned from docs/TX-LOG.md.
       HEDERA_GUEST_A_ID: '0.0.8504405'
       HEDERA_GUEST_A_KEY: ${{ secrets.HEDERA_GUEST_A_KEY }}
+      HEDERA_GUEST_A_KEY_TYPE: 'ECDSA'
       HEDERA_TREASURY_ID: '0.0.8504300'
       HEDERA_TREASURY_KEY: ${{ secrets.HEDERA_TREASURY_KEY }}
+      HEDERA_TREASURY_KEY_TYPE: 'DER'
       HEDERA_GUEST_B_ID: '0.0.8504715'
       BOOKED_RIGHTS_TOKEN_ID: '0.0.8505698'
 
