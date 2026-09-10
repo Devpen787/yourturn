@@ -35,7 +35,7 @@ function request({ host = `localhost:${port}`, origin }) {
           try {
             json = JSON.parse(body);
           } catch {
-            // Keep the raw body only for diagnostics; no secret is configured.
+            // Raw body is diagnostics only; no signing key is configured.
           }
           resolve({ status: res.statusCode, json, body });
         });
@@ -80,9 +80,9 @@ const env = {
   PORT: String(port),
 };
 
-// Run the same Next development-server shape used by `npm run dev`. This is the
-// human Sandbox path documented by the candidate. No RP key is configured, so
-// the test cannot sign anything; a 503 key error means the local guard was passed.
+// Exact supported human Sandbox launch shape: package.json uses `next dev -p 3000`
+// with no explicit loopback hostname. No RP key is configured, so a 503 key error
+// proves the request passed the local-only guard without producing a signature.
 const child = spawn(
   process.execPath,
   ["node_modules/next/dist/bin/next", "dev", "-p", String(port)],
@@ -100,13 +100,25 @@ child.stderr.on("data", (chunk) => {
 try {
   await waitForServer(child);
 
-  const nonLoopbackHost = await request({ host: `attacker.example:${port}` });
+  // Remote-marked request with a non-loopback Host. A true peer/local boundary
+  // must reject this before touching signer configuration. Current `next dev`
+  // rewrites the route Request URL to its internal localhost origin, so the guard
+  // accepts it when Origin is absent.
+  const hostileHostNoOrigin = await request({ host: `attacker.example:${port}` });
   assert.equal(
-    nonLoopbackHost.status,
-    404,
-    `non-loopback Host control should be blocked, got ${nonLoopbackHost.status}: ${nonLoopbackHost.body}`,
+    hostileHostNoOrigin.status,
+    503,
+    `expected hostile Host/no-Origin request to demonstrate guard bypass, got ${hostileHostNoOrigin.status}: ${hostileHostNoOrigin.body}`,
+  );
+  assert.equal(
+    hostileHostNoOrigin.json?.code,
+    "WORLD_ID_RP_SIGNING_KEY_NOT_CONFIGURED",
+    `hostile Host/no-Origin request did not reach signer configuration: ${hostileHostNoOrigin.body}`,
   );
 
+  // Browser-style cross-origin traffic is separately rejected. This control shows
+  // Origin comparison works but is not a substitute for the claimed local-only
+  // transport boundary because non-browser/no-Origin requests are accepted.
   const crossOrigin = await request({
     origin: "https://attacker.example",
   });
@@ -116,46 +128,20 @@ try {
     `mismatched browser Origin should be blocked, got ${crossOrigin.status}: ${crossOrigin.body}`,
   );
 
-  const noOrigin = await request({});
-  assert.equal(
-    noOrigin.status,
-    503,
-    `remote-marked request with spoofed loopback Host and no Origin reached unexpected status ${noOrigin.status}: ${noOrigin.body}`,
-  );
-  assert.equal(
-    noOrigin.json?.code,
-    "WORLD_ID_RP_SIGNING_KEY_NOT_CONFIGURED",
-    `request should have passed the local guard and reached the signing-key check: ${noOrigin.body}`,
-  );
+  const loopbackNoOrigin = await request({});
+  assert.equal(loopbackNoOrigin.status, 503);
+  assert.equal(loopbackNoOrigin.json?.code, "WORLD_ID_RP_SIGNING_KEY_NOT_CONFIGURED");
 
-  const matchingSpoofedOrigin = await request({
-    origin: `http://localhost:${port}`,
-  });
-  assert.equal(
-    matchingSpoofedOrigin.status,
-    503,
-    `remote-marked request with matching spoofed Origin reached unexpected status ${matchingSpoofedOrigin.status}: ${matchingSpoofedOrigin.body}`,
-  );
-  assert.equal(
-    matchingSpoofedOrigin.json?.code,
-    "WORLD_ID_RP_SIGNING_KEY_NOT_CONFIGURED",
-    `matching spoofed Origin should demonstrate the same peer-address blind spot: ${matchingSpoofedOrigin.body}`,
-  );
-
-  console.log("SEC-WORLD-SANDBOX loopback-boundary attack reproduced");
+  console.log("SEC-WORLD-005 World Sandbox local-only boundary bypass reproduced");
   console.log(
     JSON.stringify(
       {
-        serverShape: "next dev (same as npm run dev)",
-        nonLoopbackHostBlocked: true,
-        crossOriginBlocked: true,
-        remoteHeaders: {
-          "x-forwarded-for": remoteIp,
-          "x-real-ip": remoteIp,
-        },
-        spoofedLoopbackHostNoOriginPassedGuard: true,
-        spoofedLoopbackHostMatchingOriginPassedGuard: true,
-        reachedCode: noOrigin.json?.code,
+        serverShape: "next dev without explicit hostname",
+        remoteMarker: remoteIp,
+        hostileHost: `attacker.example:${port}`,
+        hostileHostNoOriginPassedGuard: true,
+        reachedCode: hostileHostNoOrigin.json?.code,
+        crossOriginBrowserRequestBlocked: true,
         signingKeyConfigured: false,
         signatureProduced: false,
       },
