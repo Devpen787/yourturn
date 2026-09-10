@@ -6,11 +6,13 @@
 
 ## Current phase
 
-**XC-01 CANDIDATE BUILD — architecture gate cleared.**
+**XC-01 REVISE — narrow continuity repair only.**
 
-Product Reviewer #34 independently classified the post-Golden architecture/product contract at exact docs head `686aeb767f3c1f6ff7db14fdf7a773039cf581a9` as **REVIEWABLE**. This authorizes exactly one smallest connected XC-01 executable candidate to enter the normal candidate/review loop.
+Product Reviewer #34 directly inspected the explicitly routed executable `eb3bcdb84ff95352adf1d0c387996f9a4692c52f` after exact-head Continuity `34519307635` and Product Workbench Visual `34519301160` both succeeded. Artifact `10169073722` contains 72 rendered PNGs and was reviewed under the five-lens gate.
 
-This is not `GOLDEN-READY`, not a Golden freeze, not sponsor integration, and not permission to widen scope. Historical exploratory executable `eb3bcdb84ff95352adf1d0c387996f9a4692c52f` may be mined as prior work but is not automatically adopted or advanced.
+The candidate is not `GOLDEN-READY`. One blocking real-flow defect remains: after Bob's interactive `Refresh booking` path reaches authoritative success, local state changes to the owned-booking state while the URL/header context remains `?view=xc-find`. The body says `My bookings` / `Friday Yoga is now yours`, but `SiteHeader` still says `Find a spot`, including the subsequent `Use booking` state. The direct-loaded `xc-bob-success` fixture is not a substitute for the real interaction.
+
+No redesign or new journey set is authorized. Repair only that success/header transition and the browser assertion, then rerun exact-head rendered evidence and return the changed executable SHA to #34.
 
 ## Frozen Golden product truth
 
@@ -33,13 +35,13 @@ Read before changing the XC-01 candidate:
 - `integration-ledger.md` — Golden YT-05→08 fixture → real implementation acceptance map;
 - `stakeholder-journeys.md` — holder/acquirer/provider architecture;
 - `stakeholder-coverage-gate.md` — mandatory cross-lane gate;
-- `next-slice.md` — reviewed XC-01 scope and build boundary;
-- `architecture-review.md` — review packet independently classified `REVIEWABLE` by Product Reviewer #34.
+- `next-slice.md` — reviewed XC-01 scope and current repair boundary;
+- `architecture-review.md` — architecture packet independently classified `REVIEWABLE` by Product Reviewer #34.
 
 ## Sponsor evidence anchors
 
 - **Ledger:** `feature/ethonline-ledger@dfb3fec6328c5db22aa6b6eb222b5e0a57f3b54a`; runtime proof remains CI/CONFIGURED; SEC-LEDGER-005 remains OPEN/MEDIUM on the final validation → active-authority-write TOCTOU; device/downstream qualification remains blocked.
-- **World:** `feature/ethonline-world@2ab04f4420cccc2c090cd5f5634e447d399eb139`; AgentBook registration/resolution LIVE; signed route harness CI/READY, NOT LIVE; registered-agent signed recovery mutation and Sandbox proof outstanding. World verifies requester identity; it must not become parallel holder authority.
+- **World:** core `feature/ethonline-world@2ab04f4420cccc2c090cd5f5634e447d399eb139`; AgentBook registration/resolution LIVE; registered-agent signed recovery harness CI/READY, NOT LIVE. Sandbox candidate `feature/ethonline-world-sandbox-proof@403f2dcb1e185455b5fb09e76caab1e40f7d0ebc` remains CI/CONFIGURED and **SECURITY-BLOCKED** by SEC-WORLD-005 until its supported launch is transport-bound to loopback, fails closed outside intended development mode, and an independent retest closes the finding. World verifies requester identity; it must not become parallel holder authority.
 - **Hedera:** `feature/ethonline-hedera@40890aab7729075edbf5efac5f5367f4b5a022e1`; H2/USDC policy/RETURN_BYTES is CI/LOCAL + Security for its exact surface; canonical 45-USDC LIVE/TESTNET recovery remains externally blocked and unsigned/unsubmitted bytes are not settlement.
 
 ## Reviewed XC-01 architecture
@@ -54,7 +56,7 @@ Core rule:
 
 Provider rules remain pre-defined and load-bearing. A compliant recovery must not require Studio A staff to approve each individual transfer.
 
-Authorized candidate scope is narrow:
+Authorized candidate scope remains narrow:
 
 - acquirer A-01→A-04;
 - provider P-03, P-06 and P-07;
@@ -65,14 +67,14 @@ YT-09/YT-10 remain bridge concepts inside this cross-lane architecture, not a ho
 
 ## Exact next action
 
-**Build exactly one canonical XC-01 executable candidate.**
+**Repair the reviewed XC-01 executable; do not start another candidate.**
 
-1. Start from the reviewed contract and mine historical `eb3bcdb...` only as prior work.
-2. Preserve only the parts that satisfy `DESIGN.md`, `GLOSSARY.md`, `CRAFT.md`, `integration-ledger.md`, stakeholder mapping and the reviewed XC-01 scope; revise concrete gaps.
-3. Do not change either frozen Golden executable or sponsor/backend semantics from this lane.
-4. Render material provider/acquirer/partial-state paths at canonical desktop/mobile widths.
-5. Run production build + exact-head Chromium evidence.
-6. Route the exact executable and PNG artifact to Product Reviewer #34 for five-lens review.
+1. In the actual interactive Bob success path, synchronize the route/shell context from acquisition (`Find a spot`) to ownership (`My bookings`) when authoritative reconciliation establishes Bob as holder.
+2. Preserve that ownership shell through the subsequent `Use booking` state.
+3. Strengthen the Chromium journey so it asserts `My bookings` after the real interaction, rather than accepting the stale `xc-find` URL/header or relying on a direct fixture URL.
+4. Do not change either frozen Golden executable, provider/holder/acquirer semantics, `/product-preview`, sponsor/backend behavior, or evidence-class labels.
+5. Rerun the strongest production build plus exact-head desktop/mobile rendered evidence and responsive smoke.
+6. Route the changed exact executable SHA and artifact to Product Reviewer #34 for direct PNG five-lens re-review.
 7. Only a later `GOLDEN-READY` classification plus explicit Devinson approval may freeze the executable.
 
 ## Integration guardrail
