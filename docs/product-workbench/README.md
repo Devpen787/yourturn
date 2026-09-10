@@ -8,7 +8,7 @@ This workbench turns YourTurn into one coherent **two-sided booking product** wh
 
 `candidate → product review → Golden/frozen → implementation`
 
-A journey is the unit of design. Screens are only states inside a journey.
+A journey is the unit of design. Screens are states inside a journey.
 
 ### Rules
 
@@ -18,14 +18,14 @@ A journey is the unit of design. Screens are only states inside a journey.
 4. Golden journeys are product truth. Sponsor implementation must wire into them without silently redesigning them.
 5. Only one journey set is actively under product review at a time.
 6. No status-only commits. A commit must change product behavior, proof, testability, or documentation required to implement/review a journey.
-7. Keep the customer story end-to-end: Alice loses the booking, Alice receives value, Bob receives a usable booking.
+7. Keep the product story end-to-end: provider rules permit the action, Maya loses the booking and receives value, Bob receives a usable booking.
 8. Check every broader product slice against the stakeholder architecture: service provider + customer, with current-holder and acquirer roles covered where relevant.
 
 ## Product model
 
 The primary customer object is a **booking**, not an NFT/token.
 
-YourTurn has **two stakeholder classes**:
+YourTurn has two stakeholder classes:
 - **Service provider** — creates/fulfils the service and defines reusable booking rules.
 - **Customer** — consumes or exchanges the service; operationally this may be the current holder or the next holder/acquirer.
 
@@ -77,7 +77,8 @@ Do not treat any one source branch as the complete UX answer.
 ## Workbench files
 
 - `journeys.md` — current ETHOnline journey registry and progress.
-- `stakeholder-journeys.md` — durable holder, acquirer and provider product architecture and future sequencing.
+- `stakeholder-journeys.md` — durable holder, acquirer and provider product architecture and sequencing.
+- `stakeholder-coverage-gate.md` — mandatory coverage gate before the next broader product slice.
 - `invariants.md` — shared UI/product rules that should not drift between journeys.
 - `review-checklist.md` — candidate and Golden review gate.
 - `handoff.md` — exact current state, next action and sponsor integration boundaries.
@@ -85,26 +86,35 @@ Do not treat any one source branch as the complete UX answer.
 
 ## Golden product truth
 
-**YT-01 through YT-04** are frozen Golden at executable candidate `24bbf0d7516499069f5102ae4bf724b0cb376b94`.
+**YT-01 through YT-08 are now Golden.**
 
-See `golden/yt-01-04.md`.
+- YT-01→YT-04 frozen executable: `24bbf0d7516499069f5102ae4bf724b0cb376b94` — see `golden/yt-01-04.md`.
+- YT-05→YT-08 frozen executable: `d5309a96d532ee107011c2a5cefc3000b9e4932f` — see `golden/yt-05-08.md`.
 
-## Current experiment
+The second Golden set reached freeze after exact-head build/Chromium evidence, 44 directly inspected desktop/mobile PNGs, five-lens review PASS, and Devinson's explicit approval on 2026-09-10.
 
-Build and test one continuous clickable candidate covering **YT-05 through YT-08**, continuing from the Golden secure-approval handoff on `/product-preview`.
+## Current phase
 
-The candidate should make the sponsor-backed recovery sequence feel like one normal product experience:
+The holder-recovery hero is now frozen. The workbench must **not** jump directly into a holder-only YT-09/YT-10 extension.
 
-`Ledger mandate approval → recovery active with exact human-backed delegated agent → 32 USDC blocked → 45 USDC allowed → booking transfer + settlement → You recovered 45 USDC`
+Next:
+1. extract a compact YourTurn `DESIGN.md` / design contract from the approved Golden evidence per issue #40;
+2. create the domain glossary and reusable craft/review rules;
+3. create/use a Golden-to-integration acceptance ledger so every fixture transition has a real implementation/evidence owner;
+4. apply `stakeholder-coverage-gate.md` and issue #39;
+5. map the acquirer and provider lanes, then choose the smallest connected next product slice.
 
-Sponsor-dependent states may be fixture/demo state in the UX-only branch until integration, but must never be presented as LIVE without real evidence.
+The current Golden UX still contains explicit fixture/demo sponsor transitions where real integration is not yet wired. Golden freezes product behavior/presentation; it does not upgrade evidence class.
 
-Rendered desktop/mobile screenshot inspection is a hard review gate before `GOLDEN-READY`, and Devinson must explicitly approve the exact candidate before freeze.
+## Expansion principle
 
-## Expansion gate after the hero
+YT-09/YT-10 are bridge concepts, not the entire next product slice.
 
-Do not treat YT-09/YT-10 as sufficient by themselves to complete the whole product. After YT-05→YT-08 is Golden, use `stakeholder-journeys.md` to map:
-- the **acquirer lane** from discovery/payment through receiving and using the booking;
-- the **provider lane** from onboarding/inventory/rules through holder change, fulfilment and reconciliation.
+The next complete continuation must connect:
+- **holder lane** — Maya releases/recoveries her booking;
+- **acquirer lane** — Bob discovers, evaluates, pays/acquires, receives and can use it;
+- **provider lane** — Studio A has pre-defined rules, sees the authoritative holder change, and can fulfil/reconcile without manually approving every compliant recovery.
 
-The current hero continues uninterrupted; this architecture is recorded now so the provider and demand sides are not forgotten later.
+That continuation must preserve:
+
+`provider rules ∩ holder mandate ∩ acquirer eligibility/payment`.
