@@ -9,7 +9,7 @@ YourTurn is a booking product. ETHOnline adds **Delegated Recovery** as a new ca
 ## Current journey set
 `YT-01 → YT-04` is implemented as the current candidate at `/product-preview` and remains in **review**.
 
-Independent classification: `REVISE`.
+Independent classification: `REVISE` pending a fresh review of the revised candidate.
 
 Golden count: **0**.
 
@@ -33,7 +33,7 @@ The latest independent review in #34 moved the gate to `REVISE` and identified f
 1. customer-visible prototype/workbench copy;
 2. legacy shell/navigation leakage into the candidate;
 3. a non-functional email control presented like real authentication;
-4. no rendered desktop/mobile interaction evidence on the current head.
+4. no rendered desktop/mobile interaction evidence on the reviewed head.
 
 ## Changes applied in the current revision
 The same canonical `/product-preview` candidate was revised without creating a competing route:
@@ -43,23 +43,34 @@ The same canonical `/product-preview` candidate was revised without creating a c
 - changed the landing CTA to `Open my bookings`;
 - aligned `My passes` / pass wording to `My bookings` / booking wording in the customer shell;
 - added a `/product-preview` customer header that stays inside the candidate and routes `My bookings` back to `/product-preview?view=bookings` rather than dropping into a legacy screen;
+- fixed that customer-header route to perform a clean navigation so the candidate state resets to My Bookings rather than retaining a later in-page recovery state;
 - kept the authorization boundary truthful: status remains `Not authorized yet`, and no Ledger/World/Hedera action is fabricated.
 
 ## Verification
-Previous candidate lineage passed the ETHOnline Continuity Gate production build and existing policy/baseline checks.
+Executable candidate commit: `0ffe423eec750b2e70c8f8618c9cbabd18cd1e61`.
 
-Current revised head is being re-verified by the same PR CI gate. Automatic Vercel preview remains blocked by the project's build-rate limit and is not counted as visual acceptance evidence.
+ETHOnline Continuity Gate run `34431042865`: **SUCCESS** on that exact commit. Production build, existing Hedera policy/proof check, and continuity-baseline checks passed.
 
-Rendered desktop/mobile interaction evidence is still required before `GOLDEN-READY`.
+Product Workbench Visual Check run `34431039749`: **SUCCESS** on that exact commit. It launches the production build and exercises the complete YT-01→YT-04 interaction at both:
+- desktop: `1440×1000`;
+- mobile: `390×844`.
+
+The rendered check verifies customer-native landing/entry, My Bookings, Friday Yoga detail, Change Plans, the unavailable alternate-option state, booking-scoped recovery limits, scope acknowledgement, the truthful disabled authorization boundary, and return navigation to My Bookings. It also rejects known prototype/workbench copy if it reappears.
+
+Rendered evidence artifact: `product-workbench-rendered-evidence` (`10134563369`), 12 PNGs covering six checkpoints at each viewport. Workflow log conclusion: `Product Workbench visual check passed at desktop and mobile widths.`
+
+The verification loop caught two real issues before going green:
+1. the first rendered run exposed that the candidate's `My bookings` header route changed the URL but retained the later local recovery state; the product navigation was fixed;
+2. the next run exposed a responsive test-locator bug where the hidden mobile header copy was selected before the visible page copy; the assertion now requires any matching rendered node to be visible rather than assuming the first DOM match.
+
+Automatic Vercel preview remains affected by the project's build-rate limit and is not being counted as product proof. GitHub-hosted rendered interaction evidence now covers the previously missing desktop/mobile verification requirement.
 
 ## Exact next action
-1. Let the current revised head finish the ETHOnline Continuity Gate and repair any real failure before doing more UX work.
-2. Independent Product Reviewer #34 re-reviews this exact candidate after CI truth is known.
-3. Obtain rendered desktop/mobile interaction evidence when an allowed preview/browser surface is available.
+Independent Product Reviewer #34 should re-review the revised `/product-preview` candidate and the exact evidence above, then classify it `REVISE`, `REVIEWABLE`, or `GOLDEN-READY`.
 
 Do not start a competing prototype route. Do not freeze automatically.
 
-After the reviewer marks the exact candidate `GOLDEN-READY`, Devinson must explicitly approve that exact candidate before it becomes `Golden`.
+If the reviewer marks an exact candidate `GOLDEN-READY`, Devinson must explicitly approve that exact candidate before it becomes `Golden`.
 
 ## Integration contract
 Sponsor branches own implementation truth:
