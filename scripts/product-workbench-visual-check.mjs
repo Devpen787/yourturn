@@ -45,6 +45,13 @@ async function assertNoLegacyBookingCopy(page) {
   }
 }
 
+async function assertNoRawWorldIdentifier(page) {
+  const body = await page.locator("body").innerText();
+  if (/0x[0-9a-fA-F]{40}/.test(body)) {
+    throw new Error("Raw delegated-agent or human identifier leaked into the customer surface");
+  }
+}
+
 async function assertCanonicalBookingLinks(page) {
   const canonicalLandingEntry = "/product-preview";
   const bookingLinks = page.getByRole("link", { name: "Open my bookings" });
@@ -95,6 +102,17 @@ async function screenshot(page, prefix, name) {
     path: path.join(outDir, `${prefix}-${name}.png`),
     fullPage: true,
   });
+}
+
+async function inspectRejectedState(context, viewport, prefix) {
+  const page = await context.newPage();
+  await page.goto(`${baseUrl}/product-preview?view=ledger-rejected`, { waitUntil: "networkidle" });
+  await assertVisible(page, "Approval was rejected on your Ledger.");
+  await assertVisible(page, "no recovery authority was created");
+  await assertVisible(page, "Not authorized");
+  await assertNoRawWorldIdentifier(page);
+  await screenshot(page, prefix, "10-ledger-rejected");
+  await page.close();
 }
 
 async function runJourney(browser, viewport, prefix) {
@@ -154,16 +172,96 @@ async function runJourney(browser, viewport, prefix) {
   await assertVisible(page, "Not authorized yet");
   await assertVisible(page, "Friday Yoga only");
   const approvalButton = page.getByRole("button", { name: "Approve on secure device" });
-  if (!(await approvalButton.isDisabled())) {
-    throw new Error("UX-only candidate must not expose an enabled authorization action");
+  if (await approvalButton.isDisabled()) {
+    throw new Error("YT-05 continuation did not activate the Golden secure-approval handoff");
   }
   await assertNoPrototypeCopy(page);
   await screenshot(page, prefix, "07-authorization-boundary");
 
-  await page.getByRole("link", { name: "My bookings" }).click();
-  await page.waitForURL(/\/product-preview\?view=bookings/);
-  await assertVisible(page, "Good evening, Maya.");
-  await assertNoPrototypeCopy(page);
+  await approvalButton.click();
+  await assertVisible(page, "Ledger not connected.");
+  await assertVisible(page, "40 USDC");
+  await assertVisible(page, "No recovery authority exists yet");
+  await assertNoRawWorldIdentifier(page);
+  await screenshot(page, prefix, "08-ledger-not-ready");
+
+  await page.getByRole("button", { name: "Connect Ledger" }).click();
+  await assertVisible(page, "Waiting for your Ledger.");
+  await assertVisible(page, "rejecting or cancelling creates no authority");
+  await screenshot(page, prefix, "09-ledger-waiting");
+
+  await inspectRejectedState(context, viewport, prefix);
+
+  await page.getByRole("button", { name: "Cancel approval" }).click();
+  await assertVisible(page, "Approval cancelled.");
+  await assertVisible(page, "No mandate was created");
+  await assertVisible(page, "Not authorized");
+  await screenshot(page, prefix, "11-ledger-cancelled");
+
+  await page.getByRole("button", { name: "Try again" }).click();
+  await page.getByRole("button", { name: "Connect Ledger" }).click();
+  await page.getByRole("button", { name: "Check approval status" }).click();
+  await assertVisible(page, "Approved on your Ledger.");
+  await assertVisible(page, "Authorized");
+  await assertVisible(page, "40 USDC");
+  await screenshot(page, prefix, "12-ledger-approved");
+
+  await page.getByRole("button", { name: "View active recovery" }).click();
+  await assertVisible(page, "Recovery active");
+  await assertVisible(page, "Exact delegated agent verified");
+  await assertVisible(page, "Human-backed");
+  await assertVisible(page, "Stop recovery");
+  await assertNoRawWorldIdentifier(page);
+  await screenshot(page, prefix, "13-recovery-active");
+
+  await page.getByRole("button", { name: "See latest offer" }).click();
+  await assertVisible(page, "32 USDC was not accepted.");
+  await assertVisible(page, "below your 40 USDC minimum");
+  await assertVisible(page, "No booking transfer. No settlement.");
+  await assertVisible(page, "Offer blocked");
+  await screenshot(page, prefix, "14-offer-blocked");
+
+  await page.getByRole("button", { name: "Lower my minimum" }).click();
+  await assertVisible(page, "Lowering your minimum needs a new authorization.");
+  await assertVisible(page, "Current authority");
+  await assertVisible(page, "Proposed replacement");
+  await assertVisible(page, "30 USDC");
+  await screenshot(page, prefix, "15-reauthorize");
+
+  await page.getByRole("button", { name: "Review 30 USDC authorization" }).click();
+  await assertVisible(page, "Connect your Ledger to authorize recovery.");
+  await assertVisible(page, "30 USDC");
+  await assertVisible(page, "current 40 USDC authority stays active");
+  await screenshot(page, prefix, "16-reauthorize-ledger");
+
+  await page.getByRole("button", { name: "Keep current 40 USDC rule" }).click();
+  await assertVisible(page, "32 USDC was not accepted.");
+  await page.getByRole("button", { name: "Keep looking" }).click();
+  await assertVisible(page, "45 USDC is within your limits.");
+  await assertVisible(page, "No new prompt");
+  await assertVisible(page, "No extra permission needed.");
+  await screenshot(page, prefix, "17-offer-allowed");
+
+  await page.getByRole("button", { name: "Refresh recovery status" }).click();
+  await assertVisible(page, "You recovered 45 USDC.");
+  await assertVisible(page, "Transferred");
+  await assertVisible(page, "no longer available as one of your usable bookings");
+  await screenshot(page, prefix, "18-recovery-success");
+
+  const proof = page.getByText("View technical proof", { exact: true });
+  await proof.click();
+  await assertVisible(page, "FIXTURE");
+  await assertVisible(page, "Hedera atomic-recovery seam");
+  await screenshot(page, prefix, "19-recovery-proof");
+
+  await page.getByRole("button", { name: "Back to my bookings" }).click();
+  await assertVisible(page, "Recently recovered");
+  await assertVisible(page, "Recovered 45 USDC");
+  const usableFridayYoga = page.getByText("View booking →", { exact: true });
+  if ((await usableFridayYoga.count()) > 0) {
+    throw new Error("Friday Yoga still exposes a usable booking action after recovery success");
+  }
+  await screenshot(page, prefix, "20-bookings-after-recovery");
 
   await context.close();
 }
@@ -178,4 +276,6 @@ try {
   await browser.close();
 }
 
-console.log("Product Workbench visual check passed at desktop and mobile widths.");
+console.log(
+  "Product Workbench visual check passed YT-01 through YT-08 at desktop and mobile widths."
+);
