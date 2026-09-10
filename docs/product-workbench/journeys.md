@@ -12,7 +12,7 @@ Status vocabulary: `candidate`, `review`, `GOLDEN-READY`, `Golden`, `implemented
 | YT-06 Agent working | Holder sees the exact human-backed delegated agent working | Golden | P0 |
 | YT-07 Block / escalate | Out-of-scope offer is blocked and escalation boundary is clear | Golden | P0 |
 | YT-08 Successful recovery | In-scope offer completes transfer + settlement | Golden | P0 |
-| YT-09 New holder | Buyer sees and can use the transferred booking | queued / XC-01 bridge | P1 |
+| YT-09 New holder | Buyer sees and can use the transferred booking | review / XC-01 bridge | P1 |
 | YT-10 Activity & proof | Both parties can understand what happened; reviewer can inspect evidence | queued / bridge | P1 |
 
 ## Golden product truth
@@ -68,7 +68,7 @@ The YT-05→YT-08 UX executable still contains fixture/demo sponsor transitions 
 
 ## Post-Golden architecture gate
 
-The holder-recovery hero YT-01→YT-08 is Golden and the required post-Golden product contract has now been established:
+The holder-recovery hero YT-01→YT-08 is Golden and the required post-Golden product contract has been established:
 - `DESIGN.md` — Golden-derived visual/product contract;
 - `GLOSSARY.md` — domain language and `Avoid:` aliases;
 - `CRAFT.md` — state/accessibility/responsive/copy/interaction rules;
@@ -78,21 +78,29 @@ The holder-recovery hero YT-01→YT-08 is Golden and the required post-Golden pr
 
 Do **not** treat YT-09/YT-10 as an isolated holder-only next set.
 
-## Selected next set
+## Active next set
 
 ### XC-01 — Eligible next holder + provider-recognized handoff
 
-Status: **architecture selected; executable candidate not yet built**.
+Status: **review**.
+
+Exact executable candidate under Product Reviewer #34 review:
+`eb3bcdb84ff95352adf1d0c387996f9a4692c52f`.
+
+Canonical route remains `/product-preview`; XC-01 is selected with `?view=xc-*` states rather than a competing route. The frozen Golden recovery component is preserved byte-for-byte from blob `c5a81a5b475c2e05dbf6b78b3780c806c60a08c2`.
 
 Connected story:
 
-`Studio A pre-defined recovery rules → Bob finds/evaluates Friday Yoga → Bob satisfies eligibility + commits to the 45 USDC acquisition → existing Golden Maya recovery accepts inside scope → Maya sees You recovered 45 USDC → Bob receives Friday Yoga as a normal usable booking → Studio A sees Bob as the authoritative current holder`
+`Studio A pre-defined recovery rules → Bob finds/evaluates Friday Yoga → Bob satisfies eligibility + commits 45 USDC → provider/payment/holder state reconcile → Bob receives Friday Yoga as a normal usable booking → Studio A sees Bob as authoritative current holder`
 
-Minimum lane coverage:
-- acquirer A-01→A-04, narrowly;
-- provider P-03, P-06, P-07, narrowly;
-- Golden YT-08 holder semantics unchanged;
-- A-05/P-08 check-in is the immediate completion follow-up if existing normal fulfilment paths cannot be reused truthfully inside the first connected candidate.
+Current XC-01 state coverage:
+- provider rules allowed and later changed/blocked;
+- spot available and already taken;
+- Bob eligible and ineligible;
+- payment pending, payment error/retry and 45-USDC confirmed opportunity;
+- handoff reconciling and partial/unknown reconciliation;
+- Bob confirmed normal booking with `Use booking` / check-in seam;
+- Studio A current holder Maya → Bob with no individual staff approval.
 
 Core permission rule:
 
@@ -100,20 +108,32 @@ Core permission rule:
 
 Provider policy is pre-defined and load-bearing; a compliant recovery does not require provider staff to manually approve the individual transfer.
 
+### XC-01 exact-head proof
+
+For executable `eb3bcdb84ff95352adf1d0c387996f9a4692c52f`:
+- ETHOnline Continuity Gate `34519307635`: **SUCCESS**;
+- Product Workbench Visual Check `34519301160`: **SUCCESS**;
+- artifact `product-workbench-rendered-evidence` / `10169073722`, bound to the exact executable;
+- **72 PNGs** uploaded: 44 frozen-Golden regression checkpoints + 28 XC-01 checkpoints (14 XC states × desktop `1440×1000` and mobile `390×844`);
+- XC-01 also passes responsive smoke at 360 / 430 / 768 / 1024 px;
+- the rendered runner enforces audience-header correctness, no horizontal overflow, no legacy Person A/B / My passes / Ref # / wallet-ref vocabulary, and no raw `0x...` identity leakage.
+
+All new sponsor-dependent proof seams are collapsed and labeled `FIXTURE`; the Product Workbench does not claim new LIVE execution.
+
 ## Golden-to-integration requirement
 
-`integration-ledger.md` now records the acceptance boundary for Golden YT-05→YT-08. Key open implementation truths remain:
+`integration-ledger.md` records the acceptance boundary for Golden YT-05→YT-08. Key open implementation truths remain:
 - Ledger runtime guards are CI_CONFIGURED but hardware/device provenance and downstream Hedera consumption require real proof;
 - World AgentBook registration/resolution is **LIVE**, while the bounded signed `create_listing` route harness is **CI/READY, NOT LIVE**; the registered-agent signed recovery mutation and separate World ID Sandbox proof remain outstanding, and World must still be bound to the actual Recovery-Mandate execution path without exposing raw human identity or substituting the legacy approval-grant model for Ledger authority;
 - Hedera policy/atomic-USDC semantics are CI/LOCAL and RETURN_BYTES are unsigned/unsubmitted until a real sign/submit/receipt/state-reconciliation path proves settlement.
 
-The Golden prototype is design/product evidence, not automatically the production implementation owner.
+The Golden prototype and XC-01 candidate are design/product evidence, not automatically the production implementation owner.
 
 ## Exact next action
 
-Build one canonical **XC-01** candidate under `DESIGN.md`, `GLOSSARY.md`, `CRAFT.md`, `integration-ledger.md`, `stakeholder-journeys.md`, `stakeholder-coverage-gate.md`, and `next-slice.md`.
+Product Reviewer #34 directly inspects exact artifact `10169073722` for executable `eb3bcdb84ff95352adf1d0c387996f9a4692c52f` and classifies only `REVISE`, `REVIEWABLE`, or `GOLDEN-READY`.
 
-Any material executable UX change must run production build + real Chromium desktop/mobile evidence and return to Product Reviewer #34 for direct PNG inspection. Reviewer may mark `GOLDEN-READY`; Devinson explicitly approves before freeze.
+If `REVISE`, fix only concrete reviewer findings and rerun exact-head production + Chromium proof. If `GOLDEN-READY`, Devinson must explicitly approve that exact executable before freeze.
 
 ## Completion principle
 

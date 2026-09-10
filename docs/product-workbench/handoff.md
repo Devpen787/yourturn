@@ -55,14 +55,14 @@ Sponsor implementation ownership remains:
 - **World:** human-backed requester + exact delegated-agent verification;
 - **Hedera:** booking authority, transfer, settlement and public proof.
 
-## Post-Golden product contract is established
+## Post-Golden product contract
 
-Issue #40's required architecture/process outputs now exist:
+Issue #40's required architecture/process outputs exist:
 - `DESIGN.md` — Golden-derived visual/product design contract;
 - `GLOSSARY.md` — domain vocabulary + `Avoid:` aliases;
 - `CRAFT.md` — state coverage, accessibility, responsive, copy and interaction rules;
 - `integration-ledger.md` — Golden fixture → real owner/interface/evidence/failure map;
-- `stakeholder-coverage-gate.md` — now applied to the next continuation;
+- `stakeholder-coverage-gate.md` — applied to the continuation;
 - `next-slice.md` — selected connected acquirer/provider slice.
 
 These are source-of-truth artifacts, not permission to mutate Golden YT-01→YT-08.
@@ -91,59 +91,72 @@ Current HAK/policy seam includes `preparePolicyAuthorizedUsdcRecovery(...)`, `Bo
 
 See `integration-ledger.md` for state-by-state acceptance boundaries.
 
-## Stakeholder gate result
-
-The stakeholder gate is now applied. The next product slice is not a holder-only YT-09/YT-10 extension.
-
-Selected slice:
+## Active product slice
 
 ### XC-01 — Eligible next holder + provider-recognized handoff
 
-`Studio A pre-defined recovery rules → Bob finds/evaluates Friday Yoga → Bob satisfies eligibility + commits to the 45 USDC acquisition → Golden Maya recovery accepts inside scope → Maya sees You recovered 45 USDC → Bob receives Friday Yoga as a normal usable booking → Studio A sees Bob as the authoritative current holder`
+Exact executable candidate under Product Reviewer #34 review:
+`eb3bcdb84ff95352adf1d0c387996f9a4692c52f`.
+
+Canonical route remains `/product-preview`; XC-01 uses `?view=xc-*` state selection and does not create a competing prototype route.
+
+Frozen Golden behavior is preserved by moving the exact prior page blob `c5a81a5b475c2e05dbf6b78b3780c806c60a08c2` into `GoldenRecoveryClient.tsx`; the router only dispatches `xc-*` views to the new candidate.
+
+Connected story:
+
+`Studio A pre-defined recovery rules → Bob finds/evaluates Friday Yoga → Bob passes eligibility + commits 45 USDC → provider/payment/holder state reconcile → Bob receives Friday Yoga as a normal usable booking → Studio A sees Bob as authoritative current holder`
 
 Load-bearing coverage:
-- acquirer A-01→A-04, narrowly;
-- provider P-03, P-06, P-07, narrowly;
-- existing Golden Maya YT-08 handoff unchanged;
-- A-05/P-08 check-in immediately follows if it cannot be truthfully reused from existing normal fulfilment paths without widening the first candidate.
+- provider reusable allow rules and later changed/blocking rule;
+- acquirer available/taken and eligible/ineligible states;
+- payment pending/error/retry and confirmed 45-USDC opportunity;
+- reconciliation and partial/unknown state before success;
+- Bob normal confirmed usable booking + check-in seam;
+- Studio A Maya→Bob current-holder state;
+- no individual Studio A approval step for a compliant recovery.
 
 Durable permission rule:
 
 `provider rules ∩ holder mandate ∩ acquirer eligibility/payment`
 
-Provider policy must be pre-defined and load-bearing. No manual Studio A approval popup for each compliant recovery.
+Provider policy remains pre-defined and load-bearing.
 
-## Prior UX to reuse/adapt for XC-01
+## XC-01 proof
+
+Exact executable: `eb3bcdb84ff95352adf1d0c387996f9a4692c52f`.
+
+- ETHOnline Continuity Gate `34519307635`: **SUCCESS**;
+- Product Workbench Visual Check `34519301160`: **SUCCESS**;
+- exact-head artifact `product-workbench-rendered-evidence` / `10169073722`;
+- **72 PNGs** uploaded: 44 Golden regression checkpoints + 28 XC-01 captures (14 XC states × desktop `1440×1000` and mobile `390×844`);
+- responsive XC smoke additionally passes at 360 / 430 / 768 / 1024 px;
+- rendered assertions cover correct Bob/Studio A audience headers, no horizontal overflow, no Person A/B / `My passes` / raw ref or wallet vocabulary, and no raw `0x...` identity leakage.
+
+The executable loop found and fixed two real issues before review: an initial production-lint failure and an inherited Maya header on Bob/provider states.
+
+All new sponsor-dependent proof seams are collapsed and marked `FIXTURE`; no new LIVE sponsor execution is claimed.
+
+## Prior UX reused/adapted
 
 From `feat/product-issuer-holder-ux`:
-- `app/slots/page.tsx` / `SlotsClient.tsx`: live session state, browse/status/loading/error patterns;
+- `app/slots/page.tsx` / `SlotsClient.tsx`: availability/status/loading/error patterns;
 - `app/resale/[serial]/ResaleClient.tsx`: buyer/seller separation, provider-rule blocking, pending/error/success purchase, holder refresh;
 - `app/issuer/IssuerPanel.tsx`: session/inventory/policy/holder operational patterns.
 
-Reuse those behaviors where strong. Do **not** carry forward `Person A/B`, `pass`, `issuer`, raw refs/account IDs, HBAR-first price language, HashScan-first success, or a generic admin-dashboard visual hierarchy into the next Golden candidate.
+The XC-01 candidate deliberately does **not** carry forward `Person A/B`, `pass`, `issuer`, raw refs/account IDs, HBAR-first price language, HashScan-first success, or generic admin-dashboard hierarchy.
 
 ## Exact next action
 
-**BUILD one XC-01 candidate only.**
+**Product Reviewer #34 direct PNG review only.**
 
-Before editing the executable:
-- use `DESIGN.md`, `GLOSSARY.md`, `CRAFT.md`, `integration-ledger.md`, and `next-slice.md` as the current contract;
-- preserve the two frozen Golden executable contracts;
-- extend the canonical product workbench rather than creating a competing route;
-- keep technical sponsor proof secondary and new sponsor-dependent states explicit fixture/non-LIVE until integrated;
-- apply relevant pending/empty/error/success/edge coverage from `CRAFT.md` to new acquirer/provider states.
+Reviewer must inspect artifact `10169073722` for exact executable `eb3bcdb84ff95352adf1d0c387996f9a4692c52f` and classify only `REVISE`, `REVIEWABLE`, or `GOLDEN-READY`.
 
-Every material executable UX change must run:
-1. strongest available production build;
-2. real Chromium journey;
-3. exact-head screenshots for every meaningful changed/adjacent state at desktop `~1440×1000` and mobile `~390×844`;
-4. `product-workbench-rendered-evidence` upload bound to the exact executable SHA;
-5. direct Product Reviewer #34 PNG inspection.
+If `REVISE`, fix only the concrete finding and regenerate exact-head production/Chromium evidence. If `GOLDEN-READY`, Devinson must explicitly approve that exact executable before XC-01 can freeze.
 
-Do not self-certify Golden. Reviewer may mark exact candidate `GOLDEN-READY`; Devinson explicitly approves before freeze.
+Do not widen into another slice while this review is pending.
 
 ## Integration guardrail
 
-Do not treat YT-05→YT-08 as fully integrated until `integration-ledger.md` acceptance items are replaced by real sponsor-backed behavior and the integrated result survives security/reviewer gates.
+Do not treat Golden YT-05→YT-08 or XC-01 as fully integrated until `integration-ledger.md` acceptance items are replaced by real sponsor-backed behavior and the integrated result survives security/reviewer gates.
 
-If sponsor implementation conflicts with the Golden product contract, record the precise mismatch in Product Workbench #31 rather than silently changing UX or backend semantics.
+If sponsor implementation conflicts with Golden product truth, record the precise mismatch in Product Workbench #31 rather than silently changing UX or backend semantics.
