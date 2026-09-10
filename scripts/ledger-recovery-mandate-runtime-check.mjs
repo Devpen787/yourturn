@@ -500,7 +500,10 @@ assert.match(bookingGuardSource, /slot\.policySnapshot\.resaleAllowed/);
 assert.match(bookingGuardSource, /slot\.policy\.resaleAllowed/);
 assert.match(bookingGuardSource, /slot\.resaleAllowed/);
 assert.match(bookingGuardSource, /slot\.listingActive \|\| listing\?\.active/);
-assert.match(bookingGuardSource, /accountsEqual\(slot\.holderAccountId, expectedHolderAccountId\)/);
+assert.match(
+  bookingGuardSource,
+  /accountsEqual\(\s*slot\.holderAccountId,\s*expectedHolderAccountId\s*\)/
+);
 assert.match(prepareRoute, /YOURTURN_AGENT_NAME/);
 assert.match(prepareRoute, /slot\.policySnapshot\.resaleAllowed/);
 assert.match(prepareRoute, /slot\.holderAccountId/);
