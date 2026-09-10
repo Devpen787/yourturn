@@ -24,6 +24,21 @@ const mandate = {
   cancellationAllowed: false,
   issuedAt: "1893450000",
 };
+const recoveryMandateTypes = [
+  { name: "mandateId", type: "string" },
+  { name: "ownerId", type: "string" },
+  { name: "ledgerSignerAddress", type: "address" },
+  { name: "agentId", type: "string" },
+  { name: "bookingTokenId", type: "string" },
+  { name: "bookingSerial", type: "uint64" },
+  { name: "allowedAction", type: "string" },
+  { name: "minimumRecoveryAtomicUnits", type: "uint256" },
+  { name: "settlementAsset", type: "string" },
+  { name: "expiresAt", type: "uint64" },
+  { name: "nonce", type: "string" },
+  { name: "cancellationAllowed", type: "bool" },
+  { name: "issuedAt", type: "uint64" },
+];
 const prepared = {
   ok: true,
   evidenceLevel: "CONFIGURED",
@@ -41,19 +56,16 @@ const prepared = {
         name: "YourTurn Recovery Mandate",
         version: "1",
         chainId: 296,
-        verifyingContract: "0x0000000000000000000000000000000000000000",
+        salt: "0x1111111111111111111111111111111111111111111111111111111111111111",
       },
       types: {
         EIP712Domain: [
           { name: "name", type: "string" },
           { name: "version", type: "string" },
           { name: "chainId", type: "uint256" },
-          { name: "verifyingContract", type: "address" },
+          { name: "salt", type: "bytes32" },
         ],
-        RecoveryMandate: Object.keys(mandate).map((name) => ({
-          name,
-          type: name === "cancellationAllowed" ? "bool" : "string",
-        })),
+        RecoveryMandate: recoveryMandateTypes,
       },
       primaryType: "RecoveryMandate",
       message: { ...mandate },
@@ -71,7 +83,9 @@ for (const [label, mutate, expected] of [
   ["minimum mutation", (v) => (v.mandate.minimumRecoveryAtomicUnits = "32000000"), /minimumRecoveryAtomicUnits/],
   ["action expansion", (v) => (v.ledger.typedData.message.allowedAction = "transfer"), /allowedAction/],
   ["cancellation expansion", (v) => (v.ledger.typedData.message.cancellationAllowed = true), /cancellationAllowed/],
-  ["non-configured input", (v) => (v.evidenceLevel = "LIVE/DEVICE"), /must still be CONFIGURED/],
+  ["domain mutation", (v) => (v.ledger.typedData.domain.chainId = 1), /canonical Recovery Mandate domain/],
+  ["type mutation", (v) => (v.ledger.typedData.types.RecoveryMandate[5].type = "string"), /canonical Recovery Mandate schema/],
+  ["non-configured input", (v) => (v.evidenceLevel = "LIVE\/DEVICE"), /must still be CONFIGURED/],
 ]) {
   const copy = structuredClone(prepared);
   mutate(copy);
@@ -157,7 +171,7 @@ assert.equal(devicePackage.dependencies["@ledgerhq/context-module"], "2.5.0");
 assert.equal(devicePackage.dependencies.rxjs, "7.8.2");
 
 console.log("Ledger DMK device ceremony contract: PASS");
-console.log("- exact prepared mandate semantics fail closed on mutation");
+console.log("- exact domain/type/message semantics fail closed on mutation");
 console.log("- approve requires typed-data interaction + signature");
 console.log("- reject requires Ledger ETH error 6982 and persists no signature");
 console.log("- cancel requires DMK cancel() and persists no signature");
