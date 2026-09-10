@@ -193,16 +193,29 @@ assert.equal(unresolved.status, "blocked");
 assert.equal(unresolved.reason, "agentbook_unresolved");
 
 // Even another legitimately signed + AgentBook-resolved agent is not the agent
-// independently delegated by the YourTurn Recovery Mandate.
+// independently delegated by the YourTurn Recovery Mandate. It also must not
+// consume the shared resource+nonce before the delegated agent gets a chance to
+// present its own valid signature using that nonce.
+const wrongAgentStore = memoryNonceStore();
+const sharedNonce = "agentkitnonce0005";
 const wrongAgent = await verifyWorldAgentRequest({
-  agentkitHeader: await signedHeader(otherWallet, resourceUri, "agentkitnonce0005"),
+  agentkitHeader: await signedHeader(otherWallet, resourceUri, sharedNonce),
   expectedResourceUri: resourceUri,
   expectedAgentAddress: wallet.address,
-  nonceStore: memoryNonceStore(),
+  nonceStore: wrongAgentStore,
   agentBook: registeredAgentBook,
 });
 assert.equal(wrongAgent.status, "blocked");
 assert.equal(wrongAgent.reason, "agent_mismatch");
+const delegatedAfterWrongAgent = await verifyWorldAgentRequest({
+  agentkitHeader: await signedHeader(wallet, resourceUri, sharedNonce),
+  expectedResourceUri: resourceUri,
+  expectedAgentAddress: wallet.address,
+  nonceStore: wrongAgentStore,
+  agentBook: registeredAgentBook,
+});
+assert.equal(delegatedAfterWrongAgent.status, "allowed");
+assert.equal(delegatedAfterWrongAgent.reason, "human_backed_agent_verified");
 
 const missing = await verifyWorldAgentRequest({
   agentkitHeader: null,
