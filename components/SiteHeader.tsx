@@ -158,7 +158,7 @@ export function SiteHeader({
             {navItems.map((item) => {
               const href =
                 pathname === "/" && item.href === "/my-bookings"
-                  ? "/product-preview?view=bookings"
+                  ? "/product-preview"
                   : item.href;
 
               return (
