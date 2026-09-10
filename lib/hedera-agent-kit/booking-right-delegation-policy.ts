@@ -69,6 +69,7 @@ export type BookingRightPolicyReason =
   | "BELOW_MINIMUM_RECOVERY"
   | "RECEIVER_MISMATCH"
   | "PROVIDER_POLICY_CHANGED"
+  | "PROVIDER_POLICY_STATE_INVALID"
   | "PROVIDER_POLICY_DENIED"
   | "PROVIDER_POLICY_REVIEW"
   | "INVALID_DELEGATION"
@@ -142,6 +143,11 @@ type RawDelegatedRecoveryParams = {
   ownerAccountId?: unknown;
   spenderAccountId?: unknown;
   receiverAccountId?: unknown;
+};
+
+type RuntimeProviderPolicy = {
+  id?: unknown;
+  state?: unknown;
 };
 
 const TOOL_ACTION: Record<string, BookingRightDelegationAction> = {
@@ -359,14 +365,37 @@ export class BookingRightDelegationPolicy extends AbstractPolicy {
       this.stop("BLOCK", "CANCELLATION_NOT_ALLOWED", "Holder delegation does not permit agent-initiated cancellation/revocation.");
     }
 
-    if (this.invocation.providerPolicy.id !== this.delegation.providerPolicyId) {
+    const runtimeProviderPolicy = this.invocation.providerPolicy as unknown as
+      | RuntimeProviderPolicy
+      | null
+      | undefined;
+    const providerPolicyState = runtimeProviderPolicy?.state;
+    if (
+      providerPolicyState !== "ALLOW" &&
+      providerPolicyState !== "BLOCK" &&
+      providerPolicyState !== "REVIEW"
+    ) {
+      this.stop(
+        "ESCALATE",
+        "PROVIDER_POLICY_STATE_INVALID",
+        "Provider policy state is missing, malformed, or unrecognized; only exact ALLOW may authorize transaction preparation."
+      );
+    }
+    if (runtimeProviderPolicy?.id !== this.delegation.providerPolicyId) {
       this.stop("ESCALATE", "PROVIDER_POLICY_CHANGED", "Provider policy identity changed after delegation; human/provider review is required.");
     }
-    if (this.invocation.providerPolicy.state === "BLOCK") {
+    if (providerPolicyState === "BLOCK") {
       this.stop("BLOCK", "PROVIDER_POLICY_DENIED", "Current provider policy denies this recovery action.");
     }
-    if (this.invocation.providerPolicy.state === "REVIEW") {
+    if (providerPolicyState === "REVIEW") {
       this.stop("ESCALATE", "PROVIDER_POLICY_REVIEW", "Current provider policy requires review before transaction preparation.");
+    }
+    if (providerPolicyState !== "ALLOW") {
+      this.stop(
+        "ESCALATE",
+        "PROVIDER_POLICY_STATE_INVALID",
+        "Provider policy did not resolve to the exact ALLOW state required for transaction preparation."
+      );
     }
 
     if (this.invocation.action === "RECOVER") {
