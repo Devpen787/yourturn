@@ -265,6 +265,8 @@ function initialStep(view: string | null): Step {
     "ledger-waiting": "ledgerWaiting",
     "ledger-rejected": "ledgerRejected",
     "ledger-cancelled": "ledgerCancelled",
+    "replacement-ledger-rejected": "ledgerRejected",
+    "replacement-ledger-cancelled": "ledgerCancelled",
     "ledger-approved": "ledgerApproved",
     "recovery-active": "recoveryActive",
     "offer-blocked": "offerBlocked",
@@ -277,24 +279,27 @@ function initialStep(view: string | null): Step {
 
 export default function ProductPreviewPage() {
   const searchParams = useSearchParams();
-  const startingStep = initialStep(searchParams.get("view"));
+  const startingView = searchParams.get("view");
+  const startingStep = initialStep(startingView);
   const [step, setStep] = useState<Step>(startingStep);
   const [confirmedScope, setConfirmedScope] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [activeMinimum, setActiveMinimum] = useState(40);
   const [approvalMinimum, setApprovalMinimum] = useState(
-    searchParams.get("view") === "reauthorize" ? 30 : 40
+    startingView === "reauthorize" ||
+      startingView === "replacement-ledger-rejected" ||
+      startingView === "replacement-ledger-cancelled"
+      ? 30
+      : 40
   );
   const [offerAmount, setOfferAmount] = useState(
-    searchParams.get("view") === "offer-allowed" ||
-      searchParams.get("view") === "recovery-success"
-      ? 45
-      : 32
+    startingView === "offer-allowed" || startingView === "recovery-success" ? 45 : 32
   );
   const [recovered, setRecovered] = useState(startingStep === "recoverySuccess");
   const [recoveredAmount, setRecoveredAmount] = useState(
     startingStep === "recoverySuccess" ? 45 : 0
   );
+  const isReplacementApproval = approvalMinimum !== activeMinimum;
 
   function chooseUnavailable(label: string) {
     setNotice(`${label} isn’t available for Friday Yoga right now.`);
@@ -314,6 +319,11 @@ export default function ProductPreviewPage() {
     setRecovered(true);
     setRecoveredAmount(offerAmount);
     setStep("recoverySuccess");
+  }
+
+  function returnToActiveRecovery() {
+    setApprovalMinimum(activeMinimum);
+    setStep("recoveryActive");
   }
 
   return (
@@ -808,7 +818,11 @@ export default function ProductPreviewPage() {
         <StepFrame
           eyebrow="Secure approval"
           title="Check the mandate on your Ledger."
-          intro="YourTurn is waiting for the secure-device result. Approving creates only the booking-scoped mandate below; rejecting or cancelling creates no authority."
+          intro={
+            isReplacementApproval
+              ? `YourTurn is waiting for the secure-device result. Approving replaces the current ${activeMinimum} USDC mandate with the proposed ${approvalMinimum} USDC mandate; rejecting or cancelling leaves your current ${activeMinimum} USDC recovery authority unchanged.`
+              : "YourTurn is waiting for the secure-device result. Approving creates only the booking-scoped mandate below; rejecting or cancelling creates no authority."
+          }
         >
           <div className="grid gap-5 lg:grid-cols-[1fr_0.85fr]">
             <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
@@ -850,25 +864,59 @@ export default function ProductPreviewPage() {
 
       {step === "ledgerRejected" && (
         <StepFrame
-          eyebrow="Secure approval"
-          title="Approval was rejected on your Ledger."
-          intro="Nothing changed. Friday Yoga is still yours, no recovery authority was created, and YourTurn cannot start working."
+          eyebrow={isReplacementApproval ? "Replacement not authorized" : "Secure approval"}
+          title={
+            isReplacementApproval
+              ? `Your ${activeMinimum} USDC recovery stays active.`
+              : "Approval was rejected on your Ledger."
+          }
+          intro={
+            isReplacementApproval
+              ? `The ${approvalMinimum} USDC replacement was rejected on your Ledger. Your existing ${activeMinimum} USDC recovery authority is unchanged and YourTurn can keep working inside it.`
+              : "Nothing changed. Friday Yoga is still yours, no recovery authority was created, and YourTurn cannot start working."
+          }
         >
           <div className="rounded-[1.75rem] border border-rose-100 bg-white p-6 shadow-sm sm:p-7">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <BookingIdentity compact />
-              <StatusPill tone="rose">Not authorized</StatusPill>
+              {isReplacementApproval ? (
+                <StatusPill tone="green">{activeMinimum} USDC still active</StatusPill>
+              ) : (
+                <StatusPill tone="rose">Not authorized</StatusPill>
+              )}
             </div>
-            <div className="mt-6 rounded-2xl bg-rose-50 p-4 text-sm leading-6 text-rose-900 ring-1 ring-rose-100">
-              Device rejection means no mandate signature and no recovery authority. Your booking remains confirmed.
-            </div>
+            {isReplacementApproval ? (
+              <div className="mt-6">
+                <MandateFacts minimum={activeMinimum} />
+                <div className="mt-5 rounded-2xl bg-emerald-50 p-4 text-sm leading-6 text-emerald-900 ring-1 ring-emerald-100">
+                  The replacement mandate was not signed. Your current {activeMinimum} USDC minimum, Tomorrow · 17:00 expiry, Friday-Yoga-only scope, and no-cancel rule remain exactly as before.
+                </div>
+              </div>
+            ) : (
+              <div className="mt-6 rounded-2xl bg-rose-50 p-4 text-sm leading-6 text-rose-900 ring-1 ring-rose-100">
+                Device rejection means no mandate signature and no recovery authority. Your booking remains confirmed.
+              </div>
+            )}
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <button type="button" onClick={() => setStep("ledgerNotReady")} className={primaryButton}>
-                Try again
-              </button>
-              <button type="button" onClick={() => setStep("detail")} className={secondaryButton}>
-                Back to booking
-              </button>
+              {isReplacementApproval ? (
+                <>
+                  <button type="button" onClick={returnToActiveRecovery} className={primaryButton}>
+                    Return to active recovery
+                  </button>
+                  <button type="button" onClick={() => setStep("ledgerNotReady")} className={secondaryButton}>
+                    Try replacement again
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button type="button" onClick={() => setStep("ledgerNotReady")} className={primaryButton}>
+                    Try again
+                  </button>
+                  <button type="button" onClick={() => setStep("detail")} className={secondaryButton}>
+                    Back to booking
+                  </button>
+                </>
+              )}
             </div>
           </div>
           <ProofDrawer stage="ledger" />
@@ -877,25 +925,59 @@ export default function ProductPreviewPage() {
 
       {step === "ledgerCancelled" && (
         <StepFrame
-          eyebrow="Secure approval"
-          title="Approval cancelled."
-          intro="No mandate was created. Friday Yoga is still confirmed and YourTurn has no recovery authority."
+          eyebrow={isReplacementApproval ? "Replacement cancelled" : "Secure approval"}
+          title={
+            isReplacementApproval
+              ? `Your ${activeMinimum} USDC recovery stays active.`
+              : "Approval cancelled."
+          }
+          intro={
+            isReplacementApproval
+              ? `The ${approvalMinimum} USDC replacement was cancelled. Your existing ${activeMinimum} USDC recovery authority is unchanged and YourTurn can keep working inside it.`
+              : "No mandate was created. Friday Yoga is still confirmed and YourTurn has no recovery authority."
+          }
         >
           <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <BookingIdentity compact />
-              <StatusPill>Not authorized</StatusPill>
+              {isReplacementApproval ? (
+                <StatusPill tone="green">{activeMinimum} USDC still active</StatusPill>
+              ) : (
+                <StatusPill>Not authorized</StatusPill>
+              )}
             </div>
-            <p className="mt-6 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-700">
-              Cancelling the device ceremony is terminal for this attempt. It does not silently approve or preserve a partial mandate.
-            </p>
+            {isReplacementApproval ? (
+              <div className="mt-6">
+                <MandateFacts minimum={activeMinimum} />
+                <p className="mt-5 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+                  Cancelling this replacement attempt creates no new mandate. The current {activeMinimum} USDC authority remains active; no limits were changed.
+                </p>
+              </div>
+            ) : (
+              <p className="mt-6 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+                Cancelling the device ceremony is terminal for this attempt. It does not silently approve or preserve a partial mandate.
+              </p>
+            )}
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <button type="button" onClick={() => setStep("ledgerNotReady")} className={primaryButton}>
-                Try again
-              </button>
-              <button type="button" onClick={() => setStep("detail")} className={secondaryButton}>
-                Back to booking
-              </button>
+              {isReplacementApproval ? (
+                <>
+                  <button type="button" onClick={returnToActiveRecovery} className={primaryButton}>
+                    Return to active recovery
+                  </button>
+                  <button type="button" onClick={() => setStep("ledgerNotReady")} className={secondaryButton}>
+                    Try replacement again
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button type="button" onClick={() => setStep("ledgerNotReady")} className={primaryButton}>
+                    Try again
+                  </button>
+                  <button type="button" onClick={() => setStep("detail")} className={secondaryButton}>
+                    Back to booking
+                  </button>
+                </>
+              )}
             </div>
           </div>
           <ProofDrawer stage="ledger" />
