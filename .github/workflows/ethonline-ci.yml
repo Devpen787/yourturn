@@ -57,6 +57,15 @@ jobs:
         # DMK/Signer/Node-HID stack in scripts/ledger-device-proof/.
         run: node scripts/ledger-device-proof/ceremony-check.mjs
 
+      - name: Ledger current DMK Node-HID import smoke
+        # Install the isolated, pinned hardware-proof stack without changing the
+        # application lockfile. --help imports the same DMK/Signer/Node-HID
+        # modules used by the real device ceremony, but does not touch hardware.
+        working-directory: scripts/ledger-device-proof
+        run: |
+          npm install --no-package-lock --legacy-peer-deps
+          npm run proof -- --help
+
       - name: Continuity baseline must remain documented
         run: |
           grep -q 'd0b5f875afb4f2b29af29bc5972cf1edc404d473' docs/ethonline-2026/CONTINUITY_BASELINE.md
