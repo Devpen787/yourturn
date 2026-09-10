@@ -2,7 +2,7 @@
 
 Canonical UX branch: `ux/yourturn-product-workbench`
 
-This workbench turns YourTurn into one coherent consumer product while Hedera, World and Ledger workers continue sponsor implementation in parallel.
+This workbench turns YourTurn into one coherent **two-sided booking product** while Hedera, World and Ledger workers continue sponsor implementation in parallel.
 
 ## Operating loop
 
@@ -19,10 +19,21 @@ A journey is the unit of design. Screens are only states inside a journey.
 5. Only one journey set is actively under product review at a time.
 6. No status-only commits. A commit must change product behavior, proof, testability, or documentation required to implement/review a journey.
 7. Keep the customer story end-to-end: Alice loses the booking, Alice receives value, Bob receives a usable booking.
+8. Check every broader product slice against the stakeholder architecture: service provider + customer, with current-holder and acquirer roles covered where relevant.
 
 ## Product model
 
 The primary customer object is a **booking**, not an NFT/token.
+
+YourTurn has **two stakeholder classes**:
+- **Service provider** — creates/fulfils the service and defines reusable booking rules.
+- **Customer** — consumes or exchanges the service; operationally this may be the current holder or the next holder/acquirer.
+
+Core permission rule:
+
+`provider rules ∩ holder mandate ∩ acquirer eligibility/payment`
+
+See `stakeholder-journeys.md` for the durable holder, acquirer and provider journey architecture.
 
 Primary customer areas:
 - Home
@@ -52,6 +63,8 @@ Sponsor roles stay simple:
 - World proves which human-backed agent is asking and whether it is the exact delegated one.
 - Hedera enforces what the agent can actually do and settles the result.
 
+Provider policy remains load-bearing: the holder cannot authorize a recovery the provider has prohibited.
+
 ## Source branches to mine
 
 - `codex/ethglobal-final-public` — immutable pre-event baseline.
@@ -63,7 +76,8 @@ Do not treat any one source branch as the complete UX answer.
 
 ## Workbench files
 
-- `journeys.md` — journey registry and current progress.
+- `journeys.md` — current ETHOnline journey registry and progress.
+- `stakeholder-journeys.md` — durable holder, acquirer and provider product architecture and future sequencing.
 - `invariants.md` — shared UI/product rules that should not drift between journeys.
 - `review-checklist.md` — candidate and Golden review gate.
 - `handoff.md` — exact current state, next action and sponsor integration boundaries.
@@ -86,3 +100,11 @@ The candidate should make the sponsor-backed recovery sequence feel like one nor
 Sponsor-dependent states may be fixture/demo state in the UX-only branch until integration, but must never be presented as LIVE without real evidence.
 
 Rendered desktop/mobile screenshot inspection is a hard review gate before `GOLDEN-READY`, and Devinson must explicitly approve the exact candidate before freeze.
+
+## Expansion gate after the hero
+
+Do not treat YT-09/YT-10 as sufficient by themselves to complete the whole product. After YT-05→YT-08 is Golden, use `stakeholder-journeys.md` to map:
+- the **acquirer lane** from discovery/payment through receiving and using the booking;
+- the **provider lane** from onboarding/inventory/rules through holder change, fulfilment and reconciliation.
+
+The current hero continues uninterrupted; this architecture is recorded now so the provider and demand sides are not forgotten later.
