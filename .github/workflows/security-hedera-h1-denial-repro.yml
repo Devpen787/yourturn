@@ -1,0 +1,27 @@
+name: Security Hedera H1 denial reproducer
+
+on:
+  push:
+    branches:
+      - 'feature/ethonline-security-hedera-h1-denial-repro'
+    paths:
+      - 'scripts/security/hedera-h1-expected-denial-false-positive-repro.mjs'
+      - 'scripts/hedera-return-bytes-external-signer.mjs'
+      - '.github/workflows/security-hedera-h1-denial-repro.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout security branch
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Reproduce expected-denial false positive
+        run: node scripts/security/hedera-h1-expected-denial-false-positive-repro.mjs
