@@ -18,20 +18,39 @@ import {
 } from "../lib/hedera-agent-kit/usdc-recovery-semantics.ts";
 
 const MIRROR = "https://testnet.mirrornode.hedera.com/api/v1";
-const holderAccountId = AccountId.fromString(
+const guestAAccountId = AccountId.fromString(
   process.env.HEDERA_GUEST_A_ID ?? "0.0.8504405"
 ).toString();
-const spenderAccountId = AccountId.fromString(
+const treasuryAccountId = AccountId.fromString(
   process.env.HEDERA_TREASURY_ID ?? "0.0.8504300"
+).toString();
+const holderAccountId = AccountId.fromString(
+  process.env.HEDERA_RECOVERY_HOLDER_ID ?? ""
+).toString();
+const spenderAccountId = AccountId.fromString(
+  process.env.HEDERA_RECOVERY_SPENDER_ID ?? ""
 ).toString();
 const receiverAccountId = AccountId.fromString(
   process.env.HEDERA_GUEST_B_ID ?? "0.0.8504715"
 ).toString();
 const bookingTokenId = process.env.BOOKED_RIGHTS_TOKEN_ID ?? "0.0.8505698";
+const selectedSerial = Number(process.env.HEDERA_DELEGATION_SERIAL);
 const outputPath = process.env.HEDERA_USDC_RECOVERY_PROOF_OUT ?? "hedera-usdc-recovery-live-proof.json";
 
 if ((process.env.HEDERA_NETWORK ?? "testnet").toLowerCase() !== "testnet") {
   throw new Error("usdc_recovery_live_refuses_non_testnet");
+}
+if (!Number.isSafeInteger(selectedSerial) || selectedSerial <= 0) {
+  throw new Error("usdc_recovery_live_requires_preflight_serial");
+}
+if (holderAccountId === spenderAccountId) {
+  throw new Error("usdc_recovery_holder_spender_must_differ");
+}
+if (
+  ![guestAAccountId, treasuryAccountId].includes(holderAccountId) ||
+  ![guestAAccountId, treasuryAccountId].includes(spenderAccountId)
+) {
+  throw new Error("usdc_recovery_live_role_outside_existing_keyed_accounts");
 }
 
 function parsePrivateKey(raw, hint) {
@@ -41,6 +60,16 @@ function parsePrivateKey(raw, hint) {
   if (normalizedHint === "ED25519") return PrivateKey.fromStringED25519(key);
   if (normalizedHint === "DER") return PrivateKey.fromStringDer(key);
   return PrivateKey.fromString(key);
+}
+
+function signerMaterialFor(accountId) {
+  if (accountId === guestAAccountId) {
+    return { raw: process.env.HEDERA_GUEST_A_KEY, type: "ECDSA" };
+  }
+  if (accountId === treasuryAccountId) {
+    return { raw: process.env.HEDERA_TREASURY_KEY, type: "DER" };
+  }
+  throw new Error("usdc_recovery_unknown_signer_account");
 }
 
 function normalizeTxId(txId) {
@@ -63,18 +92,15 @@ async function mirrorJson(url) {
   return response.json();
 }
 
-async function firstOwnerHeldSerial() {
-  const url = `${MIRROR}/accounts/${holderAccountId}/nfts?token.id=${bookingTokenId}&limit=100`;
+async function verifySelectedOwnerHeldSerial() {
+  const url = `${MIRROR}/tokens/${bookingTokenId}/nfts/${selectedSerial}`;
   const body = await mirrorJson(url);
-  const nft = (body.nfts ?? []).find(
-    (candidate) => candidate.token_id === bookingTokenId
-  );
-  if (!nft) throw new Error("usdc_recovery_no_owner_held_booking_serial");
-  const serial = Number(nft.serial_number);
-  if (!Number.isSafeInteger(serial) || serial <= 0) {
-    throw new Error("usdc_recovery_invalid_owner_held_serial");
+  if (body.account_id !== holderAccountId) {
+    throw new Error(
+      `usdc_recovery_selected_serial_owner_drift:${selectedSerial}:${body.account_id ?? "none"}`
+    );
   }
-  return { serial, mirror: url };
+  return { serial: selectedSerial, mirror: url };
 }
 
 async function tokenBalance(accountId) {
@@ -93,9 +119,10 @@ async function waitForTransaction(txId) {
   const url = mirrorTxUrl(txId);
   for (let attempt = 0; attempt < 8; attempt += 1) {
     const body = await mirrorJson(url);
-    const tx = (body.transactions ?? []).find(
-      (candidate) => normalizeTxId(candidate.transaction_id) === normalizeTxId(txId)
-    ) ?? body.transactions?.[0];
+    const tx =
+      (body.transactions ?? []).find(
+        (candidate) => normalizeTxId(candidate.transaction_id) === normalizeTxId(txId)
+      ) ?? body.transactions?.[0];
     if (tx) return { tx, mirror: url };
     await new Promise((resolve) => setTimeout(resolve, 2500));
   }
@@ -112,6 +139,23 @@ async function waitForNftOwner(serial) {
     await new Promise((resolve) => setTimeout(resolve, 2500));
   }
   throw new Error("usdc_recovery_mirror_owner_timeout");
+}
+
+async function waitForBalanceDeltas(beforeSpender, beforeHolder, amount) {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const [afterSpender, afterHolder] = await Promise.all([
+      tokenBalance(spenderAccountId),
+      tokenBalance(holderAccountId),
+    ]);
+    if (
+      afterSpender.atomicUnits === beforeSpender.atomicUnits - amount &&
+      afterHolder.atomicUnits === beforeHolder.atomicUnits + amount
+    ) {
+      return { afterSpender, afterHolder };
+    }
+    await new Promise((resolve) => setTimeout(resolve, 2500));
+  }
+  throw new Error("usdc_recovery_mirror_balance_delta_timeout");
 }
 
 function createOneShotNonceStore() {
@@ -161,6 +205,7 @@ function validateMirrorSettlement(tx, serial, amount) {
   const usdcTransfers = (tx.token_transfers ?? []).filter(
     (entry) => entry.token_id === HEDERA_TESTNET_USDC_TOKEN_ID
   );
+  assert.equal(usdcTransfers.length, 2, "usdc_recovery_mirror_usdc_transfer_count");
   const spenderLeg = usdcTransfers.find((entry) => entry.account === spenderAccountId);
   const holderLeg = usdcTransfers.find((entry) => entry.account === holderAccountId);
   assert.ok(spenderLeg, "usdc_recovery_mirror_missing_spender_usdc_leg");
@@ -169,10 +214,12 @@ function validateMirrorSettlement(tx, serial, amount) {
   assert.equal(BigInt(holderLeg.amount), amount);
 }
 
-const selected = await firstOwnerHeldSerial();
+const selected = await verifySelectedOwnerHeldSerial();
 const amount = BigInt(HEDERA_USDC_MIN_RECOVERY_ATOMIC_UNITS);
-const beforeSpender = await tokenBalance(spenderAccountId);
-const beforeHolder = await tokenBalance(holderAccountId);
+const [beforeSpender, beforeHolder] = await Promise.all([
+  tokenBalance(spenderAccountId),
+  tokenBalance(holderAccountId),
+]);
 if (beforeSpender.atomicUnits < amount) {
   throw new Error(
     `usdc_recovery_insufficient_testnet_usdc:${spenderAccountId}:${beforeSpender.atomicUnits.toString()}`
@@ -193,9 +240,9 @@ const approvalTransaction = Transaction.fromBytes(
   Buffer.from(approvalEnvelope.bytesBase64, "base64")
 );
 validateApproval(approvalTransaction, selected.serial);
-const ownerRawKey = process.env.HEDERA_GUEST_A_KEY;
-if (!ownerRawKey) throw new Error("usdc_recovery_owner_signer_unavailable");
-const ownerKey = parsePrivateKey(ownerRawKey, "ECDSA");
+const ownerSigner = signerMaterialFor(holderAccountId);
+if (!ownerSigner.raw) throw new Error("usdc_recovery_owner_signer_unavailable");
+const ownerKey = parsePrivateKey(ownerSigner.raw, ownerSigner.type);
 const approvalClient = Client.forTestnet();
 let approvalResult;
 try {
@@ -274,9 +321,9 @@ validateAtomicUsdcRecoveryTransaction(transaction, {
 
 // The delegated spender secret is read only after the exact HAK-produced bytes
 // pass the independent NFT + USDC semantic validator above.
-const spenderRawKey = process.env.HEDERA_TREASURY_KEY;
-if (!spenderRawKey) throw new Error("usdc_recovery_spender_signer_unavailable");
-const spenderKey = parsePrivateKey(spenderRawKey, "DER");
+const spenderSigner = signerMaterialFor(spenderAccountId);
+if (!spenderSigner.raw) throw new Error("usdc_recovery_spender_signer_unavailable");
+const spenderKey = parsePrivateKey(spenderSigner.raw, spenderSigner.type);
 const client = Client.forTestnet();
 let settlementResult;
 try {
@@ -298,17 +345,10 @@ try {
 const mirrored = await waitForTransaction(settlementResult.transactionId);
 validateMirrorSettlement(mirrored.tx, selected.serial, amount);
 const finalOwnership = await waitForNftOwner(selected.serial);
-const afterSpender = await tokenBalance(spenderAccountId);
-const afterHolder = await tokenBalance(holderAccountId);
-assert.equal(
-  afterSpender.atomicUnits,
-  beforeSpender.atomicUnits - amount,
-  "usdc_recovery_spender_balance_delta_mismatch"
-);
-assert.equal(
-  afterHolder.atomicUnits,
-  beforeHolder.atomicUnits + amount,
-  "usdc_recovery_holder_balance_delta_mismatch"
+const { afterSpender, afterHolder } = await waitForBalanceDeltas(
+  beforeSpender,
+  beforeHolder,
+  amount
 );
 
 const proof = {
@@ -331,7 +371,8 @@ const proof = {
     reason: prepared.decision.reason,
     providerPolicyId: delegation.providerPolicyId,
     minimumUsdcAtomicUnits: HEDERA_USDC_MIN_RECOVERY_ATOMIC_UNITS,
-    replayStoreForLiveProof: "one-shot-in-process; durable Redis semantics separately CI/security-cleared in H2",
+    replayStoreForLiveProof:
+      "one-shot-in-process; durable Redis semantics separately CI/security-cleared in H2",
   },
   settlement: {
     transactionId: settlementResult.transactionId,
