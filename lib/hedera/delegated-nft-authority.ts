@@ -63,17 +63,30 @@ export function buildSerialScopedNftRevocation(
  * Builds the transfer a delegated spender submits after YourTurn policy allows
  * the recovery action. Hedera's approved-transfer flag makes the allowance
  * load-bearing: the owner does not sign this transfer transaction.
+ *
+ * Raw-SDK execution pins the delegated spender as payer here. HAK RETURN_BYTES
+ * must leave the transaction id unset so HAK can bind it exactly once from its
+ * externally signing context before freezing; setting it twice locks the SDK
+ * transaction list. The default preserves the already-live H0 behavior.
  */
 export function buildApprovedSerialTransfer(args: {
   authority: SerialScopedNftAuthority;
   receiverAccountId: string;
+  assignSpenderTransactionId?: boolean;
 }): TransferTransaction {
   const { nftId, ownerAccountId, spenderAccountId } = parseAuthority(args.authority);
   const receiverAccountId = AccountId.fromString(args.receiverAccountId);
 
-  return new TransferTransaction()
-    .addApprovedNftTransfer(nftId, ownerAccountId, receiverAccountId)
-    .setTransactionId(TransactionId.generate(spenderAccountId));
+  const transaction = new TransferTransaction().addApprovedNftTransfer(
+    nftId,
+    ownerAccountId,
+    receiverAccountId
+  );
+
+  if (args.assignSpenderTransactionId ?? true) {
+    transaction.setTransactionId(TransactionId.generate(spenderAccountId));
+  }
+  return transaction;
 }
 
 export function describeSerialScopedAuthority(authority: SerialScopedNftAuthority) {

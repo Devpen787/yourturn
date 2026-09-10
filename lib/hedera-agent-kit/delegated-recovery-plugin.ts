@@ -152,7 +152,13 @@ class TransferDelegatedSerialTool extends BaseTool<unknown, TransferParams> {
 
   async coreAction(params: TransferParams) {
     const { receiverAccountId, ...authority } = params;
-    return buildApprovedSerialTransfer({ authority, receiverAccountId });
+    return buildApprovedSerialTransfer({
+      authority,
+      receiverAccountId,
+      // HAK RETURN_BYTES owns transaction-id/payer binding and freeze. The raw
+      // H0 path keeps its default spender-generated transaction id.
+      assignSpenderTransactionId: false,
+    });
   }
 
   async secondaryAction(transaction: any, client: Client, context: Context) {
