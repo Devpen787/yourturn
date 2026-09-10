@@ -1,10 +1,17 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { bookingPort } from "@/lib/adapters/booking-port";
 import { requireGuestAppUser } from "@/lib/auth/guest-api-auth";
+import { getActorCredentials } from "@/lib/hedera/client";
+import {
+  RecoveryMandateBookingStateError,
+  assertRecoveryMandateLiveBookingState,
+} from "@/lib/ledger/recovery-mandate-booking-guard";
 import {
   createRedisRecoveryMandateReplayStore,
   type RecoveryMandateAtomicSetStore,
 } from "@/lib/ledger/recovery-mandate-replay";
+import type { RecoveryMandate } from "@/lib/ledger/recovery-mandate";
 import {
   activatePreparedRecoveryMandate,
   type RecoveryMandateStateStore,
@@ -36,6 +43,15 @@ export async function POST(req: Request) {
 
     const appUser = await requireGuestAppUser();
     if (appUser instanceof NextResponse) return appUser;
+    if (!appUser.hederaPersona) {
+      return NextResponse.json(
+        fail(
+          "This account no longer has the guest persona required to validate booking authority.",
+          "NOT_CONFIGURED"
+        ),
+        { status: 503 }
+      );
+    }
 
     const parsed = activateBodySchema.safeParse(await req.json());
     if (!parsed.success) {
@@ -45,10 +61,37 @@ export async function POST(req: Request) {
       );
     }
 
+    const expectedHolderAccountId = getActorCredentials(
+      appUser.hederaPersona
+    ).accountId.toString();
+
+    const revalidateMutableAuthority = async (mandate: RecoveryMandate) => {
+      if (mandate.bookingSerial > BigInt(Number.MAX_SAFE_INTEGER)) {
+        throw new RecoveryMandateBookingStateError(
+          "Recovery mandate booking serial is outside the supported live-state range"
+        );
+      }
+      const serial = Number(mandate.bookingSerial);
+      const [slot, listing] = await Promise.all([
+        bookingPort.getSlot(serial),
+        bookingPort.getListing(serial),
+      ]);
+      assertRecoveryMandateLiveBookingState({
+        mandate,
+        live: {
+          slot,
+          listing,
+          expectedHolderAccountId,
+        },
+      });
+    };
+
     // This route deliberately does not mint or accept the legacy reusable
     // approval-grant bearer token. The prepared server-side mandate is the
     // complete expectation; its signature is consumed once through durable
-    // Redis before an active authority record can exist.
+    // Redis before an active authority record can exist. Mutable booking state
+    // is re-read before replay consumption and again immediately before final
+    // active-authority creation.
     const redis = getRedis() as unknown as LedgerMandateRedis;
     const replayStore = createRedisRecoveryMandateReplayStore(redis);
     const { verified, active } = await activatePreparedRecoveryMandate({
@@ -57,6 +100,7 @@ export async function POST(req: Request) {
       mandateId: parsed.data.mandateId,
       ownerId: appUser.id,
       signature: parsed.data.signature,
+      revalidateMutableAuthority,
     });
 
     return NextResponse.json({
@@ -79,9 +123,12 @@ export async function POST(req: Request) {
         cancellationAllowed: active.mandate.cancellationAllowed,
       },
       claimBoundary:
-        "A cryptographically valid EIP-712 signature can activate the exact prepared mandate once. Hardware provenance remains unproven until the identical payload is signed on a Ledger through DMK.",
+        "A cryptographically valid EIP-712 signature can activate the exact prepared mandate once only while live holder/status/provider-policy/listing predicates still permit it. Hardware provenance remains unproven until the identical payload is signed on a Ledger through DMK.",
     });
   } catch (e) {
+    if (e instanceof RecoveryMandateBookingStateError) {
+      return NextResponse.json(fail(e.message, "CONFLICT"), { status: 409 });
+    }
     const msg = e instanceof Error ? e.message : String(e);
     const isConflict =
       /already|not found|expired|does not belong|could not be stored/i.test(msg);
