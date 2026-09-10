@@ -36,7 +36,7 @@ The provider should not need to approve every individual recovery. It sets reusa
 
 ## Lane A — Current holder / recovery
 
-This is the lane currently being built for ETHOnline.
+This lane is now frozen Golden for the ETHOnline hero.
 
 - **YT-01 — Understand & enter:** customer understands YourTurn and enters the product.
 - **YT-02 — My Bookings:** current holder sees owned bookings.
@@ -47,7 +47,11 @@ This is the lane currently being built for ETHOnline.
 - **YT-07 — Block / escalate:** out-of-scope offers are blocked; broader authority requires a new holder decision.
 - **YT-08 — Successful recovery:** in-scope recovery completes; holder receives value and no longer has a usable booking.
 
-Current Golden input: YT-01→YT-04. Current active candidate: YT-05→YT-08.
+Frozen executables:
+- YT-01→YT-04: `24bbf0d7516499069f5102ae4bf724b0cb376b94`;
+- YT-05→YT-08: `d5309a96d532ee107011c2a5cefc3000b9e4932f`.
+
+Do not redesign this lane while extending the product. Integration replaces fixtures with real state under `integration-ledger.md` while preserving Golden behavior.
 
 ## Lane B — Acquirer / next holder
 
@@ -60,11 +64,11 @@ This lane must exist before the product can be considered a complete two-sided m
 - **A-05 — Use / check in:** new holder fulfils the service under the provider's normal check-in rules.
 - **A-06 — History / receipt:** acquirer can understand how the booking was obtained without needing protocol knowledge.
 
-Existing YT-09 (`New holder`) should become the bridge into A-04 rather than the whole acquirer journey by itself. Existing YT-10 (`Activity & proof`) should cover both holder and acquirer aftermath, with technical proof secondary.
+Existing YT-09 (`New holder`) is a bridge into A-04 rather than the whole acquirer journey by itself. Existing YT-10 (`Activity & proof`) should cover both holder and acquirer aftermath, with technical proof secondary.
 
 ## Lane C — Service provider
 
-The provider lane must be treated as first-class product work, not only admin tooling.
+The provider lane is first-class product work, not only admin tooling.
 
 - **P-01 — Join YourTurn:** create provider/business identity and service profile.
 - **P-02 — Create or connect inventory:** define sessions, appointments, seats, desks, etc.
@@ -77,18 +81,19 @@ The provider lane must be treated as first-class product work, not only admin to
 
 ## Provider-rule contract for the ETHOnline hero
 
-The hackathon journey should eventually make one thin provider fact explicit even if the full provider workbench is built later:
+The connected continuation must make one thin provider fact explicit:
 
 > Studio A has already defined the rules under which Friday Yoga may move.
 
-Minimum proof needed in the integrated hero:
+Minimum product/integration truth:
 - transfer/recovery is permitted for this booking type;
 - cancellation remains forbidden;
 - eligibility/cutoff constraints are enforced;
 - the holder cannot authorize something the provider has prohibited;
-- the recovery agent cannot widen provider rules.
+- the recovery agent cannot widen provider rules;
+- a compliant transfer does not require a Studio A employee to approve the individual recovery.
 
-Do not turn this into a provider approval popup during Maya's recovery. The point is that provider policy is pre-defined and load-bearing.
+Do not turn this into a provider approval popup during Maya's recovery. Provider policy is pre-defined and load-bearing.
 
 ## Cross-lane state handoff
 
@@ -96,27 +101,48 @@ For one successful Friday Yoga recovery, the product must be able to show all th
 
 1. **Provider:** Friday Yoga exists, transfer is allowed under provider policy, authoritative holder changes from Maya to Bob.
 2. **Maya/current holder:** no longer has a usable Friday Yoga booking and receives the recovered value.
-3. **Bob/new holder:** receives Friday Yoga as a normal usable booking and can check in.
+3. **Bob/new holder:** receives Friday Yoga as a normal usable booking and can follow the provider's ordinary fulfil/check-in path.
 
 A blockchain transaction or agent receipt alone does not satisfy this product requirement.
 
 ## Existing source work to mine
 
 Before designing provider or acquirer journeys from scratch, inspect prior YourTurn work:
-- `feat/product-issuer-holder-ux` — issuer/provider UI, holder UX, inventory and resale concepts.
-- `main` — auth, roles, customer/provider shell and account flows.
+- `feat/product-issuer-holder-ux` — issuer/provider UI, holder UX, inventory and resale concepts;
+- `main` — auth, roles, customer/provider shell and account flows;
 - `codex/ethglobal-final-public` — immutable pre-event product/technical baseline.
 
-Known provider work already exists in `app/issuer/IssuerPanel.tsx`; treat it as REUSE/ADAPT/REFERENCE material, not automatically as the final provider UX.
+Useful prior seams already inspected for the next slice:
+- `app/slots/page.tsx` / `app/slots/SlotsClient.tsx` — browse/live-state/status/loading/error patterns;
+- `app/resale/[serial]/ResaleClient.tsx` — buyer/seller separation, provider-rule blocks, pending/error/success purchase and holder refresh;
+- `app/issuer/IssuerPanel.tsx` — provider inventory/session/policy/holder-state operations.
+
+Treat these as REUSE/ADAPT material. Do not carry forward `Person A/B`, `pass`, `issuer`, raw refs/account IDs, HBAR-first pricing or HashScan-first success as the new customer hierarchy.
+
+## Selected connected continuation
+
+The stakeholder gate has now been applied. The selected smallest connected next slice is recorded in `next-slice.md`:
+
+**XC-01 — Eligible next holder + provider-recognized handoff**
+
+`Studio A pre-defined rules → Bob finds/evaluates Friday Yoga → Bob satisfies eligibility and commits to 45 USDC → Golden Maya recovery accepts inside scope → Bob receives a normal usable booking → Studio A sees Bob as the authoritative current holder`
+
+XC-01 intentionally spans only the load-bearing parts of:
+- acquirer A-01→A-04;
+- provider P-03, P-06 and P-07;
+- the already-Golden Maya YT-08 handoff.
+
+A-05/P-08 check-in is the immediate completion follow-up if it cannot be reused truthfully from existing normal booking/provider paths without widening the first candidate. A-06/YT-10 history follows after the state is real enough to explain.
 
 ## Sequencing rule
 
-Do **not** interrupt the current YT-05→YT-08 ETHOnline hero build.
+Current order:
+1. Golden YT-01→YT-08 — **complete/frozen**;
+2. `DESIGN.md`, `GLOSSARY.md`, `CRAFT.md` — **established**;
+3. `integration-ledger.md` — **established for Golden→real wiring**;
+4. stakeholder coverage gate — **applied**;
+5. XC-01 architecture — **selected**;
+6. build one canonical XC-01 candidate, then production build + Chromium desktop/mobile evidence + direct Product Reviewer PNG inspection;
+7. freeze only after `GOLDEN-READY` + explicit Devinson approval.
 
-After YT-05→YT-08 reaches Golden:
-1. map the acquirer lane A-01→A-06 against YT-09/YT-10;
-2. map provider P-01→P-08 using prior issuer/provider work;
-3. choose the smallest connected slices needed for the hackathon demo;
-4. continue broader productization after the submission without losing this architecture.
-
-No future journey set should be called complete unless stakeholder coverage is checked against this document.
+No future journey set should be called complete unless stakeholder coverage is checked against this document and `stakeholder-coverage-gate.md`.
