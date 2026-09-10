@@ -4,10 +4,10 @@ Status vocabulary: `candidate`, `review`, `GOLDEN-READY`, `Golden`, `implemented
 
 | Journey | User outcome | Status | ETHOnline priority |
 | --- | --- | --- | --- |
-| YT-01 Understand & enter | Visitor understands YourTurn and can enter the product | GOLDEN-READY | P0 |
-| YT-02 My Bookings | Holder sees owned bookings and their meaningful states | GOLDEN-READY | P0 |
-| YT-03 Booking detail | Holder can use a booking or change plans | GOLDEN-READY | P0 |
-| YT-04 Recovery setup | Holder defines what YourTurn may do | GOLDEN-READY | P0 |
+| YT-01 Understand & enter | Visitor understands YourTurn and can enter the product | review | P0 |
+| YT-02 My Bookings | Holder sees owned bookings and their meaningful states | review | P0 |
+| YT-03 Booking detail | Holder can use a booking or change plans | review | P0 |
+| YT-04 Recovery setup | Holder defines what YourTurn may do | review | P0 |
 | YT-05 Delegate | Holder understands and authorizes the mandate with Ledger | queued | P0 |
 | YT-06 Agent working | Holder sees the exact human-backed delegated agent working | queued | P0 |
 | YT-07 Block / escalate | Out-of-scope offer is blocked and escalation boundary is clear | queued | P0 |
@@ -21,9 +21,13 @@ Status vocabulary: `candidate`, `review`, `GOLDEN-READY`, `Golden`, `implemented
 
 Canonical candidate route: `/product-preview`.
 
-Exact reviewed candidate: `e3905833ec456ecc08e7733e0ec746686fd6b7e4`.
+Previous reviewed candidate: `e3905833ec456ecc08e7733e0ec746686fd6b7e4`.
 
-Current independent classification: **GOLDEN-READY**, not `Golden`. Human freeze approval is still required.
+That candidate reached `GOLDEN-READY` under the earlier gate and received Devinson's explicit approval, but the subsequently tightened rendered-visual gate reclassified it `REVISE` after direct inspection of the PNG evidence.
+
+Active revised candidate: `24bbf0d7516499069f5102ae4bf724b0cb376b94`.
+
+Current classification: **review pending exact-head verification and independent rendered re-review**.
 
 The candidate runs as one continuous customer story:
 
@@ -42,25 +46,26 @@ Recovery mandate candidate:
 - forbidden: cancel, lower the minimum, touch another booking
 - authority applies only to this booking
 
-## GOLDEN-READY evidence
+## Latest rendered-review findings addressed
 
-Product Reviewer #34 cleared the remaining YT-01→YT-04 product findings on exact candidate `e3905833ec456ecc08e7733e0ec746686fd6b7e4`.
+Product Reviewer #34 inspected the actual desktop/mobile screenshot artifact for `e3905833...` and requested three bounded revisions before freeze:
+1. add explicit YT-03 Booking detail screenshots at desktop and mobile widths;
+2. simplify the 390 px landing header so customer entry is not dominated by mixed customer/provider navigation;
+3. remove residual landing `pass` vocabulary in favor of the canonical `booking` language.
 
-Exact-head proof:
-- ETHOnline Continuity Gate `34437850556`: **SUCCESS**.
-- Product Workbench Visual Check `34437847330`: **SUCCESS**.
-- Rendered interaction verified at desktop `1440×1000` and mobile `390×844`.
-- Evidence artifact `product-workbench-rendered-evidence` / `10136877079`: 12 PNG checkpoints bound to the exact candidate.
-- All unauthenticated `My bookings` entry affordances converge on exact `/product-preview` before the prepared Maya entry state.
-- The regression check requires exact `/product-preview` equality rather than accepting arbitrary prefixed routes.
+Active candidate `24bbf0d...` addresses those findings only:
+- compact unauthenticated mobile landing header keeps `My bookings` and `Sign in` primary while collapsing `Browse`, `Provider dashboard`, and `Register` at 390 px;
+- landing explanatory copy now uses `booking` consistently instead of `live pass` / `list your pass for resale`;
+- rendered Playwright coverage now captures `04-booking-detail` at both desktop and mobile widths, producing seven checkpoints per viewport when green;
+- the visual verifier also rejects the legacy landing pass phrases and checks the compact mobile header behavior.
 
-No remaining material UX revision is requested before the human freeze gate.
+No Hedera/World/Ledger backend semantics changed and no second candidate route was created.
 
-## Human freeze gate
+## Current gate
 
-The independent reviewer has marked exact candidate `e3905833ec456ecc08e7733e0ec746686fd6b7e4` `GOLDEN-READY`.
+Exact-head production/continuity and rendered Chromium verification must pass for `24bbf0d...`, then Product Reviewer #34 must inspect the new PNG evidence and classify the exact candidate.
 
-Devinson must explicitly approve that exact candidate before YT-01→YT-04 becomes `Golden`. Do not freeze automatically and do not start a competing canonical candidate while approval is pending.
+The earlier human approval of `e3905833...` does not silently transfer to this revised executable SHA. If `24bbf0d...` (or a later revision) reaches `GOLDEN-READY`, Devinson must explicitly approve that exact candidate before YT-01→YT-04 becomes `Golden`.
 
 ## Next set after Golden approval
 
