@@ -97,8 +97,12 @@ async function requestJson(url, init) {
     throw new Error(`${url} returned non-JSON HTTP ${response.status}`);
   }
   if (!response.ok || !body?.ok) {
-    const code = body?.error?.code || body?.code || `HTTP_${response.status}`;
-    const message = body?.error?.message || body?.message || "request failed";
+    const code = body?.code || `HTTP_${response.status}`;
+    const message =
+      (typeof body?.error === "string" && body.error) ||
+      body?.error?.message ||
+      body?.message ||
+      "request failed";
     throw new Error(`${url} failed: ${code}: ${message}`);
   }
   return body;
@@ -155,7 +159,7 @@ async function main() {
   const wallet = new Wallet(privateKey);
   if (getAddress(wallet.address) !== expectedAgent) {
     throw new Error(
-      `WORLD_AGENT_PRIVATE_KEY resolves to ${wallet.address}, not the explicitly registered delegated agent ${expectedAgent}`
+      "WORLD_AGENT_PRIVATE_KEY does not resolve to the explicitly registered delegated agent"
     );
   }
 
