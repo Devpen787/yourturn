@@ -1,0 +1,89 @@
+name: Security Dependency Triage
+
+on:
+  push:
+    branches:
+      - feature/ethonline-security-dependency-triage
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Locked install
+        run: npm ci
+
+      - name: Prove dependency manifests against immutable baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASELINE=d0b5f875afb4f2b29af29bc5972cf1edc404d473
+          echo "head=$(git rev-parse HEAD)"
+          echo "manifest_diff_begin"
+          git diff --name-status "$BASELINE" HEAD -- package.json package-lock.json || true
+          echo "manifest_diff_end"
+          echo "baseline_package_lock_sha256=$(git show "$BASELINE:package-lock.json" | sha256sum | awk '{print $1}')"
+          echo "head_package_lock_sha256=$(sha256sum package-lock.json | awk '{print $1}')"
+          echo "baseline_package_json_sha256=$(git show "$BASELINE:package.json" | sha256sum | awk '{print $1}')"
+          echo "head_package_json_sha256=$(sha256sum package.json | awk '{print $1}')"
+
+      - name: Capture npm audit reports without mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm audit --json > audit-full.json || true
+          npm audit --omit=dev --json > audit-prod.json || true
+          node <<'NODE'
+          const fs = require('fs');
+          function compact(path) {
+            const raw = JSON.parse(fs.readFileSync(path, 'utf8'));
+            const vulnerabilities = Object.entries(raw.vulnerabilities || {}).map(([name, v]) => ({
+              name,
+              severity: v.severity,
+              isDirect: Boolean(v.isDirect),
+              range: v.range,
+              effects: v.effects || [],
+              nodes: v.nodes || [],
+              fixAvailable: v.fixAvailable,
+              via: (v.via || []).map((x) => typeof x === 'string' ? x : ({
+                source: x.source,
+                name: x.name,
+                severity: x.severity,
+                title: x.title,
+                url: x.url,
+                range: x.range
+              }))
+            }));
+            return { metadata: raw.metadata, vulnerabilities };
+          }
+          const out = { full: compact('audit-full.json'), production: compact('audit-prod.json') };
+          fs.writeFileSync('audit-summary.json', JSON.stringify(out, null, 2));
+          console.log(JSON.stringify({
+            full: out.full.metadata?.vulnerabilities,
+            production: out.production.metadata?.vulnerabilities,
+            productionPackages: out.production.vulnerabilities.map(v => ({name:v.name,severity:v.severity,isDirect:v.isDirect,range:v.range,via:v.via}))
+          }, null, 2));
+          NODE
+
+      - name: Upload audit evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-dependency-triage
+          path: |
+            audit-summary.json
+            audit-full.json
+            audit-prod.json
+          if-no-files-found: error
