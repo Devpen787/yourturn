@@ -60,6 +60,9 @@ jobs:
         # external wallet signature/broadcast step is intentionally out-of-band.
         run: npm run hedera:delegated-recovery-hak-check
 
+      - name: Independent H1 decoded-byte binding security retest
+        run: node scripts/security-hedera-h1-byte-binding-retest.mjs
+
       - name: Hedera BookingRight delegation policy + replay check
         # ETHOnline-new HAK v4 AbstractPolicy behavior. This stays CI/LOCAL: it
         # proves policy gating and durable nonce semantics before transaction
