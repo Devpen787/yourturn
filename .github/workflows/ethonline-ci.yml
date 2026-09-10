@@ -51,6 +51,9 @@ jobs:
       - name: Ledger Recovery Mandate contract check
         run: npm run ledger:mandate-check
 
+      - name: Security repro - stale Ledger mandate activation
+        run: node scripts/security-ledger-stale-activation-repro.mjs
+
       - name: Ledger DMK device ceremony contract check
         # Pure CI qualification of the ceremony contract only. The actual
         # LIVE/DEVICE claim still requires a physical Ledger running the pinned
