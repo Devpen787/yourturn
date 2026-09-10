@@ -25,6 +25,7 @@ jobs:
       HEDERA_TREASURY_KEY_TYPE: 'DER'
       HEDERA_GUEST_B_ID: '0.0.8504715'
       BOOKED_RIGHTS_TOKEN_ID: '0.0.8505698'
+      HEDERA_DELEGATION_SERIAL: '193'
 
     steps:
       - name: Checkout Hedera branch
@@ -57,6 +58,33 @@ jobs:
           fi
           echo "Required signing secrets are present; values remain masked."
 
+      - name: Discover second owner-held serial for negative test
+        id: wrong_serial
+        shell: bash
+        run: |
+          set -euo pipefail
+          response="$(curl -fsSL "https://testnet.mirrornode.hedera.com/api/v1/accounts/${HEDERA_GUEST_A_ID}/nfts?token.id=${BOOKED_RIGHTS_TOKEN_ID}&limit=100")"
+          wrong_serial="$(printf '%s' "$response" | node -e '
+            let body = "";
+            process.stdin.on("data", c => body += c);
+            process.stdin.on("end", () => {
+              const parsed = JSON.parse(body);
+              const target = Number(process.env.HEDERA_DELEGATION_SERIAL);
+              const token = process.env.BOOKED_RIGHTS_TOKEN_ID;
+              const candidate = (parsed.nfts || []).find(
+                nft => nft.token_id === token && Number(nft.serial_number) !== target
+              );
+              if (!candidate) process.exit(2);
+              process.stdout.write(String(candidate.serial_number));
+            });
+          ')"
+          if [ -z "$wrong_serial" ]; then
+            echo "::error::No second owner-held serial exists for the negative allowance test."
+            exit 2
+          fi
+          echo "wrong_serial=$wrong_serial" >> "$GITHUB_OUTPUT"
+          echo "Selected owner-held alternate serial: $wrong_serial"
+
       - name: Execute serial-scoped H0 lifecycle on Hedera testnet
         shell: bash
         run: |
@@ -67,9 +95,9 @@ jobs:
             --owner=guestA \
             --spender=issuer \
             --receiver=guestB \
-            --token=0.0.8505698 \
-            --serial=193 \
-            --wrong-serial=33 | tee h0-proof.log
+            --token="${BOOKED_RIGHTS_TOKEN_ID}" \
+            --serial="${HEDERA_DELEGATION_SERIAL}" \
+            --wrong-serial="${{ steps.wrong_serial.outputs.wrong_serial }}" | tee h0-proof.log
 
       - name: Upload H0 proof log
         if: always()
