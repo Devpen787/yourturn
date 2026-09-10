@@ -77,8 +77,13 @@ Do not treat any one source branch as the complete UX answer.
 ## Workbench files
 
 - `journeys.md` — current ETHOnline journey registry and progress.
+- `DESIGN.md` — product-specific visual/design contract extracted from approved Golden evidence.
+- `GLOSSARY.md` — preferred product language and `Avoid:` aliases.
+- `CRAFT.md` — reusable state, accessibility, responsive, copy and interaction craft rules.
+- `integration-ledger.md` — Golden-to-integration owner/interface/evidence/failure map.
 - `stakeholder-journeys.md` — durable holder, acquirer and provider product architecture and sequencing.
-- `stakeholder-coverage-gate.md` — mandatory coverage gate before the next broader product slice.
+- `stakeholder-coverage-gate.md` — mandatory coverage gate before broader product slices.
+- `next-slice.md` — applied stakeholder gate and selected smallest connected continuation.
 - `invariants.md` — shared UI/product rules that should not drift between journeys.
 - `review-checklist.md` — candidate and Golden review gate.
 - `handoff.md` — exact current state, next action and sponsor integration boundaries.
@@ -86,7 +91,7 @@ Do not treat any one source branch as the complete UX answer.
 
 ## Golden product truth
 
-**YT-01 through YT-08 are now Golden.**
+**YT-01 through YT-08 are Golden.**
 
 - YT-01→YT-04 frozen executable: `24bbf0d7516499069f5102ae4bf724b0cb376b94` — see `golden/yt-01-04.md`.
 - YT-05→YT-08 frozen executable: `d5309a96d532ee107011c2a5cefc3000b9e4932f` — see `golden/yt-05-08.md`.
@@ -95,26 +100,36 @@ The second Golden set reached freeze after exact-head build/Chromium evidence, 4
 
 ## Current phase
 
-The holder-recovery hero is now frozen. The workbench must **not** jump directly into a holder-only YT-09/YT-10 extension.
+The holder-recovery hero is frozen and the post-Golden architecture gate is now established:
+- `DESIGN.md` extracts the binding visual/product language from Golden rather than redesigning it;
+- `GLOSSARY.md` and `CRAFT.md` establish domain language and state/craft rules;
+- `integration-ledger.md` maps Golden fixture states to real Ledger/World/Hedera owners and honest evidence boundaries;
+- `stakeholder-coverage-gate.md` has been applied to the acquirer/provider continuation;
+- `next-slice.md` selects the smallest connected next product slice.
 
-Next:
-1. extract a compact YourTurn `DESIGN.md` / design contract from the approved Golden evidence per issue #40;
-2. create the domain glossary and reusable craft/review rules;
-3. create/use a Golden-to-integration acceptance ledger so every fixture transition has a real implementation/evidence owner;
-4. apply `stakeholder-coverage-gate.md` and issue #39;
-5. map the acquirer and provider lanes, then choose the smallest connected next product slice.
+The selected continuation is **XC-01 — Eligible next holder + provider-recognized handoff**:
 
-The current Golden UX still contains explicit fixture/demo sponsor transitions where real integration is not yet wired. Golden freezes product behavior/presentation; it does not upgrade evidence class.
+`Studio A pre-defined recovery rules → Bob finds/evaluates Friday Yoga → Bob satisfies eligibility + commits to the 45 USDC acquisition → Golden Maya recovery accepts inside scope → Bob receives a normal usable booking → Studio A sees Bob as the authoritative current holder`
+
+This is architecture/product truth only until an executable candidate is built and independently reviewed. Do not create a second prototype route and do not change the frozen YT-01→YT-08 contracts.
+
+The Golden UX still contains explicit fixture/demo sponsor transitions where real integration is not yet wired. Golden freezes product behavior/presentation; it does not upgrade evidence class.
 
 ## Expansion principle
 
 YT-09/YT-10 are bridge concepts, not the entire next product slice.
 
 The next complete continuation must connect:
-- **holder lane** — Maya releases/recoveries her booking;
+- **holder lane** — Maya releases/recovers her booking;
 - **acquirer lane** — Bob discovers, evaluates, pays/acquires, receives and can use it;
 - **provider lane** — Studio A has pre-defined rules, sees the authoritative holder change, and can fulfil/reconcile without manually approving every compliant recovery.
 
 That continuation must preserve:
 
 `provider rules ∩ holder mandate ∩ acquirer eligibility/payment`.
+
+## Exact next action
+
+Build one **XC-01** candidate by extending the canonical product workbench and reusing/adapting prior slots/resale/provider UX under `DESIGN.md`, `GLOSSARY.md`, `CRAFT.md`, `integration-ledger.md`, and the stakeholder gate. Keep new sponsor-dependent transitions explicitly fixture/non-LIVE until real integration evidence replaces them.
+
+Any material executable UX change must run the production build + real Chromium desktop/mobile render loop and return to Product Reviewer #34 for direct PNG inspection before a Golden decision.
