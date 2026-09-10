@@ -236,10 +236,14 @@ function AgentCard({ minimum }: { minimum: number }) {
         </div>
         <StatusPill tone="green">Human-backed</StatusPill>
       </div>
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-2xl bg-slate-50 p-4">
           <p className="text-xs uppercase tracking-[0.14em] text-slate-400">May accept</p>
           <p className="mt-1 text-sm font-semibold text-slate-950">{minimum} USDC or more</p>
+        </div>
+        <div className="rounded-2xl bg-slate-50 p-4">
+          <p className="text-xs uppercase tracking-[0.14em] text-slate-400">Expires</p>
+          <p className="mt-1 text-sm font-semibold text-slate-950">Tomorrow · 17:00</p>
         </div>
         <div className="rounded-2xl bg-slate-50 p-4">
           <p className="text-xs uppercase tracking-[0.14em] text-slate-400">May touch</p>
@@ -742,7 +746,11 @@ export default function ProductPreviewPage() {
         <StepFrame
           eyebrow="Secure approval"
           title="Connect your Ledger to authorize recovery."
-          intro={`YourTurn will ask the device to approve only the ${approvalMinimum} USDC minimum Recovery Mandate shown here. No recovery authority exists yet.`}
+          intro={
+            approvalMinimum === activeMinimum
+              ? `YourTurn will ask the device to approve only the ${approvalMinimum} USDC minimum Recovery Mandate shown here. No recovery authority exists yet.`
+              : `YourTurn will ask the device to approve only the ${approvalMinimum} USDC minimum replacement Recovery Mandate shown here. Your current ${activeMinimum} USDC authority stays active until this replacement is approved.`
+          }
         >
           <BackButton
             onClick={() => setStep(approvalMinimum === activeMinimum ? "approval" : "reauthorize")}
