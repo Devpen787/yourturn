@@ -5,6 +5,7 @@ import {
   assertExpectedCeremonyResult,
   isUserRejectedState,
   sanitizeDeviceState,
+  sawCompletedState,
   sawStoppedState,
   validatePreparedEnvelope,
 } from "./ceremony.mjs";
@@ -109,13 +110,16 @@ const rejected = sanitizeDeviceState({
   },
 });
 const stopped = sanitizeDeviceState({ status: "stopped" });
+const completed = sanitizeDeviceState({ status: "completed" });
 assert.equal(isUserRejectedState({ status: "error", error: { errorCode: "6982" } }), true);
 assert.equal(sawStoppedState([interaction, stopped]), true);
 assert.equal(sawStoppedState([interaction]), false);
+assert.equal(sawCompletedState([interaction, completed]), true);
+assert.equal(sawCompletedState([interaction]), false);
 assert.equal(
   assertExpectedCeremonyResult({
     expectation: "approve",
-    events: [interaction, { status: "completed" }],
+    events: [interaction, completed],
     signature: "0xhardware-signature",
   }),
   "approved"
@@ -140,12 +144,31 @@ assert.equal(
 assert.throws(
   () =>
     assertExpectedCeremonyResult({
+      expectation: "approve",
+      events: [interaction],
+      signature: "0xunexpected",
+    }),
+  /did not observe the DMK Completed terminal state/
+);
+assert.throws(
+  () =>
+    assertExpectedCeremonyResult({
       expectation: "cancel",
       events: [interaction],
       signature: null,
       cancelRequested: true,
     }),
   /did not observe the DMK Stopped terminal state/
+);
+assert.throws(
+  () =>
+    assertExpectedCeremonyResult({
+      expectation: "cancel",
+      events: [interaction, stopped, completed],
+      signature: null,
+      cancelRequested: true,
+    }),
+  /also completed the signing action; fail closed/
 );
 assert.throws(
   () =>
@@ -161,7 +184,16 @@ assert.throws(
   () =>
     assertExpectedCeremonyResult({
       expectation: "reject",
-      events: [interaction, { status: "completed" }],
+      events: [interaction, rejected, completed],
+      signature: null,
+    }),
+  /also contained completed\/host-cancel state/
+);
+assert.throws(
+  () =>
+    assertExpectedCeremonyResult({
+      expectation: "reject",
+      events: [interaction, completed],
       signature: "0xunexpected",
     }),
   /produced a signature; fail closed/
@@ -170,7 +202,7 @@ assert.throws(
   () =>
     assertExpectedCeremonyResult({
       expectation: "approve",
-      events: [{ status: "completed" }],
+      events: [completed],
       signature: "0xsignature",
     }),
   /typed-data user interaction was never observed/
@@ -196,7 +228,7 @@ assert.equal(devicePackage.dependencies.rxjs, "7.8.2");
 
 console.log("Ledger DMK device ceremony contract: PASS");
 console.log("- exact domain/type/message semantics fail closed on mutation");
-console.log("- approve requires typed-data interaction + signature");
-console.log("- reject requires Ledger ETH error 6982 and persists no signature");
-console.log("- cancel requires DMK cancel() + observable Stopped terminal state and persists no signature");
+console.log("- approve requires typed-data interaction + exclusive Completed terminal state + signature");
+console.log("- reject requires Ledger ETH error 6982 and no completed/host-cancel state");
+console.log("- cancel requires DMK cancel() + exclusive Stopped terminal state and persists no signature");
 console.log("- runner contains no activation/fetch path and no legacy hw-app dependency");
