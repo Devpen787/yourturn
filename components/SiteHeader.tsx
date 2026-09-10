@@ -38,10 +38,12 @@ function NavLink({
   href,
   label,
   active,
+  className,
 }: {
   href: string;
   label: string;
   active: boolean;
+  className?: string;
 }) {
   return (
     <Link
@@ -50,7 +52,8 @@ function NavLink({
         "rounded-md px-2.5 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus focus-visible:ring-offset-2",
         active
           ? "font-semibold text-slate-950"
-          : "font-medium text-slate-800 hover:text-slate-950"
+          : "font-medium text-slate-800 hover:text-slate-950",
+        className
       )}
       aria-current={active ? "page" : undefined}
     >
@@ -119,10 +122,11 @@ export function SiteHeader({
   const navItems = showProviderInNav(pathname, sessionUser)
     ? NAV
     : NAV.filter((item) => item.href !== "/issuer");
+  const compactCustomerLanding = pathname === "/" && !sessionUser;
 
   return (
     <header className="border-b border-slate-200/90 bg-white/90 shadow-sm shadow-slate-900/[0.03] backdrop-blur-md">
-      <div className="mx-auto flex min-h-[3.25rem] max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2.5 sm:min-h-0 sm:py-3">
+      <div className="mx-auto flex min-h-[3.25rem] max-w-5xl flex-nowrap items-center justify-between gap-x-3 px-4 py-2.5 sm:min-h-0 sm:flex-wrap sm:gap-x-4 sm:gap-y-2 sm:py-3">
         <Link
           href="/"
           className={cn(
@@ -134,7 +138,7 @@ export function SiteHeader({
           <BrandLockup variant="calendarTurn" markClassName="h-8 w-8" />
         </Link>
         <nav
-          className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-x-1 gap-y-1.5 sm:gap-x-2"
+          className="ml-auto flex min-w-0 flex-nowrap items-center justify-end gap-x-1 sm:flex-wrap sm:gap-x-2 sm:gap-y-1.5"
           aria-label="Main"
         >
           {sessionUser ? (
@@ -151,7 +155,7 @@ export function SiteHeader({
           ) : null}
           <div
             className={cn(
-              "flex flex-wrap items-center gap-x-1 sm:gap-x-2",
+              "flex flex-nowrap items-center gap-x-1 sm:flex-wrap sm:gap-x-2",
               sessionUser && "border-l border-slate-200/90 pl-2 sm:ml-0.5 sm:pl-3"
             )}
           >
@@ -160,6 +164,13 @@ export function SiteHeader({
                 pathname === "/" && item.href === "/my-bookings"
                   ? "/product-preview"
                   : item.href;
+              const landingVisibility = compactCustomerLanding
+                ? item.href === "/slots"
+                  ? "hidden sm:inline-flex"
+                  : item.href === "/issuer"
+                    ? "hidden md:inline-flex"
+                    : undefined
+                : undefined;
 
               return (
                 <NavLink
@@ -167,6 +178,7 @@ export function SiteHeader({
                   href={href}
                   label={item.label}
                   active={item.match(pathname)}
+                  className={landingVisibility}
                 />
               );
             })}
@@ -196,6 +208,7 @@ export function SiteHeader({
                 href="/register"
                 label="Register"
                 active={pathname.startsWith("/register")}
+                className={compactCustomerLanding ? "hidden sm:inline-flex" : undefined}
               />
             </>
           )}
