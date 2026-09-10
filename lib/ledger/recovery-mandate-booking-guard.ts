@@ -1,4 +1,4 @@
-import { accountsEqual } from "../hedera/client.ts";
+import { accountsEqual } from "../domain/account.ts";
 import type { BookingSlotView, ResaleListingView } from "../types/booking-port.ts";
 import type { RecoveryMandate } from "./recovery-mandate.ts";
 
