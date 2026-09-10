@@ -27,6 +27,13 @@ async function assertVisible(page, text) {
   throw new Error(`Expected visible text: ${text}`);
 }
 
+async function assertAbsent(page, text) {
+  const body = await page.locator("body").innerText();
+  if (body.includes(text)) {
+    throw new Error(`Unexpected customer-visible text: ${text}`);
+  }
+}
+
 async function assertNoPrototypeCopy(page) {
   const body = await page.locator("body").innerText();
   for (const phrase of bannedCustomerCopy) {
@@ -210,6 +217,7 @@ async function runJourney(browser, viewport, prefix) {
   await assertVisible(page, "Recovery active");
   await assertVisible(page, "Exact delegated agent verified");
   await assertVisible(page, "Human-backed");
+  await assertVisible(page, "Tomorrow · 17:00");
   await assertVisible(page, "Stop recovery");
   await assertNoRawWorldIdentifier(page);
   await screenshot(page, prefix, "13-recovery-active");
@@ -232,6 +240,7 @@ async function runJourney(browser, viewport, prefix) {
   await assertVisible(page, "Connect your Ledger to authorize recovery.");
   await assertVisible(page, "30 USDC");
   await assertVisible(page, "current 40 USDC authority stays active");
+  await assertAbsent(page, "No recovery authority exists yet");
   await screenshot(page, prefix, "16-reauthorize-ledger");
 
   await page.getByRole("button", { name: "Keep current 40 USDC rule" }).click();
