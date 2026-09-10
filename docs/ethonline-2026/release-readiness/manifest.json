@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Deterministic ETHOnline submission-readiness manifest. This file records exact approved inputs and current gates; it does not authorize merge, deployment, funding, secret changes, or evidence promotion.",
+  "safety": {
+    "defaultOrSubmissionMergeAuthorized": false,
+    "productionDeploymentAuthorized": false,
+    "mainnetAuthorized": false,
+    "fundingAuthorizedByAutomation": false,
+    "secretMutationAuthorized": false
+  },
+  "continuity": {
+    "immutableBaseline": "d0b5f875afb4f2b29af29bc5972cf1edc404d473",
+    "frozenFoundation": "89ded956e67c343b7abefc36e33044c6064a7798"
+  },
+  "productTruth": {
+    "thesis": "Ledger defines what the human authorized; World proves which human-backed delegated agent is asking; Hedera enforces what the agent can do and settles/proves the result.",
+    "coreRule": "provider rules ∩ holder mandate ∩ acquirer eligibility/payment",
+    "golden": [
+      {
+        "slice": "YT-01→YT-04",
+        "executableSha": "24bbf0d7516499069f5102ae4bf724b0cb376b94",
+        "recordPath": "docs/product-workbench/golden/yt-01-04.md",
+        "recordSourceBranch": "ux/yourturn-product-workbench",
+        "humanApproved": true
+      },
+      {
+        "slice": "YT-05→YT-08",
+        "executableSha": "d5309a96d532ee107011c2a5cefc3000b9e4932f",
+        "recordPath": "docs/product-workbench/golden/yt-05-08.md",
+        "recordSourceBranch": "ux/yourturn-product-workbench",
+        "humanApproved": true,
+        "truthBoundary": "Golden freezes behavior/presentation, not sponsor evidence class. Sponsor-dependent transitions remain fixture until exact integration evidence replaces them."
+      }
+    ],
+    "nextSlice": "XC-01 — Eligible next holder + provider-recognized handoff"
+  },
+  "integration": {
+    "heldHead": "1bf50c02dd3d925f2db03bd9ba0bbac4713c1380",
+    "contents": [
+      "Golden YT-01→YT-04 presentation contract",
+      "Hedera H0",
+      "curated Hedera H1"
+    ],
+    "integrationReady": false,
+    "reason": "H2/USDC, World, Ledger and Golden YT-05→YT-08 real sponsor-backed transitions have not all passed build/security/evidence gates."
+  },
+  "sponsors": {
+    "hedera": {
+      "head": "40890aab7729075edbf5efac5f5367f4b5a022e1",
+      "continuityRun": "34487132901",
+      "security": {
+        "secHedera007": "CLOSED_CI_LOCAL",
+        "independentRun": "34489546446"
+      },
+      "currentEvidence": "CI/LOCAL for new H2-bound NFT+USDC recovery; H0/H1 retain their independently verified LIVE/TESTNET evidence",
+      "integrationReady": false,
+      "blockers": [
+        "Obtain external testnet liquidity without automation spending or secret exposure",
+        "Execute canonical 45-USDC LIVE/TESTNET recovery while preserving 40-USDC minimum and 32-USDC denial",
+        "Independently Security-review the exact live artifact before promotion"
+      ]
+    },
+    "world": {
+      "head": "2ab04f4420cccc2c090cd5f5634e447d399eb139",
+      "continuityRun": "34432753300",
+      "currentEvidence": "LIVE/AGENTBOOK for registration/resolution; CI/READY, NOT LIVE for signed recovery route; Sandbox proof not yet captured",
+      "integrationReady": false,
+      "blockers": [
+        "Complete actual World ID Sandbox tester verification and reviewer-safe evidence",
+        "Execute locally signed registered-agent recovery route against initialized non-production YourTurn state",
+        "Replace branch-local ApprovalGrant authority scaffolding with canonical activated Ledger Recovery Mandate projection for final integration"
+      ]
+    },
+    "ledger": {
+      "head": "dfb3fec6328c5db22aa6b6eb222b5e0a57f3b54a",
+      "continuityRun": "34489661054",
+      "currentEvidence": "CI/CONFIGURED; physical device evidence deferred",
+      "integrationReady": false,
+      "blockers": [
+        "SEC-LEDGER-005 remains OPEN/MEDIUM on final validation→active-authority-write TOCTOU",
+        "Implement atomic/versioned/serialized coupling to authoritative booking/listing state and pass independent retest",
+        "Only after Security closure: capture real device approve plus reject/cancel on the identical Recovery Mandate"
+      ]
+    }
+  },
+  "externalActions": {
+    "hederaTestnetLiquidity": {
+      "status": "BLOCKED_ON_HUMAN_EXTERNAL_ACTION",
+      "account": "0.0.8504405",
+      "currentTestnetUsdc": "19.98",
+      "requiredAdditionalTestnetUsdc": "25.02",
+      "targetHeroSettlementUsdc": "45.00",
+      "realOrMainnetFundsAuthorized": false
+    },
+    "worldSandbox": {
+      "appDownloaded": true,
+      "proofCaptured": false
+    },
+    "worldSignedRoute": {
+      "runnerReady": true,
+      "liveExecutionCaptured": false,
+      "privateKeyMustRemainLocal": true
+    }
+  },
+  "finalAcceptance": {
+    "requiredSequence": [
+      "Ledger rejects → no authority",
+      "Ledger approves exact 40-USDC minimum mandate",
+      "Wrong World agent → blocked before execution",
+      "Exact delegated human-backed World agent → accepted requester",
+      "32-USDC offer → blocked with no booking transfer and no settlement",
+      "Stale/revoked/provider-invalid mandate or rule → blocked",
+      "Eligible Bob + authorized 45-USDC payment → allowed",
+      "Hedera executes exactly one booking transfer + exact settlement",
+      "Maya receives 45 USDC and no longer has usable Friday Yoga",
+      "Bob becomes authoritative normal usable holder",
+      "Studio A recognizes Bob for fulfilment/check-in",
+      "Replay → blocked/idempotent with no duplicate value movement"
+    ],
+    "readyForSubmission": false
+  }
+}
