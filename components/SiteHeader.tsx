@@ -24,7 +24,7 @@ const NAV = [
   },
   {
     href: "/my-bookings",
-    label: "My passes",
+    label: "My bookings",
     match: (pathname: string) => pathname.startsWith("/my-bookings"),
   },
   {
@@ -75,6 +75,33 @@ function showProviderInNav(pathname: string, sessionUser: SessionUser): boolean 
   return false;
 }
 
+function ProductPreviewHeader() {
+  return (
+    <header className="border-b border-slate-200/90 bg-white/90 shadow-sm shadow-slate-900/[0.03] backdrop-blur-md">
+      <div className="mx-auto flex min-h-[3.25rem] max-w-5xl items-center justify-between gap-4 px-4 py-2.5 sm:py-3">
+        <Link
+          href="/"
+          className="shrink-0 rounded-xl px-1 py-0.5 text-slate-800 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus focus-visible:ring-offset-2"
+          aria-label="YourTurn home"
+        >
+          <BrandLockup variant="calendarTurn" markClassName="h-8 w-8" />
+        </Link>
+        <nav className="flex min-w-0 items-center gap-2" aria-label="Customer">
+          <Link
+            href="/product-preview?view=bookings"
+            className="rounded-md px-2.5 py-2 text-sm font-semibold text-slate-950 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus focus-visible:ring-offset-2"
+          >
+            My bookings
+          </Link>
+          <span className="hidden max-w-[14rem] truncate rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 sm:inline-block">
+            Maya Keller
+          </span>
+        </nav>
+      </div>
+    </header>
+  );
+}
+
 export function SiteHeader({
   sessionUser = null,
 }: {
@@ -84,6 +111,11 @@ export function SiteHeader({
   const router = useRouter();
   const [logoutBusy, setLogoutBusy] = useState(false);
   const homeActive = pathname === "/";
+
+  if (pathname.startsWith("/product-preview")) {
+    return <ProductPreviewHeader />;
+  }
+
   const navItems = showProviderInNav(pathname, sessionUser)
     ? NAV
     : NAV.filter((item) => item.href !== "/issuer");
@@ -110,22 +142,17 @@ export function SiteHeader({
               className="hidden max-w-[14rem] min-w-0 items-center gap-x-1.5 rounded-full border border-slate-300/80 bg-slate-100/90 px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm ring-1 ring-slate-900/[0.04] sm:inline-flex md:max-w-[18rem]"
               title={sessionUser.email}
             >
-              <span className="shrink-0 font-normal text-slate-500">
-                Signed in
-              </span>
+              <span className="shrink-0 font-normal text-slate-500">Signed in</span>
               <span className="shrink-0 text-slate-300" aria-hidden>
                 ·
               </span>
-              <span className="min-w-0 truncate text-slate-800">
-                {sessionUser.email}
-              </span>
+              <span className="min-w-0 truncate text-slate-800">{sessionUser.email}</span>
             </span>
           ) : null}
           <div
             className={cn(
               "flex flex-wrap items-center gap-x-1 sm:gap-x-2",
-              sessionUser &&
-                "border-l border-slate-200/90 pl-2 sm:ml-0.5 sm:pl-3"
+              sessionUser && "border-l border-slate-200/90 pl-2 sm:ml-0.5 sm:pl-3"
             )}
           >
             {navItems.map((item) => (
@@ -157,11 +184,7 @@ export function SiteHeader({
             </button>
           ) : (
             <>
-              <NavLink
-                href="/login"
-                label="Sign in"
-                active={pathname.startsWith("/login")}
-              />
+              <NavLink href="/login" label="Sign in" active={pathname.startsWith("/login")} />
               <NavLink
                 href="/register"
                 label="Register"
