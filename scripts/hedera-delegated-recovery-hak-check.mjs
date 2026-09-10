@@ -18,6 +18,10 @@ import {
   prepareSerialAllowanceForOwner,
   prepareSerialRevocationForOwner,
 } from "../lib/hedera-agent-kit/delegated-recovery-plugin.ts";
+import {
+  hasExactExpectedHederaStatus,
+  hederaErrorStatus,
+} from "./hedera-return-bytes-status-guard.mjs";
 
 const authority = {
   tokenId: "0.0.2001",
@@ -44,6 +48,63 @@ for (const forbidden of [
     `non-custodial plugin must not contain ${forbidden}`
   );
 }
+
+const signerSource = readFileSync(
+  new URL("./hedera-return-bytes-external-signer.mjs", import.meta.url),
+  "utf8"
+);
+assert.equal(
+  signerSource.includes("message.includes(expectedStatus)"),
+  false,
+  "generic error text must never qualify as a Hedera denial"
+);
+assert.match(
+  signerSource,
+  /hasExactExpectedHederaStatus\(error, expectedStatus\)/,
+  "external signer must gate expected denials on exact status-bearing failures"
+);
+
+const expectedDenialStatus = "SPENDER_DOES_NOT_HAVE_ALLOWANCE";
+const unexpectedSuccessMismatch = new Error(
+  `expected ${expectedDenialStatus}, got successful receipt SUCCESS`
+);
+assert.equal(hederaErrorStatus(unexpectedSuccessMismatch), null);
+assert.equal(
+  hasExactExpectedHederaStatus(unexpectedSuccessMismatch, expectedDenialStatus),
+  false,
+  "an actual SUCCESS receipt converted into the local mismatch error must fail hard"
+);
+
+const genericMessageOnlyFailure = new Error(
+  `upstream text happened to contain ${expectedDenialStatus}`
+);
+assert.equal(
+  hasExactExpectedHederaStatus(genericMessageOnlyFailure, expectedDenialStatus),
+  false,
+  "generic/local message text must not qualify as a network denial"
+);
+
+const genuineStatusBearingDenial = {
+  status: { toString: () => expectedDenialStatus },
+  message: "receipt contained exact Hedera denial status",
+};
+assert.equal(
+  hederaErrorStatus(genuineStatusBearingDenial),
+  expectedDenialStatus
+);
+assert.equal(
+  hasExactExpectedHederaStatus(genuineStatusBearingDenial, expectedDenialStatus),
+  true,
+  "exact status-bearing Hedera denial must remain accepted"
+);
+assert.equal(
+  hasExactExpectedHederaStatus(
+    { status: { toString: () => "INVALID_SIGNATURE" } },
+    expectedDenialStatus
+  ),
+  false,
+  "a different Hedera status must not satisfy the expected denial"
+);
 
 function decode(envelope) {
   assert.equal(envelope.mode, "RETURN_BYTES");
@@ -407,6 +468,9 @@ console.log(
         wrongReceiverRejectedBeforeKeyLoad: true,
         wrongTransactionTypeRejectedBeforeKeyLoad: true,
         nonApprovedTransferRejectedBeforeKeyLoad: true,
+        unexpectedSuccessCannotQualifyAsExpectedDenial: true,
+        genericMessageCannotQualifyAsExpectedDenial: true,
+        exactStatusBearingDenialStillAccepted: true,
         noTransactionSubmitted: true,
       },
     },
