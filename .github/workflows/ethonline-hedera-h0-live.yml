@@ -1,0 +1,79 @@
+name: ETHOnline Hedera H0 Live Proof
+
+on:
+  push:
+    branches:
+      - 'feature/ethonline-hedera'
+    paths:
+      - '.github/workflows/ethonline-hedera-h0-live.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  h0-live-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      HEDERA_NETWORK: testnet
+      # Public testnet identities/resources are pinned from docs/TX-LOG.md.
+      HEDERA_GUEST_A_ID: '0.0.8504405'
+      HEDERA_GUEST_A_KEY: ${{ secrets.HEDERA_GUEST_A_KEY }}
+      HEDERA_TREASURY_ID: '0.0.8504300'
+      HEDERA_TREASURY_KEY: ${{ secrets.HEDERA_TREASURY_KEY }}
+      HEDERA_GUEST_B_ID: '0.0.8504715'
+      BOOKED_RIGHTS_TOKEN_ID: '0.0.8505698'
+
+    steps:
+      - name: Checkout Hedera branch
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci --legacy-peer-deps
+
+      - name: Preflight live credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=0
+          if [ -z "${HEDERA_GUEST_A_KEY:-}" ]; then
+            echo "::error::Missing repository Actions secret HEDERA_GUEST_A_KEY"
+            missing=1
+          fi
+          if [ -z "${HEDERA_TREASURY_KEY:-}" ]; then
+            echo "::error::Missing repository Actions secret HEDERA_TREASURY_KEY"
+            missing=1
+          fi
+          if [ "$missing" -ne 0 ]; then
+            exit 2
+          fi
+          echo "Required signing secrets are present; values remain masked."
+
+      - name: Execute serial-scoped H0 lifecycle on Hedera testnet
+        shell: bash
+        run: |
+          set -euo pipefail
+          set -o pipefail
+          npm run hedera:nft-delegation-proof -- \
+            --execute \
+            --owner=guestA \
+            --spender=issuer \
+            --receiver=guestB \
+            --token=0.0.8505698 \
+            --serial=193 \
+            --wrong-serial=33 | tee h0-proof.log
+
+      - name: Upload H0 proof log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hedera-h0-live-proof
+          path: h0-proof.log
+          if-no-files-found: ignore
+          retention-days: 7
