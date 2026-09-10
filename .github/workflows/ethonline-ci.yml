@@ -66,6 +66,9 @@ jobs:
         # preparation, but does not claim a network-side policy primitive.
         run: npm run hedera:booking-policy-check
 
+      - name: Independent Hedera USDC allowedActions runtime attack
+        run: node --no-warnings --experimental-transform-types scripts/security/hedera-usdc-allowed-actions-runtime-bypass.mjs
+
       - name: Continuity baseline must remain documented
         run: |
           grep -q 'd0b5f875afb4f2b29af29bc5972cf1edc404d473' docs/ethonline-2026/CONTINUITY_BASELINE.md
