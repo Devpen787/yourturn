@@ -202,6 +202,57 @@ jobs:
             --out=h1-transfer-result.json
           rm -f h1-allowance-may-be-live
 
+      - name: Bind validated unsigned bytes to live signer results
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const assert = require('node:assert/strict');
+          const crypto = require('node:crypto');
+          const fs = require('node:fs');
+          const read = (name) => JSON.parse(fs.readFileSync(name, 'utf8'));
+          const pairs = [
+            ['approve', 'h1-approve-envelope.json', 'h1-approve-result.json'],
+            ['revoke', 'h1-revoke-envelope.json', 'h1-revoke-result.json'],
+            ['revokedTransferDenial', 'h1-revoked-transfer-envelope.json', 'h1-revoked-transfer-result.json'],
+            ['reapprove', 'h1-reapprove-envelope.json', 'h1-reapprove-result.json'],
+            ['permittedTransfer', 'h1-transfer-envelope.json', 'h1-transfer-result.json'],
+          ];
+          const bindings = pairs.map(([label, envelopeFile, resultFile]) => {
+            const envelope = read(envelopeFile);
+            const result = read(resultFile);
+            const unsignedBytes = Buffer.from(envelope.envelope.bytesBase64, 'base64');
+            const computedSha256 = crypto.createHash('sha256').update(unsignedBytes).digest('hex');
+            assert.equal(computedSha256, envelope.bytesSha256, `${label}: preparer byte hash mismatch`);
+            assert.equal(result.bytesSha256, computedSha256, `${label}: signer result byte hash mismatch`);
+            assert.equal(result.transactionId, envelope.envelope.transactionId, `${label}: transaction id drift`);
+            assert.equal(result.semanticByteBindingVerifiedBeforeSigning, true, `${label}: semantic validation missing`);
+            assert.equal(result.payerAccountId, envelope.envelope.payerAccountId, `${label}: payer drift`);
+            return {
+              label,
+              action: envelope.action,
+              transactionId: result.transactionId,
+              payerAccountId: result.payerAccountId,
+              validatedUnsignedBytesSha256: computedSha256,
+              semanticByteBindingVerifiedBeforeSigning: true,
+              signerResultStatus: result.status,
+              receiptStatus: result.receiptStatus ?? null,
+              expectedStatus: result.expectedStatus ?? null,
+              hashscan: result.hashscan,
+              mirror: result.mirror,
+            };
+          });
+          const evidence = {
+            ok: true,
+            evidenceLevel: 'LIVE/TESTNET',
+            status: 'validated_unsigned_bytes_bound_to_live_signer_results',
+            network: 'testnet',
+            bindings,
+          };
+          fs.writeFileSync('h1-byte-binding-evidence.json', JSON.stringify(evidence, null, 2) + '\n');
+          console.log(JSON.stringify(evidence, null, 2));
+          NODE
+
       - name: Verify final ownership through Mirror Node
         shell: bash
         run: |
@@ -253,6 +304,7 @@ jobs:
               hakRuntimeSubmittedTransaction: false,
               signingOccurredInSeparateSignerScopedSteps: true,
             },
+            byteBinding: read('h1-byte-binding-evidence.json'),
             approve: read('h1-approve-result.json'),
             revoke: read('h1-revoke-result.json'),
             revokedTransferDenial: read('h1-revoked-transfer-result.json'),
