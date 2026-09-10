@@ -34,7 +34,7 @@ export function HomeHero() {
                 heroFocus
               )}
             >
-              Try the booking journey
+              Open my bookings
             </Link>
             <Link
               href="/slots"
