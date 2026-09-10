@@ -166,6 +166,23 @@ const TOOL_ACTION: Record<string, BookingRightDelegationAction> = {
   [YOURTURN_DELEGATED_RECOVERY_SETTLE_USDC_TOOL]: "RECOVER",
 };
 
+const BOOKING_RIGHT_DELEGATION_ACTIONS = new Set<BookingRightDelegationAction>([
+  "DELEGATE",
+  "REVOKE",
+  "RECOVER",
+]);
+
+function validAllowedActions(value: unknown): value is BookingRightDelegationAction[] {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (action) =>
+        typeof action === "string" &&
+        BOOKING_RIGHT_DELEGATION_ACTIONS.has(action as BookingRightDelegationAction)
+    )
+  );
+}
+
 function account(value: unknown): string | null {
   if (typeof value !== "string") return null;
   try {
@@ -339,6 +356,7 @@ export class BookingRightDelegationPolicy extends AbstractPolicy {
       !positiveSerial(this.delegation.serial) ||
       !Number.isFinite(this.delegation.expiresAtMs) ||
       !validIdentifier(this.delegation.providerPolicyId) ||
+      !validAllowedActions(this.delegation.allowedActions) ||
       !canonicalAsset(this.delegation.minimumRecovery.asset) ||
       atomicUnits(this.delegation.minimumRecovery.atomicUnits) === null
     ) {
