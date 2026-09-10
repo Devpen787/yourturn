@@ -15,7 +15,7 @@ That SHA reached `GOLDEN-READY` under the earlier gate and received Devinson's e
 
 Active revised executable candidate: `24bbf0d7516499069f5102ae4bf724b0cb376b94`.
 
-Current state: **review pending exact-head verification + independent rendered visual re-review**.
+Current state: **review pending independent inspection of the new exact-head PNG evidence**.
 
 Golden count: **0**.
 
@@ -48,27 +48,29 @@ Bounded fixes only:
 - `components/home/ExperiencePillars.tsx`: replace `live pass` / `list your pass for resale` language with booking-first copy.
 - `scripts/product-workbench-visual-check.mjs`: add explicit desktop/mobile `04-booking-detail` screenshots, enforce absence of the legacy landing pass phrases, and verify the compact mobile landing header does not expose Provider dashboard/Register.
 
-The active screenshot run should now produce **14 PNGs**: seven meaningful checkpoints × two viewports.
+The exact-head screenshot artifact now contains **14 PNGs**: seven meaningful checkpoints × two viewports.
 
-## Verification status
+## Verification
 For prior candidate `e3905833...`:
 - ETHOnline Continuity Gate `34437850556`: SUCCESS.
 - Product Workbench Visual Check `34437847330`: SUCCESS.
 - artifact `10136877079`: 12 PNGs, directly inspected by Product Reviewer #34.
 
 For active candidate `24bbf0d...`:
-- exact-head ETHOnline Continuity Gate `34472117038`: started and must complete successfully;
-- exact-head Product Workbench Visual Check `34472112881`: started and must complete successfully;
-- new screenshot evidence must be inspected directly by Product Reviewer #34 before `GOLDEN-READY`.
+- ETHOnline Continuity Gate `34472117038`: **SUCCESS** — install, production build, Hedera policy/proof check and continuity baseline passed.
+- Product Workbench Visual Check `34472112881`: **SUCCESS** — production build/start and rendered Chromium journey passed at desktop `1440×1000` and mobile `390×844`.
+- artifact `product-workbench-rendered-evidence` / `10150035697`: **14 PNGs**, bound to exact candidate `24bbf0d...`, including YT-03 Booking detail at both viewports.
 
 ## Exact next action
 Do not widen scope.
 
-1. Wait only for the already-running exact-head gates for `24bbf0d...` to resolve.
-2. If either gate fails, fix only the concrete failure and regenerate exact-head evidence.
-3. If both pass, Product Reviewer #34 must download and visually inspect the new 14-PNG artifact and classify the exact candidate `REVISE`, `REVIEWABLE`, or `GOLDEN-READY`.
-4. If a revised executable SHA becomes `GOLDEN-READY`, Devinson must explicitly approve that exact SHA before freeze. Approval of `e3905833...` does not silently transfer to changed product code.
-5. Only after that freeze may the workbench advance to YT-05→YT-08.
+Product Reviewer #34 must now download and visually inspect artifact `10150035697` and classify exact candidate `24bbf0d7516499069f5102ae4bf724b0cb376b94` as `REVISE`, `REVIEWABLE`, or `GOLDEN-READY`.
+
+If the reviewer finds another material issue, fix only that concrete finding and regenerate exact-head evidence.
+
+If this revised executable SHA becomes `GOLDEN-READY`, Devinson must explicitly approve this exact SHA before freeze. The earlier approval of `e3905833...` does not silently transfer to changed product code.
+
+Only after Golden freeze may the workbench advance to YT-05→YT-08.
 
 ## Integration contract
 Sponsor branches own implementation truth:
