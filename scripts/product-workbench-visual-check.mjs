@@ -122,6 +122,27 @@ async function inspectRejectedState(context, viewport, prefix) {
   await page.close();
 }
 
+async function inspectReplacementRejectedState(context, viewport, prefix) {
+  const page = await context.newPage();
+  await page.goto(`${baseUrl}/product-preview?view=replacement-ledger-rejected`, {
+    waitUntil: "networkidle",
+  });
+  await assertVisible(page, "Your 40 USDC recovery stays active.");
+  await assertVisible(page, "The 30 USDC replacement was rejected on your Ledger.");
+  await assertVisible(page, "40 USDC still active");
+  await assertVisible(page, "Tomorrow · 17:00");
+  await assertVisible(page, "Return to active recovery");
+  await assertAbsent(page, "no recovery authority was created");
+  await assertNoRawWorldIdentifier(page);
+  await screenshot(page, prefix, "17-replacement-ledger-rejected");
+
+  await page.getByRole("button", { name: "Return to active recovery" }).click();
+  await assertVisible(page, "Recovery active");
+  await assertVisible(page, "40 USDC or more");
+  await assertVisible(page, "Tomorrow · 17:00");
+  await page.close();
+}
+
 async function runJourney(browser, viewport, prefix) {
   const context = await browser.newContext({ viewport });
   const page = await context.newPage();
@@ -243,25 +264,42 @@ async function runJourney(browser, viewport, prefix) {
   await assertAbsent(page, "No recovery authority exists yet");
   await screenshot(page, prefix, "16-reauthorize-ledger");
 
-  await page.getByRole("button", { name: "Keep current 40 USDC rule" }).click();
+  await inspectReplacementRejectedState(context, viewport, prefix);
+
+  await page.getByRole("button", { name: "Connect Ledger" }).click();
+  await assertVisible(page, "Waiting for your Ledger.");
+  await assertVisible(page, "rejecting or cancelling leaves your current 40 USDC recovery authority unchanged");
+  await page.getByRole("button", { name: "Cancel approval" }).click();
+  await assertVisible(page, "Your 40 USDC recovery stays active.");
+  await assertVisible(page, "The 30 USDC replacement was cancelled.");
+  await assertVisible(page, "40 USDC still active");
+  await assertVisible(page, "Return to active recovery");
+  await assertAbsent(page, "YourTurn has no recovery authority");
+  await screenshot(page, prefix, "18-replacement-ledger-cancelled");
+
+  await page.getByRole("button", { name: "Return to active recovery" }).click();
+  await assertVisible(page, "Recovery active");
+  await assertVisible(page, "40 USDC or more");
+  await assertVisible(page, "Tomorrow · 17:00");
+  await page.getByRole("button", { name: "See latest offer" }).click();
   await assertVisible(page, "32 USDC was not accepted.");
   await page.getByRole("button", { name: "Keep looking" }).click();
   await assertVisible(page, "45 USDC is within your limits.");
   await assertVisible(page, "No new prompt");
   await assertVisible(page, "No extra permission needed.");
-  await screenshot(page, prefix, "17-offer-allowed");
+  await screenshot(page, prefix, "19-offer-allowed");
 
   await page.getByRole("button", { name: "Refresh recovery status" }).click();
   await assertVisible(page, "You recovered 45 USDC.");
   await assertVisible(page, "Transferred");
   await assertVisible(page, "no longer available as one of your usable bookings");
-  await screenshot(page, prefix, "18-recovery-success");
+  await screenshot(page, prefix, "20-recovery-success");
 
   const proof = page.getByText("View technical proof", { exact: true });
   await proof.click();
   await assertVisible(page, "FIXTURE");
   await assertVisible(page, "Hedera atomic-recovery seam");
-  await screenshot(page, prefix, "19-recovery-proof");
+  await screenshot(page, prefix, "21-recovery-proof");
 
   await page.getByRole("button", { name: "Back to my bookings" }).click();
   await assertVisible(page, "Recently recovered");
@@ -270,7 +308,7 @@ async function runJourney(browser, viewport, prefix) {
   if ((await usableFridayYoga.count()) > 0) {
     throw new Error("Friday Yoga still exposes a usable booking action after recovery success");
   }
-  await screenshot(page, prefix, "20-bookings-after-recovery");
+  await screenshot(page, prefix, "22-bookings-after-recovery");
 
   await context.close();
 }
@@ -286,5 +324,5 @@ try {
 }
 
 console.log(
-  "Product Workbench visual check passed YT-01 through YT-08 at desktop and mobile widths."
+  "Product Workbench visual check passed YT-01 through YT-08 with replacement reject/cancel coverage at desktop and mobile widths."
 );
