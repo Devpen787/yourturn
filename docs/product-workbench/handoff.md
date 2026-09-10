@@ -7,24 +7,24 @@
 YourTurn is a booking product. ETHOnline adds **Delegated Recovery** as a new capability inside the existing booking journey.
 
 ## Current journey set
-`YT-01 → YT-04` is implemented as the canonical candidate at `/product-preview`.
+`YT-01 → YT-04` remains the only active workbench set at `/product-preview`.
 
-Exact reviewed candidate: `e3905833ec456ecc08e7733e0ec746686fd6b7e4`.
+Previous reviewed executable candidate: `e3905833ec456ecc08e7733e0ec746686fd6b7e4`.
 
-Independent classification: **GOLDEN-READY**.
+That SHA reached `GOLDEN-READY` under the earlier gate and received Devinson's explicit approval, but direct PNG inspection under the tightened visual gate subsequently classified it **REVISE**.
 
-This is **not Golden**. The remaining gate is Devinson's explicit approval of this exact candidate.
+Active revised executable candidate: `24bbf0d7516499069f5102ae4bf724b0cb376b94`.
+
+Current state: **review pending exact-head verification + independent rendered visual re-review**.
 
 Golden count: **0**.
 
-## What the first test proved
-The workbench loop produced a real continuous candidate rather than isolated sponsor screens:
+## Accepted product contract
+The continuous customer journey remains:
 
 `Landing → enter → My Bookings → Friday Yoga → Change plans → Let YourTurn handle it → booking-scoped recovery rules → secure-approval handoff`
 
-The candidate reuses/adapts prior YourTurn visual and product language and keeps sponsor/backend behavior outside this UX-only branch.
-
-The customer authority contract is explicit:
+The authority contract remains unchanged:
 - Friday Yoga only;
 - minimum 40 USDC;
 - expires tomorrow 17:00;
@@ -32,49 +32,43 @@ The customer authority contract is explicit:
 - may not cancel, lower the minimum, or touch another booking;
 - anything outside scope requires the customer again.
 
-## Latest reviewer state
-Product Reviewer #34 classified exact candidate `e3905833ec456ecc08e7733e0ec746686fd6b7e4` **GOLDEN-READY** after the remaining entry-semantics defect was fixed and both exact-head gates completed successfully.
+No Ledger/World/Hedera LIVE state is fabricated in this UX-only lane.
 
-No material YT-01→YT-04 UX revision is currently requested.
+## Latest Product Reviewer #34 finding
+The independent reviewer inspected the actual 12 PNGs from artifact `10136877079` and found three blocking visual/evidence gaps on `e3905833...`:
+1. YT-03 Booking detail was traversed but not screenshot-evidenced at either viewport;
+2. the 390 px unauthenticated landing header wrapped into mixed customer/provider chrome and visually overpowered customer entry;
+3. lower landing copy still used legacy `pass` vocabulary instead of the canonical `booking` language.
 
-The accepted product contract remains:
-- landing and booking flow are customer-first rather than sponsor-first;
-- all unauthenticated `My bookings` affordances converge on exact `/product-preview` before the prepared Maya entry state;
-- `My bookings` is the ownership center;
-- `Change plans → Let YourTurn handle it` is a natural product path;
-- authority is Friday-Yoga-only, minimum 40 USDC, expires tomorrow 17:00, cancellation forbidden, and grants no authority over other bookings/account state;
-- scope acknowledgement is required before continuing;
-- YT-04 ends truthfully at disabled `Not authorized yet` / secure-device approval;
-- no Ledger/World/Hedera LIVE state is fabricated;
-- no second competing candidate route exists.
+Non-blocking polish noted: desktop recovery-limit column balance and mobile recovery-setup length. Those were not expanded into this revision because they do not block the current gate.
 
-## Verification
-Exact candidate: `e3905833ec456ecc08e7733e0ec746686fd6b7e4`.
+## Changes in active candidate `24bbf0d...`
+Bounded fixes only:
+- `components/SiteHeader.tsx`: at compact unauthenticated landing width, keep `My bookings` and `Sign in` visible while collapsing `Browse`, `Provider dashboard`, and `Register`; preserve the fuller desktop navigation and the dedicated product-preview header.
+- `components/home/ExperiencePillars.tsx`: replace `live pass` / `list your pass for resale` language with booking-first copy.
+- `scripts/product-workbench-visual-check.mjs`: add explicit desktop/mobile `04-booking-detail` screenshots, enforce absence of the legacy landing pass phrases, and verify the compact mobile landing header does not expose Provider dashboard/Register.
 
-ETHOnline Continuity Gate run `34437850556`: **SUCCESS** on that exact SHA. Install, production build, Hedera policy/proof check and continuity-baseline checks passed.
+The active screenshot run should now produce **14 PNGs**: seven meaningful checkpoints × two viewports.
 
-Product Workbench Visual Check run `34437847330`: **SUCCESS** on that exact SHA. It launched the production build and exercised the complete YT-01→YT-04 interaction at:
-- desktop: `1440×1000`;
-- mobile: `390×844`.
+## Verification status
+For prior candidate `e3905833...`:
+- ETHOnline Continuity Gate `34437850556`: SUCCESS.
+- Product Workbench Visual Check `34437847330`: SUCCESS.
+- artifact `10136877079`: 12 PNGs, directly inspected by Product Reviewer #34.
 
-Rendered evidence artifact: `product-workbench-rendered-evidence` (`10136877079`), 12 PNG checkpoints bound to the exact candidate. The workflow log concluded: `Product Workbench visual check passed at desktop and mobile widths.`
-
-The rendered regression assertion now requires exact `/product-preview` equality for unauthenticated landing booking-entry affordances, preventing a return of the split entry-state defect.
-
-Automatic Vercel preview is not counted as product proof; GitHub-hosted rendered interaction evidence is the accepted verification source for this candidate.
+For active candidate `24bbf0d...`:
+- exact-head ETHOnline Continuity Gate `34472117038`: started and must complete successfully;
+- exact-head Product Workbench Visual Check `34472112881`: started and must complete successfully;
+- new screenshot evidence must be inspected directly by Product Reviewer #34 before `GOLDEN-READY`.
 
 ## Exact next action
-**Human freeze decision only.**
+Do not widen scope.
 
-Devinson must explicitly approve exact candidate `e3905833ec456ecc08e7733e0ec746686fd6b7e4` before YT-01→YT-04 becomes `Golden`.
-
-While that approval is pending:
-- do not change the candidate without a new material reviewer finding or verification failure;
-- do not create a second canonical prototype route;
-- do not start YT-05→YT-08 in this workbench;
-- do not integrate this UX as Golden product truth.
-
-After explicit approval is recorded, freeze the exact candidate as Golden and advance the workbench to YT-05→YT-08.
+1. Wait only for the already-running exact-head gates for `24bbf0d...` to resolve.
+2. If either gate fails, fix only the concrete failure and regenerate exact-head evidence.
+3. If both pass, Product Reviewer #34 must download and visually inspect the new 14-PNG artifact and classify the exact candidate `REVISE`, `REVIEWABLE`, or `GOLDEN-READY`.
+4. If a revised executable SHA becomes `GOLDEN-READY`, Devinson must explicitly approve that exact SHA before freeze. Approval of `e3905833...` does not silently transfer to changed product code.
+5. Only after that freeze may the workbench advance to YT-05→YT-08.
 
 ## Integration contract
 Sponsor branches own implementation truth:
@@ -93,6 +87,3 @@ The UX branch must not fabricate LIVE sponsor evidence. Until wired, sponsor-dep
 
 ## Anti-drift
 If sponsor implementation requires a UX change, record the precise mismatch in #31 rather than changing the user journey independently on a sponsor branch.
-
-## Next after human-approved Golden YT-01→YT-04
-Build YT-05→YT-08 as the hero recovery sequence, then YT-09→YT-10 to close buyer ownership and proof/history.
