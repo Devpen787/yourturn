@@ -10,6 +10,10 @@ import {
   Transaction,
   TransferTransaction,
 } from "@hiero-ledger/sdk";
+import {
+  hasExactExpectedHederaStatus,
+  hederaErrorStatus,
+} from "./hedera-return-bytes-status-guard.mjs";
 
 function parseArgs(argv) {
   const values = {};
@@ -250,10 +254,6 @@ function mirrorTxUrl(txId) {
   return `https://testnet.mirrornode.hedera.com/api/v1/transactions/${normalized}`;
 }
 
-function errorStatus(error) {
-  return error?.status?.toString?.() ?? null;
-}
-
 function errorMessage(error) {
   return error instanceof Error ? error.message : String(error);
 }
@@ -339,9 +339,9 @@ try {
     mirror: mirrorTxUrl(response.transactionId.toString()),
   };
 } catch (error) {
-  const status = errorStatus(error);
+  const status = hederaErrorStatus(error);
   const message = errorMessage(error);
-  if (expectedStatus && (status === expectedStatus || message.includes(expectedStatus))) {
+  if (hasExactExpectedHederaStatus(error, expectedStatus)) {
     result = {
       ok: true,
       evidenceLevel: "LIVE/TESTNET",
