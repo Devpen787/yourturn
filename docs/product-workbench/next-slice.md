@@ -1,14 +1,16 @@
 # Next Connected Product Slice
 
-Status: **REVIEWABLE architecture; exactly one XC-01 executable candidate is authorized to enter the candidate/review loop.**
+Status: **XC-01 executable is `REVISE`; repair one interaction continuity defect before re-review.**
 
-Product Reviewer #34 independently cleared the architecture/product contract at exact docs head `686aeb767f3c1f6ff7db14fdf7a773039cf581a9`. This is permission to build and review one candidate only. It is not executable approval, `GOLDEN-READY`, Golden freeze, sponsor integration, merge or deployment authority.
+Product Reviewer #34 independently cleared the architecture/product contract at exact docs head `686aeb767f3c1f6ff7db14fdf7a773039cf581a9`, after which exact executable `eb3bcdb84ff95352adf1d0c387996f9a4692c52f` was explicitly routed through the normal review loop. Its exact-head Continuity `34519307635` and Product Workbench Visual `34519301160` succeeded, and artifact `10169073722` contains 72 directly inspected PNGs. Reviewer classification is **`REVISE`**, not `GOLDEN-READY`.
+
+The architecture remains approved. The only blocking executable defect is that the real interactive Bob success path reaches owned-booking state while its URL/header context remains `xc-find`, leaving `SiteHeader` on `Find a spot` when the body has moved to `My bookings`, including `Use booking`. Repair that inconsistency only; do not widen scope.
 
 This reviewed slice follows human-approved Golden YT-01→YT-08, `DESIGN.md`, `GLOSSARY.md`, `CRAFT.md`, `integration-ledger.md`, issue #39, and `stakeholder-coverage-gate.md`.
 
 ## Frozen product truth
 
-Do not mutate either Golden executable while building this slice:
+Do not mutate either Golden executable while repairing this slice:
 
 - YT-01→YT-04: `24bbf0d7516499069f5102ae4bf724b0cb376b94`;
 - YT-05→YT-08: `d5309a96d532ee107011c2a5cefc3000b9e4932f`.
@@ -30,7 +32,7 @@ From `feat/product-issuer-holder-ux`, reuse/adapt the strongest mechanics from s
 
 Do **not** copy actor switchers, Person A/B language, `pass`, raw refs/account IDs, HBAR-first/HashScan-first presentation, token jargon, `issuer` as normal customer language, demo setup controls, or any per-recovery provider approval inbox.
 
-Historical exploratory XC-01 executable `eb3bcdb84ff95352adf1d0c387996f9a4692c52f` and artifact `10169073722` are prior-work evidence only. Mine them against this reviewed contract; green historical CI does not make them the active candidate.
+Exact XC-01 executable `eb3bcdb84ff95352adf1d0c387996f9a4692c52f` is now reviewed evidence, not merely historical prior work. Keep its passing architecture/state coverage and change only the reviewer-blocking interactive success/header transition plus the assertion that failed to catch it. Historical green CI alone still grants no approval.
 
 ## Reviewed smallest connected slice
 
@@ -131,13 +133,14 @@ This candidate is product behavior/presentation, not automatic implementation tr
 
 ## Exact next action
 
-**Build one canonical XC-01 candidate now.**
+**Repair exact executable `eb3bcdb84ff95352adf1d0c387996f9a4692c52f`; do not start another journey set.**
 
-1. Compare historical `eb3bcdb...` against this reviewed contract and current `DESIGN.md`, `GLOSSARY.md`, `CRAFT.md`, `integration-ledger.md`, stakeholder docs and Golden records.
-2. Reuse/adapt only what passes; revise concrete gaps rather than starting a parallel route.
-3. Preserve both Golden executables and all sponsor/backend semantics.
-4. Produce exact-head production build + Chromium desktop/mobile evidence for the material states above.
-5. Route the exact candidate plus rendered PNG artifact to Product Reviewer #34 for five-lens review.
-6. `GOLDEN-READY` may be returned only after that executable review. Golden still requires explicit Devinson approval of that exact candidate.
+1. On the actual interactive Bob path, when `Refresh booking` establishes Bob as authoritative holder, transition the route/shell context from acquisition (`Find a spot`) to ownership (`My bookings`).
+2. Keep `My bookings` as the shell context through the subsequent `Use booking` state.
+3. Strengthen the Chromium interaction assertion so it explicitly proves `My bookings` after the real success transition; do not rely on the direct-loaded `xc-bob-success` fixture or the stale `xc-find` URL.
+4. Preserve `/product-preview`, both frozen Golden executables, all existing XC-01 state coverage, the FIXTURE/non-LIVE evidence boundary, pre-defined provider policy, and all Ledger/World/Hedera semantics.
+5. Rerun exact-head production build + desktop/mobile rendered evidence and responsive smoke.
+6. Route the changed exact executable SHA plus rendered artifact to Product Reviewer #34 for direct five-lens re-review.
+7. `GOLDEN-READY` may be returned only after that executable review. Golden still requires explicit Devinson approval of that exact candidate.
 
 Do not widen into holder-only YT-09/YT-10, another journey set, sponsor dashboards, merge, deployment, funding or secret work.
