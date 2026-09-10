@@ -7,6 +7,7 @@ import { getRedis } from "../store/redis.ts";
 import {
   YOURTURN_DELEGATED_RECOVERY_APPROVE_NFT_TOOL,
   YOURTURN_DELEGATED_RECOVERY_REVOKE_NFT_TOOL,
+  YOURTURN_DELEGATED_RECOVERY_SETTLE_USDC_TOOL,
   YOURTURN_DELEGATED_RECOVERY_TRANSFER_NFT_TOOL,
 } from "./delegated-recovery-plugin.ts";
 
@@ -68,6 +69,10 @@ export type BookingRightPolicyReason =
   | "RECOVERY_ASSET_MISMATCH"
   | "BELOW_MINIMUM_RECOVERY"
   | "RECEIVER_MISMATCH"
+  | "SETTLEMENT_TOKEN_MISMATCH"
+  | "SETTLEMENT_AMOUNT_MISMATCH"
+  | "SETTLEMENT_RECIPIENT_MISMATCH"
+  | "SETTLEMENT_DECIMALS_MISMATCH"
   | "PROVIDER_POLICY_CHANGED"
   | "PROVIDER_POLICY_STATE_INVALID"
   | "PROVIDER_POLICY_DENIED"
@@ -143,6 +148,10 @@ type RawDelegatedRecoveryParams = {
   ownerAccountId?: unknown;
   spenderAccountId?: unknown;
   receiverAccountId?: unknown;
+  settlementTokenId?: unknown;
+  settlementAmountAtomicUnits?: unknown;
+  settlementRecipientAccountId?: unknown;
+  settlementDecimals?: unknown;
 };
 
 type RuntimeProviderPolicy = {
@@ -154,6 +163,7 @@ const TOOL_ACTION: Record<string, BookingRightDelegationAction> = {
   [YOURTURN_DELEGATED_RECOVERY_APPROVE_NFT_TOOL]: "DELEGATE",
   [YOURTURN_DELEGATED_RECOVERY_REVOKE_NFT_TOOL]: "REVOKE",
   [YOURTURN_DELEGATED_RECOVERY_TRANSFER_NFT_TOOL]: "RECOVER",
+  [YOURTURN_DELEGATED_RECOVERY_SETTLE_USDC_TOOL]: "RECOVER",
 };
 
 function account(value: unknown): string | null {
@@ -184,8 +194,8 @@ function validIdentifier(value: string): boolean {
   return value.length >= 1 && value.length <= 128 && /^[A-Za-z0-9._:-]+$/.test(value);
 }
 
-function atomicUnits(value: string): bigint | null {
-  if (!/^(0|[1-9][0-9]*)$/.test(value)) return null;
+function atomicUnits(value: unknown): bigint | null {
+  if (typeof value !== "string" || !/^(0|[1-9][0-9]*)$/.test(value)) return null;
   try {
     return BigInt(value);
   } catch {
@@ -221,6 +231,14 @@ function stableFingerprint(args: {
       ? canonicalAsset(args.invocation.recovery.asset)
       : null,
     recoveryAtomicUnits: args.invocation.recovery?.atomicUnits ?? null,
+    settlementTokenId: token(args.raw.settlementTokenId),
+    settlementAmountAtomicUnits:
+      atomicUnits(args.raw.settlementAmountAtomicUnits)?.toString() ?? null,
+    settlementRecipientAccountId: account(args.raw.settlementRecipientAccountId),
+    settlementDecimals:
+      typeof args.raw.settlementDecimals === "number"
+        ? args.raw.settlementDecimals
+        : null,
     nonce: args.invocation.nonce,
   });
 }
@@ -259,6 +277,7 @@ export class BookingRightDelegationPolicy extends AbstractPolicy {
     YOURTURN_DELEGATED_RECOVERY_APPROVE_NFT_TOOL,
     YOURTURN_DELEGATED_RECOVERY_REVOKE_NFT_TOOL,
     YOURTURN_DELEGATED_RECOVERY_TRANSFER_NFT_TOOL,
+    YOURTURN_DELEGATED_RECOVERY_SETTLE_USDC_TOOL,
   ];
 
   lastDecision: BookingRightPolicyDecision | null = null;
@@ -416,6 +435,28 @@ export class BookingRightDelegationPolicy extends AbstractPolicy {
       const rawReceiver = account(raw.receiverAccountId);
       if (!boundReceiver || boundReceiver !== rawReceiver) {
         this.stop("BLOCK", "RECEIVER_MISMATCH", "Transfer receiver must match the receiver bound into this evaluated invocation.");
+      }
+
+      if (method === YOURTURN_DELEGATED_RECOVERY_SETTLE_USDC_TOOL) {
+        if (this.invocation.recovery.asset.kind !== "HTS") {
+          this.stop("BLOCK", "SETTLEMENT_TOKEN_MISMATCH", "Atomic settlement requires the exact HTS token bound into the recovery quote.");
+        }
+        const recoveryToken = token(this.invocation.recovery.asset.tokenId);
+        const settlementToken = token(raw.settlementTokenId);
+        if (!recoveryToken || !settlementToken || recoveryToken !== settlementToken) {
+          this.stop("BLOCK", "SETTLEMENT_TOKEN_MISMATCH", "Settlement token does not match the HTS recovery token that passed policy.");
+        }
+        const settlementAmount = atomicUnits(raw.settlementAmountAtomicUnits);
+        if (settlementAmount === null || settlementAmount !== offered) {
+          this.stop("BLOCK", "SETTLEMENT_AMOUNT_MISMATCH", "Settlement atomic units do not match the recovery amount that passed policy.");
+        }
+        const settlementRecipient = account(raw.settlementRecipientAccountId);
+        if (!settlementRecipient || settlementRecipient !== delegatedHolder) {
+          this.stop("BLOCK", "SETTLEMENT_RECIPIENT_MISMATCH", "Settlement recipient must be the delegated booking-right holder.");
+        }
+        if (raw.settlementDecimals !== 6) {
+          this.stop("BLOCK", "SETTLEMENT_DECIMALS_MISMATCH", "USDC settlement must use the six-decimal HTS representation.");
+        }
       }
     }
 
