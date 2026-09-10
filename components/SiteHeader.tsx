@@ -155,14 +155,21 @@ export function SiteHeader({
               sessionUser && "border-l border-slate-200/90 pl-2 sm:ml-0.5 sm:pl-3"
             )}
           >
-            {navItems.map((item) => (
-              <NavLink
-                key={item.href}
-                href={item.href}
-                label={item.label}
-                active={item.match(pathname)}
-              />
-            ))}
+            {navItems.map((item) => {
+              const href =
+                pathname === "/" && item.href === "/my-bookings"
+                  ? "/product-preview?view=bookings"
+                  : item.href;
+
+              return (
+                <NavLink
+                  key={item.href}
+                  href={href}
+                  label={item.label}
+                  active={item.match(pathname)}
+                />
+              );
+            })}
           </div>
           {sessionUser ? (
             <button
