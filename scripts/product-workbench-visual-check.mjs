@@ -15,10 +15,14 @@ const bannedCustomerCopy = [
 ];
 
 async function assertVisible(page, text) {
-  const locator = page.getByText(text, { exact: false }).first();
-  if (!(await locator.isVisible())) {
-    throw new Error(`Expected visible text: ${text}`);
+  const matches = page.getByText(text, { exact: false });
+  const count = await matches.count();
+  for (let index = 0; index < count; index += 1) {
+    if (await matches.nth(index).isVisible()) {
+      return;
+    }
   }
+  throw new Error(`Expected visible text: ${text}`);
 }
 
 async function assertNoPrototypeCopy(page) {
