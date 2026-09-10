@@ -2,13 +2,22 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
+import { createRequire } from "node:module";
 
-import {
+// The current published DMK 1.9.0 ESM entrypoint contains an extensionless
+// directory import (`./src`) that Node 22 rejects with ERR_UNSUPPORTED_DIR_IMPORT.
+// Its package exports also provide a CommonJS entrypoint, so use that supported
+// export condition for the terminal Node-HID ceremony instead of weakening CI.
+const require = createRequire(import.meta.url);
+const {
   DeviceActionStatus,
   DeviceManagementKitBuilder,
-} from "@ledgerhq/device-management-kit";
-import { SignerEthBuilder } from "@ledgerhq/device-signer-kit-ethereum";
-import { nodeHidTransportFactory } from "@ledgerhq/device-transport-kit-node-hid";
+} = require("@ledgerhq/device-management-kit");
+const { SignerEthBuilder } = require("@ledgerhq/device-signer-kit-ethereum");
+const {
+  nodeHidTransportFactory,
+} = require("@ledgerhq/device-transport-kit-node-hid");
+
 import {
   Signature,
   TypedDataEncoder,
