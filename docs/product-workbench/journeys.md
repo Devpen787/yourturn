@@ -27,7 +27,7 @@ That candidate reached `GOLDEN-READY` under the earlier gate and received Devins
 
 Active revised candidate: `24bbf0d7516499069f5102ae4bf724b0cb376b94`.
 
-Current classification: **review pending exact-head verification and independent rendered re-review**.
+Current classification: **review pending independent rendered re-review**.
 
 The candidate runs as one continuous customer story:
 
@@ -56,14 +56,22 @@ Product Reviewer #34 inspected the actual desktop/mobile screenshot artifact for
 Active candidate `24bbf0d...` addresses those findings only:
 - compact unauthenticated mobile landing header keeps `My bookings` and `Sign in` primary while collapsing `Browse`, `Provider dashboard`, and `Register` at 390 px;
 - landing explanatory copy now uses `booking` consistently instead of `live pass` / `list your pass for resale`;
-- rendered Playwright coverage now captures `04-booking-detail` at both desktop and mobile widths, producing seven checkpoints per viewport when green;
+- rendered Playwright coverage now captures `04-booking-detail` at both desktop and mobile widths;
 - the visual verifier also rejects the legacy landing pass phrases and checks the compact mobile header behavior.
 
 No Hedera/World/Ledger backend semantics changed and no second candidate route was created.
 
+## Exact-head proof
+
+For active candidate `24bbf0d7516499069f5102ae4bf724b0cb376b94`:
+- ETHOnline Continuity Gate `34472117038`: **SUCCESS**.
+- Product Workbench Visual Check `34472112881`: **SUCCESS**.
+- Rendered interaction verified at desktop `1440×1000` and mobile `390×844`.
+- Evidence artifact `product-workbench-rendered-evidence` / `10150035697`: **14 PNG checkpoints**, seven per viewport, including YT-03 Booking detail.
+
 ## Current gate
 
-Exact-head production/continuity and rendered Chromium verification must pass for `24bbf0d...`, then Product Reviewer #34 must inspect the new PNG evidence and classify the exact candidate.
+Product Reviewer #34 must inspect artifact `10150035697` directly and classify exact candidate `24bbf0d...`.
 
 The earlier human approval of `e3905833...` does not silently transfer to this revised executable SHA. If `24bbf0d...` (or a later revision) reaches `GOLDEN-READY`, Devinson must explicitly approve that exact candidate before YT-01→YT-04 becomes `Golden`.
 
