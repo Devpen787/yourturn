@@ -13,6 +13,8 @@
     "hedera:agent-check": "NODE_OPTIONS=--no-warnings node scripts/hedera-agent-check.mjs",
     "world:contract-check": "NODE_OPTIONS=--no-warnings node scripts/world-agent-contract-check.mjs",
     "world:recovery-write-check": "NODE_OPTIONS=--no-warnings node scripts/world-recovery-write-gate-check.mjs",
+    "world:recovery-live-proof": "NODE_OPTIONS=--no-warnings node scripts/world-recovery-live-proof.mjs",
+    "world:recovery-live-proof:self-test": "NODE_OPTIONS=--no-warnings node scripts/world-recovery-live-proof.mjs --self-test",
     "world:agentbook-live-check": "NODE_OPTIONS=--no-warnings node scripts/world-agentbook-live-check.mjs",
     "hedera:usdc-allowance-proof": "node scripts/hedera-usdc-allowance-proof.mjs",
     "hedera:x402-settlement-proof": "node scripts/x402-hedera-settlement-proof.mjs",
