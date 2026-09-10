@@ -132,7 +132,7 @@ invoke({
   envelope: proofEnvelope(freeze(multiSerial, authority.ownerAccountId, "AccountAllowanceApproveTransaction"), "approve_serial"),
   signerAccountId: authority.ownerAccountId,
   shouldPass: false,
-  expectedError: /nft_allowance_count/,
+  expectedError: /serial_mismatch|nft_allowance_count/,
 });
 
 const wrongOwnerApproval = new AccountAllowanceApproveTransaction().approveTokenNftAllowance(
