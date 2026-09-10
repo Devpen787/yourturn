@@ -13,6 +13,8 @@ import {
   Signature,
   TypedDataEncoder,
   getAddress,
+  keccak256,
+  toUtf8Bytes,
   verifyTypedData,
 } from "ethers";
 
@@ -23,6 +25,9 @@ import {
 } from "./ceremony.mjs";
 
 const DEFAULT_DISCOVERY_TIMEOUT_MS = 30_000;
+const RECOVERY_MANDATE_DOMAIN_SALT = keccak256(
+  toUtf8Bytes("yourturn:ethonline-2026:recovery-mandate:v1")
+);
 
 function usage() {
   console.log(`YourTurn Ledger Recovery Mandate device proof
@@ -88,19 +93,20 @@ function typedDataForEthers(typedData) {
 async function waitForFirstDevice(dmk, timeoutMs) {
   return await new Promise((resolve, reject) => {
     let settled = false;
+    let subscription;
     const timer = setTimeout(() => {
       if (settled) return;
       settled = true;
-      subscription.unsubscribe();
+      subscription?.unsubscribe();
       reject(new Error(`no Ledger device discovered within ${timeoutMs}ms`));
     }, timeoutMs);
 
-    const subscription = dmk.listenToAvailableDevices({}).subscribe({
+    subscription = dmk.listenToAvailableDevices({}).subscribe({
       next(devices) {
         if (settled || !Array.isArray(devices) || devices.length === 0) return;
         settled = true;
         clearTimeout(timer);
-        subscription.unsubscribe();
+        subscription?.unsubscribe();
         resolve(devices[0]);
       },
       error(error) {
@@ -119,9 +125,8 @@ async function executeAction(action, { expectation, onEvent }) {
   let terminalError = null;
   let cancelRequested = false;
 
-  const result = await new Promise((resolve, reject) => {
-    let subscription;
-    subscription = action.observable.subscribe({
+  await new Promise((resolve, reject) => {
+    action.observable.subscribe({
       next(state) {
         const event = sanitizeDeviceState(state);
         events.push(event);
@@ -142,7 +147,7 @@ async function executeAction(action, { expectation, onEvent }) {
         }
       },
       complete() {
-        resolve(true);
+        resolve();
       },
       error(error) {
         reject(error);
@@ -150,7 +155,6 @@ async function executeAction(action, { expectation, onEvent }) {
     });
   });
 
-  void result;
   return { events, output, terminalError, cancelRequested };
 }
 
@@ -194,6 +198,12 @@ async function main() {
 
   const preparedRaw = JSON.parse(await fs.readFile(args.prepared, "utf8"));
   const prepared = validatePreparedEnvelope(preparedRaw);
+  if (
+    String(prepared.typedData.domain.salt).toLowerCase() !==
+    RECOVERY_MANDATE_DOMAIN_SALT.toLowerCase()
+  ) {
+    throw new Error("prepared typed-data salt does not match the canonical YourTurn Recovery Mandate domain");
+  }
   const ethersTyped = typedDataForEthers(prepared.typedData);
   const mandateDigest = TypedDataEncoder.hash(
     ethersTyped.domain,
