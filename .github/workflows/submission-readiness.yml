@@ -1,0 +1,54 @@
+name: ETHOnline Submission Readiness
+
+on:
+  push:
+    branches:
+      - 'ops/ethonline-submission-readiness'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  readiness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      HEDERA_NETWORK: testnet
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Production build
+        run: npm run build
+
+      - name: Structural submission readiness
+        run: npm run submission:preflight
+
+      - name: Strict final gate status
+        shell: bash
+        run: |
+          set +e
+          npm run submission:gate
+          code=$?
+          set -e
+          if [ "$code" -eq 0 ]; then
+            echo "Strict final gate is READY."
+            exit 0
+          fi
+          if [ "$code" -eq 2 ]; then
+            echo "Strict final gate is intentionally BLOCKED by declared remaining evidence/integration gates."
+            exit 0
+          fi
+          echo "Strict final gate failed structurally with exit code $code."
+          exit "$code"
