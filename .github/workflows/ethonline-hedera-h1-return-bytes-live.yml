@@ -1,0 +1,328 @@
+name: ETHOnline Hedera H1 RETURN_BYTES Live Proof
+
+on:
+  push:
+    branches:
+      - 'feature/ethonline-hedera'
+    paths:
+      - '.github/workflows/ethonline-hedera-h1-return-bytes-live.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  h1-return-bytes-live-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      HEDERA_NETWORK: testnet
+      HEDERA_GUEST_A_ID: '0.0.8504405'
+      HEDERA_TREASURY_ID: '0.0.8504300'
+      HEDERA_GUEST_B_ID: '0.0.8504715'
+      BOOKED_RIGHTS_TOKEN_ID: '0.0.8505698'
+
+    steps:
+      - name: Checkout Hedera branch
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci --legacy-peer-deps
+
+      - name: Prove HAK preparer has no signing-secret surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "${HEDERA_GUEST_A_KEY:-}"
+          test -z "${HEDERA_TREASURY_KEY:-}"
+          ! grep -Eq 'PrivateKey|setOperator\(|HEDERA_.*_KEY|process\.env' scripts/hedera-delegated-recovery-return-bytes-live.mjs
+          ! grep -Eq 'PrivateKey|setOperator\(|HEDERA_.*_KEY|process\.env' lib/hedera-agent-kit/delegated-recovery-plugin.ts
+          echo "HAK preparation step has no injected owner/spender key and no key-loading/operator path."
+
+      - name: Preflight external signer secrets
+        shell: bash
+        env:
+          OWNER_SIGNER_KEY: ${{ secrets.HEDERA_GUEST_A_KEY }}
+          SPENDER_SIGNER_KEY: ${{ secrets.HEDERA_TREASURY_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "${OWNER_SIGNER_KEY:-}" || { echo "::error::Owner signer secret missing"; exit 2; }
+          test -n "${SPENDER_SIGNER_KEY:-}" || { echo "::error::Spender signer secret missing"; exit 2; }
+          echo "External signer secrets are available only to signer-scoped steps; values remain masked."
+
+      - name: Select one owner-held BOOKED serial
+        shell: bash
+        run: |
+          set -euo pipefail
+          response="$(curl -fsSL "https://testnet.mirrornode.hedera.com/api/v1/accounts/${HEDERA_GUEST_A_ID}/nfts?token.id=${BOOKED_RIGHTS_TOKEN_ID}&limit=100")"
+          serial="$(printf '%s' "$response" | node -e '
+            let body = "";
+            process.stdin.on("data", c => body += c);
+            process.stdin.on("end", () => {
+              const parsed = JSON.parse(body);
+              const token = process.env.BOOKED_RIGHTS_TOKEN_ID;
+              const candidate = (parsed.nfts || []).find(nft => nft.token_id === token);
+              if (!candidate) process.exit(2);
+              process.stdout.write(String(candidate.serial_number));
+            });
+          ')"
+          test -n "$serial" || { echo "::error::No owner-held BOOKED serial available"; exit 2; }
+          echo "HEDERA_DELEGATION_SERIAL=$serial" >> "$GITHUB_ENV"
+          echo "Selected owner-held serial: $serial"
+
+      - name: Prepare owner approval with HAK RETURN_BYTES
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --no-warnings scripts/hedera-delegated-recovery-return-bytes-live.mjs \
+            --action=approve_serial \
+            --token="${BOOKED_RIGHTS_TOKEN_ID}" \
+            --serial="${HEDERA_DELEGATION_SERIAL}" \
+            --owner="${HEDERA_GUEST_A_ID}" \
+            --spender="${HEDERA_TREASURY_ID}" \
+            --out=h1-approve-envelope.json
+
+      - name: External owner signs and submits HAK approval bytes
+        shell: bash
+        env:
+          HEDERA_EXTERNAL_SIGNER_KEY: ${{ secrets.HEDERA_GUEST_A_KEY }}
+          HEDERA_EXTERNAL_SIGNER_KEY_TYPE: ECDSA
+        run: |
+          set -euo pipefail
+          touch h1-allowance-may-be-live
+          node scripts/hedera-return-bytes-external-signer.mjs \
+            --envelope=h1-approve-envelope.json \
+            --account-id="${HEDERA_GUEST_A_ID}" \
+            --out=h1-approve-result.json
+
+      - name: Prepare owner revocation with HAK RETURN_BYTES
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --no-warnings scripts/hedera-delegated-recovery-return-bytes-live.mjs \
+            --action=revoke_serial \
+            --token="${BOOKED_RIGHTS_TOKEN_ID}" \
+            --serial="${HEDERA_DELEGATION_SERIAL}" \
+            --owner="${HEDERA_GUEST_A_ID}" \
+            --spender="${HEDERA_TREASURY_ID}" \
+            --out=h1-revoke-envelope.json
+
+      - name: External owner signs and submits HAK revocation bytes
+        shell: bash
+        env:
+          HEDERA_EXTERNAL_SIGNER_KEY: ${{ secrets.HEDERA_GUEST_A_KEY }}
+          HEDERA_EXTERNAL_SIGNER_KEY_TYPE: ECDSA
+        run: |
+          set -euo pipefail
+          node scripts/hedera-return-bytes-external-signer.mjs \
+            --envelope=h1-revoke-envelope.json \
+            --account-id="${HEDERA_GUEST_A_ID}" \
+            --out=h1-revoke-result.json
+          rm -f h1-allowance-may-be-live
+
+      - name: Prepare revoked transfer attempt with HAK RETURN_BYTES
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --no-warnings scripts/hedera-delegated-recovery-return-bytes-live.mjs \
+            --action=delegated_transfer \
+            --token="${BOOKED_RIGHTS_TOKEN_ID}" \
+            --serial="${HEDERA_DELEGATION_SERIAL}" \
+            --owner="${HEDERA_GUEST_A_ID}" \
+            --spender="${HEDERA_TREASURY_ID}" \
+            --receiver="${HEDERA_GUEST_B_ID}" \
+            --out=h1-revoked-transfer-envelope.json
+
+      - name: External spender proves revoked HAK transfer is denied
+        shell: bash
+        env:
+          HEDERA_EXTERNAL_SIGNER_KEY: ${{ secrets.HEDERA_TREASURY_KEY }}
+          HEDERA_EXTERNAL_SIGNER_KEY_TYPE: DER
+        run: |
+          set -euo pipefail
+          node scripts/hedera-return-bytes-external-signer.mjs \
+            --envelope=h1-revoked-transfer-envelope.json \
+            --account-id="${HEDERA_TREASURY_ID}" \
+            --expect-status=SPENDER_DOES_NOT_HAVE_ALLOWANCE \
+            --out=h1-revoked-transfer-result.json
+
+      - name: Prepare owner reapproval with HAK RETURN_BYTES
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --no-warnings scripts/hedera-delegated-recovery-return-bytes-live.mjs \
+            --action=approve_serial \
+            --token="${BOOKED_RIGHTS_TOKEN_ID}" \
+            --serial="${HEDERA_DELEGATION_SERIAL}" \
+            --owner="${HEDERA_GUEST_A_ID}" \
+            --spender="${HEDERA_TREASURY_ID}" \
+            --out=h1-reapprove-envelope.json
+
+      - name: External owner signs and submits HAK reapproval bytes
+        shell: bash
+        env:
+          HEDERA_EXTERNAL_SIGNER_KEY: ${{ secrets.HEDERA_GUEST_A_KEY }}
+          HEDERA_EXTERNAL_SIGNER_KEY_TYPE: ECDSA
+        run: |
+          set -euo pipefail
+          touch h1-allowance-may-be-live
+          node scripts/hedera-return-bytes-external-signer.mjs \
+            --envelope=h1-reapprove-envelope.json \
+            --account-id="${HEDERA_GUEST_A_ID}" \
+            --out=h1-reapprove-result.json
+
+      - name: Prepare permitted spender transfer with HAK RETURN_BYTES
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --no-warnings scripts/hedera-delegated-recovery-return-bytes-live.mjs \
+            --action=delegated_transfer \
+            --token="${BOOKED_RIGHTS_TOKEN_ID}" \
+            --serial="${HEDERA_DELEGATION_SERIAL}" \
+            --owner="${HEDERA_GUEST_A_ID}" \
+            --spender="${HEDERA_TREASURY_ID}" \
+            --receiver="${HEDERA_GUEST_B_ID}" \
+            --out=h1-transfer-envelope.json
+
+      - name: External spender signs and submits permitted HAK transfer bytes
+        shell: bash
+        env:
+          HEDERA_EXTERNAL_SIGNER_KEY: ${{ secrets.HEDERA_TREASURY_KEY }}
+          HEDERA_EXTERNAL_SIGNER_KEY_TYPE: DER
+        run: |
+          set -euo pipefail
+          node scripts/hedera-return-bytes-external-signer.mjs \
+            --envelope=h1-transfer-envelope.json \
+            --account-id="${HEDERA_TREASURY_ID}" \
+            --out=h1-transfer-result.json
+          rm -f h1-allowance-may-be-live
+
+      - name: Verify final ownership through Mirror Node
+        shell: bash
+        run: |
+          set -euo pipefail
+          endpoint="https://testnet.mirrornode.hedera.com/api/v1/tokens/${BOOKED_RIGHTS_TOKEN_ID}/nfts/${HEDERA_DELEGATION_SERIAL}"
+          owner=""
+          for attempt in 1 2 3 4 5 6; do
+            response="$(curl -fsSL "$endpoint")"
+            owner="$(printf '%s' "$response" | node -e '
+              let body = "";
+              process.stdin.on("data", c => body += c);
+              process.stdin.on("end", () => process.stdout.write(JSON.parse(body).account_id || ""));
+            ')"
+            if [ "$owner" = "${HEDERA_GUEST_B_ID}" ]; then break; fi
+            sleep 3
+          done
+          test "$owner" = "${HEDERA_GUEST_B_ID}" || {
+            echo "::error::Mirror owner mismatch: expected ${HEDERA_GUEST_B_ID}, got ${owner:-none}"
+            exit 1
+          }
+          printf '{"tokenId":"%s","serial":%s,"ownerAccountId":"%s","mirror":"%s"}\n' \
+            "$BOOKED_RIGHTS_TOKEN_ID" "$HEDERA_DELEGATION_SERIAL" "$owner" "$endpoint" > h1-final-owner.json
+          cat h1-final-owner.json
+
+      - name: Assemble public H1 proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const read = (name) => JSON.parse(fs.readFileSync(name, 'utf8'));
+          const proof = {
+            ok: true,
+            evidenceLevel: 'LIVE/TESTNET',
+            status: 'hak_return_bytes_external_signing_lifecycle_verified',
+            network: 'testnet',
+            authority: {
+              tokenId: process.env.BOOKED_RIGHTS_TOKEN_ID,
+              serial: Number(process.env.HEDERA_DELEGATION_SERIAL),
+              ownerAccountId: process.env.HEDERA_GUEST_A_ID,
+              spenderAccountId: process.env.HEDERA_TREASURY_ID,
+              receiverAccountId: process.env.HEDERA_GUEST_B_ID,
+              scope: 'single_serial',
+              approvedForAll: false,
+            },
+            separation: {
+              hakPreparationHadSigningSecret: false,
+              hakRuntimeLoadedPrivateKey: false,
+              hakRuntimeSubmittedTransaction: false,
+              signingOccurredInSeparateSignerScopedSteps: true,
+            },
+            approve: read('h1-approve-result.json'),
+            revoke: read('h1-revoke-result.json'),
+            revokedTransferDenial: read('h1-revoked-transfer-result.json'),
+            reapprove: read('h1-reapprove-result.json'),
+            permittedTransfer: read('h1-transfer-result.json'),
+            finalOwnership: read('h1-final-owner.json'),
+          };
+          fs.writeFileSync('h1-return-bytes-live-proof.json', JSON.stringify(proof, null, 2) + '\n');
+          console.log(JSON.stringify(proof, null, 2));
+          NODE
+
+      - name: Prepare cleanup revocation after interrupted run
+        if: failure()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f h1-allowance-may-be-live ] || [ -z "${HEDERA_DELEGATION_SERIAL:-}" ]; then
+            echo "No possibly-live H1 allowance marker; cleanup preparation skipped."
+            exit 0
+          fi
+          endpoint="https://testnet.mirrornode.hedera.com/api/v1/tokens/${BOOKED_RIGHTS_TOKEN_ID}/nfts/${HEDERA_DELEGATION_SERIAL}"
+          owner=""
+          for attempt in 1 2 3 4; do
+            response="$(curl -fsSL "$endpoint" || true)"
+            owner="$(printf '%s' "$response" | node -e '
+              let body = "";
+              process.stdin.on("data", c => body += c);
+              process.stdin.on("end", () => {
+                try { process.stdout.write(JSON.parse(body).account_id || ""); } catch { process.stdout.write(""); }
+              });
+            ')"
+            if [ "$owner" = "${HEDERA_GUEST_A_ID}" ] || [ "$owner" = "${HEDERA_GUEST_B_ID}" ]; then break; fi
+            sleep 3
+          done
+          if [ "$owner" != "${HEDERA_GUEST_A_ID}" ]; then
+            echo "Target is no longer owner-held (${owner:-unknown}); no owner revocation is actionable."
+            rm -f h1-allowance-may-be-live
+            exit 0
+          fi
+          node --no-warnings scripts/hedera-delegated-recovery-return-bytes-live.mjs \
+            --action=revoke_serial \
+            --token="${BOOKED_RIGHTS_TOKEN_ID}" \
+            --serial="${HEDERA_DELEGATION_SERIAL}" \
+            --owner="${HEDERA_GUEST_A_ID}" \
+            --spender="${HEDERA_TREASURY_ID}" \
+            --out=h1-cleanup-revoke-envelope.json
+
+      - name: External owner signs cleanup revocation
+        if: failure()
+        shell: bash
+        env:
+          HEDERA_EXTERNAL_SIGNER_KEY: ${{ secrets.HEDERA_GUEST_A_KEY }}
+          HEDERA_EXTERNAL_SIGNER_KEY_TYPE: ECDSA
+        run: |
+          set -euo pipefail
+          if [ ! -f h1-cleanup-revoke-envelope.json ]; then
+            echo "No cleanup revocation envelope to submit."
+            exit 0
+          fi
+          node scripts/hedera-return-bytes-external-signer.mjs \
+            --envelope=h1-cleanup-revoke-envelope.json \
+            --account-id="${HEDERA_GUEST_A_ID}" \
+            --out=h1-cleanup-revoke-result.json
+          rm -f h1-allowance-may-be-live
+
+      - name: Upload H1 public proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hedera-h1-return-bytes-live-proof
+          path: h1-*.json
+          if-no-files-found: ignore
+          retention-days: 7
