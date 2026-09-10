@@ -6,11 +6,23 @@
 
 ## Current phase
 
-**XC-01 CANDIDATE BUILD — architecture gate cleared.**
+**XC-01 CANDIDATE `REVISE` — narrow header-continuity repair authorized.**
 
-Product Reviewer #34 independently classified the post-Golden architecture/product contract at exact docs head `686aeb767f3c1f6ff7db14fdf7a773039cf581a9` as **REVIEWABLE**. This authorizes exactly one smallest connected XC-01 executable candidate to enter the normal candidate/review loop.
+<!-- pw-state: phase=XC-01_CANDIDATE_REVISE candidate=eb3bcdb84ff95352adf1d0c387996f9a4692c52f candidate-status=REVISE architecture-head=686aeb767f3c1f6ff7db14fdf7a773039cf581a9 architecture-status=REVIEWABLE golden-yt-01-04=24bbf0d7516499069f5102ae4bf724b0cb376b94 golden-yt-05-08=d5309a96d532ee107011c2a5cefc3000b9e4932f next-gate=NARROW_HEADER_CONTINUITY_REPAIR_THEN_EXACT_HEAD_EVIDENCE_THEN_34_FIVE_LENS -->
 
-This is not `GOLDEN-READY`, not a Golden freeze, not sponsor integration, and not permission to widen scope. Historical exploratory executable `eb3bcdb84ff95352adf1d0c387996f9a4692c52f` may be mined as prior work but is not automatically adopted or advanced.
+The architecture gate is closed and historical: Product Reviewer #34 classified the post-Golden architecture/product contract `REVIEWABLE` at exact docs head `686aeb767f3c1f6ff7db14fdf7a773039cf581a9`.
+
+One XC-01 executable candidate was explicitly routed under that reviewed contract and directly reviewed. Product Reviewer #34 classified exact executable `eb3bcdb84ff95352adf1d0c387996f9a4692c52f` **`REVISE`** on 2026-09-10, after downloading artifact `10169073722` and inspecting all 72 PNGs (Visual Check `34519301160` SUCCESS, Continuity `34519307635` SUCCESS, both on that exact SHA).
+
+Most of XC-01 passed the five-lens gate. The single blocking defect is header/product continuity on the **actual interactive** Bob path:
+
+- the run starts at `?view=xc-find` and advances `Xc01Client` through local `step` state;
+- `Refresh booking` renders `bobSuccess` but leaves the URL at `?view=xc-find`;
+- `SiteHeader` derives audience/nav mode from the URL, so captures `desktop/mobile-34` and `-35` show `Find a spot` while the body reads `My bookings` / `Friday Yoga is now yours.`;
+- the `xc-bob-success` header mode exists but is only reachable by direct URL, never by the tested interaction;
+- `assertAudienceHeader` keys off the unchanged URL and therefore codifies `Find a spot` as correct after successful acquisition.
+
+This is not `GOLDEN-READY`, not a Golden freeze, not sponsor integration, and not permission to widen scope or redesign XC-01.
 
 ## Frozen Golden product truth
 
@@ -65,15 +77,15 @@ YT-09/YT-10 remain bridge concepts inside this cross-lane architecture, not a ho
 
 ## Exact next action
 
-**Build exactly one canonical XC-01 executable candidate.**
+**Repair the named XC-01 header-continuity defect, then re-prove it.**
 
-1. Start from the reviewed contract and mine historical `eb3bcdb...` only as prior work.
-2. Preserve only the parts that satisfy `DESIGN.md`, `GLOSSARY.md`, `CRAFT.md`, `integration-ledger.md`, stakeholder mapping and the reviewed XC-01 scope; revise concrete gaps.
-3. Do not change either frozen Golden executable or sponsor/backend semantics from this lane.
-4. Render material provider/acquirer/partial-state paths at canonical desktop/mobile widths.
-5. Run production build + exact-head Chromium evidence.
-6. Route the exact executable and PNG artifact to Product Reviewer #34 for five-lens review.
-7. Only a later `GOLDEN-READY` classification plus explicit Devinson approval may freeze the executable.
+1. Synchronize the successful interactive transition so the shell renders `My bookings` once Bob holds Friday Yoga, on the real `Refresh booking` → `Use booking` path.
+2. Strengthen the Chromium assertion so it proves that interactive transition instead of accepting the stale `Find a spot` header.
+3. Produce a new exact candidate SHA with production build + exact-head desktop/mobile rendered evidence.
+4. Route that exact SHA and artifact back to Product Reviewer #34 for five-lens re-review.
+5. `GOLDEN-READY` and explicit Devinson freeze approval remain separate later gates.
+
+Preserve the same `/product-preview` route, both Golden executables, the fixture evidence boundary and all sponsor/backend semantics. Do not widen scope, redesign XC-01, merge, or deploy.
 
 ## Integration guardrail
 

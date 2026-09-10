@@ -1,8 +1,10 @@
 # Next Connected Product Slice
 
-Status: **REVIEWABLE architecture; exactly one XC-01 executable candidate is authorized to enter the candidate/review loop.**
+Status: **XC-01 candidate `REVISE` — one narrow header-continuity repair authorized against exact executable `eb3bcdb84ff95352adf1d0c387996f9a4692c52f`.**
 
-Product Reviewer #34 independently cleared the architecture/product contract at exact docs head `686aeb767f3c1f6ff7db14fdf7a773039cf581a9`. This is permission to build and review one candidate only. It is not executable approval, `GOLDEN-READY`, Golden freeze, sponsor integration, merge or deployment authority.
+<!-- pw-state: phase=XC-01_CANDIDATE_REVISE candidate=eb3bcdb84ff95352adf1d0c387996f9a4692c52f candidate-status=REVISE architecture-head=686aeb767f3c1f6ff7db14fdf7a773039cf581a9 architecture-status=REVIEWABLE golden-yt-01-04=24bbf0d7516499069f5102ae4bf724b0cb376b94 golden-yt-05-08=d5309a96d532ee107011c2a5cefc3000b9e4932f next-gate=NARROW_HEADER_CONTINUITY_REPAIR_THEN_EXACT_HEAD_EVIDENCE_THEN_34_FIVE_LENS -->
+
+Product Reviewer #34 cleared the architecture/product contract `REVIEWABLE` at exact docs head `686aeb767f3c1f6ff7db14fdf7a773039cf581a9`, then directly reviewed the routed executable and returned `REVISE` for a single blocking header-continuity defect on the interactive Bob success path. The XC-01 product shape below is unchanged and remains the reviewed scope; it is not executable approval, `GOLDEN-READY`, Golden freeze, sponsor integration, merge or deployment authority.
 
 This reviewed slice follows human-approved Golden YT-01→YT-08, `DESIGN.md`, `GLOSSARY.md`, `CRAFT.md`, `integration-ledger.md`, issue #39, and `stakeholder-coverage-gate.md`.
 
@@ -131,13 +133,13 @@ This candidate is product behavior/presentation, not automatic implementation tr
 
 ## Exact next action
 
-**Build one canonical XC-01 candidate now.**
+**Repair the named XC-01 header-continuity defect, then re-prove it.**
 
-1. Compare historical `eb3bcdb...` against this reviewed contract and current `DESIGN.md`, `GLOSSARY.md`, `CRAFT.md`, `integration-ledger.md`, stakeholder docs and Golden records.
-2. Reuse/adapt only what passes; revise concrete gaps rather than starting a parallel route.
-3. Preserve both Golden executables and all sponsor/backend semantics.
-4. Produce exact-head production build + Chromium desktop/mobile evidence for the material states above.
-5. Route the exact candidate plus rendered PNG artifact to Product Reviewer #34 for five-lens review.
-6. `GOLDEN-READY` may be returned only after that executable review. Golden still requires explicit Devinson approval of that exact candidate.
+1. Synchronize the successful interactive transition so the shell renders `My bookings` once Bob holds Friday Yoga, on the real `Refresh booking` → `Use booking` path.
+2. Strengthen the Chromium assertion so it proves that interactive transition instead of accepting the stale `Find a spot` header.
+3. Produce a new exact candidate SHA with production build + exact-head desktop/mobile rendered evidence.
+4. Route that exact SHA and artifact back to Product Reviewer #34 for five-lens re-review.
+5. `GOLDEN-READY` and explicit Devinson freeze approval remain separate later gates.
 
-Do not widen into holder-only YT-09/YT-10, another journey set, sponsor dashboards, merge, deployment, funding or secret work.
+Preserve the same `/product-preview` route, both Golden executables, the fixture evidence boundary and all sponsor/backend semantics. Do not widen scope, redesign XC-01, merge, or deploy.
+

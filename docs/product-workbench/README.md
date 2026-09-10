@@ -74,48 +74,43 @@ Records:
 
 Do not redesign or silently mutate either executable. Golden freezes approved behavior/presentation, **not sponsor evidence class**.
 
-## Current phase — architecture/product-contract review
+## Current phase — XC-01 candidate `REVISE`
 
-Do **not** start or advance a new executable journey from this README.
+<!-- pw-state: phase=XC-01_CANDIDATE_REVISE candidate=eb3bcdb84ff95352adf1d0c387996f9a4692c52f candidate-status=REVISE architecture-head=686aeb767f3c1f6ff7db14fdf7a773039cf581a9 architecture-status=REVIEWABLE golden-yt-01-04=24bbf0d7516499069f5102ae4bf724b0cb376b94 golden-yt-05-08=d5309a96d532ee107011c2a5cefc3000b9e4932f next-gate=NARROW_HEADER_CONTINUITY_REPAIR_THEN_EXACT_HEAD_EVIDENCE_THEN_34_FIVE_LENS -->
 
-The current review package is:
+Do **not** start a new journey set, widen scope, or freeze anything from this README.
 
-- `architecture-review.md` — exact architecture review packet and gate;
+The post-Golden architecture/product contract was independently classified **`REVIEWABLE`** by Product Reviewer #34 at exact docs head `686aeb767f3c1f6ff7db14fdf7a773039cf581a9`. That gate is closed and historical.
+
+One XC-01 executable candidate was then explicitly routed and directly reviewed. Product Reviewer #34 classified exact executable `eb3bcdb84ff95352adf1d0c387996f9a4692c52f` **`REVISE`** on 2026-09-10 after inspecting all 72 PNGs of artifact `10169073722` (Product Workbench Visual Check `34519301160`, SUCCESS on that SHA).
+
+The blocking defect is narrow and is the only authorized repair: on the **actual interactive** Bob path the URL stays `?view=xc-find` after `Refresh booking`, so `SiteHeader` still renders `Find a spot` on the captured success and `Use booking` states while the page body reads `My bookings` / `Friday Yoga is now yours.` The direct `xc-bob-success` header mode is never reached by the real interaction, and `assertAudienceHeader` keys off the stale URL, so the current assertion codifies the defect instead of catching it.
+
+The binding contract package remains:
+
+- `architecture-review.md` — architecture review packet, classified `REVIEWABLE`;
 - `DESIGN.md` — Golden-derived visual/product design contract;
 - `GLOSSARY.md` — preferred customer language + `Avoid:` aliases;
 - `CRAFT.md` — prospective state/accessibility/responsive/copy/interaction discipline;
 - `integration-ledger.md` — YT-05→YT-08 Golden fixture → real implementation owner/interface/evidence/failure map;
 - `stakeholder-journeys.md` — holder/acquirer/provider product architecture;
 - `stakeholder-coverage-gate.md` — mandatory cross-lane coverage gate;
-- `next-slice.md` — proposed smallest connected continuation;
+- `next-slice.md` — reviewed XC-01 scope and build boundary;
 - `invariants.md` — durable product rules;
 - `review-checklist.md` — executable candidate/Golden gate;
 - `handoff.md` — exact current state and next action.
 
-`architecture-review.md` explicitly separates design inputs as **OBSERVED / PROVIDED / INFERRED**, decisions as **KEEP / CHANGE / DO NOT COPY**, audits every material Golden YT-05→08 state/action against `integration-ledger.md`, and records the stakeholder-gate result.
+## Reviewed connected continuation
 
-## Proposed connected continuation
+The reviewed smallest connected continuation, now in the candidate/review loop, is:
 
-The smallest connected continuation proposed for later executable work is:
+## Active XC-01 candidate
 
-### XC-01 — Eligible next holder + provider-recognized handoff
+`eb3bcdb84ff95352adf1d0c387996f9a4692c52f` is no longer "exploratory". It was explicitly routed under the reviewed contract and is the **one active XC-01 candidate**, currently classified **`REVISE`**.
 
-`Studio A pre-defined rules → Bob finds/evaluates Friday Yoga → Bob satisfies eligibility + commits 45 USDC → current provider/holder/acquirer conditions reconcile → Bob receives Friday Yoga as a normal usable booking → Studio A recognizes Bob as authoritative current holder`
+Everything on this branch after that SHA is docs-only; no executable, header or Chromium behavior changed after the exact rendered candidate.
 
-Minimum lane coverage:
-
-- acquirer A-01→A-04;
-- provider P-03, P-06, P-07;
-- already-Golden Maya YT-08 remains unchanged;
-- partial/unknown state fails closed.
-
-YT-09/YT-10 are bridge concepts inside this broader continuation, not a standalone holder-only next set.
-
-## Pre-existing exploratory XC-01 code
-
-Branch history contains exploratory executable `eb3bcdb84ff95352adf1d0c387996f9a4692c52f` and rendered evidence. The current architecture-only gate does **not** adopt, advance or freeze it. Historical green CI is not contract approval.
-
-If the architecture package is later classified `REVIEWABLE`, that executable may be treated as prior work and compared against the reviewed contract before any candidate is routed forward.
+Green CI is still not approval, and `REVISE` is not a Golden freeze. Only the named header-continuity repair is authorized against it.
 
 ## Source branches to mine
 
@@ -128,11 +123,13 @@ Do not treat any one source branch as the complete UX answer.
 
 ## Exact next action
 
-**Product Reviewer #34 reviews the architecture/product contract only.**
+**Repair the named XC-01 header-continuity defect, then re-prove it.**
 
-The reviewer reads `architecture-review.md` and its referenced artifacts and returns:
+1. Synchronize the successful interactive transition so the shell renders `My bookings` once Bob holds Friday Yoga, on the real `Refresh booking` → `Use booking` path.
+2. Strengthen the Chromium assertion so it proves that interactive transition instead of accepting the stale `Find a spot` header.
+3. Produce a new exact candidate SHA with production build + exact-head desktop/mobile rendered evidence.
+4. Route that exact SHA and artifact back to Product Reviewer #34 for five-lens re-review.
+5. `GOLDEN-READY` and explicit Devinson freeze approval remain separate later gates.
 
-- `REVISE` with the precise design/product/integration/stakeholder defect; or
-- `REVIEWABLE` meaning one smallest connected executable set may be explicitly routed next.
+Preserve the same `/product-preview` route, both Golden executables, the fixture evidence boundary and all sponsor/backend semantics. Do not widen scope, redesign XC-01, merge, or deploy.
 
-Do not self-freeze, do not advance the exploratory XC-01 executable during this gate, and do not widen into another journey set.

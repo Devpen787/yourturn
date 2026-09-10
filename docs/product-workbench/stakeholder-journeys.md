@@ -119,9 +119,11 @@ Useful prior seams already inspected for the next slice:
 
 Treat these as REUSE/ADAPT material. Do not carry forward `Person A/B`, `pass`, `issuer`, raw refs/account IDs, HBAR-first pricing or HashScan-first success as the new customer hierarchy.
 
-## Proposed connected continuation
+## Reviewed connected continuation
 
-The stakeholder coverage gate has been applied. The smallest connected continuation currently proposed in `next-slice.md` is:
+<!-- pw-state: phase=XC-01_CANDIDATE_REVISE candidate=eb3bcdb84ff95352adf1d0c387996f9a4692c52f candidate-status=REVISE architecture-head=686aeb767f3c1f6ff7db14fdf7a773039cf581a9 architecture-status=REVIEWABLE golden-yt-01-04=24bbf0d7516499069f5102ae4bf724b0cb376b94 golden-yt-05-08=d5309a96d532ee107011c2a5cefc3000b9e4932f next-gate=NARROW_HEADER_CONTINUITY_REPAIR_THEN_EXACT_HEAD_EVIDENCE_THEN_34_FIVE_LENS -->
+
+The stakeholder coverage gate has been applied and the architecture/product contract is `REVIEWABLE`. The reviewed smallest connected continuation in `next-slice.md` is:
 
 **XC-01 — Eligible next holder + provider-recognized handoff**
 
@@ -134,7 +136,7 @@ XC-01 intentionally spans only the load-bearing parts of:
 
 A-05/P-08 check-in is the immediate completion follow-up if it cannot be reused truthfully from existing normal booking/provider paths without widening the first candidate. A-06/YT-10 history follows after the state is real enough to explain.
 
-This proposal is **not yet executable authorization**. Product Reviewer #34 must first classify the architecture/product contract in `architecture-review.md` as `REVIEWABLE`. Until then, the exploratory XC-01 executable already present in branch history remains historical implementation evidence only and must not be advanced, reviewed as the active candidate, or frozen.
+Executable authorization has been granted for exactly one candidate and consumed. Product Reviewer #34 classified the architecture/product contract `REVIEWABLE` at `686aeb767f3c1f6ff7db14fdf7a773039cf581a9`, one XC-01 candidate was explicitly routed, and that exact executable `eb3bcdb84ff95352adf1d0c387996f9a4692c52f` was classified **`REVISE`** for a single header-continuity defect. Only that narrow repair is authorized; no widening, redesign or freeze.
 
 ## Sequencing rule
 
@@ -143,9 +145,10 @@ Current order:
 2. `DESIGN.md`, `GLOSSARY.md`, `CRAFT.md` — **established**;
 3. `integration-ledger.md` — **established for Golden→real wiring**;
 4. stakeholder coverage gate — **applied**;
-5. XC-01 architecture — **proposed**;
-6. Product Reviewer #34 architecture/product-contract classification — **pending; must reach `REVIEWABLE` before executable work is authorized**;
-7. only after `REVIEWABLE`, explicitly authorize one canonical XC-01 candidate, then production build + Chromium desktop/mobile evidence + direct Product Reviewer PNG inspection;
-8. freeze only after `GOLDEN-READY` + explicit Devinson approval.
+5. XC-01 architecture — **reviewed**;
+6. Product Reviewer #34 architecture/product-contract classification — **`REVIEWABLE` at `686aeb767f3c1f6ff7db14fdf7a773039cf581a9`**;
+7. one canonical XC-01 candidate authorized, built and routed — exact executable `eb3bcdb84ff95352adf1d0c387996f9a4692c52f`;
+8. Product Reviewer #34 five-lens executable review — **`REVISE`**: repair the interactive success header continuity, then re-prove at a new exact SHA;
+9. freeze only after `GOLDEN-READY` + explicit Devinson approval.
 
 No future journey set should be called complete unless stakeholder coverage is checked against this document and `stakeholder-coverage-gate.md`.

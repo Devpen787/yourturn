@@ -34,7 +34,9 @@ A blockchain transaction, agent receipt, or holder-only success screen is not en
 
 YT-01→YT-08 is human-approved Golden, so stakeholder coverage is active for the next product expansion.
 
-Coverage has been applied to the **proposed** continuation documented in `next-slice.md`:
+<!-- pw-state: phase=XC-01_CANDIDATE_REVISE candidate=eb3bcdb84ff95352adf1d0c387996f9a4692c52f candidate-status=REVISE architecture-head=686aeb767f3c1f6ff7db14fdf7a773039cf581a9 architecture-status=REVIEWABLE golden-yt-01-04=24bbf0d7516499069f5102ae4bf724b0cb376b94 golden-yt-05-08=d5309a96d532ee107011c2a5cefc3000b9e4932f next-gate=NARROW_HEADER_CONTINUITY_REPAIR_THEN_EXACT_HEAD_EVIDENCE_THEN_34_FIVE_LENS -->
+
+Coverage has been applied to the **reviewed** continuation documented in `next-slice.md`:
 
 **XC-01 — Eligible next holder + provider-recognized handoff**.
 
@@ -51,11 +53,11 @@ Coverage result:
 - acquirer outcome: Bob receives Friday Yoga as a normal usable booking with a credible fulfil/check-in path;
 - cross-perspective rule: Maya, Bob and Studio A must reconcile from one underlying booking transition.
 
-This completes the **coverage application only**. It does not approve the architecture contract, authorize executable work, pre-approve fixture behavior, sponsor integration, or a Golden freeze. The current authority gate is Product Reviewer #34 on `architecture-review.md`. XC-01 remains proposed until that package is classified `REVIEWABLE`.
+This completes the **coverage application only**. It does not pre-approve fixture behavior, sponsor integration, or a Golden freeze. The architecture contract has since been classified `REVIEWABLE`, one XC-01 candidate was routed, and that exact executable `eb3bcdb84ff95352adf1d0c387996f9a4692c52f` is currently `REVISE`. The active authority gate is Product Reviewer #34 on the repaired exact candidate.
 
 ## Implementation preconditions for XC-01
 
-Executable work remains blocked until Product Reviewer #34 classifies the architecture/product contract `REVIEWABLE`.
+Executable work is limited to the one narrow header-continuity repair named in `handoff.md`. No new journey set, scope widening or Golden change is authorized.
 
 Only after that classification:
 - read `DESIGN.md`, `GLOSSARY.md`, `CRAFT.md`, `integration-ledger.md`, and `next-slice.md`;
@@ -73,9 +75,9 @@ The old `do not interrupt YT-05→YT-08` hold is complete because that set is Go
 
 Current sequence:
 1. stakeholder coverage applied;
-2. XC-01 recorded as the proposed smallest connected slice;
-3. Product Reviewer #34 classifies the architecture/product contract `REVISE` or `REVIEWABLE`;
-4. only after `REVIEWABLE`, explicitly authorize one canonical XC-01 candidate;
+2. XC-01 recorded as the reviewed smallest connected slice;
+3. Product Reviewer #34 classified the architecture/product contract `REVIEWABLE`;
+4. one canonical XC-01 candidate authorized, routed and reviewed — currently `REVISE`;
 5. route that exact executable through build, rendered evidence, direct PNG review, and explicit human freeze if it later reaches `GOLDEN-READY`.
 
 YT-09/YT-10 remain bridge concepts inside the broader acquirer/provider architecture rather than a standalone holder-only next set.

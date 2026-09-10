@@ -69,11 +69,11 @@ Golden freezes **product behavior and presentation**, not evidence class.
 
 The YT-05→YT-08 executable contains fixture/demo sponsor transitions where real sponsor integration is not yet wired. Integration must replace them with real Ledger / World / Hedera state while preserving the approved journey and `integration-ledger.md` failure behavior.
 
-## Post-Golden architecture gate
+## Post-Golden architecture gate — closed
 
-The current Product Workbench phase is **architecture/product-contract review**, not a new executable journey.
+The architecture/product-contract gate is **closed**: Product Reviewer #34 classified exact docs head `686aeb767f3c1f6ff7db14fdf7a773039cf581a9` `REVIEWABLE`. The current Product Workbench phase is **XC-01 candidate `REVISE`** (see below).
 
-Required source-of-truth package:
+The package below remains the binding contract for any XC-01 repair:
 
 - `architecture-review.md` — review packet and exact gate;
 - `DESIGN.md` — Golden-derived design contract;
@@ -113,11 +113,15 @@ Core permission rule:
 
 Provider policy is pre-defined and load-bearing.
 
-## Pre-existing exploratory XC-01 code
+## Active XC-01 candidate
 
-Branch history contains exploratory XC-01 executable `eb3bcdb84ff95352adf1d0c387996f9a4692c52f` plus rendered evidence. The current architecture gate does **not** adopt, advance, review for Golden, or freeze that executable. Do not use its green CI to bypass contract review.
+<!-- pw-state: phase=XC-01_CANDIDATE_REVISE candidate=eb3bcdb84ff95352adf1d0c387996f9a4692c52f candidate-status=REVISE architecture-head=686aeb767f3c1f6ff7db14fdf7a773039cf581a9 architecture-status=REVIEWABLE golden-yt-01-04=24bbf0d7516499069f5102ae4bf724b0cb376b94 golden-yt-05-08=d5309a96d532ee107011c2a5cefc3000b9e4932f next-gate=NARROW_HEADER_CONTINUITY_REPAIR_THEN_EXACT_HEAD_EVIDENCE_THEN_34_FIVE_LENS -->
 
-If the architecture package is later classified `REVIEWABLE`, the next executable set must be explicitly routed under the reviewed contract. The pre-existing candidate may then be evaluated for reuse against that contract rather than assumed correct because it already exists.
+`eb3bcdb84ff95352adf1d0c387996f9a4692c52f` is the **one active XC-01 candidate**, explicitly routed under the reviewed contract and classified **`REVISE`** by Product Reviewer #34 on 2026-09-10.
+
+It is no longer exploratory branch history, and its historical green CI is still not approval. Only the named header-continuity repair is authorized against it: the interactive `Refresh booking` → `Use booking` path must move the shell to `My bookings`, and the Chromium assertion must prove that transition rather than accept the stale `Find a spot` header.
+
+Do not adopt, freeze, widen or redesign it on any other basis.
 
 ## Integration evidence boundary
 
@@ -131,11 +135,15 @@ The Golden product and any exploratory candidate are design/product evidence, no
 
 ## Exact next action
 
-Product Reviewer #34 reviews `architecture-review.md` and its referenced contract files and classifies the **contract only** as `REVISE` or `REVIEWABLE`.
+**Repair the named XC-01 header-continuity defect, then re-prove it.**
 
-If `REVISE`, correct only the named architecture/coverage/evidence defect. If `REVIEWABLE`, explicitly route the smallest connected XC-01 executable set into the normal candidate → exact rendered evidence → Product Reviewer → `GOLDEN-READY` → explicit human freeze loop.
+1. Synchronize the successful interactive transition so the shell renders `My bookings` once Bob holds Friday Yoga, on the real `Refresh booking` → `Use booking` path.
+2. Strengthen the Chromium assertion so it proves that interactive transition instead of accepting the stale `Find a spot` header.
+3. Produce a new exact candidate SHA with production build + exact-head desktop/mobile rendered evidence.
+4. Route that exact SHA and artifact back to Product Reviewer #34 for five-lens re-review.
+5. `GOLDEN-READY` and explicit Devinson freeze approval remain separate later gates.
 
-Do not self-freeze, do not widen to another slice, and do not silently mutate either Golden executable.
+Preserve the same `/product-preview` route, both Golden executables, the fixture evidence boundary and all sponsor/backend semantics. Do not widen scope, redesign XC-01, merge, or deploy.
 
 ## Completion principle
 
