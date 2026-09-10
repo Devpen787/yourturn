@@ -31,14 +31,61 @@ jobs:
         run: |
           set -euo pipefail
           BASELINE=d0b5f875afb4f2b29af29bc5972cf1edc404d473
-          echo "head=$(git rev-parse HEAD)"
-          echo "manifest_diff_begin"
-          git diff --name-status "$BASELINE" HEAD -- package.json package-lock.json || true
-          echo "manifest_diff_end"
-          echo "baseline_package_lock_sha256=$(git show "$BASELINE:package-lock.json" | sha256sum | awk '{print $1}')"
-          echo "head_package_lock_sha256=$(sha256sum package-lock.json | awk '{print $1}')"
-          echo "baseline_package_json_sha256=$(git show "$BASELINE:package.json" | sha256sum | awk '{print $1}')"
-          echo "head_package_json_sha256=$(sha256sum package.json | awk '{print $1}')"
+          echo "head=$(git rev-parse HEAD)" | tee manifest-proof.txt
+          echo "manifest_diff_begin" | tee -a manifest-proof.txt
+          git diff --name-status "$BASELINE" HEAD -- package.json package-lock.json | tee -a manifest-proof.txt || true
+          echo "manifest_diff_end" | tee -a manifest-proof.txt
+          echo "baseline_package_lock_sha256=$(git show "$BASELINE:package-lock.json" | sha256sum | awk '{print $1}')" | tee -a manifest-proof.txt
+          echo "head_package_lock_sha256=$(sha256sum package-lock.json | awk '{print $1}')" | tee -a manifest-proof.txt
+          echo "baseline_package_json_sha256=$(git show "$BASELINE:package.json" | sha256sum | awk '{print $1}')" | tee -a manifest-proof.txt
+          echo "head_package_json_sha256=$(sha256sum package.json | awk '{print $1}')" | tee -a manifest-proof.txt
+
+      - name: Capture exact vulnerable dependency versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ls --all --json > npm-ls.json || true
+          node <<'NODE'
+          const fs = require('fs');
+          const root = JSON.parse(fs.readFileSync('npm-ls.json', 'utf8'));
+          const wanted = new Set(['next','protobufjs','@grpc/grpc-js','@hashgraph/sdk','@hiero-ledger/sdk','@hashgraph/hedera-wallet-connect','@x402/hedera','postcss','axios','nanoid','ws','viem']);
+          const found = [];
+          function walk(node, path=[]) {
+            for (const [name, dep] of Object.entries(node.dependencies || {})) {
+              const p = [...path, name];
+              if (wanted.has(name)) found.push({name, version: dep.version || null, path: p.join(' > ')});
+              walk(dep, p);
+            }
+          }
+          walk(root);
+          fs.writeFileSync('dependency-versions.json', JSON.stringify(found, null, 2));
+          console.log(JSON.stringify(found, null, 2));
+          NODE
+
+      - name: Probe critical advisory prerequisites at exact head
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "platform=$(uname -s)"
+            echo "middleware_files_begin"
+            find . -path './node_modules' -prune -o -type f \( -name 'middleware.ts' -o -name 'middleware.js' -o -name 'middleware.mjs' -o -name 'middleware.cjs' \) -print
+            echo "middleware_files_end"
+            echo "server_action_markers_begin"
+            grep -RInE --exclude-dir=node_modules --exclude-dir=.git --exclude='package-lock.json' '^[[:space:]]*["'\'' ]use server["'\'' ]' app lib components scripts next.config.mjs 2>/dev/null || true
+            echo "server_action_markers_end"
+            echo "avif_markers_begin"
+            find public app components lib -type f -iname '*.avif' -print 2>/dev/null || true
+            grep -RInE --exclude-dir=node_modules --exclude-dir=.git --exclude='package-lock.json' 'image/avif|\.avif|formats[^\n]*avif' app components lib public next.config.mjs 2>/dev/null || true
+            echo "avif_markers_end"
+            echo "protobuf_reflection_markers_begin"
+            grep -RInE --exclude-dir=node_modules --exclude-dir=.git --exclude='package-lock.json' 'fromJSON|Root\.fromJSON|protobufjs|loadSync\(|\.load\(' app components lib scripts 2>/dev/null || true
+            echo "protobuf_reflection_markers_end"
+            echo "custom_server_or_rewrite_markers_begin"
+            find . -path './node_modules' -prune -o -type f \( -name 'server.js' -o -name 'server.ts' -o -name 'server.mjs' -o -name 'server.cjs' \) -print
+            grep -RInE --exclude-dir=node_modules --exclude-dir=.git --exclude='package-lock.json' 'rewrites[[:space:]]*\(|WebSocket|upgrade[[:space:]]*\(' next.config.mjs app lib scripts 2>/dev/null || true
+            echo "custom_server_or_rewrite_markers_end"
+          } | tee reachability-probes.txt
 
       - name: Capture npm audit reports without mutation
         shell: bash
@@ -86,4 +133,8 @@ jobs:
             audit-summary.json
             audit-full.json
             audit-prod.json
+            npm-ls.json
+            dependency-versions.json
+            manifest-proof.txt
+            reachability-probes.txt
           if-no-files-found: error
