@@ -7,21 +7,41 @@
 YourTurn is a booking product. ETHOnline adds **Delegated Recovery** as a new capability inside the existing booking journey.
 
 ## Current journey set
-`YT-01 → YT-04` is the active candidate set.
+`YT-01 → YT-04` is implemented as the current candidate at `/product-preview` and is in **review**.
+
+Independent classification: `REVIEWABLE`.
+
+Golden count: **0**.
+
+## What the first test proved
+The workbench loop produced a real continuous candidate rather than isolated sponsor screens:
+
+`Landing → enter → My Bookings → Friday Yoga → Change plans → Let YourTurn handle it → booking-scoped recovery rules → secure-approval handoff`
+
+The candidate reuses/adapts prior YourTurn visual and product language and keeps sponsor/backend behavior outside this UX-only branch.
+
+The current customer authority contract is explicit:
+- Friday Yoga only;
+- minimum 40 USDC;
+- expires tomorrow 17:00;
+- may find an eligible buyer and transfer after an acceptable recovery;
+- may not cancel, lower the minimum, or touch another booking;
+- anything outside scope requires the customer again.
+
+## Verification
+The current candidate lineage has passed the ETHOnline Continuity Gate production build and existing policy/baseline checks. The latest cleanup head also passed the same CI gate.
+
+Automatic Vercel preview status is currently blocked by the project's Vercel build-rate limit, so that is not visual acceptance evidence and is not treated as a product-code failure.
 
 ## Exact next action
-Mine the strongest existing landing/auth/My Bookings/booking-detail components from `feat/product-issuer-holder-ux` and `main`, then build one continuous clickable candidate:
+Address only the three material review findings recorded in #34:
+1. replace `Try the booking journey` with customer-native CTA language;
+2. remove prototype meta-copy from the non-agent `Change plans` choices;
+3. obtain rendered desktop/mobile interaction evidence when a preview/browser surface is available.
 
-`Landing → demo/login entry → My Bookings → Friday Yoga → Change plans → Let YourTurn handle it → define 40 USDC / expiry / no-cancel mandate → continue to authorization`
+Do not start a competing prototype route.
 
-Do not create isolated sponsor-demo screens.
-
-## Required review outcome
-The next review must answer:
-1. Can a new user understand YourTurn before seeing any crypto terminology?
-2. Is `Change plans` a natural doorway into Delegated Recovery?
-3. Does the recovery setup make booking-scoped authority obvious?
-4. Does the candidate hand off cleanly into Ledger/World/Hedera behavior without changing product architecture?
+After those findings are cleared, the independent reviewer may mark the exact candidate `GOLDEN-READY`. **Do not freeze it.** Devinson must explicitly approve that exact candidate before it becomes `Golden`.
 
 ## Integration contract
 Sponsor branches own implementation truth:
@@ -39,16 +59,7 @@ The UX branch owns:
 The UX branch must not fabricate LIVE sponsor evidence. Until wired, sponsor-dependent states must be clearly fixture/demo state in code and proof UI.
 
 ## Anti-drift
-If a sponsor implementation requires a UX change, record the precise mismatch in issue #31 rather than changing the user journey independently on the sponsor branch.
+If sponsor implementation requires a UX change, record the precise mismatch in #31 rather than changing the user journey independently on a sponsor branch.
 
-## Progress
-- Workbench branch: created.
-- Workbench contract: created.
-- Journey registry: created.
-- Product invariants: created.
-- Review checklist: created.
-- Clickable YT-01→YT-04 candidate: not yet built.
-- Golden journeys: 0.
-
-## Next after YT-01→YT-04
+## Next after human-approved Golden YT-01→YT-04
 Build YT-05→YT-08 as the hero recovery sequence, then YT-09→YT-10 to close buyer ownership and proof/history.
