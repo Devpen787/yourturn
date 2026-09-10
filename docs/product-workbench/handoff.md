@@ -82,7 +82,7 @@ Current runtime proof is `CI_CONFIGURED` and explicitly does **not** prove Ledge
 ### World
 Latest inspected branch head: `feature/ethonline-world@2ab04f4420cccc2c090cd5f5634e447d399eb139`.
 
-Current bounded proof demonstrates an AgentKit-signed `/api/agent/confirm` path with `human-backed-agent`, exact delegated-agent matching and privacy-safe output. It is LIVE/SIGNED-ROUTE for the bounded create-listing proof, not proof of booking ownership/provider entitlement and not yet the full Recovery-Mandate execution path.
+Current evidence is **LIVE/AGENTBOOK** for production registration/resolution and **CI/READY, NOT LIVE** for the bounded AgentKit-signed `create_listing` route harness. The registered-agent signed recovery mutation has not yet been executed against the required initialized non-production YourTurn target, and separate World ID Sandbox evidence is still missing. The bounded route proves privacy-safe `human-backed-agent` / exact delegated-agent semantics only; it is not proof of booking ownership/provider entitlement and is not yet the full Recovery-Mandate execution path.
 
 ### Hedera
 Latest inspected branch head: `feature/ethonline-hedera@40890aab7729075edbf5efac5f5367f4b5a022e1`.
