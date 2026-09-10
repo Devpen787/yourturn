@@ -205,6 +205,12 @@ export function sawTypedDataInteraction(events) {
   );
 }
 
+export function sawStoppedState(events) {
+  return events.some(
+    (event) => String(event?.status ?? "").toLowerCase() === "stopped"
+  );
+}
+
 export function assertExpectedCeremonyResult({
   expectation,
   events,
@@ -224,11 +230,12 @@ export function assertExpectedCeremonyResult({
   const rejected = events.some(
     (event) => String(event?.errorCode ?? "").toLowerCase() === "6982"
   );
+  const stopped = sawStoppedState(events);
   const hasSignature = Boolean(signature);
 
   if (expectation === "approve") {
     if (!hasSignature) throw new Error("approve ceremony completed without a signature");
-    if (rejected || cancelRequested) {
+    if (rejected || stopped || cancelRequested) {
       throw new Error("approve ceremony also contained reject/cancel state");
     }
     return "approved";
@@ -239,10 +246,19 @@ export function assertExpectedCeremonyResult({
   }
   if (expectation === "reject") {
     if (!rejected) throw new Error("reject ceremony did not return Ledger user-cancel code 6982");
+    if (stopped || cancelRequested) {
+      throw new Error("reject ceremony also contained host-cancel state");
+    }
     return "rejected";
   }
   if (!cancelRequested) {
     throw new Error("cancel ceremony never invoked the DMK action cancel() handle");
+  }
+  if (rejected) {
+    throw new Error("cancel ceremony observed device rejection instead of DMK cancellation");
+  }
+  if (!stopped) {
+    throw new Error("cancel ceremony did not observe the DMK Stopped terminal state");
   }
   return "cancelled";
 }
@@ -251,4 +267,5 @@ export const LEDGER_DEVICE_PROOF_CONTRACT = Object.freeze({
   method: REQUIRED_METHOD,
   derivationPath: REQUIRED_PATH,
   rejectErrorCode: "6982",
+  cancelTerminalStatus: "Stopped",
 });
