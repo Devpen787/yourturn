@@ -4,10 +4,10 @@ Status vocabulary: `candidate`, `review`, `GOLDEN-READY`, `Golden`, `implemented
 
 | Journey | User outcome | Status | ETHOnline priority |
 | --- | --- | --- | --- |
-| YT-01 Understand & enter | Visitor understands YourTurn and can enter the product | review | P0 |
-| YT-02 My Bookings | Holder sees owned bookings and their meaningful states | review | P0 |
-| YT-03 Booking detail | Holder can use a booking or change plans | review | P0 |
-| YT-04 Recovery setup | Holder defines what YourTurn may do | review | P0 |
+| YT-01 Understand & enter | Visitor understands YourTurn and can enter the product | GOLDEN-READY | P0 |
+| YT-02 My Bookings | Holder sees owned bookings and their meaningful states | GOLDEN-READY | P0 |
+| YT-03 Booking detail | Holder can use a booking or change plans | GOLDEN-READY | P0 |
+| YT-04 Recovery setup | Holder defines what YourTurn may do | GOLDEN-READY | P0 |
 | YT-05 Delegate | Holder understands and authorizes the mandate with Ledger | queued | P0 |
 | YT-06 Agent working | Holder sees the exact human-backed delegated agent working | queued | P0 |
 | YT-07 Block / escalate | Out-of-scope offer is blocked and escalation boundary is clear | queued | P0 |
@@ -21,7 +21,9 @@ Status vocabulary: `candidate`, `review`, `GOLDEN-READY`, `Golden`, `implemented
 
 Canonical candidate route: `/product-preview`.
 
-Current independent classification: **REVIEWABLE**, not `GOLDEN-READY` and not `Golden`.
+Exact reviewed candidate: `e3905833ec456ecc08e7733e0ec746686fd6b7e4`.
+
+Current independent classification: **GOLDEN-READY**, not `Golden`. Human freeze approval is still required.
 
 The candidate runs as one continuous customer story:
 
@@ -40,15 +42,25 @@ Recovery mandate candidate:
 - forbidden: cancel, lower the minimum, touch another booking
 - authority applies only to this booking
 
-## Review findings before GOLDEN-READY
+## GOLDEN-READY evidence
 
-1. Replace prototype-style landing CTA `Try the booking journey` with normal customer language.
-2. Remove prototype meta-copy from the three non-agent `Change plans` choices; use a believable product-native state.
-3. Obtain rendered interaction/responsive evidence at desktop and mobile width. A green production build alone is not a visual freeze.
+Product Reviewer #34 cleared the remaining YT-01→YT-04 product findings on exact candidate `e3905833ec456ecc08e7733e0ec746686fd6b7e4`.
+
+Exact-head proof:
+- ETHOnline Continuity Gate `34437850556`: **SUCCESS**.
+- Product Workbench Visual Check `34437847330`: **SUCCESS**.
+- Rendered interaction verified at desktop `1440×1000` and mobile `390×844`.
+- Evidence artifact `product-workbench-rendered-evidence` / `10136877079`: 12 PNG checkpoints bound to the exact candidate.
+- All unauthenticated `My bookings` entry affordances converge on exact `/product-preview` before the prepared Maya entry state.
+- The regression check requires exact `/product-preview` equality rather than accepting arbitrary prefixed routes.
+
+No remaining material UX revision is requested before the human freeze gate.
 
 ## Human freeze gate
 
-The independent reviewer can mark an exact candidate `GOLDEN-READY`. Devinson must explicitly approve that exact candidate before it becomes `Golden`.
+The independent reviewer has marked exact candidate `e3905833ec456ecc08e7733e0ec746686fd6b7e4` `GOLDEN-READY`.
+
+Devinson must explicitly approve that exact candidate before YT-01→YT-04 becomes `Golden`. Do not freeze automatically and do not start a competing canonical candidate while approval is pending.
 
 ## Next set after Golden approval
 
