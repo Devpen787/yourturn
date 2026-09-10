@@ -7,7 +7,7 @@
 YourTurn is a booking product. ETHOnline adds **Delegated Recovery** as a new capability inside the existing booking journey.
 
 ## Golden product truth
-`YT-01 → YT-04` is now **Golden**.
+`YT-01 → YT-04` is **Golden**.
 
 Frozen executable candidate: `24bbf0d7516499069f5102ae4bf724b0cb376b94`.
 
@@ -39,55 +39,71 @@ Sponsor implementation must plug into this Golden product contract without silen
 ## Current active set
 `YT-05 → YT-08`
 
-Status: **candidate**.
+Status: **review**.
 
-Build one continuous continuation of the Golden flow, not four isolated sponsor screens.
+Exact executable candidate ready for independent review:
 
-Target customer story:
+`3b3ed50000b70718e43caaf4af36f1076a46755b`
 
-`secure approval → mandate approved on Ledger → recovery active with exact human-backed delegated agent → 32 USDC offer blocked automatically → 45 USDC offer allowed automatically → Hedera booking transfer + 45 USDC settlement → You recovered 45 USDC`
+This candidate extends the same `/product-preview` state machine rather than creating a sponsor demo or competing route.
+
+Customer story now implemented:
+
+`secure approval → Ledger not ready → waiting for Ledger → approve / reject / cancel → recovery active with exact human-backed delegated agent → 32 USDC offer blocked → optional new-authority path to lower the minimum → keep 40 USDC rule → 45 USDC offer inside scope → recovery completes → You recovered 45 USDC → Friday Yoga leaves Maya's usable-booking state`
 
 ### YT-05 — Delegate
 
-The product must show the exact same authority the customer just reviewed, then represent the Ledger device interaction truthfully:
-- device not ready / connection state;
-- waiting for confirmation;
-- approved;
-- rejected/cancelled;
-- rejection/cancel creates no equivalent authority;
-- successful approval transitions into recovery-active state.
+Implemented customer states:
+- `Ledger not connected` before any authority exists;
+- exact Friday Yoga / 40 USDC / tomorrow 17:00 / no-cancel mandate repeated from Golden YT-04;
+- waiting for the secure-device result;
+- approved on Ledger;
+- rejected on Ledger with no authority created;
+- host/device ceremony cancelled with no authority created;
+- replacement-authority flow can repeat the same ceremony for a proposed new minimum while the current authority remains intact until approval.
 
-Ledger authorizes the off-chain Recovery Mandate. Do not claim Ledger signs the Hedera booking transfer.
+The UX contract is anchored to current Ledger branch `feature/ethonline-ledger` head `1d50b01c619687950bd87130baf30a3ae2b4a927`:
+- Recovery Mandate uses Ledger DMK EIP-712 typed-data signing;
+- approval requires typed-data user interaction + exclusive `Completed` terminal state + signature;
+- reject requires the Ledger rejection terminal and no signature;
+- cancel requires the stopped/cancel terminal and no signature;
+- Ledger authorizes the off-chain Recovery Mandate and is **not** represented as signing Hedera HTS transfers.
 
 ### YT-06 — Agent working
 
-The product must make recovery feel active but bounded:
+Implemented customer state:
 - `Recovery active`;
-- exact delegated agent is verified as human-backed;
-- raw World human identifiers never appear in normal UI or proof artifacts;
-- approved rules remain visible on demand;
-- stopping/revoking recovery is understandable;
-- World evidence belongs in a secondary reviewer/proof surface.
+- `Exact delegated agent verified`;
+- `Human-backed` trust signal;
+- active minimum, Friday-Yoga-only scope and no-cancel/no-widen boundary remain readable;
+- clear `Stop recovery` action exists;
+- no raw World human identifier is rendered to the customer.
+
+The UX seam is anchored to current World branch `feature/ethonline-world` head `2ab04f4420cccc2c090cd5f5634e447d399eb139`, whose proof path exposes a public `human-backed-agent` trust signal, verifies the exact delegated agent, and deliberately keeps the AgentBook human id out of output.
 
 ### YT-07 — Block / escalate
 
-Hero negative-path product state:
-- offer: 32 USDC;
-- result: `Not accepted — below your 40 USDC minimum`;
-- no transfer and no settlement;
-- customer does not need to act just because an invalid offer appears;
-- lowering the minimum is a new authorization decision and returns to Ledger rather than mutating the current mandate.
+Implemented negative path:
+- 32 USDC arrives under the active 40 USDC mandate;
+- primary result: `32 USDC was not accepted` / `Offer blocked`;
+- UI explicitly states `No booking transfer. No settlement.`;
+- the customer is not asked to approve anything simply because the bad offer arrived;
+- `Keep looking` preserves the current authority;
+- `Lower my minimum` opens a new-authority decision showing current 40 USDC vs proposed 30 USDC;
+- proposed 30 USDC routes back to Ledger authorization and states that current 40 USDC authority remains active until replacement approval.
 
 ### YT-08 — Successful recovery
 
-Hero success product state:
-- offer: 45 USDC;
-- result: inside approved rules;
-- agent proceeds without another owner prompt;
-- Hedera transfer + Alice settlement completes when integrated;
-- primary customer result: `You recovered 45 USDC`;
-- Friday Yoga leaves Alice's usable-booking state;
-- reviewer drawer exposes truthful LIVE/TESTNET evidence and public transaction links without taking over the customer surface.
+Implemented in-scope path:
+- 45 USDC is recognized as within the current 40 USDC minimum;
+- UI explicitly says no new owner prompt is needed;
+- customer sees transfer + settlement as one bounded recovery outcome;
+- primary completion: `You recovered 45 USDC`;
+- Friday Yoga becomes `Transferred`;
+- returning to My Bookings shows it only as a recently recovered item, with no usable `View booking` action;
+- other bookings remain unchanged.
+
+The settlement proof seam is anchored to current Hedera branch `feature/ethonline-hedera` head `12c591afc21c035062a8e939f7abe12cf7875121`, whose atomic USDC recovery validator restricts the signed transaction to the exact booking transfer plus exact HTS USDC settlement and rejects widened transfer bytes.
 
 ## UX / proof boundaries
 
@@ -105,27 +121,34 @@ Sponsor branches own implementation truth:
 - **World:** human-backed requester + exact delegated-agent verification;
 - **Hedera:** booking authority, transfer, settlement and public proof.
 
-Until wired into the integration branch, sponsor-dependent UX states may use explicit fixture/demo data internally, but they must never claim LIVE sponsor execution.
+The YT-05→YT-08 candidate currently models sponsor-dependent transitions as explicit fixture state in code. The collapsed `View technical proof` surface is labeled `FIXTURE` and says it is non-LIVE until sponsor implementation is wired. Normal customer UI remains booking/recovery-first.
 
-## Required visual loop
+## Exact-head verification for YT-05 → YT-08
 
-For every material YT-05→YT-08 candidate:
-1. production build;
-2. real Chromium interaction path;
-3. desktop `1440×1000` screenshots;
-4. mobile `390×844` screenshots;
-5. capture all meaningful states, including Ledger reject/cancel, 32 USDC blocked, 45 USDC success, and recovery-active state;
-6. Product Reviewer #34 directly inspects the exact-head PNG artifact;
-7. reviewer classifies `REVISE`, `REVIEWABLE`, or `GOLDEN-READY`;
-8. Devinson explicitly approves the exact candidate before freeze.
+Executable candidate: `3b3ed50000b70718e43caaf4af36f1076a46755b`.
+
+- ETHOnline Continuity Gate `34476233086`: **SUCCESS** on this exact SHA.
+- Product Workbench Visual Check `34476226564`: **SUCCESS** on this exact SHA.
+- Production Next.js build: **SUCCESS**.
+- Real Chromium journey: **SUCCESS** at desktop `1440×1000` and mobile `390×844`.
+- Rendered workflow conclusion: `Product Workbench visual check passed YT-01 through YT-08 at desktop and mobile widths.`
+- Artifact: `product-workbench-rendered-evidence` / `10151698292`.
+- Artifact upload contains **40 PNGs**: 20 meaningful checkpoints × two viewports.
+- Captured YT-05→YT-08 evidence includes authorization boundary, Ledger not-ready, waiting, rejected, cancelled, approved, recovery active, 32 USDC blocked, proposed reauthorization, Ledger replacement-authority seam, 45 USDC allowed, recovery success, opened proof drawer, and My Bookings after recovery.
+
+The rendered check also asserts that no raw `0x...` 40-byte identifier leaks into the customer surface during agent/recovery states and that Friday Yoga exposes no usable `View booking` action after successful recovery.
 
 ## Exact next action
 
-Build the first continuous YT-05→YT-08 candidate on the existing `/product-preview` flow, beginning from the Golden secure-approval handoff. Reuse the current Golden shell rather than redesigning YT-01→YT-04.
+**Independent Product Reviewer #34 must directly inspect artifact `10151698292` for exact executable candidate `3b3ed50000b70718e43caaf4af36f1076a46755b`.**
 
-The candidate should include truthful fixture states for sponsor-dependent interactions where live wiring is not yet integrated, and expose clean seams that the Integrator can replace with real Ledger / World / Hedera state without product redesign.
+The reviewer should classify only `REVISE`, `REVIEWABLE`, or `GOLDEN-READY` under the hard visual gate. A green workflow alone is not visual approval.
 
-Do not start YT-09→YT-10 until the YT-05→YT-08 candidate has been independently reviewed.
+If review finds a material UX or truth issue, fix only that concrete finding and regenerate exact-head evidence.
+
+If this candidate (or a reviewed successor) reaches `GOLDEN-READY`, Devinson must explicitly approve that exact executable candidate before YT-05→YT-08 becomes Golden.
+
+Do not start YT-09→YT-10 until this active set has been independently reviewed.
 
 ## Anti-drift
 
