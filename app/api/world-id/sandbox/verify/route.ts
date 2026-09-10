@@ -5,6 +5,7 @@ import {
   WORLD_ID_SANDBOX_ENVIRONMENT,
   WORLD_ID_SANDBOX_RP_ID,
 } from "@/lib/world-id/sandbox-config";
+import { isLocalWorldIdSandboxRequest } from "@/lib/world-id/sandbox-server-guard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,6 +32,13 @@ function safeProviderCode(value: unknown): string | null {
 }
 
 export async function POST(request: Request): Promise<Response> {
+  if (!isLocalWorldIdSandboxRequest(request)) {
+    return NextResponse.json(
+      { ok: false, code: "NOT_FOUND" },
+      { status: 404, headers: { "cache-control": "no-store" } },
+    );
+  }
+
   let body: unknown;
   try {
     body = await request.json();

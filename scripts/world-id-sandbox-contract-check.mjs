@@ -2,6 +2,7 @@ import fs from "node:fs";
 
 const required = [
   "lib/world-id/sandbox-config.ts",
+  "lib/world-id/sandbox-server-guard.ts",
   "app/api/world-id/sandbox/rp-context/route.ts",
   "app/api/world-id/sandbox/verify/route.ts",
   "app/world-sandbox/page.tsx",
@@ -31,6 +32,7 @@ assert(
 
 if (required.every((file) => fs.existsSync(file))) {
   const config = read("lib/world-id/sandbox-config.ts");
+  const guard = read("lib/world-id/sandbox-server-guard.ts");
   const signer = read("app/api/world-id/sandbox/rp-context/route.ts");
   const verifier = read("app/api/world-id/sandbox/verify/route.ts");
   const page = read("app/world-sandbox/page.tsx");
@@ -44,9 +46,21 @@ if (required.every((file) => fs.existsSync(file))) {
     "Sandbox action is fixed rather than client-selected",
   );
   assert(
+    guard.includes('process.env.WORLD_ID_SANDBOX_PROOF_ENABLED !== "true"') &&
+      guard.includes('"localhost"') &&
+      guard.includes('"127.0.0.1"') &&
+      guard.includes('"::1"'),
+    "Sandbox API surface is explicitly enabled and loopback-only",
+  );
+  assert(
+    guard.includes('new URL(origin).origin === requestUrl.origin'),
+    "Sandbox API rejects a mismatched browser Origin when one is present",
+  );
+  assert(
     signer.includes("process.env.WORLD_ID_RP_SIGNING_KEY") &&
-      signer.includes("signRequest({"),
-    "RP signature is generated server-side from a non-public env var",
+      signer.includes("signRequest({") &&
+      signer.includes("isLocalWorldIdSandboxRequest(request)"),
+    "RP signature is generated server-side behind the local-only proof guard",
   );
   assert(
     !signer.includes("request.json()") && !signer.includes("NEXT_PUBLIC_WORLD_ID_RP_SIGNING_KEY"),
@@ -58,9 +72,10 @@ if (required.every((file) => fs.existsSync(file))) {
   );
   assert(
     verifier.includes("JSON.stringify(idkitResponse)") &&
+      verifier.includes("isLocalWorldIdSandboxRequest(request)") &&
       !verifier.includes("console.log") &&
       !verifier.includes("nullifier:"),
-    "Verifier forwards the IDKit payload without logging/publishing proof identity material",
+    "Verifier is local-only and forwards the IDKit payload without logging/publishing proof identity material",
   );
   assert(
     page.includes("environment={WORLD_ID_SANDBOX_ENVIRONMENT}") &&
@@ -69,7 +84,8 @@ if (required.every((file) => fs.existsSync(file))) {
   );
   assert(
     page.includes("Sandbox · Not production") &&
-      page.includes("not part of the\n          frozen YT-01→YT-08 customer journey"),
+      page.includes("not part of the") &&
+      page.includes("frozen YT-01→YT-08 customer journey"),
     "Proof surface is explicitly separated from Golden product truth",
   );
 }
@@ -86,6 +102,10 @@ const trackedText = [
 assert(
   !/WORLD_ID_RP_SIGNING_KEY\s*=\s*(?:0x)?[0-9a-fA-F]{64}/.test(trackedText),
   "No RP private key value is tracked in the Sandbox proof surface",
+);
+assert(
+  !trackedText.includes("NEXT_PUBLIC_WORLD_ID_RP_SIGNING_KEY"),
+  "RP signing key has no public-client environment alias",
 );
 
 console.log("World ID Sandbox contract check");
