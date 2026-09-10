@@ -15,8 +15,8 @@ export function StartFlowCta() {
             Find it, book it, keep track of it.
           </h2>
           <p className="mt-3 text-base leading-7 text-slate-700">
-            Browse a session, review the booking, then manage the pass from one
-            booking hub.
+            Browse a session, review the booking, then manage it from one booking
+            hub.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
@@ -35,7 +35,7 @@ export function StartFlowCta() {
                 "rounded-full no-underline"
               )}
             >
-              Open my passes
+              Open my bookings
             </Link>
           </div>
         </div>
@@ -49,7 +49,7 @@ export function StartFlowCta() {
           </h2>
           <p className="mt-3 text-base leading-7 text-slate-700">
             Provider tools stay separate so customers get a simple booking
-            experience while the business still controls check-in, pausing passes,
+            experience while the business still controls check-in, pausing bookings,
             and resale policy.
           </p>
           <div className="mt-6">
