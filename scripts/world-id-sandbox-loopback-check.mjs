@@ -244,6 +244,45 @@ await withServer("supported Sandbox", sandboxDev, LOOPBACK, sandboxPort, async (
     );
   }
 
+  // Browser-shaped requests must survive Next.js normalizing the internal
+  // request URL host between 127.0.0.1 and localhost. Only those two loopback
+  // aliases are equivalent, and only when protocol + effective port still match.
+  const browser127Status = await requestStatus(LOOPBACK, sandboxPort, {
+    origin: `http://127.0.0.1:${sandboxPort}`,
+  });
+  if (browser127Status !== 503) {
+    throw new Error(
+      `Browser Origin 127.0.0.1 must be accepted on the supported loopback listener; received ${browser127Status}`,
+    );
+  }
+
+  const browserLocalhostStatus = await requestStatus(LOOPBACK, sandboxPort, {
+    origin: `http://localhost:${sandboxPort}`,
+  });
+  if (browserLocalhostStatus !== 503) {
+    throw new Error(
+      `Browser Origin localhost must be accepted as the equivalent loopback alias; received ${browserLocalhostStatus}`,
+    );
+  }
+
+  const wrongPortOriginStatus = await requestStatus(LOOPBACK, sandboxPort, {
+    origin: `http://127.0.0.1:${sandboxPort + 1}`,
+  });
+  if (wrongPortOriginStatus !== 404) {
+    throw new Error(
+      `Loopback Origin on a different port must be rejected; received ${wrongPortOriginStatus}`,
+    );
+  }
+
+  const wrongSchemeOriginStatus = await requestStatus(LOOPBACK, sandboxPort, {
+    origin: `https://127.0.0.1:${sandboxPort}`,
+  });
+  if (wrongSchemeOriginStatus !== 404) {
+    throw new Error(
+      `Loopback Origin on a different scheme must be rejected; received ${wrongSchemeOriginStatus}`,
+    );
+  }
+
   const originStatus = await requestStatus(LOOPBACK, sandboxPort, {
     origin: "http://attacker.example",
   });
@@ -267,10 +306,11 @@ await withServer("supported Sandbox", sandboxDev, LOOPBACK, sandboxPort, async (
   }
 
   console.log("ok  supported Sandbox launch is reachable on 127.0.0.1");
-  console.log("ok  mismatched browser Origin is rejected as defense-in-depth");
+  console.log("ok  localhost and 127.0.0.1 browser Origins normalize safely");
+  console.log("ok  mismatched scheme, port, and non-loopback Origins are rejected");
   console.log(
     `ok  supported Sandbox launch rejected non-loopback transport on ${interfaces.length} interface(s)`,
   );
 });
 
-console.log("\nSEC-WORLD-005 repair has executable CI evidence; independent Security retest is still required.");
+console.log("\nSEC-WORLD-005 transport boundary remains intact; browser-Origin normalization is regression-tested.");
