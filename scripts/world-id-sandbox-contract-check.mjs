@@ -6,6 +6,7 @@ const required = [
   "app/api/world-id/sandbox/rp-context/route.ts",
   "app/api/world-id/sandbox/verify/route.ts",
   "app/world-sandbox/page.tsx",
+  "scripts/world-id-sandbox-loopback-check.mjs",
 ];
 
 const failures = [];
@@ -29,6 +30,19 @@ assert(
   packageJson.dependencies?.["@worldcoin/idkit"] === "4.2.3",
   "@worldcoin/idkit is pinned to the reviewed 4.2.3 API surface",
 );
+assert(
+  packageJson.scripts?.["world:sandbox:dev"]?.includes(
+    "WORLD_ID_SANDBOX_TRANSPORT=loopback-v1",
+  ) &&
+    packageJson.scripts?.["world:sandbox:dev"]?.includes("-H 127.0.0.1"),
+  "supported Sandbox launch explicitly binds Next.js to IPv4 loopback",
+);
+assert(
+  packageJson.scripts?.["world:sandbox-boundary-check"]?.includes(
+    "world-id-sandbox-loopback-check.mjs",
+  ),
+  "executable Sandbox transport-boundary check is exposed as a repo script",
+);
 
 if (required.every((file) => fs.existsSync(file))) {
   const config = read("lib/world-id/sandbox-config.ts");
@@ -36,6 +50,7 @@ if (required.every((file) => fs.existsSync(file))) {
   const signer = read("app/api/world-id/sandbox/rp-context/route.ts");
   const verifier = read("app/api/world-id/sandbox/verify/route.ts");
   const page = read("app/world-sandbox/page.tsx");
+  const boundaryCheck = read("scripts/world-id-sandbox-loopback-check.mjs");
 
   assert(
     config.includes('WORLD_ID_SANDBOX_ENVIRONMENT = "sandbox"'),
@@ -46,21 +61,32 @@ if (required.every((file) => fs.existsSync(file))) {
     "Sandbox action is fixed rather than client-selected",
   );
   assert(
-    guard.includes('process.env.WORLD_ID_SANDBOX_PROOF_ENABLED !== "true"') &&
-      guard.includes('"localhost"') &&
-      guard.includes('"127.0.0.1"') &&
-      guard.includes('"::1"'),
-    "Sandbox API surface is explicitly enabled and loopback-only",
+    guard.includes('process.env.NODE_ENV !== "development"') &&
+      guard.includes('process.env.WORLD_ID_SANDBOX_PROOF_ENABLED !== "true"') &&
+      guard.includes(
+        "process.env.WORLD_ID_SANDBOX_TRANSPORT !== SANDBOX_TRANSPORT_MARKER",
+      ) &&
+      guard.includes('SANDBOX_LOOPBACK_HOST = "127.0.0.1"'),
+    "Sandbox APIs fail closed unless the dedicated loopback development launch is active",
   );
   assert(
-    guard.includes('new URL(origin).origin === requestUrl.origin'),
-    "Sandbox API rejects a mismatched browser Origin when one is present",
+    guard.includes('new URL(origin).origin === requestUrl.origin') &&
+      guard.includes("Origin is defense-in-depth"),
+    "Origin remains a defense-in-depth browser check, not the transport trust anchor",
+  );
+  assert(
+    boundaryCheck.includes("nonLoopbackIpv4Addresses") &&
+      boundaryCheck.includes(
+        "Supported Sandbox launch accepted a TCP connection through a non-loopback interface",
+      ) &&
+      boundaryCheck.includes("Sandbox API must fail closed in production"),
+    "boundary test exercises real listener isolation and non-development fail-closed behavior",
   );
   assert(
     signer.includes("process.env.WORLD_ID_RP_SIGNING_KEY") &&
       signer.includes("signRequest({") &&
       signer.includes("isLocalWorldIdSandboxRequest(request)"),
-    "RP signature is generated server-side behind the local-only proof guard",
+    "RP signature is generated server-side behind the Sandbox proof guard",
   );
   assert(
     !signer.includes("request.json()") && !signer.includes("NEXT_PUBLIC_WORLD_ID_RP_SIGNING_KEY"),
@@ -75,7 +101,7 @@ if (required.every((file) => fs.existsSync(file))) {
       verifier.includes("isLocalWorldIdSandboxRequest(request)") &&
       !verifier.includes("console.log") &&
       !verifier.includes("nullifier:"),
-    "Verifier is local-only and forwards the IDKit payload without logging/publishing proof identity material",
+    "Verifier forwards IDKit payload without logging/publishing proof identity material",
   );
   assert(
     page.includes("environment={WORLD_ID_SANDBOX_ENVIRONMENT}") &&
@@ -119,4 +145,6 @@ if (failures.length > 0) {
   process.exit(1);
 }
 
-console.log("\nWorld ID Sandbox harness is CI/CONFIGURED only until a real Sandbox app round trip succeeds.");
+console.log(
+  "\nWorld ID Sandbox harness is CI/CONFIGURED only until SEC-WORLD-005 is independently closed and a real Sandbox app round trip succeeds.",
+);
