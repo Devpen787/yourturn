@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { Wallet } from "ethers";
 import { resolveEnrolledLedgerSignerAddress } from "../lib/ledger/ledger-signer-enrollment.ts";
 import {
+  readStableRecoveryMandateAuthorityVersion,
   withRecoveryMandateAuthorityMutation,
 } from "../lib/ledger/recovery-mandate-authority-boundary.ts";
 import { assertRecoveryMandateLiveBookingState } from "../lib/ledger/recovery-mandate-booking-guard.ts";
@@ -10,6 +11,7 @@ import { buildRecoveryMandateTypedData } from "../lib/ledger/recovery-mandate.ts
 import { createRedisRecoveryMandateReplayStore } from "../lib/ledger/recovery-mandate-replay.ts";
 import {
   activatePreparedRecoveryMandate,
+  activeRecoveryMandateKey,
   loadActiveRecoveryMandate,
   storePreparedRecoveryMandate,
 } from "../lib/ledger/recovery-mandate-state.ts";
@@ -21,6 +23,7 @@ const wallet = new Wallet(TEST_PRIVATE_KEY);
 const substituteWallet = Wallet.createRandom();
 const EXPECTED_HOLDER = "0.0.1001";
 const OTHER_HOLDER = "0.0.1002";
+const SERIAL = 193;
 
 const configuredSigners = {
   LEDGER_GUEST_A_SIGNER_ADDRESS: wallet.address,
@@ -57,7 +60,7 @@ function makeMandate(overrides = {}) {
     ledgerSignerAddress: wallet.address,
     agentId: "yourturn-concierge",
     bookingTokenId: "0.0.700001",
-    bookingSerial: BigInt(193),
+    bookingSerial: BigInt(SERIAL),
     allowedAction: "resale",
     minimumRecoveryAtomicUnits: BigInt(40_000_000),
     settlementAsset: "0.0.429274",
@@ -83,14 +86,11 @@ function createRedisFixture(options = {}) {
     },
     async set(key, value, options = {}) {
       if (options.nx && records.has(key)) return null;
-      records.set(key, { value, options });
+      records.set(key, { value: String(value), options });
       return "OK";
     },
     async eval(_script, keys, args) {
-      // Test adapter for the three Redis Lua operations used by the production
-      // authority-boundary helper. It models Redis command atomicity while
-      // allowing the accepted SEC-LEDGER-005 interleaving immediately before
-      // the final compare-version + active SET NX operation.
+      // BEGIN_MUTATION_SCRIPT.
       if (keys.length === 1 && args.length === 0) {
         const current = Number(records.get(keys[0])?.value ?? 0);
         if (!Number.isSafeInteger(current)) return -2;
@@ -99,6 +99,7 @@ function createRedisFixture(options = {}) {
         records.set(keys[0], { value: String(next), options: {} });
         return next;
       }
+      // END_MUTATION_SCRIPT.
       if (keys.length === 1 && args.length === 1) {
         const current = Number(records.get(keys[0])?.value ?? 0);
         const expected = Number(args[0]);
@@ -107,6 +108,7 @@ function createRedisFixture(options = {}) {
         records.set(keys[0], { value: String(next), options: {} });
         return next;
       }
+      // STORE_ACTIVE_IF_VERSION_UNCHANGED_SCRIPT.
       if (keys.length === 2 && args.length === 3) {
         if (beforeConditionalAuthorityWrite) {
           const hook = beforeConditionalAuthorityWrite;
@@ -146,7 +148,7 @@ const policy = {
 function validSlot(overrides = {}) {
   return {
     tokenId: "0.0.700001",
-    serial: 193,
+    serial: SERIAL,
     slotId: "slot-193",
     title: "Friday Yoga",
     startTime: "2026-09-11T16:00:00.000Z",
@@ -171,7 +173,7 @@ function validSlot(overrides = {}) {
 function activeListing(overrides = {}) {
   return {
     tokenId: "0.0.700001",
-    serial: 193,
+    serial: SERIAL,
     sellerAccountId: EXPECTED_HOLDER,
     askPriceHbar: 10,
     royaltyHbar: 1,
@@ -182,7 +184,7 @@ function activeListing(overrides = {}) {
   };
 }
 
-function revalidatorFor(liveState) {
+function revalidatorFor(liveState, afterValidation) {
   return async (mandate) => {
     assertRecoveryMandateLiveBookingState({
       mandate,
@@ -192,7 +194,18 @@ function revalidatorFor(liveState) {
         expectedHolderAccountId: EXPECTED_HOLDER,
       },
     });
+    if (afterValidation) await afterValidation(mandate);
   };
+}
+
+async function prepare(redis, mandate) {
+  await storePreparedRecoveryMandate({
+    store: redis,
+    mandate,
+    ownerId: mandate.ownerId,
+    nowUnixSeconds: NOW,
+  });
+  return sign(mandate);
 }
 
 async function activateFixture({
@@ -215,6 +228,16 @@ async function activateFixture({
   });
 }
 
+async function loadCurrentFixture({ redis, mandate, liveState }) {
+  return loadActiveRecoveryMandate({
+    store: redis,
+    authorityBoundaryStore: redis,
+    mandateId: mandate.mandateId,
+    ownerId: mandate.ownerId,
+    revalidateMutableAuthority: revalidatorFor(liveState),
+  });
+}
+
 async function assertInitialStaleStateFails({
   label,
   expectedError,
@@ -227,13 +250,7 @@ async function assertInitialStaleStateFails({
     mandateId: `mandate-stale-${suffix}`,
     nonce: `runtime-stale-${suffix}`,
   });
-  await storePreparedRecoveryMandate({
-    store: redis,
-    mandate,
-    ownerId: mandate.ownerId,
-    nowUnixSeconds: NOW,
-  });
-  const signature = await sign(mandate);
+  const signature = await prepare(redis, mandate);
   const liveState = { slot: validSlot(), listing: null };
   mutate(liveState);
 
@@ -251,16 +268,17 @@ async function assertInitialStaleStateFails({
   await assert.rejects(
     loadActiveRecoveryMandate({
       store: redis,
+      authorityBoundaryStore: redis,
       mandateId: mandate.mandateId,
       ownerId: mandate.ownerId,
+      revalidateMutableAuthority: revalidatorFor(liveState),
     }),
     /not found|expired/,
     `${label} must not create active authority`
   );
 
-  // Initial stale-state rejection happens before replay consumption, so fixing
-  // the live predicate can still activate the already-signed mandate. This is
-  // distinct from a final-boundary race, which intentionally consumes/fails.
+  // Initial stale rejection is before replay consumption. A corrected live
+  // state may therefore activate the same already-signed mandate once.
   liveState.slot = validSlot();
   liveState.listing = null;
   const recovered = await activateFixture({
@@ -273,16 +291,11 @@ async function assertInitialStaleStateFails({
   assert.equal(recovered.active.state, "active");
 }
 
+// Baseline one-shot activation, owner isolation and guarded active load.
 const redis = createRedisFixture();
 const replayStore = createRedisRecoveryMandateReplayStore(redis);
 const mandate = makeMandate();
-await storePreparedRecoveryMandate({
-  store: redis,
-  mandate,
-  ownerId: mandate.ownerId,
-  nowUnixSeconds: NOW,
-});
-const signature = await sign(mandate);
+const signature = await prepare(redis, mandate);
 const validLiveState = { slot: validSlot(), listing: null };
 
 await assert.rejects(
@@ -324,29 +337,33 @@ assert.equal(
   "duplicate concurrent activation must fail"
 );
 
-const active = await loadActiveRecoveryMandate({
-  store: redis,
-  mandateId: mandate.mandateId,
-  ownerId: mandate.ownerId,
-});
+const active = await loadCurrentFixture({ redis, mandate, liveState: validLiveState });
 assert.equal(active.record.state, "active");
 assert.equal(active.record.authorityStateVersion, 0);
 assert.equal(active.mandate.agentId, "yourturn-concierge");
-assert.equal(active.mandate.bookingSerial, BigInt(193));
+assert.equal(active.mandate.bookingSerial, BigInt(SERIAL));
 assert.equal(active.mandate.minimumRecoveryAtomicUnits, BigInt(40_000_000));
 assert.equal(active.mandate.settlementAsset, "0.0.429274");
 assert.equal(active.mandate.cancellationAllowed, false);
 
+// An active record cannot be interpreted as authority without current booking
+// boundary + live predicate validation context.
+await assert.rejects(
+  loadActiveRecoveryMandate({
+    store: redis,
+    mandateId: mandate.mandateId,
+    ownerId: mandate.ownerId,
+  }),
+  /requires the authoritative booking state boundary/,
+  "raw active-state inspection must not be an authorization API"
+);
+
+// Wrong signer must not poison replay; the correct signature can still win.
 const badSignatureMandate = makeMandate({
   mandateId: "mandate-runtime-bad-signature",
   nonce: "runtime-nonce-bad-signature",
 });
-await storePreparedRecoveryMandate({
-  store: redis,
-  mandate: badSignatureMandate,
-  ownerId: badSignatureMandate.ownerId,
-  nowUnixSeconds: NOW,
-});
+const correctAfterBadSignature = await prepare(redis, badSignatureMandate);
 const badTyped = buildRecoveryMandateTypedData(badSignatureMandate);
 const wrongSignature = await substituteWallet.signTypedData(
   badTyped.domain,
@@ -363,8 +380,6 @@ await assert.rejects(
   }),
   /signature signer mismatch/
 );
-
-const correctAfterBadSignature = await sign(badSignatureMandate);
 await activateFixture({
   redis,
   replayStore,
@@ -373,6 +388,7 @@ await activateFixture({
   revalidateMutableAuthority: revalidatorFor(validLiveState),
 });
 
+// Preserve the accepted stale prepare/activation negatives.
 await assertInitialStaleStateFails({
   label: "stale holder",
   expectedError: /holder changed/,
@@ -405,21 +421,14 @@ await assertInitialStaleStateFails({
   },
 });
 
-// Accepted SEC-LEDGER-005 stale-state reproducer: all mutable predicates changed
-// after preparation. Initial live validation must reject without active state.
+// Accepted SEC-LEDGER-005 combined stale-state reproducer.
 const reproRedis = createRedisFixture();
 const reproReplayStore = createRedisRecoveryMandateReplayStore(reproRedis);
 const reproMandate = makeMandate({
   mandateId: "security-stale-activation-193",
   nonce: "security-stale-activation-nonce-193",
 });
-await storePreparedRecoveryMandate({
-  store: reproRedis,
-  mandate: reproMandate,
-  ownerId: reproMandate.ownerId,
-  nowUnixSeconds: NOW,
-});
-const reproSignature = await sign(reproMandate);
+const reproSignature = await prepare(reproRedis, reproMandate);
 const staleReproLive = {
   slot: validSlot({
     status: "AVAILABLE",
@@ -440,30 +449,21 @@ await assert.rejects(
   }),
   /no longer held|policy no longer permits|active resale listing|holder changed/
 );
-await assert.rejects(
-  loadActiveRecoveryMandate({
-    store: reproRedis,
-    mandateId: reproMandate.mandateId,
-    ownerId: reproMandate.ownerId,
-  }),
-  /not found|expired/
+assert.equal(
+  await reproRedis.get(activeRecoveryMandateKey(reproMandate.mandateId)),
+  null
 );
 
-// Earlier race: first live read is valid, then a listing appears before the
-// second live validation. The second read must block authority creation.
+// SEC-LEDGER-005 earlier race: the second live validation catches a listing
+// appearing after the first validation. Replay remains consumed after this
+// final-boundary failure.
 const raceRedis = createRedisFixture();
 const raceReplayStore = createRedisRecoveryMandateReplayStore(raceRedis);
 const raceMandate = makeMandate({
   mandateId: "mandate-final-revalidation-race",
   nonce: "runtime-final-revalidation-race",
 });
-await storePreparedRecoveryMandate({
-  store: raceRedis,
-  mandate: raceMandate,
-  ownerId: raceMandate.ownerId,
-  nowUnixSeconds: NOW,
-});
-const raceSignature = await sign(raceMandate);
+const raceSignature = await prepare(raceRedis, raceMandate);
 let raceValidationCount = 0;
 const raceRevalidator = async (signedMandate) => {
   raceValidationCount += 1;
@@ -486,19 +486,8 @@ await assert.rejects(
   }),
   /active resale listing/
 );
-assert.equal(
-  raceValidationCount,
-  2,
-  "activation must re-read live state at final authority creation"
-);
-await assert.rejects(
-  loadActiveRecoveryMandate({
-    store: raceRedis,
-    mandateId: raceMandate.mandateId,
-    ownerId: raceMandate.ownerId,
-  }),
-  /not found|expired/
-);
+assert.equal(raceValidationCount, 2);
+assert.equal(await raceRedis.get(activeRecoveryMandateKey(raceMandate.mandateId)), null);
 await assert.rejects(
   activateFixture({
     redis: raceRedis,
@@ -507,16 +496,11 @@ await assert.rejects(
     signature: raceSignature,
     revalidateMutableAuthority: revalidatorFor(validLiveState),
   }),
-  /already been consumed/,
-  "a signature consumed before a final-boundary stale failure must not become reusable"
+  /already been consumed/
 );
 
-// Accepted independent SEC-LEDGER-005 final-boundary reproducer: BOTH live
-// validations observe valid state. A competing listing mutation begins and
-// completes after the second successful validation but immediately before the
-// active-authority Redis operation. The mutation advances the shared serialized
-// version, so the compare-version + SET NX must reject and leave no active
-// authority record.
+// Accepted SEC-LEDGER-005 final-boundary race: both ordinary validations pass,
+// then a serialized listing mutation lands immediately before active CAS.
 const finalRaceLive = { slot: validSlot(), listing: null };
 const finalRaceRedis = createRedisFixture();
 const finalRaceReplayStore = createRedisRecoveryMandateReplayStore(finalRaceRedis);
@@ -524,13 +508,7 @@ const finalRaceMandate = makeMandate({
   mandateId: "mandate-atomic-final-boundary-race",
   nonce: "runtime-atomic-final-boundary-race",
 });
-await storePreparedRecoveryMandate({
-  store: finalRaceRedis,
-  mandate: finalRaceMandate,
-  ownerId: finalRaceMandate.ownerId,
-  nowUnixSeconds: NOW,
-});
-const finalRaceSignature = await sign(finalRaceMandate);
+const finalRaceSignature = await prepare(finalRaceRedis, finalRaceMandate);
 let finalRaceValidationCount = 0;
 const finalRaceRevalidator = async (signedMandate) => {
   finalRaceValidationCount += 1;
@@ -561,22 +539,19 @@ await assert.rejects(
     signature: finalRaceSignature,
     revalidateMutableAuthority: finalRaceRevalidator,
   }),
-  /state changed after final validation/,
-  "a mutation after the last successful validation must make the atomic active write fail"
+  /state changed after final validation/
+);
+assert.equal(finalRaceValidationCount, 2);
+assert.equal(
+  await finalRaceRedis.get(activeRecoveryMandateKey(finalRaceMandate.mandateId)),
+  null
 );
 assert.equal(
-  finalRaceValidationCount,
-  2,
-  "accepted final-boundary reproducer requires both ordinary live validations to succeed"
-);
-await assert.rejects(
-  loadActiveRecoveryMandate({
+  await readStableRecoveryMandateAuthorityVersion({
     store: finalRaceRedis,
-    mandateId: finalRaceMandate.mandateId,
-    ownerId: finalRaceMandate.ownerId,
+    bookingSerial: SERIAL,
   }),
-  /not found|expired/,
-  "final-boundary race must leave no active authority record"
+  2
 );
 await assert.rejects(
   activateFixture({
@@ -586,22 +561,119 @@ await assert.rejects(
     signature: finalRaceSignature,
     revalidateMutableAuthority: revalidatorFor(validLiveState),
   }),
-  /already been consumed/,
-  "final-boundary CAS rejection must preserve one-shot replay consumption"
+  /already been consumed/
 );
 
+// SEC-LEDGER-006 accepted reproducer: activation is valid at version 0. A later
+// relevant serialized mutation advances authority state to 2. The guarded
+// loader must reject the old active record instead of returning it as current
+// recovery authority. Replay remains one-shot.
+const postLive = { slot: validSlot(), listing: null };
+const postRedis = createRedisFixture();
+const postReplayStore = createRedisRecoveryMandateReplayStore(postRedis);
+const postMandate = makeMandate({
+  mandateId: "mandate-post-activation-invalidation",
+  nonce: "runtime-post-activation-invalidation",
+});
+const postSignature = await prepare(postRedis, postMandate);
+const postActivation = await activateFixture({
+  redis: postRedis,
+  replayStore: postReplayStore,
+  mandate: postMandate,
+  signature: postSignature,
+  revalidateMutableAuthority: revalidatorFor(postLive),
+});
+assert.equal(postActivation.active.authorityStateVersion, 0);
+await withRecoveryMandateAuthorityMutation({
+  store: postRedis,
+  bookingSerial: SERIAL,
+  mutate: async () => {
+    postLive.listing = activeListing();
+  },
+});
+const postMutationVersion = await readStableRecoveryMandateAuthorityVersion({
+  store: postRedis,
+  bookingSerial: SERIAL,
+});
+assert.equal(postMutationVersion, 2);
+await assert.rejects(
+  loadActiveRecoveryMandate({
+    store: postRedis,
+    authorityBoundaryStore: postRedis,
+    mandateId: postMandate.mandateId,
+    ownerId: postMandate.ownerId,
+    revalidateMutableAuthority: revalidatorFor(postLive),
+  }),
+  /stale because booking authority state changed after activation/,
+  "serialized post-activation mutation must invalidate the old active authority"
+);
+assert.notEqual(
+  JSON.parse(
+    await postRedis.get(activeRecoveryMandateKey(postMandate.mandateId))
+  ).authorityStateVersion,
+  postMutationVersion,
+  "stored evidence may remain for audit, but its stale version must be unusable"
+);
+postLive.listing = null;
+await assert.rejects(
+  activateFixture({
+    redis: postRedis,
+    replayStore: postReplayStore,
+    mandate: postMandate,
+    signature: postSignature,
+    revalidateMutableAuthority: revalidatorFor(postLive),
+  }),
+  /already been consumed/,
+  "post-activation invalidation must not weaken replay protection"
+);
+
+// A mutation racing the guarded active load after a successful live predicate
+// read is also detected by the second stable-version read before return.
+const loadRaceLive = { slot: validSlot(), listing: null };
+const loadRaceRedis = createRedisFixture();
+const loadRaceReplayStore = createRedisRecoveryMandateReplayStore(loadRaceRedis);
+const loadRaceMandate = makeMandate({
+  mandateId: "mandate-active-load-race",
+  nonce: "runtime-active-load-race",
+});
+const loadRaceSignature = await prepare(loadRaceRedis, loadRaceMandate);
+await activateFixture({
+  redis: loadRaceRedis,
+  replayStore: loadRaceReplayStore,
+  mandate: loadRaceMandate,
+  signature: loadRaceSignature,
+  revalidateMutableAuthority: revalidatorFor(loadRaceLive),
+});
+let activeLoadValidationCount = 0;
+await assert.rejects(
+  loadActiveRecoveryMandate({
+    store: loadRaceRedis,
+    authorityBoundaryStore: loadRaceRedis,
+    mandateId: loadRaceMandate.mandateId,
+    ownerId: loadRaceMandate.ownerId,
+    revalidateMutableAuthority: revalidatorFor(loadRaceLive, async () => {
+      activeLoadValidationCount += 1;
+      await withRecoveryMandateAuthorityMutation({
+        store: loadRaceRedis,
+        bookingSerial: SERIAL,
+        mutate: async () => {
+          loadRaceLive.listing = activeListing();
+        },
+      });
+    }),
+  }),
+  /changed while validating the active recovery mandate/,
+  "mutation after successful live revalidation must fail before guarded load returns"
+);
+assert.equal(activeLoadValidationCount, 1);
+
+// Static non-bypass checks for production seams.
 const prepareRoute = readFileSync(
-  new URL(
-    "../app/api/ledger/recovery-mandate/prepare/route.ts",
-    import.meta.url
-  ),
+  new URL("../app/api/ledger/recovery-mandate/prepare/route.ts", import.meta.url),
   "utf8"
 );
 const activateRoute = readFileSync(
-  new URL(
-    "../app/api/ledger/recovery-mandate/activate/route.ts",
-    import.meta.url
-  ),
+  new URL("../app/api/ledger/recovery-mandate/activate/route.ts", import.meta.url),
   "utf8"
 );
 const activationStateSource = readFileSync(
@@ -609,10 +681,7 @@ const activationStateSource = readFileSync(
   "utf8"
 );
 const authorityBoundarySource = readFileSync(
-  new URL(
-    "../lib/ledger/recovery-mandate-authority-boundary.ts",
-    import.meta.url
-  ),
+  new URL("../lib/ledger/recovery-mandate-authority-boundary.ts", import.meta.url),
   "utf8"
 );
 const bookingGuardSource = readFileSync(
@@ -658,20 +727,27 @@ assert.match(activateRoute, /assertRecoveryMandateLiveBookingState/);
 assert.match(activateRoute, /expectedHolderAccountId/);
 assert.match(activationStateSource, /await input\.revalidateMutableAuthority\(mandate\)/);
 assert.match(activationStateSource, /await input\.revalidateMutableAuthority\(verified\.mandate\)/);
-assert.match(
-  activationStateSource,
-  /readStableRecoveryMandateAuthorityVersion/,
-  "activation must capture the serialized booking authority version"
-);
-assert.match(
-  activationStateSource,
-  /storeActiveRecoveryMandateIfAuthorityVersionUnchanged/,
-  "active authority must use compare-version + SET NX rather than a separate write"
-);
+assert.match(activationStateSource, /readStableRecoveryMandateAuthorityVersion/);
+assert.match(activationStateSource, /storeActiveRecoveryMandateIfAuthorityVersionUnchanged/);
 assert.doesNotMatch(
   activationStateSource,
   /input\.store\.set\(\s*activeRecoveryMandateKey/,
   "active authority must not regress to a separate ordinary SET NX"
+);
+assert.match(
+  activationStateSource,
+  /authorityStateVersionBefore !== record\.authorityStateVersion/,
+  "active loading must reject a record invalidated after activation"
+);
+assert.match(
+  activationStateSource,
+  /await input\.revalidateMutableAuthority\(mandate\)/,
+  "active loading must re-read mutable booking authority"
+);
+assert.match(
+  activationStateSource,
+  /authorityStateVersionAfter !== record\.authorityStateVersion/,
+  "active loading must detect mutation racing live revalidation"
 );
 assert.match(authorityBoundarySource, /current ~= expected/);
 assert.match(authorityBoundarySource, /"NX", "EX"/);
@@ -704,24 +780,11 @@ assert.match(prepareRoute, /slot\.policySnapshot\.resaleAllowed/);
 assert.match(prepareRoute, /slot\.holderAccountId/);
 assert.match(
   prepareRoute,
-  /resolveEnrolledLedgerSignerAddress\(\s*appUser\.hederaPersona\s*\)/,
-  "prepare must resolve the expected signer from authenticated server-side enrollment"
+  /resolveEnrolledLedgerSignerAddress\(\s*appUser\.hederaPersona\s*\)/
 );
-assert.match(
-  prepareRoute,
-  /\.strict\(\)/,
-  "prepare request schema must reject unknown signer-override fields"
-);
-assert.doesNotMatch(
-  prepareRoute,
-  /ledgerSignerAddress:\s*z\./,
-  "prepare request must not accept ledgerSignerAddress from the client"
-);
-assert.match(
-  prepareRoute,
-  /signerSource:\s*"server_enrollment"/,
-  "prepared evidence should expose that signer identity came from server enrollment"
-);
+assert.match(prepareRoute, /\.strict\(\)/);
+assert.doesNotMatch(prepareRoute, /ledgerSignerAddress:\s*z\./);
+assert.match(prepareRoute, /signerSource:\s*"server_enrollment"/);
 
 console.log(
   JSON.stringify(
@@ -740,20 +803,23 @@ console.log(
         "Ledger-specific routes never mint or verify legacy reusable approval grants",
         "activation route instantiates the real Redis replay and authority-boundary adapters",
         "activation re-reads holder/status/booked-policy/current-policy/listing predicates before replay consumption and at final authority creation",
-        "stale holder fails closed with no active authority",
-        "stale held/transferable status fails closed with no active authority",
-        "stale provider resale policy fails closed with no active authority",
-        "conflicting active listing fails closed with no active authority",
-        "accepted SEC-LEDGER-005 combined stale-state reproducer no longer activates authority",
+        "stale holder/status/provider-policy/listing each fail closed before activation",
+        "accepted SEC-LEDGER-005 combined stale-state reproducer cannot activate authority",
         "booking/listing/status mutation surfaces share an odd/even serialized authority version",
-        "final active authority creation atomically compares the validated stable version and SET NX writes the authority",
-        "accepted final-boundary race after both successful validations advances the version and leaves no active authority",
-        "final-boundary rejection preserves consumed one-shot replay semantics",
+        "final active creation atomically compares the validated stable version and SET NX writes authority",
+        "accepted SEC-LEDGER-005 final-boundary race leaves no active authority and preserves one-shot replay",
+        "SEC-LEDGER-006 post-activation serialized mutation makes the previously active mandate fail closed on guarded load",
+        "guarded active load compares captured/current stable version and revalidates mutable booking predicates",
+        "mutation racing guarded active revalidation is detected by the second stable-version read",
+        "active record cannot be treated as authority without current boundary and live revalidation context",
       ],
+      secLedger005: "CLOSED_INDEPENDENTLY",
+      secLedger006: "BUILDER_REPAIRED_PENDING_INDEPENDENT_RETEST",
+      postActivationMutationVersion: postMutationVersion,
       deviceProof: false,
       downstreamRecoveryExecution: false,
       claimBoundary:
-        "CI proves stale prepared booking authority cannot activate across holder/status/provider-policy/listing changes, including the SEC-LEDGER-005 mutation after the last successful validation, while preserving the dedicated Redis one-shot path and server-controlled signer enrollment. It does not prove Ledger hardware provenance or that active mandate state is yet consumed by Hedera recovery execution.",
+        "CI now fails closed when a serialized holder/status/provider-policy/listing mutation makes an already-active Recovery Mandate stale, while preserving the SEC-LEDGER-005 activation CAS, server-controlled signer enrollment, and one-shot Redis replay. The stored active record may remain as audit evidence but guarded loading refuses it as current authority. This does not prove Ledger hardware provenance or downstream Hedera recovery enforcement.",
     },
     null,
     2
