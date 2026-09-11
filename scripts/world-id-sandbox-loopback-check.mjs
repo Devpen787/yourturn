@@ -189,15 +189,19 @@ await withServer("production", production, LOOPBACK, productionPort, async () =>
   console.log("ok  Sandbox API returns 404 outside development mode");
 });
 
-// Re-run the old unsafe launch shape. The generic dev server may listen on a
-// non-loopback interface, but the Sandbox API must remain disabled because the
-// dedicated transport marker is absent.
+// Re-run the old unsafe Next dev launch shape: no explicit hostname. It may
+// listen on a non-loopback interface, but the Sandbox API must remain disabled
+// because the dedicated transport marker is absent.
 const genericPort = await getFreePort();
-const genericDev = start("npm", ["run", "dev"], {
-  ...baseEnv,
-  NODE_ENV: "development",
-  PORT: String(genericPort),
-});
+const genericDev = start(
+  process.execPath,
+  ["node_modules/next/dist/bin/next", "dev", "-p", String(genericPort)],
+  {
+    ...baseEnv,
+    NODE_ENV: "development",
+    WORLD_ID_SANDBOX_TRANSPORT: "",
+  },
+);
 
 await withServer("generic dev", genericDev, LOOPBACK, genericPort, async () => {
   const loopbackStatus = await requestStatus(LOOPBACK, genericPort);
@@ -229,6 +233,7 @@ const sandboxDev = start("npm", ["run", "world:sandbox:dev"], {
   ...baseEnv,
   NODE_ENV: "development",
   PORT: String(sandboxPort),
+  WORLD_ID_SANDBOX_TRANSPORT: "",
 });
 
 await withServer("supported Sandbox", sandboxDev, LOOPBACK, sandboxPort, async () => {
