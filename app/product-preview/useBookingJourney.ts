@@ -45,9 +45,8 @@ export function useBookingJourney() {
   const requested = useSearchParams().get("view") ?? "xc-find";
   const raw = useSyncExternalStore(subscribe, snapshot, SERVER_SNAPSHOT);
   // Tracks an in-flight push and gives it one short grace window to land. If
-  // the committed fixture facts already resolve to the destination but the URL
-  // is still stuck on `from` after that bounded window, the push is treated as
-  // interrupted and canonical convergence is allowed to proceed.
+  // the browser is still stuck on `from` after that bounded window, retry the
+  // originally resolved destination against the latest persisted facts.
   const pendingView = useRef<PendingView | null>(null);
   const [writeError, setWriteError] = useState<string | null>(null);
   const [convergeTick, setConvergeTick] = useState(0);
@@ -70,8 +69,7 @@ export function useBookingJourney() {
         if (!pending.fallbackArmed) {
           // Give the original push a bounded chance to land. A timeout rather
           // than an immediate replace avoids fighting an in-flight Next/RSC
-          // navigation, while guaranteeing that a cancelled push cannot leave
-          // committed facts and URL desynchronised indefinitely.
+          // navigation, while guaranteeing a cancelled push gets another pass.
           pending.fallbackArmed = true;
           const timer = window.setTimeout(
             () => setConvergeTick((tick) => tick + 1),
@@ -79,13 +77,20 @@ export function useBookingJourney() {
           );
           return () => window.clearTimeout(timer);
         }
-        // The push did not land within the grace window. Drop its marker and
-        // fall through to canonical replacement from the persisted facts.
+        // The push did not land within the grace window. Resolve the intended
+        // destination again from the latest facts so route-only navigation also
+        // converges and a stale target can never manufacture authority.
         pendingView.current = null;
+        if (!loaded.state || error) return;
+        const fallbackDestination = resolved(pending.destination, loaded.state);
+        if (fallbackDestination !== requested) {
+          router.replace(`/product-preview?view=${fallbackDestination}`, { scroll: false });
+        }
+        return;
       } else {
         // Back/Forward/reload moved somewhere else before the push landed.
         // Drop the stale marker, then defer one pass so an in-flight reload can
-        // finish before the canonical replace (avoids an RSC abort regression).
+        // finish before canonical fact-driven convergence (avoids RSC aborts).
         pendingView.current = null;
         setConvergeTick((tick) => tick + 1);
         return;
