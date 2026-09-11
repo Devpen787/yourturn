@@ -64,7 +64,7 @@
       "curated Hedera H1"
     ],
     "integrationReady": false,
-    "reason": "Hedera H2/USDC LIVE proof, World signed-route plus canonical Ledger-mandate bridge, Ledger DEVICE evidence, sponsor-backed fixture replacement and final integrated E2E are not complete. Ledger SEC-005/006 software authority lifecycle is Security-green at CI/CONFIGURED but does not substitute for device or integrated execution evidence."
+    "reason": "Hedera H2/USDC LIVE proof, World signed-route plus canonical Ledger-mandate bridge, Ledger DEVICE evidence, sponsor-backed fixture replacement and final integrated E2E are not complete. Ledger SEC-005/006 software authority lifecycle is Security-green at CI/CONFIGURED and the device ceremony is human-ready, but neither substitutes for real device or integrated execution evidence."
   },
   "sponsors": {
     "hedera": {
@@ -94,29 +94,28 @@
         "secWorld005": "CLOSED_CI_CONFIGURED",
         "independentRun": "34547005448",
         "attackerHead": "98c399712fa6f38779df9666b982cf1b78a528f5",
-        "cleanupRegressionRetest": "PENDING_BOUNDED_RETEST"
+        "cleanupRegressionRetest": "CLEAN_CI_CONFIGURED_RUN_34558923596_ATTACKER_6e7523a4597ff3e0434758e9412c399ce8a819be"
       },
-      "currentEvidence": "LIVE/AGENTBOOK for registration/resolution; REAL NON-PRODUCTION SANDBOX proof with World v4 backend verification; CI/READY, NOT LIVE/SIGNED-ROUTE for registered-agent recovery",
+      "currentEvidence": "LIVE/AGENTBOOK for registration/resolution; REAL NON-PRODUCTION SANDBOX proof with World v4 backend verification; Sandbox loopback/browser-Origin cleanup independently Security-clean; CI/READY, NOT LIVE/SIGNED-ROUTE for registered-agent recovery",
       "integrationReady": false,
       "blockers": [
-        "Complete the bounded Security regression retest for PR #43 localhost/127.0.0.1 guard normalization without reopening the completed Sandbox proof unless a regression is found",
         "Execute locally signed registered-agent recovery route against initialized non-production YourTurn state",
         "Replace branch-local ApprovalGrant authority scaffolding with canonical activated Ledger Recovery Mandate projection for final integration"
       ]
     },
     "ledger": {
-      "head": "a1126a0e7d2e5bb679914b0409209799520f8646",
-      "continuityRun": "34554710275",
+      "head": "7ac9e8ea3ba8a51ff3ec889774fd8f8724677b4d",
+      "continuityRun": "34558524222",
       "security": {
         "secLedger005": "CLOSED_CI_CONFIGURED",
         "secLedger006": "CLOSED_CI_CONFIGURED",
         "independentAttackerHead": "7e03f28ad0182ff1aec112a8a05ddd5a2bfcf914",
         "independentRun": "34555366707"
       },
-      "currentEvidence": "CI/CONFIGURED with SEC-LEDGER-005 and SEC-LEDGER-006 independently closed; physical DEVICE evidence remains RED",
+      "currentEvidence": "CI/CONFIGURED with SEC-LEDGER-005 and SEC-LEDGER-006 independently closed; physical qualification runbook/tooling exact-head CI GREEN and ready for a human device session; LIVE/DEVICE remains RED",
       "integrationReady": false,
       "blockers": [
-        "Capture real identical-mandate DMK approve plus reject/cancel evidence before claiming LIVE/DEVICE",
+        "Execute the pinned identical-mandate physical DMK reject -> host cancel -> approve ceremony and capture reviewer-safe evidence before claiming LIVE/DEVICE",
         "Consume final downstream authority only through loadActiveRecoveryMandate() or an equivalent atomic guarded boundary with current stable authority version and live holder/status/provider-policy/listing revalidation",
         "Prove the final integrated Ledger→World→Hedera path preserves stale/revoked/out-of-scope fail-closed and one-shot replay behavior"
       ]
@@ -150,10 +149,13 @@
       "privateKeyMustRemainLocal": true
     },
     "ledgerDevice": {
-      "status": "RED_NOT_YET_CAPTURED",
+      "status": "RED_READY_FOR_HUMAN_SESSION_NOT_YET_CAPTURED",
       "softwareGateSec005Closed": true,
       "softwareGateSec006Closed": true,
-      "requiredEvidence": "Identical Recovery Mandate real DMK approve plus reject/cancel with reviewer-safe outputs"
+      "requiredEvidence": "Identical Recovery Mandate real DMK approve plus reject/cancel with reviewer-safe outputs",
+      "runbookHead": "7ac9e8ea3ba8a51ff3ec889774fd8f8724677b4d",
+      "continuityRun": "34558524222",
+      "runbookPath": "docs/ethonline-2026/ledger/DEVICE_QUALIFICATION_RUNBOOK.md"
     }
   },
   "submissionPackage": {
