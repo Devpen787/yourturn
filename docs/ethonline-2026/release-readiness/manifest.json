@@ -64,7 +64,7 @@
       "curated Hedera H1"
     ],
     "integrationReady": false,
-    "reason": "Hedera H2/USDC LIVE proof, World signed-route plus canonical Ledger-mandate bridge, Ledger DEVICE evidence, sponsor-backed fixture replacement and final integrated E2E are not complete. Ledger SEC-005/006 software authority lifecycle is Security-green at CI/CONFIGURED and the device ceremony is human-ready, but neither substitutes for real device or integrated execution evidence."
+    "reason": "Hedera H2/USDC LIVE proof, World signed-route plus canonical Ledger-mandate bridge, Ledger dependency-security clearance plus DEVICE evidence, sponsor-backed fixture replacement and final integrated E2E are not complete. Ledger SEC-005/006 software authority lifecycle is Security-green at CI/CONFIGURED and the ceremony contract is CI-green, but a separate dependency triage currently blocks credential loading, app startup, mandate signing/activation and the physical ceremony."
   },
   "sponsors": {
     "hedera": {
@@ -77,7 +77,7 @@
       "currentEvidence": "CI/LOCAL for new H2-bound NFT+USDC recovery; H0/H1 retain their independently verified LIVE/TESTNET evidence",
       "integrationReady": false,
       "blockers": [
-        "Obtain external testnet liquidity without automation spending or secret exposure",
+        "Freshly verify the configured testnet USDC balance and role prerequisites after the reported top-up; do not reuse the historical 19.98 balance / 25.02 shortfall as current truth without recheck",
         "Execute canonical 45-USDC LIVE/TESTNET recovery while preserving 40-USDC minimum and 32-USDC denial",
         "Independently Security-review the exact live artifact before promotion"
       ]
@@ -110,12 +110,16 @@
         "secLedger005": "CLOSED_CI_CONFIGURED",
         "secLedger006": "CLOSED_CI_CONFIGURED",
         "independentAttackerHead": "7e03f28ad0182ff1aec112a8a05ddd5a2bfcf914",
-        "independentRun": "34555366707"
+        "independentRun": "34555366707",
+        "dependencySigningHold": "OPEN_PRECAUTIONARY_TRIAGE_DOES_NOT_REOPEN_SEC005_006",
+        "dependencyHoldIssue": 16,
+        "dependencyHoldCommentId": 5634713735
       },
-      "currentEvidence": "CI/CONFIGURED with SEC-LEDGER-005 and SEC-LEDGER-006 independently closed; physical qualification runbook/tooling exact-head CI GREEN and ready for a human device session; LIVE/DEVICE remains RED",
+      "currentEvidence": "CI/CONFIGURED with SEC-LEDGER-005 and SEC-LEDGER-006 independently closed; physical ceremony contract/runbook exact-head CI GREEN; local public-address verification completed but no mandate signature/activation exists; LIVE/DEVICE remains RED and device execution is paused pending dependency-security triage",
       "integrationReady": false,
       "blockers": [
-        "Execute the pinned identical-mandate physical DMK reject -> host cancel -> approve ceremony and capture reviewer-safe evidence before claiming LIVE/DEVICE",
+        "Complete bounded dependency reproduction/reachability/remediation review and obtain independent Security acceptance for the exact runtime dependency graph before credential loading, app startup, mandate signing/activation or the physical ceremony",
+        "After Security reopens the session, execute the pinned identical-mandate physical DMK reject -> host cancel -> approve ceremony and capture reviewer-safe evidence before claiming LIVE/DEVICE",
         "Consume final downstream authority only through loadActiveRecoveryMandate() or an equivalent atomic guarded boundary with current stable authority version and live holder/status/provider-policy/listing revalidation",
         "Prove the final integrated Ledger→World→Hedera path preserves stale/revoked/out-of-scope fail-closed and one-shot replay behavior"
       ]
@@ -123,11 +127,12 @@
   },
   "externalActions": {
     "hederaTestnetLiquidity": {
-      "status": "BLOCKED_ON_HUMAN_EXTERNAL_ACTION",
+      "status": "TOP_UP_REPORTED_FRESH_PUBLIC_BALANCE_UNVERIFIED",
       "account": "0.0.8504405",
-      "currentTestnetUsdc": "19.98",
-      "requiredAdditionalTestnetUsdc": "25.02",
+      "lastVerifiedTestnetUsdc": "19.98",
+      "historicalRequiredAdditionalTestnetUsdc": "25.02",
       "targetHeroSettlementUsdc": "45.00",
+      "freshBalanceCheckRequired": true,
       "realOrMainnetFundsAuthorized": false
     },
     "worldSandbox": {
@@ -149,10 +154,18 @@
       "privateKeyMustRemainLocal": true
     },
     "ledgerDevice": {
-      "status": "RED_READY_FOR_HUMAN_SESSION_NOT_YET_CAPTURED",
+      "status": "RED_DEPENDENCY_SECURITY_HOLD_NO_MANDATE_PROOF",
       "softwareGateSec005Closed": true,
       "softwareGateSec006Closed": true,
-      "requiredEvidence": "Identical Recovery Mandate real DMK approve plus reject/cancel with reviewer-safe outputs",
+      "publicAddressVerificationCompleted": true,
+      "mandateSignatureCaptured": false,
+      "mandateActivated": false,
+      "dependencyTriageRequired": true,
+      "dependencyAuditObserved": {
+        "isolatedHelper": "7 entries: 6 moderate, 1 high",
+        "rootInstall": "32 entries: 8 low, 7 moderate, 15 high, 2 critical; exact root advisory/reachability disposition pending"
+      },
+      "requiredEvidence": "After independent dependency-security clearance: identical Recovery Mandate real DMK approve plus reject/cancel with reviewer-safe outputs",
       "runbookHead": "7ac9e8ea3ba8a51ff3ec889774fd8f8724677b4d",
       "continuityRun": "34558524222",
       "runbookPath": "docs/ethonline-2026/ledger/DEVICE_QUALIFICATION_RUNBOOK.md"
@@ -189,7 +202,7 @@
     "evidencePack": {
       "status": "RED",
       "contractExists": true,
-      "reason": "The pack contract exists, but Hedera 45-USDC LIVE evidence, World signed-route/canonical-mandate bridge, Ledger LIVE/DEVICE evidence, sponsor-backed fixture replacement and the final integrated E2E remain missing."
+      "reason": "The pack contract exists, but Hedera 45-USDC LIVE evidence, World signed-route/canonical-mandate bridge, Ledger dependency-security clearance plus LIVE/DEVICE evidence, sponsor-backed fixture replacement and the final integrated E2E remain missing."
     }
   },
   "finalAcceptance": {
