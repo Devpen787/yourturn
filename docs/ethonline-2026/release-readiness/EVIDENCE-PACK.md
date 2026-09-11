@@ -8,6 +8,7 @@ This file defines the **shape of the final proof pack before the final proofs ex
 - Every claim points to an exact source SHA and exact evidence reference.
 - Evidence classes are literal: `FIXTURE`, `CI/LOCAL`, `CI/CONFIGURED`, `LIVE/AGENTBOOK`, `LIVE/SIGNED-ROUTE`, `LIVE/TESTNET`, `LIVE/DEVICE`.
 - Customer success is shown first; sponsor evidence is secondary/expandable.
+- Exactly three partner tracks remain in scope unless deliberately changed: Hedera Continuity, World AgentKit Continuity, Ledger Continuity.
 - No private key, raw AgentKit signature/header, raw World human id/proof, recovery phrase, device secret, admin secret, Redis credential, or environment dump.
 
 ## Pack index
@@ -40,11 +41,13 @@ If device proof is absent, label the slot RED/NOT PROVEN. Never substitute CI ce
 ### 03 — World requester proof
 Required:
 - `LIVE/AGENTBOOK` registration/resolution evidence;
-- actual World ID Sandbox tester proof;
+- actual World ID Sandbox tester proof **only after the Sandbox transport boundary is Security-cleared**;
 - actual locally signed registered-agent recovery-route execution evidence before `LIVE/SIGNED-ROUTE`;
 - exact requester→delegated-agent match;
 - privacy proof: `humanIdExposed:false` or equivalent public boundary;
 - evidence that final authority came from the Ledger Recovery Mandate projection, not branch-local legacy approval scaffolding.
+
+Current Sandbox boundary: draft PR #43 / candidate `403f2dcb1e185455b5fb09e76caab1e40f7d0ebc` is `CI/CONFIGURED` only and **SANDBOX RED**. SEC-WORLD-005 is `OPEN/MEDIUM`; independent run `34538944271` reproduced actual non-loopback reachability under the supported default dev launch. The phone proof is deferred until the supported launch is transport-bound to loopback, the API fails closed outside intended development mode, and Security independently closes the repair.
 
 ### 04 — Hedera policy + settlement
 Required:
@@ -103,15 +106,23 @@ For each slot record:
 
 ## Current known truth
 
-As of the readiness branch creation:
-
 - Golden YT-01→08: GREEN as product truth.
-- Hedera H0/H1: retain existing independently reviewed LIVE/TESTNET claims.
-- Hedera H2/new NFT+USDC recovery: CI/LOCAL only; 45-USDC LIVE artifact still missing.
-- World AgentBook: LIVE/AGENTBOOK.
-- World signed recovery route: CI/READY, NOT LIVE.
-- World Sandbox: app installed/downloaded, actual proof missing.
-- Ledger: CI/CONFIGURED; SEC-LEDGER-005 still blocks device/integration qualification.
-- Full Ledger→World→Hedera E2E: missing.
+- Hedera H0/H1: retain existing independently reviewed `LIVE/TESTNET` claims.
+- Hedera H2/new NFT+USDC recovery: `CI/LOCAL + Security`; canonical 45-USDC `LIVE/TESTNET` artifact remains RED pending the external testnet-liquidity prerequisite and exact-artifact review.
+- World AgentBook: `LIVE/AGENTBOOK`.
+- World signed recovery route: `CI/READY`, NOT LIVE.
+- World Sandbox: PR #43 candidate `403f2dcb1e185455b5fb09e76caab1e40f7d0ebc` is `CI/CONFIGURED`; SEC-WORLD-005 is OPEN/MEDIUM; actual Sandbox proof remains RED and the phone round trip is deferred until Security closure.
+- Ledger: `CI/CONFIGURED`; SEC-LEDGER-005 remains OPEN/MEDIUM and blocks `LIVE/DEVICE` evidence.
+- XC-01: non-submission-critical `REVISE`; exact candidate `eb3bcdb84ff95352adf1d0c387996f9a4692c52f` must make Bob's successful holder state transition the product shell from `Find a spot` to `My bookings`, then be re-rendered and re-reviewed before any advancement.
+- Full Ledger→World→Hedera E2E: RED / missing.
+
+## Final submission packet readiness
+
+- **Public README before/after: RED.** The held integration README still presents the pre-event Week 5 Hedera submission. Before lock, publish one final ETHOnline README that clearly separates the immutable baseline from the new Delegated Recovery work and links only evidence valid for the final integrated candidate.
+- **Stable final integrated deployment: RED.** `https://yourturn-sage.vercel.app` is the pre-event Week 5 surface, not the final integrated ETHOnline candidate. PR #42's readiness preview also hit the Vercel free-tier daily deployment limit. Do not substitute a stale baseline URL or unqualified sponsor preview for the final stable reviewer URL.
+- **Final video: RED.** No final judge-facing video is pinned yet; verify any applicable duration rule before lock.
+- **Screenshots: PARTIAL.** Golden YT-01→08 rendered evidence exists, but final integrated sponsor-backed screenshots/receipt evidence do not.
+- **Submission fields: RED.** Final project description, Continuity before/after, exactly three partner selections, repo/demo/evidence links, stable deployment URL and final media are not locked.
+- **Evidence pack: RED.** The contract exists, but Hedera 45-USDC LIVE evidence, World Sandbox/signed-route evidence, Ledger SEC-005/device evidence and the final integrated adversarial E2E are still missing.
 
 Any newer truth must update `manifest.json` and the relevant evidence slot together; prose alone does not upgrade evidence.
