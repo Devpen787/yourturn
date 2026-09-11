@@ -9,6 +9,11 @@ import { verifyApprovalGrant } from "@/lib/server/approval-grants";
 import { agentConfirmBodySchema } from "@/lib/validation/agent";
 import { fail } from "@/lib/validation/api";
 import type { BookingActorRef } from "@/lib/types/booking-port";
+import { createRedisWorldAgentNonceStore } from "@/lib/world-agentkit/nonce-store";
+import {
+  authorizeWorldRecoveryWrite,
+  isWorldProtectedRecoveryAction,
+} from "@/lib/world-agentkit/recovery-write-gate";
 
 export const runtime = "nodejs";
 
@@ -38,6 +43,21 @@ export async function POST(req: Request) {
     }
 
     const preview = inspectBookingPortPreview(parsed.data.previewId);
+    const worldProtectedRecovery = isWorldProtectedRecoveryAction(preview.action);
+
+    // Recovery authority may not rely on the legacy development fallback secret.
+    // A server-issued, exact-scoped grant is the independent YourTurn mandate
+    // carrier; the AgentKit request must separately prove the requesting agent.
+    if (worldProtectedRecovery && !process.env.BOOKED_RIGHTS_APPROVAL_SECRET) {
+      return NextResponse.json(
+        fail(
+          "World-protected recovery requires explicit approval-grant signing configuration.",
+          "NOT_CONFIGURED"
+        ),
+        { status: 503 }
+      );
+    }
+
     const grant = verifyApprovalGrant(parsed.data.approvalGrant);
 
     if (grant.action !== "any" && grant.action !== preview.action) {
@@ -59,6 +79,41 @@ export async function POST(req: Request) {
       );
     }
 
+    let worldTrust: ReturnType<
+      typeof import("@/lib/world-agentkit/trust-boundary").toWorldPublicTrustSummary
+    > | null = null;
+
+    if (worldProtectedRecovery) {
+      let nonceStore;
+      try {
+        nonceStore = createRedisWorldAgentNonceStore();
+      } catch {
+        return NextResponse.json(
+          fail(
+            "World AgentKit replay protection is not configured.",
+            "NOT_CONFIGURED"
+          ),
+          { status: 503 }
+        );
+      }
+
+      const world = await authorizeWorldRecoveryWrite({
+        agentkitHeader: req.headers.get("agentkit"),
+        expectedResourceUri: req.url,
+        grant,
+        previewAction: preview.action,
+        previewSerial: preview.serial,
+        nonceStore,
+      });
+      if (world.status === "blocked") {
+        return NextResponse.json(
+          fail(`World AgentKit blocked recovery write: ${world.reason}`, "FORBIDDEN"),
+          { status: 403 }
+        );
+      }
+      worldTrust = world.publicTrust;
+    }
+
     const approval = {
       approvedBy: grant.approvedBy,
       approvedAt: grant.approvedAt,
@@ -77,6 +132,7 @@ export async function POST(req: Request) {
       case "create_listing":
         return NextResponse.json({
           ok: true as const,
+          worldTrust,
           result: await bookingPort.confirmCreateListing({
             previewId: parsed.data.previewId,
             approval,
@@ -117,6 +173,7 @@ export async function POST(req: Request) {
       case "cancel_release":
         return NextResponse.json({
           ok: true as const,
+          worldTrust,
           result: await bookingPort.confirmCancelRelease({
             previewId: parsed.data.previewId,
             approval,
