@@ -36,7 +36,7 @@ Required before `LIVE/DEVICE`:
 - SEC-LEDGER-005 independent closure evidence;
 - proof that stale/revoked/out-of-scope state cannot become usable authority.
 
-If device proof is absent, label the slot RED/NOT PROVEN. Never substitute CI ceremony checks.
+Current Ledger boundary: `feature/ethonline-ledger@96d513ef1286cf06192315263039d631b91a0d18`, Continuity `34547247102` SUCCESS, contains the builder's atomic/versioned/serialized final-state repair. **SEC-LEDGER-005 remains OPEN/MEDIUM until independent Security retests that exact repair.** This builder evidence does not authorize physical device qualification. If device proof is absent, label the slot RED/NOT PROVEN; never substitute CI ceremony checks.
 
 ### 03 — World requester proof
 Required:
@@ -47,7 +47,7 @@ Required:
 - privacy proof: `humanIdExposed:false` or equivalent public boundary;
 - evidence that final authority came from the Ledger Recovery Mandate projection, not branch-local legacy approval scaffolding.
 
-Current Sandbox boundary: draft PR #43 / candidate `403f2dcb1e185455b5fb09e76caab1e40f7d0ebc` is `CI/CONFIGURED` only and **SANDBOX RED**. SEC-WORLD-005 is `OPEN/MEDIUM`; independent run `34538944271` reproduced actual non-loopback reachability under the supported default dev launch. The phone proof is deferred until the supported launch is transport-bound to loopback, the API fails closed outside intended development mode, and Security independently closes the repair.
+Current Sandbox boundary: draft PR #43 / candidate `cc0ffe578286419d359cf3bb4030f2c45ecabe5e` is `CI/CONFIGURED` with Continuity `34546081264` SUCCESS. Independent Security run `34547005448` against attacker head `98c399712fa6f38779df9666b982cf1b78a528f5` **CLOSED SEC-WORLD-005 at CI/CONFIGURED**: the supported Sandbox launch is loopback-bound, generic/production launch paths fail closed, and non-loopback socket attempts are rejected. This closure is only for the transport/locality gate. **SANDBOX proof remains RED** until one real local phone round trip completes with successful World backend verification and reviewer-safe evidence. No RP key/signature/proof/provider request was exercised by the Security closure itself.
 
 ### 04 — Hedera policy + settlement
 Required:
@@ -111,8 +111,8 @@ For each slot record:
 - Hedera H2/new NFT+USDC recovery: `CI/LOCAL + Security`; canonical 45-USDC `LIVE/TESTNET` artifact remains RED pending the external testnet-liquidity prerequisite and exact-artifact review.
 - World AgentBook: `LIVE/AGENTBOOK`.
 - World signed recovery route: `CI/READY`, NOT LIVE.
-- World Sandbox: PR #43 candidate `403f2dcb1e185455b5fb09e76caab1e40f7d0ebc` is `CI/CONFIGURED`; SEC-WORLD-005 is OPEN/MEDIUM; actual Sandbox proof remains RED and the phone round trip is deferred until Security closure.
-- Ledger: `CI/CONFIGURED`; SEC-LEDGER-005 remains OPEN/MEDIUM and blocks `LIVE/DEVICE` evidence.
+- World Sandbox: PR #43 candidate `cc0ffe578286419d359cf3bb4030f2c45ecabe5e` is `CI/CONFIGURED + Security`; SEC-WORLD-005 is CLOSED at that evidence level by run `34547005448`, but actual Sandbox phone/backend-verification proof remains RED.
+- Ledger: `feature/ethonline-ledger@96d513ef1286cf06192315263039d631b91a0d18` is exact-head CI-green (`34547247102`) with the final-state repair; SEC-LEDGER-005 remains OPEN/MEDIUM pending independent retest, and `LIVE/DEVICE` remains RED.
 - XC-01: non-submission-critical `REVISE`; exact candidate `eb3bcdb84ff95352adf1d0c387996f9a4692c52f` must make Bob's successful holder state transition the product shell from `Find a spot` to `My bookings`, then be re-rendered and re-reviewed before any advancement.
 - Full Ledger→World→Hedera E2E: RED / missing.
 
@@ -123,6 +123,6 @@ For each slot record:
 - **Final video: RED.** No final judge-facing video is pinned yet; verify any applicable duration rule before lock.
 - **Screenshots: PARTIAL.** Golden YT-01→08 rendered evidence exists, but final integrated sponsor-backed screenshots/receipt evidence do not.
 - **Submission fields: RED.** Final project description, Continuity before/after, exactly three partner selections, repo/demo/evidence links, stable deployment URL and final media are not locked.
-- **Evidence pack: RED.** The contract exists, but Hedera 45-USDC LIVE evidence, World Sandbox/signed-route evidence, Ledger SEC-005/device evidence and the final integrated adversarial E2E are still missing.
+- **Evidence pack: RED.** The contract exists, but Hedera 45-USDC LIVE evidence, World Sandbox/signed-route LIVE evidence, Ledger SEC-005 independent closure/device evidence and the final integrated adversarial E2E are still missing.
 
 Any newer truth must update `manifest.json` and the relevant evidence slot together; prose alone does not upgrade evidence.
