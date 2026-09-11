@@ -326,6 +326,7 @@ async function main() {
       addressStates: addressProof.events,
       signingStates: signing.events,
       signature: result === "approved" ? serializedSignature : null,
+      cancelRequested: signing.cancelRequested,
       activationAttempted: false,
       legacyApprovalGrantUsed: false,
       claimBoundary:
