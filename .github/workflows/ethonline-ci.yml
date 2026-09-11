@@ -59,6 +59,18 @@ jobs:
         # verification without pretending to be LIVE/AGENTBOOK or a live write.
         run: npm run world:recovery-live-proof:self-test
 
+      - name: World ID Sandbox proof harness contract check
+        # Structural check only. No RP private key is present in Actions, and
+        # this must not be promoted to Sandbox proof until Security closes the
+        # transport gate and the real phone round trip verifies successfully.
+        run: npm run world:sandbox-check
+
+      - name: World ID Sandbox loopback transport boundary check
+        # Executable SEC-WORLD-005 repair evidence: production stays dark,
+        # generic dev cannot enable the Sandbox API, and the supported Sandbox
+        # launch is reachable only through 127.0.0.1. No RP signing key is used.
+        run: npm run world:sandbox-boundary-check
+
       - name: Continuity baseline must remain documented
         run: |
           grep -q 'd0b5f875afb4f2b29af29bc5972cf1edc404d473' docs/ethonline-2026/CONTINUITY_BASELINE.md
