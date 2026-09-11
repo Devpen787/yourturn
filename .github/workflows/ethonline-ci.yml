@@ -20,29 +20,16 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          # Node 22 can execute the repo's erasable TypeScript imports used by
-          # scripts/hedera-agent-check.mjs without adding a new loader or
-          # mutating the June dependency baseline. It also satisfies current
-          # wallet-standard engine requirements that warn on Node 20.
           node-version: 22
           cache: npm
 
       - name: Install
-        # Baseline repo currently has a peer-range conflict between
-        # hedera-wallet-connect 2.1.3 (@hiero-ledger/sdk 2.79.0) and
-        # Hedera Agent Kit v4 (@hiero-ledger/sdk ^2.81.0). Preserve the
-        # existing lockfile/runtime for the continuity baseline instead of
-        # changing dependencies in the process-only foundation PR.
         run: npm ci --legacy-peer-deps
 
       - name: Production build
         run: npm run build
 
       - name: Hedera Agent Kit policy/proof check
-        # The baseline checker validates the configured wallet-allowance policy.
-        # CI has no demo-account secrets, so use explicit non-secret fixture IDs.
-        # No allowance tx id is set, therefore this remains CONFIGURED evidence,
-        # never LIVE/TESTNET evidence.
         env:
           HEDERA_GUEST_A_ID: '0.0.9001'
           HEDERA_TREASURY_ID: '0.0.9002'
@@ -51,19 +38,31 @@ jobs:
       - name: Ledger Recovery Mandate contract check
         run: npm run ledger:mandate-check
 
-      - name: Independent SEC-LEDGER-006 active authority retest
-        run: node --experimental-transform-types scripts/security-ledger-006-retest.mjs
+      - name: SEC-LEDGER-006 positive guarded load
+        run: node --experimental-transform-types scripts/security-ledger-006-retest.mjs positive
+
+      - name: SEC-LEDGER-006 post-activation serialized mutation
+        run: node --experimental-transform-types scripts/security-ledger-006-retest.mjs post-mutation
+
+      - name: SEC-LEDGER-006 mutation during revalidation
+        run: node --experimental-transform-types scripts/security-ledger-006-retest.mjs during-revalidation
+
+      - name: SEC-LEDGER-006 odd in-flight version
+        run: node --experimental-transform-types scripts/security-ledger-006-retest.mjs odd-version
+
+      - name: SEC-LEDGER-006 missing authority context
+        run: node --experimental-transform-types scripts/security-ledger-006-retest.mjs missing-context
+
+      - name: SEC-LEDGER-006 live holder status policy listing drift
+        run: node --experimental-transform-types scripts/security-ledger-006-retest.mjs live-drift
+
+      - name: SEC-LEDGER-006 one-shot replay preserved
+        run: node --experimental-transform-types scripts/security-ledger-006-retest.mjs replay
 
       - name: Ledger DMK device ceremony contract check
-        # Pure CI qualification of the ceremony contract only. The actual
-        # LIVE/DEVICE claim still requires a physical Ledger running the pinned
-        # DMK/Signer/Node-HID stack in scripts/ledger-device-proof/.
         run: node scripts/ledger-device-proof/ceremony-check.mjs
 
       - name: Ledger current DMK Node-HID import smoke
-        # Install the isolated, pinned hardware-proof stack without changing the
-        # application lockfile. --help imports the same DMK/Signer/Node-HID
-        # modules used by the real device ceremony, but does not touch hardware.
         working-directory: scripts/ledger-device-proof
         run: |
           npm install --no-package-lock --legacy-peer-deps
