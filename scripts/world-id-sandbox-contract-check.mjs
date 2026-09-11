@@ -66,7 +66,8 @@ if (required.every((file) => fs.existsSync(file))) {
       guard.includes(
         "process.env.WORLD_ID_SANDBOX_TRANSPORT !== SANDBOX_TRANSPORT_MARKER",
       ) &&
-      guard.includes('SANDBOX_LOOPBACK_HOST = "127.0.0.1"'),
+      guard.includes('SANDBOX_REQUEST_HOSTS = new Set(["127.0.0.1", "localhost"])') &&
+      guard.includes("Request.url nor Origin is treated as proof of the remote peer address"),
     "Sandbox APIs fail closed unless the dedicated loopback development launch is active",
   );
   assert(
