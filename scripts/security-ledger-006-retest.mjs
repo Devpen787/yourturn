@@ -19,6 +19,7 @@ const NOW = 1_800_000_000n;
 const SERIAL = 193;
 const EXPECTED_HOLDER = "0.0.1001";
 const OTHER_HOLDER = "0.0.1002";
+const selectedCase = process.argv[2] ?? "all";
 const wallet = new Wallet(
   "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412b95e0d3dc89116"
 );
@@ -186,17 +187,14 @@ async function guardedLoad(ctx, validate = revalidator(ctx.live)) {
   });
 }
 
-// Positive control: a freshly activated mandate at unchanged stable v0 loads.
-{
+async function positive() {
   const ctx = await activateFresh("positive");
   const loaded = await guardedLoad(ctx);
   assert.equal(loaded.record.state, "active");
   assert.equal(loaded.record.authorityStateVersion, 0);
 }
 
-// Accepted SEC-LEDGER-006 shape: active@v0 -> serialized relevant mutation -> v2 -> load.
-// The stale active Redis record may physically remain, but it must not be loadable as authority.
-{
+async function postMutation() {
   const ctx = await activateFresh("post-mutation");
   await withRecoveryMandateAuthorityMutation({
     store: ctx.redis,
@@ -218,9 +216,7 @@ async function guardedLoad(ctx, validate = revalidator(ctx.live)) {
   );
 }
 
-// Race inside live revalidation: mutation begins and completes after predicates are read.
-// The second version read must catch it before authority is returned.
-{
+async function duringRevalidation() {
   const ctx = await activateFresh("during-revalidation");
   await assert.rejects(
     guardedLoad(
@@ -241,8 +237,7 @@ async function guardedLoad(ctx, validate = revalidator(ctx.live)) {
   );
 }
 
-// Odd/in-flight authority versions must fail closed and never reach live validation.
-{
+async function oddVersion() {
   const ctx = await activateFresh("odd-version");
   const versionKey = recoveryMandateAuthorityVersionKey(SERIAL);
   ctx.redis.records.set(versionKey, { value: "1", options: {} });
@@ -257,8 +252,7 @@ async function guardedLoad(ctx, validate = revalidator(ctx.live)) {
   assert.equal(validationCalls, 0);
 }
 
-// Missing current-authority context is not a supported bypass.
-{
+async function missingContext() {
   const ctx = await activateFresh("missing-context");
   await assert.rejects(
     loadActiveRecoveryMandate({
@@ -280,24 +274,24 @@ async function guardedLoad(ctx, validate = revalidator(ctx.live)) {
   );
 }
 
-// Even without a version change, fresh mutable predicates must still reject stale state.
-for (const [label, mutate, expected] of [
-  ["holder", (live) => { live.slot = validSlot({ holderAccountId: OTHER_HOLDER }); }, /holder changed/],
-  ["status", (live) => { live.slot = validSlot({ status: "AVAILABLE", holderAccountId: null }); }, /no longer held and transferable/],
-  ["provider-policy", (live) => { live.slot = validSlot({ resaleAllowed: false, policy: { ...policy, resaleAllowed: false, version: 2 } }); }, /policy no longer permits/],
-  ["listing", (live) => { live.listing = activeListing(); }, /active resale listing/],
-]) {
-  const ctx = await activateFresh(`live-${label}`);
-  mutate(ctx.live);
-  await assert.rejects(
-    guardedLoad(ctx),
-    expected,
-    `${label} drift must reject active authority even if version metadata did not move`
-  );
+async function liveDrift() {
+  for (const [label, mutate, expected] of [
+    ["holder", (live) => { live.slot = validSlot({ holderAccountId: OTHER_HOLDER }); }, /holder changed/],
+    ["status", (live) => { live.slot = validSlot({ status: "AVAILABLE", holderAccountId: null }); }, /no longer held and transferable/],
+    ["provider-policy", (live) => { live.slot = validSlot({ resaleAllowed: false, policy: { ...policy, resaleAllowed: false, version: 2 } }); }, /policy no longer permits/],
+    ["listing", (live) => { live.listing = activeListing(); }, /active resale listing/],
+  ]) {
+    const ctx = await activateFresh(`live-${label}`);
+    mutate(ctx.live);
+    await assert.rejects(
+      guardedLoad(ctx),
+      expected,
+      `${label} drift must reject active authority even if version metadata did not move`
+    );
+  }
 }
 
-// One-shot replay stays consumed after a valid activation.
-{
+async function replay() {
   const ctx = await activateFresh("replay");
   await assert.rejects(
     activatePreparedRecoveryMandate({
@@ -315,14 +309,24 @@ for (const [label, mutate, expected] of [
   );
 }
 
-console.log(JSON.stringify({
-  secLedger006: "retest-passed",
-  acceptedRaceClosed: true,
-  postActivationMutationRejected: true,
-  mutationDuringRevalidationRejected: true,
-  oddVersionRejected: true,
-  missingContextRejected: true,
-  staleHolderStatusProviderListingRejected: true,
-  replayStillOneShot: true,
-  liveDeviceEvidence: false,
-}));
+const cases = {
+  positive,
+  "post-mutation": postMutation,
+  "during-revalidation": duringRevalidation,
+  "odd-version": oddVersion,
+  "missing-context": missingContext,
+  "live-drift": liveDrift,
+  replay,
+};
+
+if (selectedCase === "all") {
+  for (const [name, run] of Object.entries(cases)) {
+    await run();
+    console.log(`SEC-LEDGER-006 case passed: ${name}`);
+  }
+} else {
+  const run = cases[selectedCase];
+  if (!run) throw new Error(`unknown SEC-LEDGER-006 case: ${selectedCase}`);
+  await run();
+  console.log(`SEC-LEDGER-006 case passed: ${selectedCase}`);
+}
