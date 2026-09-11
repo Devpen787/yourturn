@@ -1,0 +1,127 @@
+name: ETHOnline Hedera Policy USDC Recovery Live Proof
+
+on:
+  push:
+    branches:
+      - 'feature/ethonline-hedera'
+    paths:
+      - '.github/workflows/ethonline-hedera-usdc-recovery-live.yml'
+      - 'scripts/hedera-policy-usdc-recovery-live.mjs'
+      - 'scripts/hedera-usdc-recovery-role-preflight.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  policy-usdc-recovery-live-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      HEDERA_NETWORK: testnet
+      HEDERA_GUEST_A_ID: '0.0.8504405'
+      HEDERA_TREASURY_ID: '0.0.8504300'
+      HEDERA_GUEST_B_ID: '0.0.8504715'
+      BOOKED_RIGHTS_TOKEN_ID: '0.0.8505698'
+      HEDERA_USDC_RECOVERY_PROOF_OUT: hedera-usdc-recovery-live-proof.json
+
+    steps:
+      - name: Checkout Hedera branch
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci --legacy-peer-deps
+
+      - name: Re-run deterministic USDC recovery gate
+        run: npm run hedera:usdc-recovery-check
+
+      - name: Assert HAK product boundary has no signing-secret path
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -Eq 'PrivateKey|setOperator\(|HEDERA_.*_KEY|process\.env' lib/hedera-agent-kit/policy-authorized-usdc-recovery.ts
+          ! grep -Eq 'PrivateKey|setOperator\(|HEDERA_.*_KEY|process\.env' lib/hedera-agent-kit/delegated-recovery-plugin.ts
+          echo "Policy + HAK preparation boundary contains no key loading/operator path."
+
+      - name: Preflight signer secrets
+        shell: bash
+        env:
+          GUEST_A_SIGNER_KEY: ${{ secrets.HEDERA_GUEST_A_KEY }}
+          TREASURY_SIGNER_KEY: ${{ secrets.HEDERA_TREASURY_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "${GUEST_A_SIGNER_KEY:-}" || { echo "::error::Guest A signer secret missing"; exit 2; }
+          test -n "${TREASURY_SIGNER_KEY:-}" || { echo "::error::Treasury signer secret missing"; exit 2; }
+          echo "Both existing signer-scoped secrets are present; values remain masked."
+
+      - name: Select viable existing keyed role pair from public Mirror state
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/hedera-usdc-recovery-role-preflight.mjs
+
+      - name: Execute policy-authorized one-transaction NFT plus USDC recovery
+        shell: bash
+        env:
+          HEDERA_GUEST_A_KEY: ${{ secrets.HEDERA_GUEST_A_KEY }}
+          HEDERA_TREASURY_KEY: ${{ secrets.HEDERA_TREASURY_KEY }}
+        run: |
+          set -euo pipefail
+          node --no-warnings --experimental-transform-types scripts/hedera-policy-usdc-recovery-live.mjs
+
+      - name: Revoke Guest A setup serial allowance after interrupted proof
+        if: failure() && env.HEDERA_DELEGATION_SERIAL != '' && env.HEDERA_RECOVERY_HOLDER_ID == env.HEDERA_GUEST_A_ID
+        shell: bash
+        env:
+          HEDERA_EXTERNAL_SIGNER_KEY: ${{ secrets.HEDERA_GUEST_A_KEY }}
+          HEDERA_EXTERNAL_SIGNER_KEY_TYPE: ECDSA
+        run: |
+          set -euo pipefail
+          node --no-warnings scripts/hedera-delegated-recovery-return-bytes-live.mjs \
+            --action=revoke_serial \
+            --token="${BOOKED_RIGHTS_TOKEN_ID}" \
+            --serial="${HEDERA_DELEGATION_SERIAL}" \
+            --owner="${HEDERA_RECOVERY_HOLDER_ID}" \
+            --spender="${HEDERA_RECOVERY_SPENDER_ID}" \
+            --out=usdc-recovery-cleanup-envelope.json
+          node scripts/hedera-return-bytes-external-signer.mjs \
+            --envelope=usdc-recovery-cleanup-envelope.json \
+            --account-id="${HEDERA_RECOVERY_HOLDER_ID}" \
+            --out=usdc-recovery-cleanup-result.json
+
+      - name: Revoke Treasury setup serial allowance after interrupted proof
+        if: failure() && env.HEDERA_DELEGATION_SERIAL != '' && env.HEDERA_RECOVERY_HOLDER_ID == env.HEDERA_TREASURY_ID
+        shell: bash
+        env:
+          HEDERA_EXTERNAL_SIGNER_KEY: ${{ secrets.HEDERA_TREASURY_KEY }}
+          HEDERA_EXTERNAL_SIGNER_KEY_TYPE: DER
+        run: |
+          set -euo pipefail
+          node --no-warnings scripts/hedera-delegated-recovery-return-bytes-live.mjs \
+            --action=revoke_serial \
+            --token="${BOOKED_RIGHTS_TOKEN_ID}" \
+            --serial="${HEDERA_DELEGATION_SERIAL}" \
+            --owner="${HEDERA_RECOVERY_HOLDER_ID}" \
+            --spender="${HEDERA_RECOVERY_SPENDER_ID}" \
+            --out=usdc-recovery-cleanup-envelope.json
+          node scripts/hedera-return-bytes-external-signer.mjs \
+            --envelope=usdc-recovery-cleanup-envelope.json \
+            --account-id="${HEDERA_RECOVERY_HOLDER_ID}" \
+            --out=usdc-recovery-cleanup-result.json
+
+      - name: Upload public qualification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hedera-policy-usdc-recovery-live-${{ github.run_id }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            hedera-usdc-recovery-live-proof.json
+            usdc-recovery-cleanup-result.json

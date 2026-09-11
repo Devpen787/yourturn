@@ -30,6 +30,8 @@ export const YOURTURN_DELEGATED_RECOVERY_REVOKE_NFT_TOOL =
   "yourturn_delegated_recovery_revoke_nft_serial";
 export const YOURTURN_DELEGATED_RECOVERY_TRANSFER_NFT_TOOL =
   "yourturn_delegated_recovery_transfer_nft_serial";
+export const YOURTURN_DELEGATED_RECOVERY_SETTLE_USDC_TOOL =
+  "yourturn_delegated_recovery_settle_nft_usdc";
 
 const authorityParameters = z
   .object({
@@ -46,8 +48,19 @@ const transferParameters = authorityParameters
   })
   .strict();
 
+const settledTransferParameters = authorityParameters
+  .extend({
+    receiverAccountId: z.string().min(1),
+    settlementTokenId: z.string().min(1),
+    settlementAmountAtomicUnits: z.string().regex(/^[1-9][0-9]*$/),
+    settlementRecipientAccountId: z.string().min(1),
+    settlementDecimals: z.number().int().nonnegative().max(18),
+  })
+  .strict();
+
 type AuthorityParams = z.infer<typeof authorityParameters>;
 type TransferParams = z.infer<typeof transferParameters>;
+export type SettledTransferParams = z.infer<typeof settledTransferParameters>;
 
 function canonicalAccountId(value: string): string {
   return AccountId.fromString(value).toString();
@@ -83,6 +96,10 @@ function revocationPostProcess(response: RawTransactionResponse): string {
 
 function transferPostProcess(response: RawTransactionResponse): string {
   return `Delegated serial transfer completed. Transaction ID: ${response.transactionId}`;
+}
+
+function settledTransferPostProcess(response: RawTransactionResponse): string {
+  return `Delegated booking-right + settlement transfer completed. Transaction ID: ${response.transactionId}`;
 }
 
 /**
@@ -166,6 +183,55 @@ class TransferDelegatedSerialTool extends BaseTool<unknown, TransferParams> {
   }
 }
 
+/**
+ * ETHOnline-new customer recovery primitive.
+ *
+ * One Hedera TransferTransaction contains BOTH movements: the approved-spender
+ * transfer of exactly one booking-right NFT serial and an exact fungible-token
+ * payment from the delegated spender/payer to the current holder. HAK still
+ * returns unsigned bytes; policy binding and external signing remain separate.
+ */
+class SettleDelegatedSerialWithUsdcTool extends BaseTool<unknown, SettledTransferParams> {
+  method = YOURTURN_DELEGATED_RECOVERY_SETTLE_USDC_TOOL;
+  name = "Prepare atomic booking-right + USDC recovery";
+  description =
+    "Prepare one HTS transfer containing the delegated booking-right serial and the policy-bound USDC settlement.";
+  parameters: any = settledTransferParameters;
+
+  async normalizeParams(params: unknown, context: Context): Promise<SettledTransferParams> {
+    const parsed = settledTransferParameters.parse(params);
+    requireContextPayer(context, parsed.spenderAccountId);
+    return parsed;
+  }
+
+  async coreAction(params: SettledTransferParams) {
+    const amount = BigInt(params.settlementAmountAtomicUnits);
+    return new TransferTransaction()
+      .addApprovedNftTransfer(
+        params.tokenId,
+        params.serial,
+        params.ownerAccountId,
+        params.receiverAccountId
+      )
+      .addTokenTransferWithDecimals(
+        params.settlementTokenId,
+        params.spenderAccountId,
+        -amount,
+        params.settlementDecimals
+      )
+      .addTokenTransferWithDecimals(
+        params.settlementTokenId,
+        params.settlementRecipientAccountId,
+        amount,
+        params.settlementDecimals
+      );
+  }
+
+  async secondaryAction(transaction: any, client: Client, context: Context) {
+    return handleTransaction(transaction, client, context, settledTransferPostProcess);
+  }
+}
+
 export const yourTurnDelegatedRecoveryPlugin: Plugin = {
   name: "yourturn-delegated-recovery-plugin",
   version: "2026.09.10",
@@ -175,6 +241,7 @@ export const yourTurnDelegatedRecoveryPlugin: Plugin = {
     new ApproveDelegatedSerialTool(),
     new RevokeDelegatedSerialTool(),
     new TransferDelegatedSerialTool(),
+    new SettleDelegatedSerialWithUsdcTool(),
   ],
 };
 
@@ -182,6 +249,7 @@ export const YOURTURN_DELEGATED_RECOVERY_TOOL_METHODS = [
   YOURTURN_DELEGATED_RECOVERY_APPROVE_NFT_TOOL,
   YOURTURN_DELEGATED_RECOVERY_REVOKE_NFT_TOOL,
   YOURTURN_DELEGATED_RECOVERY_TRANSFER_NFT_TOOL,
+  YOURTURN_DELEGATED_RECOVERY_SETTLE_USDC_TOOL,
 ] as const;
 
 export type DelegatedRecoveryToolMethod =
@@ -219,7 +287,7 @@ export type DelegatedRecoverySigningEnvelope = {
 async function prepareReturnBytes(
   payerAccountId: string,
   method: DelegatedRecoveryToolMethod,
-  params: AuthorityParams | TransferParams
+  params: AuthorityParams | TransferParams | SettledTransferParams
 ): Promise<DelegatedRecoverySigningEnvelope> {
   const runtime = createDelegatedRecoveryReturnBytesRuntime(payerAccountId);
   try {
