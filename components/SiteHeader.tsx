@@ -15,7 +15,16 @@ type SessionUser =
     }
   | null;
 
-type ProductPreviewHeaderMode = "maya" | "bob" | "bob-bookings" | "provider";
+type ProductPreviewHeaderMode =
+  | "maya"
+  | "bob"
+  | "bob-bookings"
+  | "provider"
+  | "bob-activity"
+  | "provider-today"
+  | "provider-reconcile"
+  | "provider-activity"
+  | "maya-activity";
 
 const NAV = [
   {
@@ -81,15 +90,18 @@ function showProviderInNav(pathname: string, sessionUser: SessionUser): boolean 
 }
 
 function ProductPreviewHeader({ mode }: { mode: ProductPreviewHeaderMode }) {
-  const nav =
-    mode === "provider"
-      ? { href: "/product-preview?view=xc-provider-policy", label: "Friday Yoga", ariaLabel: "Provider" }
-      : mode === "bob"
-        ? { href: "/product-preview?view=xc-find", label: "Find a spot", ariaLabel: "Customer" }
-        : mode === "bob-bookings"
-          ? { href: "/product-preview?view=xc-bob-success", label: "My bookings", ariaLabel: "Customer" }
-          : { href: "/product-preview?view=bookings", label: "My bookings", ariaLabel: "Customer" };
-  const identity = mode === "provider" ? "Studio A" : mode === "bob" || mode === "bob-bookings" ? "Bob" : "Maya Keller";
+  const config: Record<ProductPreviewHeaderMode, { href: string; label: string; ariaLabel: string; identity: string }> = {
+    maya: { href: "/product-preview?view=bookings", label: "My bookings", ariaLabel: "Customer", identity: "Maya Keller" },
+    bob: { href: "/product-preview?view=xc-find", label: "Find a spot", ariaLabel: "Customer", identity: "Bob" },
+    "bob-bookings": { href: "/product-preview?view=xc-bob-success", label: "My bookings", ariaLabel: "Customer", identity: "Bob" },
+    provider: { href: "/product-preview?view=xc-provider-policy", label: "Friday Yoga", ariaLabel: "Provider", identity: "Studio A" },
+    "bob-activity": { href: "/product-preview?view=xc2-bob-history", label: "Activity", ariaLabel: "Customer", identity: "Bob" },
+    "provider-today": { href: "/product-preview?view=xc2-provider-pending", label: "Today", ariaLabel: "Provider", identity: "Studio A" },
+    "provider-reconcile": { href: "/product-preview?view=xc2-provider-reconciled", label: "Reconciliation", ariaLabel: "Provider", identity: "Studio A" },
+    "provider-activity": { href: "/product-preview?view=xc2-provider-history", label: "Activity", ariaLabel: "Provider", identity: "Studio A" },
+    "maya-activity": { href: "/product-preview?view=xc2-maya-history", label: "Activity", ariaLabel: "Customer", identity: "Maya Keller" },
+  };
+  const nav = config[mode];
 
   return (
     <header className="border-b border-slate-200/90 bg-white/90 shadow-sm shadow-slate-900/[0.03] backdrop-blur-md">
@@ -109,7 +121,7 @@ function ProductPreviewHeader({ mode }: { mode: ProductPreviewHeaderMode }) {
             {nav.label}
           </a>
           <span className="hidden max-w-[14rem] truncate rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 sm:inline-block">
-            {identity}
+            {nav.identity}
           </span>
         </nav>
       </div>
@@ -129,14 +141,19 @@ export function SiteHeader({
   const homeActive = pathname === "/";
 
   if (pathname.startsWith("/product-preview")) {
-    const view = searchParams.get("view");
-    const mode: ProductPreviewHeaderMode = view?.startsWith("xc-provider")
-      ? "provider"
-      : view === "xc-bob-success"
-        ? "bob-bookings"
-        : view?.startsWith("xc-")
-          ? "bob"
-          : "maya";
+    const view = searchParams.get("view") ?? "";
+    let mode: ProductPreviewHeaderMode = "maya";
+
+    if (view.startsWith("xc2-provider-reconcile")) mode = "provider-reconcile";
+    else if (view === "xc2-provider-history") mode = "provider-activity";
+    else if (view.startsWith("xc2-provider-")) mode = "provider-today";
+    else if (view === "xc2-bob-history") mode = "bob-activity";
+    else if (view.startsWith("xc2-bob-")) mode = "bob-bookings";
+    else if (view.startsWith("xc2-maya-") || view.startsWith("xc2-history-")) mode = "maya-activity";
+    else if (view.startsWith("xc-provider")) mode = "provider";
+    else if (view === "xc-bob-success") mode = "bob-bookings";
+    else if (view.startsWith("xc-")) mode = "bob";
+
     return <ProductPreviewHeader mode={mode} />;
   }
 
