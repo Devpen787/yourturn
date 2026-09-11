@@ -69,7 +69,24 @@ In a separate terminal from the repository root, replace `0xPUBLIC_LEDGER_ADDRES
 
 ```bash
 export LEDGER_GUEST_A_SIGNER_ADDRESS=0xPUBLIC_LEDGER_ADDRESS
-npm run dev:clean
+npm run dev:ceremony
+```
+
+The ceremony launch MUST be `dev:ceremony`, not `dev` or `dev:clean`. It binds
+`-H 127.0.0.1` so the dev server listens on the IPv4 loopback interface only.
+Without an explicit host, Next 14.2.18 leaves `hostname` undefined and
+`server.listen(port, undefined)` binds the unspecified address, which is reachable
+from other interfaces on the network.
+
+IPv6 is deliberate: `::1` is intentionally NOT bound, so exactly one local interface
+is reachable during the ceremony. If a future runbook needs `::1`, that is a separate
+reviewed change with its own denial evidence.
+
+Executable proof of this boundary:
+
+```bash
+node scripts/ledger-device-proof/loopback-boundary-check.mjs
+
 ```
 
 This enrollment is server-side process configuration. The mandate-preparation request has no signer-address input and cannot substitute it.

@@ -58,6 +58,7 @@ jobs:
         run: |
           node scripts/ledger-device-proof/ceremony-check.mjs
           node scripts/ledger-device-proof/qualification-contract-check.mjs
+          node scripts/ledger-device-proof/loopback-boundary-check.mjs
 
       - name: Ledger current DMK Node-HID import smoke
         # Install the isolated, pinned hardware-proof stack from ITS OWN committed
