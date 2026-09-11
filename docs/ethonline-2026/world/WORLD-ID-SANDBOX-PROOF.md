@@ -1,6 +1,8 @@
 # World ID Sandbox proof — ETHOnline 2026
 
-Status: **CI/CONFIGURED; SEC-WORLD-005 repair pending independent Security retest. A real Sandbox app round trip is still required.**
+Status: **CI/CONFIGURED; SEC-WORLD-005 repair pending independent Security retest. A qualifying Sandbox app round trip on the repaired head is still required.**
+
+A real Sandbox round trip **was** observed on 2026-09-11, but against pre-repair commit `403f2dc` — before the SEC-WORLD-005 transport repair landed. It is recorded under [Observed run](#observed-run--2026-09-11-preliminary) as preliminary integration evidence and does **not** satisfy the gate above.
 
 This is an isolated sponsor-proof harness for the World AgentKit Continuity requirement. It does not change the human-approved YT-01→YT-08 Golden customer journey and does not promote AgentKit/AgentBook evidence by itself.
 
@@ -74,7 +76,50 @@ No manual action creation is required for the first v4 Sandbox verification. If 
 | Proof handoff | `/world-sandbox` uses `IDKitRequestWidget` + `proofOfHuman()` | CI/CONFIGURED until phone round trip |
 | Backend verification | `POST /api/world-id/sandbox/verify` forwards IDKit payload as-is to World v4 verify endpoint | CI/build until real provider success |
 | Privacy-safe public result | success returns only environment/action/RP/time; proof, nullifier and raw human identifiers are not returned/logged | CI contract check |
-| Sandbox evidence | real signed request → Sandbox app → returned proof → v4 verification | **RED / blocked until SEC-WORLD-005 independent closure, then human run required** |
+| Sandbox evidence | real signed request → Sandbox app → returned proof → v4 verification | **RED for qualification** — blocked until SEC-WORLD-005 independent closure plus a round trip on the repaired head. A pre-repair round trip succeeded 2026-09-11; see [Observed run](#observed-run--2026-09-11-preliminary) |
+
+## Observed run — 2026-09-11 (preliminary)
+
+> **This run does not clear the SEC-WORLD-005 gate.** It was performed against commit `403f2dc`, before the transport repair landed, and used the superseded `npm run dev` launch rather than `npm run world:sandbox:dev`. It is recorded because it is genuine evidence that the World-side integration path works end to end. A qualifying run must be repeated on the repaired head after Security independently closes SEC-WORLD-005.
+
+A real end-to-end Sandbox round trip was completed against a locally running harness. This section records only reviewer-safe evidence; no proof payload, nullifier, human identifier, or key material was captured, logged, or retained at any point.
+
+| Field | Observed value |
+| --- | --- |
+| Environment | `sandbox` |
+| Credential requested | Proof of Human (`proofOfHuman()`) |
+| Action | `yourturn-recovery-sandbox-2026` |
+| App ID | `app_ba495b56fa36135edd63753effe511f7` |
+| RP ID | `rp_c3e6060f9b2b5593` |
+| Commit under test | `403f2dcb1e185455b5fb09e76caab1e40f7d0ebc` |
+| RP signing request | `POST /api/world-id/sandbox/rp-context` → 200, TTL 300s |
+| Backend verification | `POST /api/world-id/sandbox/verify` → 200 |
+| World v4 verify | accepted (outbound call ~599ms; route returns 200 only on provider success) |
+| `proofVerified` | `true` |
+| Verified at | 2026-09-11T00:54Z (approx.; 02:54 CEST) |
+| Browser-visible state | "Sandbox proof verified" success panel rendered |
+
+Both success conditions required by this document were satisfied: the Sandbox iPhone completed the actual request, **and** YourTurn's backend received the IDKit result and got a success response from World `POST /api/v4/verify/{rp_id}`.
+
+### Configuration confirmed during the run
+
+- The Developer Portal shows App ID and RP ID on the same YourTurn app object, so the app↔RP pairing is correct.
+- The Portal's registered signer address corresponds to the locally held RP signing key, independently confirming RP signature validation was never the failure point.
+- No Portal action was created or modified by hand. The v4 endpoint's lazy action creation was sufficient, as anticipated.
+
+### Guard behaviour verified alongside the run
+
+- `POST /api/world-id/sandbox/rp-context` with a mismatched `Origin` → 404.
+- `POST /api/world-id/sandbox/verify` with a malformed body → 400.
+- Both routes remain disabled unless `WORLD_ID_SANDBOX_PROOF_ENABLED=true` and the request arrives on a loopback host.
+
+### Failures encountered before success
+
+Recorded because they are genuine integration findings, not incidental noise:
+
+1. **`credential_unavailable`** (twice) — the Sandbox test account did not hold a Proof of Human credential, so no proof could be produced. Surfaced to the user only as a generic "Something went wrong".
+2. **Expired RP request** — the widget's own "Try Again" control reuses the existing `rp_context` rather than requesting a fresh signed one. A retry 527s after creation, against a 300s TTL, failed with the same generic message.
+3. **Provider 400 on the first attempt** — one early attempt did return a proof, which World's v4 verify then rejected. This did not recur once the credential issue was resolved, and no further diagnosis was possible without retaining proof material, which was deliberately not done.
 
 ## SEC-WORLD-005 repair candidate
 
@@ -143,4 +188,8 @@ If World ID proof becomes load-bearing product authorization later, durable null
 
 A green build, `world:sandbox-check`, or `world:sandbox-boundary-check` is **not** Sandbox proof and is **not** independent Security clearance. Those checks establish that the harness is structurally configured according to the reviewed IDKit 4.x API surface and that the SEC-WORLD-005 transport repair behaves as intended in CI.
 
-Only after Security independently closes SEC-WORLD-005 should the human phone round trip run. Only an actual Sandbox app round trip resulting in successful backend verification may upgrade this item to Sandbox evidence. That evidence remains separate from the registered-AgentKit signed recovery-route execution.
+Only after Security independently closes SEC-WORLD-005 should the qualifying human phone round trip be claimed. Only an actual Sandbox app round trip resulting in successful backend verification may upgrade this item to Sandbox evidence.
+
+The 2026-09-11 preliminary run predates the repair and therefore does not satisfy that condition, even though the World-side path it exercised succeeded. Its value is that it de-risks the integration: the remaining question is the transport boundary, not whether the proof flow works.
+
+That evidence remains separate from the registered-AgentKit signed recovery-route execution. Sandbox proof establishes that a human-backed World ID request can be made and verified; it does **not** establish booking authority. Final authority in YourTurn derives from the activated Ledger Recovery Mandate, and this harness does not create a second authority source.
