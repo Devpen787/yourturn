@@ -49,7 +49,7 @@ Required before an active Ledger mandate becomes **load-bearing downstream autho
 
 Current Ledger branch is `feature/ethonline-ledger@7ac9e8ea3ba8a51ff3ec889774fd8f8724677b4d`, exact-head Continuity `34558524222` SUCCESS. The Security-accepted authority lifecycle remains the independently reviewed SEC-LEDGER-005/006 lineage: SEC-LEDGER-006 was closed on owner `a1126a0e7d2e5bb679914b0409209799520f8646` by attacker `feature/ethonline-security-ledger-006-retest@7e03f28ad0182ff1aec112a8a05ddd5a2bfcf914`, run `34555366707`, job `103126811462` — SUCCESS; SEC-LEDGER-005 remains independently closed. The independent retest proves fresh authority loads only through current live validation; a later serialized mutation making the captured version stale is rejected even while the raw active record remains physically present; mutation during validation, odd/in-flight version, missing authority/live context, and stale holder/status/provider-policy/listing all fail closed; one-shot replay remains consumed.
 
-The current head adds a pinned physical qualification contract at `docs/ethonline-2026/ledger/DEVICE_QUALIFICATION_RUNBOOK.md`: one identical server-prepared Recovery Mandate is taken through on-device reject → host cancel → on-device approve, followed by reviewer-safe bundle checks and downstream wrong-signature/single-activation/replay checks. This is **CI GREEN / READY FOR HUMAN DEVICE SESSION**, not `LIVE/DEVICE` evidence. It performs no recovery execution or fund movement. Physical identical-mandate DMK approve plus reject/cancel remains RED until the real session succeeds, and final integration must preserve the guarded boundary.
+The current head pins the physical qualification contract at `docs/ethonline-2026/ledger/DEVICE_QUALIFICATION_RUNBOOK.md`: one identical server-prepared Recovery Mandate is intended to pass through on-device reject → host cancel → on-device approve, followed by reviewer-safe bundle checks and downstream wrong-signature/single-activation/replay checks. The contract/tooling is **CI GREEN**, but the real ceremony is **CURRENTLY PAUSED BY A SEPARATE DEPENDENCY-SECURITY HOLD**. Local public-address verification succeeded and was redacted; it is not a Recovery Mandate signature, activation, or `LIVE/DEVICE` proof. Security #16 comment `5634713735` records the precautionary hold after the isolated helper audit surfaced 7 entries (6 moderate, 1 high) and the root install surfaced 32 entries including 2 critical whose exact reachability/disposition is still pending. This does not reopen SEC-LEDGER-005/006 and does not establish compromise. Do not load ceremony credentials, start the ceremony app, sign/activate a mandate, or present the runbook as currently human-ready until the exact runtime dependency graph is independently Security-cleared. Physical identical-mandate DMK approve plus reject/cancel remains RED until that clearance and a successful real session.
 
 ### 03 — World requester proof
 Required:
@@ -62,7 +62,7 @@ Required:
 
 Current Sandbox truth: SEC-WORLD-005 is independently **CLOSED at CI/CONFIGURED** by run `34547005448`. The required cross-device Sandbox proof is **GREEN as real non-production SANDBOX evidence** on `feature/ethonline-world-sandbox-proof@65383c83626a7121a6f47a3c88ac69b1304b363f`, with qualifying repaired-runtime proof lineage `ff0e2cd0eec1ede1d4e28c2e1a99603e7832177f` and exact-head Continuity `34549541999` SUCCESS. The exercised path was signed RP request → YourTurn desktop harness → QR/deep-link → iOS World ID Sandbox app → user acceptance/verification → proof returned to YourTurn → YourTurn backend → World `POST /api/v4/verify/{rp_id}` → success. Reviewer-visible result was `Sandbox proof verified`. No RP private key, raw proof, nullifier, connector URI, or raw World human identifier is published/committed.
 
-PR #43 browser-Origin cleanup at `ccb07e45888a3c15ee691a5db7465029d76f4c7f`, owner Continuity `34553728277` SUCCESS, is now independently **SECURITY CLEAN** for its changed guard semantics. Independent attacker `feature/ethonline-security-world-origin-regression@6e7523a4597ff3e0434758e9412c399ce8a819be`; Continuity `34558923596`, job `103137419536` — SUCCESS. Intended `localhost`/`127.0.0.1` aliases are accepted only on matching scheme + effective port; wrong scheme/port, non-loopback and suffix-confusion hosts, `Origin:null`, generic-dev/production activation, and non-loopback TCP fail closed. This does not reopen or require repeating the completed Sandbox phone proof. Base World head `8aff17268adbad8e52b4b077c85bbe50034d6c13`, Continuity `34554016785` SUCCESS, provides the non-secret signed-route preflight; the registered-agent recovery route remains `CI/READY, NOT LIVE/SIGNED-ROUTE` and RED for real execution.
+PR #43 browser-Origin cleanup at `ccb07e45888a3c15ee691a5db7465029d76f4c7f`, owner Continuity `34553728277` SUCCESS, is independently **SECURITY CLEAN** for its changed guard semantics. Independent attacker `feature/ethonline-security-world-origin-regression@6e7523a4597ff3e0434758e9412c399ce8a819be`; Continuity `34558923596`, job `103137419536` — SUCCESS. Intended `localhost`/`127.0.0.1` aliases are accepted only on matching scheme + effective port; wrong scheme/port, non-loopback and suffix-confusion hosts, `Origin:null`, generic-dev/production activation, and non-loopback TCP fail closed. This does not reopen or require repeating the completed Sandbox phone proof. Base World head `8aff17268adbad8e52b4b077c85bbe50034d6c13`, Continuity `34554016785` SUCCESS, provides the non-secret signed-route preflight; the registered-agent recovery route remains `CI/READY, NOT LIVE/SIGNED-ROUTE` and RED for real execution.
 
 ### 04 — Hedera policy + settlement
 Required:
@@ -73,7 +73,7 @@ Required:
 - replay/idempotency evidence;
 - explicit 40-minimum / 45-success distinction.
 
-Current H2/new NFT+USDC recovery remains `CI/LOCAL + Security`; canonical 45-USDC `LIVE/TESTNET` evidence is RED pending +25.02 testnet USDC to `0.0.8504405`, execution of the existing canonical workflow, and independent review of that exact artifact. H0/H1 retain their previously accepted LIVE/TESTNET evidence. Do not call the combined customer recovery `atomic` until one actual independently reviewed Hedera transaction proves both movements.
+Current H2/new NFT+USDC recovery remains `CI/LOCAL + Security`; canonical 45-USDC `LIVE/TESTNET` evidence is RED. The last verified public preflight recorded `0.0.8504405` at 19.98 testnet USDC, which implied a historical 25.02 shortfall, but a later top-up has been reported. Do **not** repeat 25.02 as the current shortfall or claim sufficient liquidity until a fresh public balance/role check is captured. After prerequisites are verified, the existing canonical 45-USDC workflow and independent review of that exact artifact remain required. H0/H1 retain their previously accepted LIVE/TESTNET evidence. Do not call the combined customer recovery `atomic` until one actual independently reviewed Hedera transaction proves both movements.
 
 ### 05 — Provider / acquirer reconciliation
 Required:
@@ -123,15 +123,15 @@ For each slot record:
 
 - Golden YT-01→08 and XC-01: GREEN as human-approved product truth.
 - Hedera H0/H1: retain existing independently reviewed `LIVE/TESTNET` claims.
-- Hedera H2/new NFT+USDC recovery: `CI/LOCAL + Security`; canonical 45-USDC `LIVE/TESTNET` artifact remains RED pending the external testnet-liquidity prerequisite and exact-artifact review.
+- Hedera H2/new NFT+USDC recovery: `CI/LOCAL + Security`; canonical 45-USDC `LIVE/TESTNET` artifact remains RED. Reported top-up is not yet a fresh verified balance, and the historical 25.02 shortfall is not current truth until rechecked.
 - World AgentBook: `LIVE/AGENTBOOK`.
 - World Sandbox: **GREEN real non-production SANDBOX evidence** on `65383c83626a7121a6f47a3c88ac69b1304b363f`; SEC-WORLD-005 remains closed. Do not relabel it as production identity or booking authority.
 - World PR #43 loopback/browser-Origin cleanup: independently **SECURITY CLEAN** at owner `ccb07e45888a3c15ee691a5db7465029d76f4c7f`, attacker `6e7523a4597ff3e0434758e9412c399ce8a819be`, run `34558923596` SUCCESS. No repeat Sandbox phone proof is needed.
 - World signed recovery route: `CI/READY`, NOT LIVE/SIGNED-ROUTE; real registered-agent execution remains RED.
 - Ledger SEC-LEDGER-005: independently **CLOSED CI/CONFIGURED**.
 - Ledger SEC-LEDGER-006: independently **CLOSED CI/CONFIGURED** on owner `a1126a0e7d2e5bb679914b0409209799520f8646`; attacker `7e03f28ad0182ff1aec112a8a05ddd5a2bfcf914`; retest `34555366707` SUCCESS.
-- Ledger physical qualification tooling/runbook: **CI GREEN / human-ready** on `7ac9e8ea3ba8a51ff3ec889774fd8f8724677b4d`, Continuity `34558524222` SUCCESS.
-- Ledger `LIVE/DEVICE`: RED until real identical-mandate approve plus reject/cancel evidence is captured.
+- Ledger physical qualification contract/tooling: **CI GREEN** on `7ac9e8ea3ba8a51ff3ec889774fd8f8724677b4d`, Continuity `34558524222` SUCCESS, but current device execution is paused by the separate dependency-security triage in #16. Public-address verification is not mandate/device evidence.
+- Ledger `LIVE/DEVICE`: RED until independent dependency-security clearance and real identical-mandate approve plus reject/cancel evidence are captured.
 - Full Ledger→World→Hedera E2E: RED / missing; final code must preserve guarded current-authority loading and fail-closed stale-state semantics.
 
 ## Final submission packet readiness
@@ -141,6 +141,6 @@ For each slot record:
 - **Final video: RED.** No final judge-facing video is pinned yet; verify any applicable duration rule before lock.
 - **Screenshots: PARTIAL.** Golden YT-01→08/XC-01 rendered product evidence exists, but final integrated sponsor-backed screenshots/receipt evidence do not.
 - **Submission fields: RED.** Final project description, Continuity before/after, exactly three partner selections, repo/demo/evidence links, stable deployment URL and final media are not locked.
-- **Evidence pack: RED.** The contract exists, but Hedera 45-USDC LIVE evidence, World signed-route/canonical-mandate bridge, Ledger LIVE/DEVICE evidence, sponsor-backed fixture replacement and the final integrated adversarial E2E are still missing.
+- **Evidence pack: RED.** The contract exists, but Hedera 45-USDC LIVE evidence, World signed-route/canonical-mandate bridge, Ledger dependency-security clearance plus LIVE/DEVICE evidence, sponsor-backed fixture replacement and the final integrated adversarial E2E are still missing.
 
 Any newer truth must update `manifest.json` and the relevant evidence slot together; prose alone does not upgrade evidence.
