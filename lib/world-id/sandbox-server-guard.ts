@@ -1,6 +1,22 @@
 const SANDBOX_REQUEST_HOSTS = new Set(["127.0.0.1", "localhost"]);
 const SANDBOX_TRANSPORT_MARKER = "loopback-v1";
 
+function effectivePort(url: URL): string {
+  if (url.port) return url.port;
+  if (url.protocol === "http:") return "80";
+  if (url.protocol === "https:") return "443";
+  return "";
+}
+
+function isEquivalentLoopbackOrigin(originUrl: URL, requestUrl: URL): boolean {
+  return (
+    SANDBOX_REQUEST_HOSTS.has(originUrl.hostname) &&
+    SANDBOX_REQUEST_HOSTS.has(requestUrl.hostname) &&
+    originUrl.protocol === requestUrl.protocol &&
+    effectivePort(originUrl) === effectivePort(requestUrl)
+  );
+}
+
 export function isLocalWorldIdSandboxRequest(request: Request): boolean {
   // The network boundary is established by the supported Sandbox launch binding
   // Next.js to 127.0.0.1. These runtime checks are fail-closed backstops; neither
@@ -33,13 +49,16 @@ export function isLocalWorldIdSandboxRequest(request: Request): boolean {
 
   // Browser Origin is defense-in-depth against cross-origin requests. It is not
   // the locality trust anchor; the listener bind above is the transport boundary.
+  // Treat localhost and 127.0.0.1 as the same loopback browser origin only when
+  // protocol and effective port also match. This handles Next's internal host
+  // normalization without accepting a different scheme, port, or non-loopback host.
   const origin = request.headers.get("origin");
   if (!origin) {
     return true;
   }
 
   try {
-    return new URL(origin).origin === requestUrl.origin;
+    return isEquivalentLoopbackOrigin(new URL(origin), requestUrl);
   } catch {
     return false;
   }
