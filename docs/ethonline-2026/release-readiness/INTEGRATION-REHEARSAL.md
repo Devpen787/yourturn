@@ -13,7 +13,7 @@ This is a **read-only merge forecast and integration plan**. It does not authori
 - World base candidate head: `8aff17268adbad8e52b4b077c85bbe50034d6c13`
 - World Sandbox evidence head: `65383c83626a7121a6f47a3c88ac69b1304b363f`
 - World Sandbox cleanup head: `ccb07e45888a3c15ee691a5db7465029d76f4c7f`
-- Ledger candidate head: `a1126a0e7d2e5bb679914b0409209799520f8646`
+- Ledger candidate head: `7ac9e8ea3ba8a51ff3ec889774fd8f8724677b4d`
 
 Only exact heads that later satisfy the relevant Security/evidence gates may be integrated. These candidate SHAs are pins for rehearsal, not automatic integration approval. The World Sandbox evidence head is a proof/tooling lineage and is not itself a wholesale integration authorization.
 
@@ -62,18 +62,18 @@ The World branch-local `ApprovalGrantClaims` path is not permitted to become a p
 ## Current sponsor qualification boundaries
 
 ### Ledger
-Current owner `feature/ethonline-ledger@a1126a0e7d2e5bb679914b0409209799520f8646`; owner Continuity `34554710275` SUCCESS. SEC-LEDGER-005 remains independently CLOSED at CI/CONFIGURED.
+Current branch `feature/ethonline-ledger@7ac9e8ea3ba8a51ff3ec889774fd8f8724677b4d`; exact-head Continuity `34558524222` SUCCESS. SEC-LEDGER-005 remains independently CLOSED at CI/CONFIGURED.
 
-SEC-LEDGER-006 is also independently **CLOSED at CI/CONFIGURED** by attacker `feature/ethonline-security-ledger-006-retest@7e03f28ad0182ff1aec112a8a05ddd5a2bfcf914`, run `34555366707`, job `103126811462` — SUCCESS. The guarded active-authority loader now compares the captured stable even authority-state version with current authoritative state, revalidates current holder/status/provider-policy/listing predicates, rechecks the version after live validation, rejects odd/in-flight or missing-context state, and preserves one-shot replay. A raw `mandate-active:*` record is never sufficient authority.
+SEC-LEDGER-006 is independently **CLOSED at CI/CONFIGURED** on the Security-accepted owner `a1126a0e7d2e5bb679914b0409209799520f8646` by attacker `feature/ethonline-security-ledger-006-retest@7e03f28ad0182ff1aec112a8a05ddd5a2bfcf914`, run `34555366707`, job `103126811462` — SUCCESS. The guarded active-authority loader compares the captured stable even authority-state version with current authoritative state, revalidates current holder/status/provider-policy/listing predicates, rechecks the version after live validation, rejects odd/in-flight or missing-context state, and preserves one-shot replay. A raw `mandate-active:*` record is never sufficient authority.
 
-This clears the software/security lifecycle blocker for downstream planning only. It does **not** create sponsor-qualified execution or `LIVE/DEVICE` provenance. Physical identical-mandate DMK approve + reject/cancel remains RED until captured, and the final integrated code must preserve `loadActiveRecoveryMandate()` or an equivalent atomic guarded boundary.
+The current branch additionally pins the physical qualification ceremony in `docs/ethonline-2026/ledger/DEVICE_QUALIFICATION_RUNBOOK.md`: the same server-prepared Recovery Mandate is taken through device reject → host cancel → device approve, reviewer-safe evidence collection, then downstream wrong-signature/single-activation/replay checks. This is **CI GREEN / READY FOR HUMAN DEVICE SESSION**, not `LIVE/DEVICE` evidence, and it performs no recovery execution or fund movement. Physical identical-mandate DMK approve + reject/cancel remains RED until captured. Final integrated code must preserve `loadActiveRecoveryMandate()` or an equivalent atomic guarded boundary.
 
 ### World
 AgentBook production registration/resolution is **LIVE/AGENTBOOK**. SEC-WORLD-004 is independently closed for the current signed-request gate. Base World head `8aff17268adbad8e52b4b077c85bbe50034d6c13`, Continuity `34554016785` SUCCESS, provides the non-secret signed-route preflight. The registered-agent recovery route remains **CI/READY, NOT LIVE/SIGNED-ROUTE**.
 
 World ID Sandbox is **GREEN real non-production SANDBOX evidence** on `feature/ethonline-world-sandbox-proof@65383c83626a7121a6f47a3c88ac69b1304b363f`, exact-head Continuity `34549541999` SUCCESS; SEC-WORLD-005 remains closed. The real iOS Proof of Human round trip returned to YourTurn and World v4 backend verification succeeded.
 
-PR #43 browser-Origin cleanup is now at `ccb07e45888a3c15ee691a5db7465029d76f4c7f`, owner Continuity `34553728277` SUCCESS. The cleanup preserves explicit loopback transport and narrows alias equivalence to `localhost`/`127.0.0.1` with the same scheme + effective port; wrong scheme/port/non-loopback origins remain rejected. A bounded independent Security regression retest of this changed guard semantic is still pending. The completed Sandbox proof is not reopened unless that retest finds a real regression.
+PR #43 browser-Origin cleanup at `ccb07e45888a3c15ee691a5db7465029d76f4c7f`, owner Continuity `34553728277` SUCCESS, has now passed bounded independent Security regression. Attacker `feature/ethonline-security-world-origin-regression@6e7523a4597ff3e0434758e9412c399ce8a819be`; Continuity `34558923596`, job `103137419536` — SUCCESS/CLEAN. Intended `localhost`/`127.0.0.1` aliases work only on matching scheme/effective port, while wrong scheme/port/non-loopback/suffix-confusion/`Origin:null`, generic-dev/production activation and non-loopback TCP fail closed. The completed Sandbox proof remains valid and does not need to be repeated.
 
 ### Hedera
 H0/H1 retain their independently accepted LIVE/TESTNET evidence. H2/new NFT+USDC recovery at `40890aab7729075edbf5efac5f5367f4b5a022e1` is **CI/LOCAL + Security**, while canonical 45-USDC LIVE/TESTNET evidence remains RED pending +25.02 testnet USDC to `0.0.8504405`, execution and independent exact-artifact review. No `atomic` claim until one verified transaction proves both movements.
@@ -87,8 +87,8 @@ Use `docs/product-workbench/integration-ledger.md` as the line-by-line fixture�
 ## Intended integration dependency order
 
 1. **Hold current integration** until a coherent sponsor slice is qualified; no wholesale branch merge.
-2. **Ledger authority consumption:** software/security lifecycle is closed at CI/CONFIGURED. Prepare/capture the real identical-mandate DMK approve + reject/cancel evidence, and when integration is authorized preserve the guarded current-authority loader rather than raw active-state reads.
-3. **World signed requester path:** after PR #43's bounded guard regression retest, execute the real registered-agent signed route, then bind expected agent/booking/action scope to the canonical current Ledger mandate projection. Sandbox proof is already complete and remains a separate evidence class.
+2. **Ledger authority consumption:** software/security lifecycle is closed at CI/CONFIGURED and the exact physical ceremony is human-ready. Capture the real identical-mandate DMK approve + reject/cancel evidence; when integration is authorized, preserve the guarded current-authority loader rather than raw active-state reads.
+3. **World signed requester path:** the Sandbox guard regression is closed. Execute the real registered-agent signed route, then bind expected agent/booking/action scope to the canonical current Ledger mandate projection. Sandbox proof is already complete and remains a separate evidence class.
 4. **Hedera H2/USDC:** after external testnet liquidity exists, execute the canonical 45-USDC LIVE/TESTNET proof and independently review the exact artifact before importing that surface.
 5. **Golden YT-05→YT-08 + XC-01 behavior:** wire fixture transitions to qualified runtime states using the acceptance ledger.
 6. Run one integrated adversarial E2E before any submission lock.
