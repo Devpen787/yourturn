@@ -13,7 +13,7 @@ This is a **read-only merge forecast and integration plan**. It does not authori
 - World base candidate head: `8aff17268adbad8e52b4b077c85bbe50034d6c13`
 - World Sandbox evidence head: `65383c83626a7121a6f47a3c88ac69b1304b363f`
 - World Sandbox cleanup head: `ccb07e45888a3c15ee691a5db7465029d76f4c7f`
-- Ledger candidate head: `7ac9e8ea3ba8a51ff3ec889774fd8f8724677b4d`
+- Ledger published candidate head: `7ac9e8ea3ba8a51ff3ec889774fd8f8724677b4d`
 
 Only exact heads that satisfy the relevant Security/evidence gates may become load-bearing in the integrated candidate. These SHAs are pins for rehearsal, not wholesale merge authorization. The World Sandbox evidence head is a proof/tooling lineage and is not itself a wholesale integration authorization.
 
@@ -30,7 +30,7 @@ All three sponsor branches modify `package.json` relative to foundation:
 - World adds AgentKit/AgentBook/signed-route/Sandbox scripts and dependencies.
 - Ledger adds Recovery Mandate/device scripts.
 
-**Plan:** assemble script/dependency deltas deliberately. Never resolve by taking one branch's complete `package.json` over another. Re-run `npm ci --legacy-peer-deps`, production build and exact sponsor checks after composition. Dependency/security disposition is now itself a gating concern for the Ledger device runtime; green lifecycle CI cannot be treated as blanket runtime-dependency clearance.
+**Plan:** assemble script/dependency deltas deliberately. Never resolve by taking one branch's complete `package.json` over another. Re-run `npm ci --legacy-peer-deps`, production build and exact sponsor checks after composition. Dependency/security disposition is itself a gating concern for the Ledger device runtime; green lifecycle CI cannot be treated as blanket runtime-dependency clearance.
 
 ### `package-lock.json`
 World modifies the lockfile; other sponsor branches may depend on the existing locked Hedera/Hiero stack.
@@ -63,11 +63,15 @@ The World branch-local `ApprovalGrantClaims` path is not permitted to become a p
 ## Current sponsor qualification boundaries
 
 ### Ledger
-Current branch `feature/ethonline-ledger@7ac9e8ea3ba8a51ff3ec889774fd8f8724677b4d`; exact-head Continuity `34558524222` SUCCESS. SEC-LEDGER-005 remains independently CLOSED at CI/CONFIGURED.
+Current published branch `feature/ethonline-ledger@7ac9e8ea3ba8a51ff3ec889774fd8f8724677b4d`; exact-head Continuity `34558524222` SUCCESS. SEC-LEDGER-005 remains independently CLOSED at CI/CONFIGURED.
 
 SEC-LEDGER-006 is independently **CLOSED at CI/CONFIGURED** on the Security-accepted owner `a1126a0e7d2e5bb679914b0409209799520f8646` by attacker `feature/ethonline-security-ledger-006-retest@7e03f28ad0182ff1aec112a8a05ddd5a2bfcf914`, run `34555366707`, job `103126811462` — SUCCESS. The guarded active-authority loader compares the captured stable even authority-state version with current authoritative state, revalidates current holder/status/provider-policy/listing predicates, rechecks the version after live validation, rejects odd/in-flight or missing-context state, and preserves one-shot replay. A raw `mandate-active:*` record is never sufficient authority.
 
-The current branch also pins the physical qualification ceremony in `docs/ethonline-2026/ledger/DEVICE_QUALIFICATION_RUNBOOK.md`: the same server-prepared Recovery Mandate is intended to pass through device reject → host cancel → device approve, reviewer-safe evidence collection, then downstream wrong-signature/single-activation/replay checks. The contract is **CI GREEN**, but the physical session is **not currently human-ready**. Security #16 retains a precautionary dependency signing/app-start hold. The local remediation candidate `cdedb3422230bd568bd18c499556c09a0607e0dc` is builder-reported tested but is still not remotely reconstructable in GitHub, so the exact candidate cannot yet receive independent runtime clearance. A local public-address verification succeeded but created no mandate signature, activation, or DEVICE provenance. This separate hold does not reopen SEC-LEDGER-005/006 and does not prove compromise. Do not load ceremony credentials, start the ceremony app, sign/activate a mandate, or run the physical ceremony until bounded dependency triage/remediation and independent Security acceptance explicitly reopen an exact runtime graph. Physical identical-mandate DMK approve + reject/cancel remains RED. Final integrated code must preserve `loadActiveRecoveryMandate()` or an equivalent atomic guarded boundary.
+The current branch also pins the physical qualification ceremony in `docs/ethonline-2026/ledger/DEVICE_QUALIFICATION_RUNBOOK.md`: the same server-prepared Recovery Mandate is intended to pass through device reject → host cancel → device approve, reviewer-safe evidence collection, then downstream wrong-signature/single-activation/replay checks. The contract is **CI GREEN**, but the physical session is **not currently human-ready**.
+
+Current local dependency-remediation candidate is **v2 `369ea0d13d84abb61bad9368ea9d96acdd2dbdfd`**, superseding `cdedb342...`. Builder #2 comment `5637571899` reports the corrected qualification-contract check, lock-enforcing helper `npm ci`, helper 0-vulnerability result and safe local battery. This is BUILD/LOCAL evidence only. #2 comment `5637990536` confirms the exact v2 source/locks remain not GitHub-reconstructable, so independent intake/runtime review cannot yet accept it. Security #16 comment `5638105252` additionally requires the supported ceremony target to bind explicitly to loopback, or prove equivalent fail-closed local transport/origin behavior plus executable non-loopback denial, before physical release. It records `ws@7.5.11` as an available semver-compatible 7.x security backport that still needs exact-lock/reachability review; protobuf/Hedera SDK residuals are runtime-present but the critical crafted-schema RCE is not currently demonstrated reachable through the ceremony.
+
+A local public-address verification succeeded but created no mandate signature, activation, or DEVICE provenance. This separate hold does not reopen SEC-LEDGER-005/006 and does not prove compromise. Do not load ceremony credentials, start the credential-bearing ceremony target, sign/activate a mandate, or run the physical ceremony until exact v2 source, runtime/dependency and loopback/local-origin conditions are independently Security-cleared. Physical identical-mandate DMK approve + reject/cancel remains RED. Final integrated code must preserve `loadActiveRecoveryMandate()` or an equivalent atomic guarded boundary.
 
 ### World
 AgentBook production registration/resolution is **LIVE/AGENTBOOK**. SEC-WORLD-004 is independently closed for the current signed-request gate. Base World head `8aff17268adbad8e52b4b077c85bbe50034d6c13`; latest exact-head Continuity `34622414540` SUCCESS. The registered-agent recovery route remains **CI/READY, NOT LIVE/SIGNED-ROUTE**.
@@ -81,12 +85,14 @@ PR #43 browser-Origin cleanup at `ccb07e45888a3c15ee691a5db7465029d76f4c7f`, own
 - `create_listing` can persist active listing/slot-listing state before the later signed Hedera HCS lifecycle event fails;
 - `cancel_release` can commit refund/NFT transfer before a later burn or HCS audit fails, and can commit transfer+burn before HCS audit failure.
 
-In those cases the API rejects after durable effects already exist. The World AgentKit nonce is consumed before the downstream booking operation, so the same signed request cannot be replayed as a recovery mechanism. Security therefore requires a durable idempotent recovery-operation/saga (or equivalent outbox/resume boundary) with step receipts and safe reconcile/resume semantics before this target can be cleared.
+In those cases the API rejects after durable effects already exist. The World AgentKit nonce is consumed before the downstream booking operation, so the same signed request cannot be replayed as a recovery mechanism.
 
-Security's explicit runtime ruling is now split: the **World local signer process is narrowly cleared for local credential loading/signature preparation only**; the **credential-bearing target app remains HOLD** because it reaches booking mutations plus `@hashgraph/sdk`/signed HTS-HCS behavior and is independently blocked by SEC-WORLD-006. This narrow signer clearance does not authorize a real signed mutation and creates no LIVE/SIGNED-ROUTE evidence. A bounded proof-response hardening candidate remains LOCAL/FIXTURE and unpublished; it cannot close SEC-WORLD-006 or upgrade the route until adopted/reviewed.
+An exact repair candidate now exists: **unreferenced `4dd5cdc8d507991464cad093b4f6492cfa87cb6f`**, parent/base `8aff17268adbad8e52b4b077c85bbe50034d6c13`, exactly one commit ahead. Builder-side synthetic regressions report passing listing-HCS failure, burn-after-transfer, HCS-after-transfer+burn, unknown-transfer-receipt and concurrent-retry scenarios. This is **CANDIDATE/LOCAL-SYNTHETIC only**: the SHA is not the branch head, has no CI/status/preview and is not adopted/green/LIVE. Independent exact-source Security retest is requested in #16 comment `5638192319`, including operation identity/scope, durable step receipts, unknown receipt reconciliation, concurrency/lease behavior, provider/holder policy preservation and privacy. SEC-WORLD-006 remains OPEN and the target remains HOLD until that review closes it.
+
+Security's explicit runtime ruling remains split: the **World local signer process is narrowly cleared for local credential loading/signature preparation only**; the **credential-bearing target app remains HOLD** because it reaches booking mutations plus `@hashgraph/sdk`/signed HTS-HCS behavior and is independently blocked by SEC-WORLD-006. This narrow signer clearance does not authorize a real signed mutation and creates no LIVE/SIGNED-ROUTE evidence. A bounded proof-response hardening candidate remains LOCAL/FIXTURE and unpublished; it is separate from the `4dd5cdc8...` saga candidate and cannot itself close SEC-WORLD-006 or upgrade the route until adopted/reviewed.
 
 ### Hedera
-Hedera is now the **qualified downstream sponsor checkpoint** at `feature/ethonline-hedera@411f703e164cac82b5498c1f25a2cf21af7bc4be`.
+Hedera is the **qualified downstream sponsor checkpoint** at `feature/ethonline-hedera@411f703e164cac82b5498c1f25a2cf21af7bc4be`.
 
 Evidence boundary:
 
@@ -118,8 +124,8 @@ Use `docs/product-workbench/integration-ledger.md` as the line-by-line fixture�
 ## Intended integration dependency order
 
 1. **Hold current integration** until a coherent upstream authority slice is qualified; no wholesale branch merge.
-2. **Ledger authority consumption:** software/security lifecycle is closed at CI/CONFIGURED, but first resolve the separate dependency-security hold and obtain independent Security acceptance of the exact runtime graph. Only then capture real identical-mandate DMK approve + reject/cancel evidence; when integration is authorized, preserve the guarded current-authority loader rather than raw active-state reads.
-3. **World signed requester + execution path:** Sandbox is already complete and the local signer is narrowly cleared for preparation only. First repair SEC-WORLD-006 with a durable idempotent/reconcilable operation boundary and obtain independent retest/closure. Then adopt/review the bounded proof-response hardening. Only after the credential-bearing target is explicitly cleared may one real registered-agent signed mutation be executed, and final expected agent/booking/action scope must bind to the canonical current Ledger mandate projection.
+2. **Ledger authority consumption:** software/security lifecycle is closed at CI/CONFIGURED, but first make exact v2 `369ea0d1...` source/locks GitHub-reconstructable, then obtain independent Security acceptance of the exact runtime/dependency graph and loopback/local-origin boundary. Only then capture real identical-mandate DMK approve + reject/cancel evidence; when integration is authorized, preserve the guarded current-authority loader rather than raw active-state reads.
+3. **World signed requester + execution path:** Sandbox is already complete and the local signer is narrowly cleared for preparation only. Independently attack `4dd5cdc8...` against SEC-WORLD-006 and close/adopt only if it survives. Then adopt/review the bounded proof-response hardening separately. Only after the credential-bearing target is explicitly cleared may one real registered-agent signed mutation be executed, and final expected agent/booking/action scope must bind to the canonical current Ledger mandate projection.
 4. **Hedera settlement layer:** the canonical 45-USDC transaction-boundary proof is already qualified. Do not rerun or spend merely for readiness. Once upstream Ledger→World authority becomes qualified, consume the pinned `411f703e...` downstream code/evidence checkpoint while preserving exact 40-min / 32-block / 45-success semantics and the narrow atomicity claim boundary.
 5. **Golden YT-05→YT-08 + XC-01 behavior:** wire fixture transitions to qualified runtime states using the acceptance ledger.
 6. Run one integrated adversarial E2E, including injected World partial-failure/reconcile cases, before any submission lock.
@@ -146,7 +152,7 @@ Stop integration and route the mismatch before proceeding if any of these occurs
 - World can return a clean failure after durable listing/token/audit effects, or consumes replay before an operation can be safely resumed/reconciled;
 - Ledger authority can activate against stale/unversioned booking state;
 - integrated code bypasses the Security-cleared guarded current-authority loader or can consume an already-active mandate after its captured authoritative state becomes stale;
-- Ledger device runtime/dependency graph is not independently cleared for the exact signing path;
+- Ledger device runtime/dependency graph or loopback/local-origin boundary is not independently cleared for the exact signing path;
 - Hedera prepared/submitted semantics differ from the Golden 40-min / 32-block / 45-success contract or widen beyond the independently qualified transaction shape;
 - Bob/payment/provider rules are implicit or contradictory;
 - a conflict resolution drops a security/evidence test;
