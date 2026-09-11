@@ -74,31 +74,30 @@
     "world": {
       "head": "2ab04f4420cccc2c090cd5f5634e447d399eb139",
       "continuityRun": "34432753300",
-      "sandboxCandidateHead": "403f2dcb1e185455b5fb09e76caab1e40f7d0ebc",
-      "sandboxContinuityRun": "34533470589",
+      "sandboxCandidateHead": "cc0ffe578286419d359cf3bb4030f2c45ecabe5e",
+      "sandboxContinuityRun": "34546081264",
       "security": {
-        "secWorld005": "OPEN_MEDIUM",
-        "independentRun": "34538944271",
-        "attackerHead": "e458c4c858903bca2b8f70367361caad65cafd12"
+        "secWorld005": "CLOSED_CI_CONFIGURED",
+        "independentRun": "34547005448",
+        "attackerHead": "98c399712fa6f38779df9666b982cf1b78a528f5"
       },
-      "currentEvidence": "LIVE/AGENTBOOK for registration/resolution; CI/READY, NOT LIVE for signed recovery route; World ID Sandbox CI/CONFIGURED but SECURITY BLOCKED and SANDBOX RED",
+      "currentEvidence": "LIVE/AGENTBOOK for registration/resolution; CI/READY, NOT LIVE for signed recovery route; World ID Sandbox CI/CONFIGURED + independently Security-cleared transport boundary, but SANDBOX proof remains RED",
       "integrationReady": false,
       "blockers": [
-        "Repair SEC-WORLD-005 by transport-binding the supported Sandbox launch to loopback and failing closed outside intended development mode, then pass independent Security retest",
-        "Only after SEC-WORLD-005 closure: complete the actual World ID Sandbox tester verification and reviewer-safe evidence",
+        "Complete one actual local World ID Sandbox phone round trip against cc0ffe578286419d359cf3bb4030f2c45ecabe5e with successful backend verification and reviewer-safe evidence",
         "Execute locally signed registered-agent recovery route against initialized non-production YourTurn state",
         "Replace branch-local ApprovalGrant authority scaffolding with canonical activated Ledger Recovery Mandate projection for final integration"
       ]
     },
     "ledger": {
-      "head": "dfb3fec6328c5db22aa6b6eb222b5e0a57f3b54a",
-      "continuityRun": "34489661054",
-      "currentEvidence": "CI/CONFIGURED; physical device evidence deferred",
+      "head": "96d513ef1286cf06192315263039d631b91a0d18",
+      "continuityRun": "34547247102",
+      "currentEvidence": "CI/CONFIGURED; final-state boundary builder repair is exact-head green but SEC-LEDGER-005 remains OPEN/MEDIUM pending independent retest; physical device evidence remains RED",
       "integrationReady": false,
       "blockers": [
-        "SEC-LEDGER-005 remains OPEN/MEDIUM on final validation→active-authority-write TOCTOU",
-        "Implement atomic/versioned/serialized coupling to authoritative booking/listing state and pass independent retest",
-        "Only after Security closure: capture real device approve plus reject/cancel on the identical Recovery Mandate"
+        "Independently retest SEC-LEDGER-005 against the atomic/versioned/serialized final-state repair at 96d513ef1286cf06192315263039d631b91a0d18",
+        "Keep SEC-LEDGER-005 OPEN/MEDIUM until that independent retest closes it",
+        "Only after Security closure: capture real device approve plus reject/cancel on the identical Recovery Mandate and prove downstream load-bearing enforcement"
       ]
     }
   },
@@ -112,12 +111,13 @@
       "realOrMainnetFundsAuthorized": false
     },
     "worldSandbox": {
-      "status": "SECURITY_BLOCKED",
-      "candidateHead": "403f2dcb1e185455b5fb09e76caab1e40f7d0ebc",
-      "securityFinding": "SEC-WORLD-005",
+      "status": "READY_FOR_HUMAN_SANDBOX_PROOF",
+      "candidateHead": "cc0ffe578286419d359cf3bb4030f2c45ecabe5e",
+      "securityFinding": "SEC-WORLD-005_CLOSED_CI_CONFIGURED",
+      "securityClosureRun": "34547005448",
       "appDownloaded": true,
       "proofCaptured": false,
-      "phoneProofDeferredUntilSecurityClosure": true
+      "phoneProofDeferredUntilSecurityClosure": false
     },
     "worldSignedRoute": {
       "runnerReady": true,
@@ -156,7 +156,7 @@
     "evidencePack": {
       "status": "RED",
       "contractExists": true,
-      "reason": "The pack contract exists, but Hedera 45-USDC LIVE evidence, World Sandbox/signed-route evidence, Ledger SEC-005/device evidence and the final integrated E2E remain missing."
+      "reason": "The pack contract exists, but Hedera 45-USDC LIVE evidence, World Sandbox/signed-route LIVE evidence, Ledger SEC-005 independent closure/device evidence and the final integrated E2E remain missing."
     }
   },
   "finalAcceptance": {
