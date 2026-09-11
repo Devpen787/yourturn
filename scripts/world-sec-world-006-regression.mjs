@@ -7,6 +7,7 @@ const saga = await readFile("lib/world-agentkit/recovery-saga.ts", "utf8");
 const store = await readFile("lib/store/recovery-operations.ts", "utf8");
 const bookingPort = await readFile("lib/adapters/booking-port.ts", "utf8");
 const nonceStore = await readFile("lib/world-agentkit/nonce-store.ts", "utf8");
+const token = await readFile("lib/hedera/token.ts", "utf8");
 
 // Source-level invariants on the actual repair surface.
 assert.match(route, /await authorizeWorldRecoveryWrite/);
@@ -63,18 +64,37 @@ assert.ok(
   "listing must not become active before its HCS audit boundary"
 );
 
-const cancelTransfer = saga.indexOf('markRunning(operation, leaseToken, "cancel_transfer")');
+const cancelTransferPlan = saga.indexOf("const transferTxId = createOperatorTransactionId()");
+const cancelTransferMark = saga.indexOf('"cancel_transfer",\n        transferTxId', cancelTransferPlan);
 const cancelTransferEffect = saga.indexOf(
-  "await refundAndTransferNftFromHolderToTreasury",
-  cancelTransfer
+  "submittedTxId = await refundAndTransferNftFromHolderToTreasury",
+  cancelTransferPlan
 );
 const cancelBurn = saga.indexOf('markRunning(operation, leaseToken, "cancel_burn")');
 const cancelBurnEffect = saga.indexOf("await burnUsedSlot", cancelBurn);
 const cancelAudit = saga.indexOf('markRunning(operation, leaseToken, "cancel_audit")');
-assert.ok(cancelTransfer >= 0 && cancelTransferEffect > cancelTransfer);
+assert.ok(cancelTransferPlan >= 0);
+assert.ok(cancelTransferMark > cancelTransferPlan);
+assert.ok(
+  cancelTransferEffect > cancelTransferMark,
+  "the operation-bound transaction id must be durable before submission"
+);
 assert.ok(cancelBurn > cancelTransferEffect && cancelBurnEffect > cancelBurn);
 assert.ok(cancelAudit > cancelBurnEffect);
 assert.match(saga, /if \(transferStep\.state === "running"\)/);
+assert.match(saga, /verifyCancelTransferTransaction/);
+assert.match(saga, /getTransactionById\(input\.transactionId\)/);
+assert.match(saga, /holderNet !== expectedRefund/);
+assert.match(saga, /treasuryNet === null \|\| treasuryNet > -expectedRefund/);
+assert.match(saga, /matchingNftTransfers\.length !== 1/);
+assert.doesNotMatch(
+  saga,
+  /treasury_owner:/,
+  "treasury NFT ownership alone must never reconcile the refund step"
+);
+assert.match(saga, /transactionId: transferTxId/);
+assert.match(token, /TransactionId\.generate\(AccountId\.fromString\(operatorId\)\)/);
+assert.match(token, /tx\.setTransactionId\(TransactionId\.fromString\(args\.transactionId\)\)/);
 assert.match(saga, /if \(burnStep\.state === "running"\)/);
 assert.match(saga, /if \(auditStep\.state === "running"\)/);
 assert.match(saga, /bookingPort\.previewCancelRelease\(preview\.input\)/);
@@ -230,16 +250,28 @@ async function runCancelModel(model, io) {
 
     const transfer = model.steps.cancel_transfer;
     if (transfer.state === "running") {
-      if (io.nftState === "treasury") {
+      if (!transfer.receipt) return reconcile(model, "cancel_transfer");
+      const evidence = await io.transferEvidence(transfer.receipt);
+      if (evidence === "confirmed") {
         transfer.state = "reconciled";
+      } else if (evidence === "missing") {
+        try {
+          const retriedTxId = await io.transfer(transfer.receipt);
+          assert.equal(retriedTxId, transfer.receipt);
+          transfer.state = "succeeded";
+        } catch {
+          return reconcile(model, "cancel_transfer");
+        }
       } else {
         return reconcile(model, "cancel_transfer");
       }
     }
     if (transfer.state === "pending") {
       transfer.state = "running";
+      transfer.receipt = io.plannedTransferTxId ?? "transfer-tx";
       try {
-        transfer.receipt = await io.transfer();
+        const submittedTxId = await io.transfer(transfer.receipt);
+        assert.equal(submittedTxId, transfer.receipt);
         transfer.state = "succeeded";
       } catch {
         return reconcile(model, "cancel_transfer");
@@ -288,6 +320,10 @@ async function runCancelModel(model, io) {
   }
 }
 
+function defaultTransferEvidence() {
+  return "mismatch";
+}
+
 // Fault 2: transfer committed and receipt persisted; burn fails. Retry cannot
 // duplicate transfer or burn while burn receipt is unknown.
 {
@@ -296,8 +332,9 @@ async function runCancelModel(model, io) {
   const io = {
     nftState: "treasury",
     auditObserved: false,
+    transferEvidence: defaultTransferEvidence,
     deactivate: async () => { counts.deactivate += 1; },
-    transfer: async () => { counts.transfer += 1; return "transfer-tx"; },
+    transfer: async (txId) => { counts.transfer += 1; return txId; },
     burn: async () => { counts.burn += 1; throw new Error("injected burn failure"); },
     audit: async () => { counts.audit += 1; return "audit-tx"; },
   };
@@ -322,8 +359,9 @@ async function runCancelModel(model, io) {
   const io = {
     nftState: "deleted",
     auditObserved: false,
+    transferEvidence: defaultTransferEvidence,
     deactivate: async () => { counts.deactivate += 1; },
-    transfer: async () => { counts.transfer += 1; return "transfer-tx"; },
+    transfer: async (txId) => { counts.transfer += 1; return txId; },
     burn: async () => { counts.burn += 1; return "burn-tx"; },
     audit: async () => { counts.audit += 1; throw new Error("injected HCS failure"); },
   };
@@ -342,25 +380,109 @@ async function runCancelModel(model, io) {
   assert.deepEqual(counts, { deactivate: 1, transfer: 1, burn: 1, audit: 1 });
 }
 
-// Crash/unknown receipt: the transfer step was durably marked running, the
-// economic effect committed, but its receipt write did not. Public treasury
-// ownership reconciles that step; the retry does not refund/transfer again.
+// Crash/unknown receipt with a committed exact transaction: the durable
+// operation-bound tx id is independently confirmed, so retry does not submit a
+// second refund/transfer and may continue to burn/audit.
 {
   const model = createModel("cancel_release");
   model.steps.cancel_listing_deactivation.state = "succeeded";
   model.steps.cancel_transfer.state = "running";
+  model.steps.cancel_transfer.receipt = "transfer-tx";
   const counts = { deactivate: 0, transfer: 0, burn: 0, audit: 0 };
   const io = {
     nftState: "treasury",
     auditObserved: false,
+    transferEvidence: async (txId) => txId === "transfer-tx" ? "confirmed" : "mismatch",
     deactivate: async () => { counts.deactivate += 1; },
-    transfer: async () => { counts.transfer += 1; return "should-not-run"; },
+    transfer: async (txId) => { counts.transfer += 1; return txId; },
     burn: async () => { counts.burn += 1; return "burn-tx"; },
     audit: async () => { counts.audit += 1; return "audit-tx"; },
   };
   assert.deepEqual(await runCancelModel(model, io), { status: "completed" });
   assert.deepEqual(counts, { deactivate: 0, transfer: 0, burn: 1, audit: 1 });
   assert.equal(model.steps.cancel_transfer.state, "reconciled");
+}
+
+// Security reproducer: treasury ownership caused by a different, non-refund
+// transfer is NOT evidence for the operation-bound refund transaction. If the
+// exact tx id is absent and same-id resubmission cannot confirm, the operation
+// remains reconciling and burn/audit never run.
+{
+  const model = createModel("cancel_release");
+  model.steps.cancel_listing_deactivation.state = "succeeded";
+  model.steps.cancel_transfer.state = "running";
+  model.steps.cancel_transfer.receipt = "expected-refund-tx";
+  const counts = { deactivate: 0, transfer: 0, burn: 0, audit: 0 };
+  const io = {
+    nftState: "treasury",
+    auditObserved: false,
+    transferEvidence: async () => "missing",
+    deactivate: async () => { counts.deactivate += 1; },
+    transfer: async (txId) => {
+      counts.transfer += 1;
+      assert.equal(txId, "expected-refund-tx");
+      throw new Error("same-id retry remains ambiguous");
+    },
+    burn: async () => { counts.burn += 1; return "burn-tx"; },
+    audit: async () => { counts.audit += 1; return "audit-tx"; },
+  };
+  assert.deepEqual(await runCancelModel(model, io), {
+    status: "reconciling",
+    phase: "cancel_transfer",
+  });
+  assert.deepEqual(counts, { deactivate: 0, transfer: 1, burn: 0, audit: 0 });
+  assert.equal(model.steps.cancel_transfer.state, "running");
+}
+
+// Crash after the running marker but before network submission: retry may
+// resubmit only the same durable tx id. A successful same-id submission then
+// allows the operation to continue without creating a second economic identity.
+{
+  const model = createModel("cancel_release");
+  model.steps.cancel_listing_deactivation.state = "succeeded";
+  model.steps.cancel_transfer.state = "running";
+  model.steps.cancel_transfer.receipt = "expected-refund-tx";
+  const counts = { deactivate: 0, transfer: 0, burn: 0, audit: 0 };
+  const io = {
+    nftState: "treasury",
+    auditObserved: false,
+    transferEvidence: async () => "missing",
+    deactivate: async () => { counts.deactivate += 1; },
+    transfer: async (txId) => {
+      counts.transfer += 1;
+      assert.equal(txId, "expected-refund-tx");
+      return txId;
+    },
+    burn: async () => { counts.burn += 1; return "burn-tx"; },
+    audit: async () => { counts.audit += 1; return "audit-tx"; },
+  };
+  assert.deepEqual(await runCancelModel(model, io), { status: "completed" });
+  assert.deepEqual(counts, { deactivate: 0, transfer: 1, burn: 1, audit: 1 });
+  assert.equal(model.steps.cancel_transfer.receipt, "expected-refund-tx");
+}
+
+// Exact-id transaction evidence with wrong economic legs fails closed; it is
+// neither accepted nor blindly resubmitted.
+{
+  const model = createModel("cancel_release");
+  model.steps.cancel_listing_deactivation.state = "succeeded";
+  model.steps.cancel_transfer.state = "running";
+  model.steps.cancel_transfer.receipt = "wrong-legs-tx";
+  const counts = { deactivate: 0, transfer: 0, burn: 0, audit: 0 };
+  const io = {
+    nftState: "treasury",
+    auditObserved: false,
+    transferEvidence: async () => "mismatch",
+    deactivate: async () => { counts.deactivate += 1; },
+    transfer: async (txId) => { counts.transfer += 1; return txId; },
+    burn: async () => { counts.burn += 1; return "burn-tx"; },
+    audit: async () => { counts.audit += 1; return "audit-tx"; },
+  };
+  assert.deepEqual(await runCancelModel(model, io), {
+    status: "reconciling",
+    phase: "cancel_transfer",
+  });
+  assert.deepEqual(counts, { deactivate: 0, transfer: 0, burn: 0, audit: 0 });
 }
 
 // Concurrent retry: one executor owns the operation lease; another returns a
@@ -388,6 +510,9 @@ console.log(
         durableIdentity: true,
         listingAuditBeforeActivation: true,
         cancelStepReceipts: true,
+        exactRefundTransactionBoundBeforeSubmission: true,
+        exactRefundEconomicLegsRequired: true,
+        treasuryOwnershipAloneRejected: true,
         nonceResetAbsent: true,
         goldenReleasePolicyPreserved: true,
         reconcilingResponseDistinct: true,
@@ -396,7 +521,10 @@ console.log(
         listingHcsFailure: "no active listing; no blind HCS replay",
         burnFailureAfterTransfer: "transfer not duplicated; burn unknown remains reconciling",
         hcsFailureAfterTransferBurn: "asset effects not duplicated; audit reconciles by operation evidence",
-        unknownTransferReceipt: "public treasury ownership resumes without duplicate refund/transfer",
+        exactUnknownTransferReceipt: "exact tx evidence resumes without duplicate refund/transfer",
+        nonRefundTreasuryTransfer: "cannot false-reconcile; burn/audit remain blocked",
+        crashBeforeTransferSubmission: "retry reuses only the same durable transaction id",
+        wrongEconomicLegs: "fail closed without replay",
         concurrentRetry: "second executor blocked before effects",
       },
     },

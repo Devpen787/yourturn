@@ -13,6 +13,7 @@ import {
   TokenSupplyType,
   TokenType,
   TokenUnfreezeTransaction,
+  TransactionId,
   TransferTransaction,
 } from "@hashgraph/sdk";
 import { buildNftMetadataBlob, type ImmutableSlotMetadata } from "@/lib/domain/metadata";
@@ -229,12 +230,26 @@ export async function transferNftFromHolderToTreasury(args: {
   return response.transactionId.toString();
 }
 
+/**
+ * Generate the exact Hedera transaction id that will identify a recovery
+ * transfer before any network submission occurs. Persisting this id in the
+ * recovery step lets retries resubmit/reconcile the same economic attempt
+ * instead of creating a second refund attempt after an ambiguous receipt.
+ */
+export function createOperatorTransactionId(): string {
+  const operatorId = process.env.HEDERA_OPERATOR_ID;
+  if (!operatorId) throw new Error("HEDERA_OPERATOR_ID is required");
+  return TransactionId.generate(AccountId.fromString(operatorId)).toString();
+}
+
 export async function refundAndTransferNftFromHolderToTreasury(args: {
   holderAccountId: string;
   holderPrivateKey: string;
   serial: number;
   tokenIdStr: string;
   refundHbar: number;
+  /** Reuse a durably persisted id when retrying an ambiguous submission. */
+  transactionId?: string;
 }): Promise<string> {
   const client = getClient();
   const treasury = getActorCredentials("issuer");
@@ -245,13 +260,24 @@ export async function refundAndTransferNftFromHolderToTreasury(args: {
   const tx = new TransferTransaction()
     .addHbarTransfer(treasury.accountId, refund.negated())
     .addHbarTransfer(holderId, refund)
-    .addNftTransfer(tokenId, args.serial, holderId, treasury.accountId)
-    .freezeWith(client);
-  let signed = await tx.sign(treasury.privateKey);
+    .addNftTransfer(tokenId, args.serial, holderId, treasury.accountId);
+  if (args.transactionId) {
+    tx.setTransactionId(TransactionId.fromString(args.transactionId));
+  }
+  const frozen = tx.freezeWith(client);
+  let signed = await frozen.sign(treasury.privateKey);
   signed = await signed.sign(holderKey);
   const response = await signed.execute(client);
   await response.getReceipt(client);
-  return response.transactionId.toString();
+  const actualTransactionId = response.transactionId.toString();
+  if (
+    args.transactionId &&
+    TransactionId.fromString(actualTransactionId).toString() !==
+      TransactionId.fromString(args.transactionId).toString()
+  ) {
+    throw new Error("Hedera refund transfer returned an unexpected transaction id");
+  }
+  return actualTransactionId;
 }
 
 export function getTreasuryIdString(): string {

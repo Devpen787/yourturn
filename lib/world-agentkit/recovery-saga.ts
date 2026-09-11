@@ -9,9 +9,10 @@ import {
   tryResolveGuestActor,
 } from "@/lib/hedera/client";
 import { getHashscanTxUrl } from "@/lib/hedera/hashscan";
-import { getNftBySerial } from "@/lib/hedera/mirror";
+import { getNftBySerial, getTransactionById } from "@/lib/hedera/mirror";
 import {
   burnUsedSlot,
+  createOperatorTransactionId,
   getTreasuryIdString,
   refundAndTransferNftFromHolderToTreasury,
 } from "@/lib/hedera/token";
@@ -117,6 +118,31 @@ type CancelReleaseSagaResult = {
   refundHbar: number;
 };
 
+type MirrorHbarTransfer = {
+  account?: string;
+  amount?: number | string;
+};
+
+type MirrorNftTransfer = {
+  token_id?: string;
+  serial_number?: number;
+  sender_account_id?: string;
+  receiver_account_id?: string;
+};
+
+type MirrorTransaction = {
+  transaction_id?: string;
+  nonce?: number;
+  result?: string;
+  transfers?: MirrorHbarTransfer[];
+  nft_transfers?: MirrorNftTransfer[];
+};
+
+type CancelTransferVerification =
+  | { status: "confirmed" }
+  | { status: "missing" }
+  | { status: "mismatch"; reason: string };
+
 const CREATE_STEPS = ["listing_audit", "listing_activation"] as const;
 const CANCEL_STEPS = [
   "cancel_listing_deactivation",
@@ -179,6 +205,132 @@ function safeErrorMessage(error: unknown): string {
   return message.slice(0, 500);
 }
 
+function normalizeTransactionId(txId: string): string {
+  const clean = txId.replace(/\?scheduled$/, "");
+  const [account, timestamp] = clean.split("@");
+  if (account && timestamp) {
+    return `${account}-${timestamp.replace(".", "-")}`;
+  }
+  return clean;
+}
+
+function mirrorAmount(value: unknown): bigint | null {
+  if (typeof value === "number" && Number.isSafeInteger(value)) {
+    return BigInt(value);
+  }
+  if (typeof value === "string" && /^-?\d+$/.test(value)) {
+    return BigInt(value);
+  }
+  return null;
+}
+
+function refundTinybars(refundHbar: number): bigint {
+  const scaled = refundHbar * 100_000_000;
+  const rounded = Math.round(scaled);
+  if (
+    !Number.isFinite(refundHbar) ||
+    refundHbar < 0 ||
+    !Number.isSafeInteger(rounded) ||
+    Math.abs(scaled - rounded) > 0.000001
+  ) {
+    throw new Error("Refund amount cannot be represented exactly in tinybars");
+  }
+  return BigInt(rounded);
+}
+
+function sumHbarTransfers(
+  transfers: MirrorHbarTransfer[] | undefined,
+  accountId: string
+): bigint | null {
+  let found = false;
+  let total = 0n;
+  for (const transfer of transfers ?? []) {
+    if (!transfer.account || !accountsEqual(transfer.account, accountId)) continue;
+    const amount = mirrorAmount(transfer.amount);
+    if (amount === null) return null;
+    total += amount;
+    found = true;
+  }
+  return found ? total : null;
+}
+
+async function verifyCancelTransferTransaction(input: {
+  transactionId: string;
+  tokenId: string;
+  serial: number;
+  holderAccountId: string;
+  treasuryAccountId: string;
+  refundHbar: number;
+}): Promise<CancelTransferVerification> {
+  const response = (await getTransactionById(input.transactionId)) as
+    | { transactions?: MirrorTransaction[] }
+    | null;
+  const transactions = response?.transactions;
+  if (!Array.isArray(transactions) || transactions.length === 0) {
+    return { status: "missing" };
+  }
+
+  const expectedId = normalizeTransactionId(input.transactionId);
+  const transaction = transactions.find(
+    (candidate) =>
+      typeof candidate.transaction_id === "string" &&
+      normalizeTransactionId(candidate.transaction_id) === expectedId &&
+      (candidate.nonce ?? 0) === 0
+  );
+  if (!transaction) {
+    return {
+      status: "mismatch",
+      reason: "Mirror response does not contain the exact recovery transaction id",
+    };
+  }
+  if (transaction.result !== "SUCCESS") {
+    return {
+      status: "mismatch",
+      reason: `Exact recovery transaction is not successful (${transaction.result ?? "unknown"})`,
+    };
+  }
+
+  const expectedRefund = refundTinybars(input.refundHbar);
+  const holderNet = sumHbarTransfers(transaction.transfers, input.holderAccountId);
+  const treasuryNet = sumHbarTransfers(
+    transaction.transfers,
+    input.treasuryAccountId
+  );
+  const matchingNftTransfers = (transaction.nft_transfers ?? []).filter(
+    (transfer) =>
+      transfer.token_id === input.tokenId &&
+      transfer.serial_number === input.serial &&
+      !!transfer.sender_account_id &&
+      !!transfer.receiver_account_id &&
+      accountsEqual(transfer.sender_account_id, input.holderAccountId) &&
+      accountsEqual(transfer.receiver_account_id, input.treasuryAccountId)
+  );
+
+  if (holderNet !== expectedRefund) {
+    return {
+      status: "mismatch",
+      reason: "Exact recovery transaction does not prove the holder refund credit",
+    };
+  }
+  // The treasury may also be the transaction payer, so its Mirror net can
+  // include network fees in addition to the refund. It must debit at least the
+  // authorized refund amount; a fee-only treasury debit is not sufficient.
+  if (treasuryNet === null || treasuryNet > -expectedRefund) {
+    return {
+      status: "mismatch",
+      reason: "Exact recovery transaction does not prove the treasury refund debit",
+    };
+  }
+  if (matchingNftTransfers.length !== 1) {
+    return {
+      status: "mismatch",
+      reason: "Exact recovery transaction does not prove the authorized NFT transfer",
+    };
+  }
+
+  return { status: "confirmed" };
+}
+
 async function rememberReconciling(
   operation: RecoveryOperationRecord,
   phase: WorldRecoverySagaPhase,
@@ -202,7 +354,8 @@ async function rememberReconciling(
 async function markRunning(
   operation: RecoveryOperationRecord,
   leaseToken: string,
-  stepName: string
+  stepName: string,
+  plannedReceipt?: string
 ): Promise<void> {
   await assertRecoveryOperationLease(operation.operationId, leaseToken);
   const step = operation.steps[stepName];
@@ -210,7 +363,8 @@ async function markRunning(
   step.state = "running";
   step.startedAt = step.startedAt ?? new Date().toISOString();
   delete step.completedAt;
-  delete step.receipt;
+  if (plannedReceipt === undefined) delete step.receipt;
+  else step.receipt = plannedReceipt;
   delete step.evidence;
   operation.status = "running";
   delete operation.lastError;
@@ -621,30 +775,73 @@ export async function confirmWorldCancelRelease(input: {
 
     const transferStep = operation.steps.cancel_transfer;
     if (transferStep.state === "running") {
-      const nft = await getNftBySerial(stored.tokenId, preview.input.serial);
-      if (nft?.deleted) {
+      const transferTxId = transferStep.receipt;
+      if (!transferTxId) {
         return rememberReconciling(
           operation,
           "cancel_transfer",
-          new Error("NFT is already deleted but transfer receipt is unknown")
+          new Error(
+            "Refund/NFT-transfer is running without a durable transaction id; manual reconciliation required"
+          )
         );
       }
-      if (
-        nft?.account_id &&
-        accountsEqual(nft.account_id, stored.treasuryAccountId)
-      ) {
+
+      let verification: CancelTransferVerification;
+      try {
+        verification = await verifyCancelTransferTransaction({
+          transactionId: transferTxId,
+          tokenId: stored.tokenId,
+          serial: preview.input.serial,
+          holderAccountId,
+          treasuryAccountId: stored.treasuryAccountId,
+          refundHbar: slot.primaryPriceHbar,
+        });
+      } catch (error) {
+        return rememberReconciling(operation, "cancel_transfer", error);
+      }
+
+      if (verification.status === "confirmed") {
         await markReconciled(
           operation,
           "cancel_transfer",
           "mirror_state",
-          `treasury_owner:${stored.treasuryAccountId}`
+          `refund_nft_transaction:${normalizeTransactionId(transferTxId)}`
         );
-      } else {
+      } else if (verification.status === "mismatch") {
         return rememberReconciling(
           operation,
           "cancel_transfer",
-          new Error("Refund/NFT-transfer receipt is still unknown")
+          new Error(verification.reason)
         );
+      } else {
+        // The exact id is not yet visible. Resubmit only the same transaction id;
+        // Hedera's transaction-id uniqueness prevents this retry from becoming a
+        // second economic attempt if the original submission actually committed.
+        let retriedTxId: string;
+        try {
+          const holderCredentials = getActorCredentials(holderActor);
+          retriedTxId = await refundAndTransferNftFromHolderToTreasury({
+            holderAccountId,
+            holderPrivateKey: holderCredentials.privateKey.toString(),
+            serial: preview.input.serial,
+            tokenIdStr: stored.tokenId,
+            refundHbar: slot.primaryPriceHbar,
+            transactionId: transferTxId,
+          });
+        } catch (error) {
+          return rememberReconciling(operation, "cancel_transfer", error);
+        }
+        try {
+          await markSucceeded(
+            operation,
+            "cancel_transfer",
+            retriedTxId,
+            "transaction_receipt",
+            retriedTxId
+          );
+        } catch (error) {
+          return rememberReconciling(operation, "cancel_transfer", error);
+        }
       }
     } else if (
       transferStep.state !== "succeeded" &&
@@ -655,16 +852,23 @@ export async function confirmWorldCancelRelease(input: {
       } catch (error) {
         return rememberReconciling(operation, "cancel_transfer", error);
       }
-      await markRunning(operation, leaseToken, "cancel_transfer");
-      let transferTxId: string;
+      const transferTxId = createOperatorTransactionId();
+      await markRunning(
+        operation,
+        leaseToken,
+        "cancel_transfer",
+        transferTxId
+      );
+      let submittedTxId: string;
       try {
         const holderCredentials = getActorCredentials(holderActor);
-        transferTxId = await refundAndTransferNftFromHolderToTreasury({
+        submittedTxId = await refundAndTransferNftFromHolderToTreasury({
           holderAccountId,
           holderPrivateKey: holderCredentials.privateKey.toString(),
           serial: preview.input.serial,
           tokenIdStr: stored.tokenId,
           refundHbar: slot.primaryPriceHbar,
+          transactionId: transferTxId,
         });
       } catch (error) {
         return rememberReconciling(operation, "cancel_transfer", error);
@@ -673,9 +877,9 @@ export async function confirmWorldCancelRelease(input: {
         await markSucceeded(
           operation,
           "cancel_transfer",
-          transferTxId,
+          submittedTxId,
           "transaction_receipt",
-          transferTxId
+          submittedTxId
         );
       } catch (error) {
         return rememberReconciling(operation, "cancel_transfer", error);
