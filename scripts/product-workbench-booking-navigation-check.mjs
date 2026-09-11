@@ -22,12 +22,10 @@ async function click(page, name, role = "button", scope = page.locator("main")) 
   await scope.getByRole(role, { name, exact: true }).click();
 }
 
-async function enterPendingPayment(page) {
-  await page.goto(`${base.origin}/product-preview?view=xc-find`, { waitUntil: "networkidle" });
-  await page.getByRole("button", { name: /View Friday Yoga/ }).click();
-  await text(page, "This booking is available to you.");
-  await click(page, "Commit 45 USDC");
-  await text(page, "Payment pending");
+async function assertView(page, expected) {
+  await page.waitForURL((url) => url.searchParams.get("view") === expected, { timeout: 7000 });
+  assert.equal(new URL(page.url()).searchParams.get("view"), expected, `Expected canonical view=${expected}`);
+  assert.notEqual(page.url(), "about:blank");
 }
 
 async function assertHeader(page, label, identity) {
@@ -39,27 +37,53 @@ async function assertHeader(page, label, identity) {
   assert(box && box.height >= 44, "Header navigation touch target <44px");
 }
 
+async function assertPendingCanonical(page) {
+  await text(page, "Payment pending");
+  await assertView(page, "xc-payment-pending");
+  await assertHeader(page, "Find a spot", "Bob");
+  const current = await storedFixture(page);
+  assert.equal(current.continuation.payment, "pending");
+  assert.equal(current.continuation.paymentAttempts, 1, "Pending payment must have exactly one payment attempt");
+  return current;
+}
+
+async function enterPendingPayment(page) {
+  await page.goto(`${base.origin}/product-preview?view=xc-find`, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: /View Friday Yoga/ }).click();
+  await text(page, "This booking is available to you.");
+  await assertView(page, "xc-eligibility");
+  await click(page, "Commit 45 USDC");
+  // R1 acceptance: committed body facts and addressable task location must
+  // converge before any browser-history action is allowed to repair the URL.
+  return assertPendingCanonical(page);
+}
+
 const cases = [
   ["NAV-04-payment-reload", bookingFixture(), async (page, snap) => {
-    await enterPendingPayment(page);
-    const before = await storedFixture(page);
-    assert.equal(before.continuation.payment, "pending");
-    assert.equal(before.continuation.paymentAttempts, 1);
+    const before = await enterPendingPayment(page);
     await page.reload({ waitUntil: "networkidle" });
-    await text(page, "Payment pending");
-    await assertHeader(page, "Find a spot", "Bob");
-    assert.deepEqual(await storedFixture(page), before, "Reload must not restart or resolve pending payment");
+    const afterReload = await assertPendingCanonical(page);
+    assert.deepEqual(afterReload, before, "Reload must not restart or resolve pending payment");
     await snap("payment-reload");
   }],
   ["NAV-06-payment-history", bookingFixture(), async (page, snap) => {
-    await enterPendingPayment(page);
-    const before = await storedFixture(page);
+    const before = await enterPendingPayment(page);
+    const historyLength = await page.evaluate(() => history.length);
+
     await page.goBack({ waitUntil: "networkidle" });
-    await text(page, "Payment pending");
-    await page.waitForURL((url) => url.searchParams.get("view") === "xc-payment-pending");
-    assert.notEqual(page.url(), "about:blank");
-    assert.deepEqual(await storedFixture(page), before, "Browser history must not change pending payment facts");
-    await assertHeader(page, "Find a spot", "Bob");
+    const afterBack = await assertPendingCanonical(page);
+    assert.deepEqual(afterBack, before, "Back must not change pending payment facts");
+    assert.equal(await page.evaluate(() => history.length), historyLength, "Canonical Back repair must not grow history");
+
+    await page.goForward({ waitUntil: "networkidle" });
+    const afterForward = await assertPendingCanonical(page);
+    assert.deepEqual(afterForward, before, "Forward must not change pending payment facts");
+    assert.equal(await page.evaluate(() => history.length), historyLength, "Forward must not create a redirect/history loop");
+
+    await page.reload({ waitUntil: "networkidle" });
+    const afterReload = await assertPendingCanonical(page);
+    assert.deepEqual(afterReload, before, "Reload after history traversal must preserve pending payment facts");
+    assert.equal(await page.evaluate(() => history.length), historyLength, "Reload must not grow history");
     await snap("payment-history");
   }],
   ["NAV-07-checked-in-header", bobFixture({ checkinWindow: "open" }), async (page, snap) => {
@@ -166,7 +190,7 @@ try {
 
 await writeFile(path.join(out, "results.json"), JSON.stringify({
   candidateSha,
-  scope: "#44 R1b NAV-04/06/07/08 shared booking continuity; B1-B4 remain outside this closure",
+  scope: "#44 R1 NAV-04/06/07/08 shared booking continuity; immediate post-payment canonical URL + Back/Forward/reload are required; B1-B4 remain outside this closure",
   evidenceClass: "FIXTURE",
   results,
 }, null, 2));

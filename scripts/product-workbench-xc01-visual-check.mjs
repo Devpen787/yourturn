@@ -7,12 +7,54 @@ import {
 
 const baseUrl = process.env.PRODUCT_WORKBENCH_BASE_URL ?? "http://127.0.0.1:3000";
 const outDir = path.resolve("artifacts/product-workbench");
+const VISIBLE_TIMEOUT_MS = Number(process.env.PRODUCT_WORKBENCH_VISIBLE_TIMEOUT_MS ?? 7000);
 
-async function assertVisible(page, text) {
+/**
+ * Bounded, condition-based wait for the SAME condition the original assertion
+ * checked: at least one match for `text` is visible. The predicate is unchanged
+ * and nothing is weakened -- previously the check sampled count()/isVisible()
+ * once, immediately after a state-changing click, so it raced the re-render.
+ * This retries that exact predicate until it holds or the bound expires, and
+ * still throws the original error message on genuine absence.
+ */
+async function assertVisible(page, text, timeoutMs = VISIBLE_TIMEOUT_MS) {
   const matches = page.getByText(text, { exact: false });
-  const count = await matches.count();
-  for (let index = 0; index < count; index += 1) if (await matches.nth(index).isVisible()) return;
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const count = await matches.count();
+    for (let index = 0; index < count; index += 1) {
+      if (await matches.nth(index).isVisible()) return;
+    }
+    if (Date.now() >= deadline) break;
+    await page.waitForTimeout(50);
+  }
   throw new Error(`Expected visible text: ${text}`);
+}
+
+/** Strict canonical-URL assertion for XC-01 states, bounded and condition-based. */
+async function assertView(page, expected, timeoutMs = VISIBLE_TIMEOUT_MS) {
+  await page
+    .waitForFunction(
+      (want) => new URL(location.href).searchParams.get("view") === want,
+      expected,
+      { timeout: timeoutMs }
+    )
+    .catch(() => {
+      throw new Error(
+        `Expected canonical view=${expected}, got ${new URL(page.url()).searchParams.get("view")}`
+      );
+    });
+}
+
+/** Header identity/label assertion; unchanged semantics, bounded wait. */
+async function assertHeaderText(page, needle, timeoutMs = VISIBLE_TIMEOUT_MS) {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const header = (await page.locator("header").innerText()).replace(/\s+/g, " ");
+    if (header.includes(needle)) return;
+    if (Date.now() >= deadline) throw new Error(`Expected header to contain "${needle}": ${header}`);
+    await page.waitForTimeout(50);
+  }
 }
 async function assertAbsent(page, text) {
   const body = await page.locator("body").innerText();
@@ -98,6 +140,8 @@ async function runXc01(browser, viewport, prefix) {
 
     await page.getByRole("button", { name: /View Friday Yoga/ }).click();
     await assertVisible(page, "This booking is available to you.");
+    await assertView(page, "xc-eligibility");
+    await assertHeaderText(page, "Bob");
     await assertVisible(page, "Eligible");
     await assertVisible(page, "Commit 45 USDC");
     await assertVisible(page, "None for this session");

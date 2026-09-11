@@ -10,6 +10,7 @@ import {
 import type { BookingAction, HolderFixture, XcStep } from "./holder-fixture-state";
 
 const SERVER_SNAPSHOT = () => undefined;
+const PENDING_NAVIGATION_GRACE_MS = 250;
 function snapshot(): string | null | undefined {
   if (typeof window === "undefined") return undefined;
   try { return window.localStorage.getItem(HOLDER_FIXTURE_KEY); }
@@ -30,6 +31,12 @@ const announce = () => window.dispatchEvent(new Event(HOLDER_FIXTURE_EVENT));
 const resolved = (view: string, state: HolderFixture) => view.startsWith("xc2-")
   ? resolveCompletionView(view, state) : XC_VIEWS[resolveXcStep(view, state)];
 
+type PendingView = {
+  destination: string;
+  from: string;
+  fallbackArmed: boolean;
+};
+
 /** Same fixture key and event as the holder. No duplicated Bob/provider truth.
  * This adapter is browser-only and is not imported by any server/sponsor route.
  */
@@ -37,8 +44,13 @@ export function useBookingJourney() {
   const router = useRouter();
   const requested = useSearchParams().get("view") ?? "xc-find";
   const raw = useSyncExternalStore(subscribe, snapshot, SERVER_SNAPSHOT);
-  const pendingView = useRef<string | null>(null);
+  // Tracks an in-flight push and gives it one short grace window to land. If
+  // the committed fixture facts already resolve to the destination but the URL
+  // is still stuck on `from` after that bounded window, the push is treated as
+  // interrupted and canonical convergence is allowed to proceed.
+  const pendingView = useRef<PendingView | null>(null);
   const [writeError, setWriteError] = useState<string | null>(null);
+  const [convergeTick, setConvergeTick] = useState(0);
   const [notice, setNotice] = useState<string | null>(null);
   const loaded = useMemo(() => {
     if (raw === undefined) return { state: null, error: null };
@@ -50,18 +62,43 @@ export function useBookingJourney() {
   const error = loaded.error ?? writeError;
 
   useEffect(() => {
-    if (pendingView.current !== null) {
-      if (requested === pendingView.current) pendingView.current = null;
-      else return;
+    const pending = pendingView.current;
+    if (pending !== null) {
+      if (requested === pending.destination) {
+        pendingView.current = null; // push landed
+      } else if (requested === pending.from) {
+        if (!pending.fallbackArmed) {
+          // Give the original push a bounded chance to land. A timeout rather
+          // than an immediate replace avoids fighting an in-flight Next/RSC
+          // navigation, while guaranteeing that a cancelled push cannot leave
+          // committed facts and URL desynchronised indefinitely.
+          pending.fallbackArmed = true;
+          const timer = window.setTimeout(
+            () => setConvergeTick((tick) => tick + 1),
+            PENDING_NAVIGATION_GRACE_MS,
+          );
+          return () => window.clearTimeout(timer);
+        }
+        // The push did not land within the grace window. Drop its marker and
+        // fall through to canonical replacement from the persisted facts.
+        pendingView.current = null;
+      } else {
+        // Back/Forward/reload moved somewhere else before the push landed.
+        // Drop the stale marker, then defer one pass so an in-flight reload can
+        // finish before the canonical replace (avoids an RSC abort regression).
+        pendingView.current = null;
+        setConvergeTick((tick) => tick + 1);
+        return;
+      }
     }
     if (!loaded.state || error || requested === view) return;
     router.replace(`/product-preview?view=${view}`, { scroll: false });
-  }, [requested, view, loaded.state, error, router]);
+  }, [requested, view, loaded.state, error, router, convergeTick]);
 
   function navigate(next: string, current: HolderFixture) {
     const destination = resolved(next, current);
     if (destination === requested) return;
-    pendingView.current = destination;
+    pendingView.current = { destination, from: requested, fallbackArmed: false };
     router.push(`/product-preview?view=${destination}`, { scroll: true });
   }
 
