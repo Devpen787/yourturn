@@ -316,7 +316,7 @@ async function withLease<T>(
   operation: RecoveryOperationRecord,
   fn: (leaseToken: string) => Promise<T>
 ): Promise<T> {
-  const token = await acquireRecoveryOperationLease(operation.operationId);
+  const token = await acquireRecoveryOperationLease(operation);
   if (!token) {
     throw new RecoveryOperationReconcileError(
       operation.operationId,

@@ -29,6 +29,7 @@ export type RecoveryOperationStep = {
 
 export type RecoveryOperationRecord = {
   version: 1;
+  revision: number;
   operationId: string;
   identityHash: string;
   parametersHash: string;
@@ -63,9 +64,44 @@ export type RecoveryOperationIdentityInput = {
   parameters: Record<string, string | number | boolean | null>;
 };
 
+export type RecoveryOperationFenceReason =
+  | "missing_lease_context"
+  | "lease_lost"
+  | "record_missing"
+  | "revision_mismatch";
+
+export class RecoveryOperationFenceError extends Error {
+  readonly reason: RecoveryOperationFenceReason;
+
+  constructor(reason: RecoveryOperationFenceReason) {
+    super(`Recovery operation durable write rejected: ${reason}`);
+    this.name = "RecoveryOperationFenceError";
+    this.reason = reason;
+  }
+}
+
 export const RECOVERY_OPERATION_LEASE_SECONDS = 10 * 60;
 const RECOVERY_OPERATION_PREFIX = "bookedrights:world-recovery:operation";
 const RECOVERY_OPERATION_LEASE_PREFIX = "bookedrights:world-recovery:lease";
+const recoveryOperationLeaseTokens = new WeakMap<RecoveryOperationRecord, string>();
+
+const FENCED_SAVE_SCRIPT = `
+local activeLease = redis.call('get', KEYS[2])
+if activeLease ~= ARGV[1] then
+  return -1
+end
+local current = redis.call('get', KEYS[1])
+if not current then
+  return -2
+end
+local decoded = cjson.decode(current)
+local currentRevision = tonumber(decoded.revision or 0)
+if currentRevision ~= tonumber(ARGV[2]) then
+  return -3
+end
+redis.call('set', KEYS[1], ARGV[3])
+return 1
+`;
 
 function stableValue(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(stableValue);
@@ -97,10 +133,14 @@ function leaseKey(operationId: string): string {
 
 function parseRecord(raw: unknown): RecoveryOperationRecord | null {
   if (!raw) return null;
-  if (typeof raw === "string") {
-    return JSON.parse(raw) as RecoveryOperationRecord;
+  const parsed =
+    typeof raw === "string"
+      ? (JSON.parse(raw) as RecoveryOperationRecord)
+      : (raw as RecoveryOperationRecord);
+  if (!Number.isSafeInteger(parsed.revision) || parsed.revision < 0) {
+    parsed.revision = 0;
   }
-  return raw as RecoveryOperationRecord;
+  return parsed;
 }
 
 export function createRecoveryOperationIdentity(
@@ -142,6 +182,7 @@ export async function createRecoveryOperationIfAbsent(input: {
   const now = new Date().toISOString();
   const record: RecoveryOperationRecord = {
     version: 1,
+    revision: 0,
     operationId: identity.operationId,
     identityHash: identity.identityHash,
     parametersHash: identity.parametersHash,
@@ -179,19 +220,47 @@ export async function createRecoveryOperationIfAbsent(input: {
 export async function saveRecoveryOperation(
   record: RecoveryOperationRecord
 ): Promise<void> {
-  record.updatedAt = new Date().toISOString();
-  await getRedis().set(operationKey(record.operationId), JSON.stringify(record));
+  const leaseToken = recoveryOperationLeaseTokens.get(record);
+  if (!leaseToken) {
+    throw new RecoveryOperationFenceError("missing_lease_context");
+  }
+
+  const expectedRevision = record.revision;
+  const nextRevision = expectedRevision + 1;
+  const updatedAt = new Date().toISOString();
+  const nextRecord: RecoveryOperationRecord = {
+    ...record,
+    revision: nextRevision,
+    updatedAt,
+  };
+
+  const result = await getRedis().eval(
+    FENCED_SAVE_SCRIPT,
+    [operationKey(record.operationId), leaseKey(record.operationId)],
+    [leaseToken, String(expectedRevision), JSON.stringify(nextRecord)]
+  );
+  const code = Number(result);
+  if (code !== 1) {
+    if (code === -1) throw new RecoveryOperationFenceError("lease_lost");
+    if (code === -2) throw new RecoveryOperationFenceError("record_missing");
+    throw new RecoveryOperationFenceError("revision_mismatch");
+  }
+
+  record.revision = nextRevision;
+  record.updatedAt = updatedAt;
 }
 
 export async function acquireRecoveryOperationLease(
-  operationId: string
+  operation: RecoveryOperationRecord
 ): Promise<string | null> {
   const token = randomUUID();
-  const result = await getRedis().set(leaseKey(operationId), token, {
+  const result = await getRedis().set(leaseKey(operation.operationId), token, {
     nx: true,
     ex: RECOVERY_OPERATION_LEASE_SECONDS,
   });
-  return result === "OK" ? token : null;
+  if (result !== "OK") return null;
+  recoveryOperationLeaseTokens.set(operation, token);
+  return token;
 }
 
 export async function assertRecoveryOperationLease(
@@ -200,7 +269,7 @@ export async function assertRecoveryOperationLease(
 ): Promise<void> {
   const current = await getRedis().get<string>(leaseKey(operationId));
   if (current !== token) {
-    throw new Error("Recovery operation execution lease was lost");
+    throw new RecoveryOperationFenceError("lease_lost");
   }
 }
 
