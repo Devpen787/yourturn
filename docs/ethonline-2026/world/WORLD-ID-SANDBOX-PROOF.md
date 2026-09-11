@@ -1,6 +1,6 @@
 # World ID Sandbox proof — ETHOnline 2026
 
-Status: **CI/CONFIGURED until a real Sandbox app round trip succeeds.**
+Status: **CI/CONFIGURED; SEC-WORLD-005 repair pending independent Security retest. A real Sandbox app round trip is still required.**
 
 This is an isolated sponsor-proof harness for the World AgentKit Continuity requirement. It does not change the human-approved YT-01→YT-08 Golden customer journey and does not promote AgentKit/AgentBook evidence by itself.
 
@@ -8,11 +8,11 @@ This is an isolated sponsor-proof harness for the World AgentKit Continuity requ
 
 World AgentKit Continuity requires meaningful AgentKit use, a working app, AgentBook registration/resolution where relevant, **World ID Sandbox App remote testing**, and grounded feedback covering the Developer Portal / Sandbox proof flow and errors encountered.
 
-The existing World branch already has AgentKit cryptographic verification and LIVE/AGENTBOOK registration/resolution. This increment closes only the missing Sandbox integration surface; evidence stays CI/CONFIGURED until the actual phone handoff and backend verification complete.
+The existing World branch already has AgentKit cryptographic verification and LIVE/AGENTBOOK registration/resolution. This increment closes only the missing Sandbox integration surface; evidence stays CI/CONFIGURED until the security gate is independently cleared and the actual phone handoff/backend verification complete.
 
-## Official docs reviewed — 2026-09-10
+## Official docs reviewed — 2026-09-11
 
-Current official sources were read directly from the public `worldcoin/developer-docs`, `worldcoin/developer-portal`, and `worldcoin/idkit` repositories before implementation:
+Current official sources were read directly from the public `worldcoin/developer-docs`, `worldcoin/developer-portal`, and `worldcoin/idkit` repositories before implementation and again while repairing SEC-WORLD-005:
 
 - `world-id/idkit/integrate.mdx`
   - use current IDKit 4.x;
@@ -35,7 +35,7 @@ Current official sources were read directly from the public `worldcoin/developer
   - Sandbox proofs still verify against the production `/api/v4/verify/{rp_id}` endpoint.
 - `world-id/sandbox/what-is-sandbox.mdx`
   - Sandbox supports a real end-to-end bridge round trip, simulated verification and resettable test accounts;
-  - Sandbox proof is integration evidence, not production identity evidence.
+  - Sandbox proof is integration evidence, not production identity evidence or security certification.
 - `world-id/SKILL.md`
   - app/RP/action/environment alignment is part of integration readiness;
   - keep the RP private signing key out of chat/logs/client code.
@@ -43,6 +43,8 @@ Current official sources were read directly from the public `worldcoin/developer
   - v4 actions **do not require pre-registration**: the v4 verify endpoint can lazy-create the action on first verification;
   - `create_world_id_action` is only needed when deliberately configuring action metadata/settings in advance.
 - current `worldcoin/idkit` React package metadata: `@worldcoin/idkit` **4.2.3**.
+
+The World Sandbox docs describe the World-side integration environment and phone handoff. They do not make a localhost application listener safe when it is reachable over another network interface; that transport boundary is YourTurn's responsibility.
 
 ## Portal resources
 
@@ -66,17 +68,33 @@ No manual action creation is required for the first v4 Sandbox verification. If 
 | Sandbox destination | `lib/world-id/sandbox-config.ts` + `/world-sandbox` uses `environment="sandbox"` | CI/CONFIGURED |
 | RP-authenticated request | `POST /api/world-id/sandbox/rp-context` uses server-only `signRequest(...)` | CI/CONFIGURED; no RP secret in CI |
 | No signer oracle | action is a server-owned constant; signer route accepts no client-selected action | CI contract check |
-| Local-only secret use | Sandbox APIs require explicit `WORLD_ID_SANDBOX_PROOF_ENABLED=true`, loopback hostname, and same-origin browser requests | CI contract check |
+| Transport-local secret use | `world:sandbox:dev` explicitly binds Next.js to `127.0.0.1`; Sandbox APIs additionally require development mode, explicit proof enablement and the dedicated launch marker | executable CI boundary check; independent Security retest pending |
+| Origin defense-in-depth | same-origin browser requests are enforced when `Origin` is present, but Origin is not treated as the transport trust anchor | executable CI boundary check |
+| Fail closed outside intended mode | production runtime and generic dev launch return 404 for the Sandbox API even if the proof feature flag is set | executable CI boundary check |
 | Proof handoff | `/world-sandbox` uses `IDKitRequestWidget` + `proofOfHuman()` | CI/CONFIGURED until phone round trip |
 | Backend verification | `POST /api/world-id/sandbox/verify` forwards IDKit payload as-is to World v4 verify endpoint | CI/build until real provider success |
 | Privacy-safe public result | success returns only environment/action/RP/time; proof, nullifier and raw human identifiers are not returned/logged | CI contract check |
-| Sandbox evidence | real signed request → Sandbox app → returned proof → v4 verification | **RED / human run required** |
+| Sandbox evidence | real signed request → Sandbox app → returned proof → v4 verification | **RED / blocked until SEC-WORLD-005 independent closure, then human run required** |
 
-## Local proof runbook
+## SEC-WORLD-005 repair candidate
 
-Do not send the RP private key to ChatGPT, GitHub, issue comments, screenshots, or CI.
+The supported Sandbox launch is now a dedicated command with an explicit IPv4 loopback bind. The API guard also requires `NODE_ENV=development`, `WORLD_ID_SANDBOX_PROOF_ENABLED=true`, and the non-secret marker set by that supported command. The marker is a fail-closed launch discriminator, **not** a network authentication mechanism; transport isolation comes from the `127.0.0.1` listener bind.
 
-1. Use branch `feature/ethonline-world-sandbox-proof` after its exact-head Continuity Gate is green.
+`scripts/world-id-sandbox-loopback-check.mjs` is designed to exercise the boundary rather than infer it from request headers:
+
+1. a production Next runtime must return 404 for the Sandbox route even if flag + marker are supplied;
+2. the old generic `next dev` shape must not enable the Sandbox API because it lacks the dedicated launch marker;
+3. the supported Sandbox command must answer on `127.0.0.1` while refusing TCP connections through every non-loopback IPv4 interface visible to the runner;
+4. a mismatched browser `Origin` must still return 404 as defense-in-depth;
+5. no RP signing key is present during this test, so the intended local route can progress only as far as the missing-key 503 state.
+
+This is repair evidence, not self-clearance. SEC-WORLD-005 remains open until an independent Security retest closes it.
+
+## Local proof runbook — only after SEC-WORLD-005 is independently closed
+
+Do not start the phone round trip while SEC-WORLD-005 is open. Do not send the RP private key to ChatGPT, GitHub, issue comments, screenshots, or CI.
+
+1. Use branch `feature/ethonline-world-sandbox-proof` after its exact-head Continuity Gate is green **and** Security has independently closed SEC-WORLD-005.
 2. Put these values only in ignored local `.env.local`:
 
    `WORLD_ID_SANDBOX_PROOF_ENABLED=true`
@@ -87,13 +105,13 @@ Do not send the RP private key to ChatGPT, GitHub, issue comments, screenshots, 
 
    `npm ci --legacy-peer-deps`
 
-4. Start the local app:
+4. Start the dedicated loopback-bound Sandbox app:
 
-   `npm run dev`
+   `npm run world:sandbox:dev`
 
-5. Open:
+5. Open exactly:
 
-   `http://localhost:3000/world-sandbox`
+   `http://127.0.0.1:3000/world-sandbox`
 
 6. Click **Start Sandbox verification**. The request is deliberately short-lived (five minutes).
 7. Use the already signed-in **World ID Sandbox** app to open/scan the generated handoff.
@@ -102,7 +120,7 @@ Do not send the RP private key to ChatGPT, GitHub, issue comments, screenshots, 
 10. Capture only reviewer-safe evidence: success state, Sandbox environment, action, approximate time and non-secret Portal identifiers. Do **not** capture or publish the RP private key, raw proof payload, nullifier, AgentKit human id or account backup material.
 11. Set `WORLD_ID_SANDBOX_PROOF_ENABLED=false` or stop the local process when the proof session is complete.
 
-The proof API intentionally rejects non-loopback hosts even when the enable flag/key exist. This harness is not intended for Vercel, production, or remote deployment.
+The dedicated Sandbox server is intentionally IPv4-loopback-only and the proof APIs fail closed under the generic development command and in production mode. This harness is not intended for Vercel, production, LAN exposure, tunnels, or remote deployment.
 
 ## Observed Sandbox / Portal feedback
 
@@ -123,6 +141,6 @@ If World ID proof becomes load-bearing product authorization later, durable null
 
 ## Claim boundary
 
-A green build or `world:sandbox-check` is **not** Sandbox proof. It establishes only that the harness is structurally configured according to the reviewed IDKit 4.x API surface and that obvious secret/authority mistakes are blocked.
+A green build, `world:sandbox-check`, or `world:sandbox-boundary-check` is **not** Sandbox proof and is **not** independent Security clearance. Those checks establish that the harness is structurally configured according to the reviewed IDKit 4.x API surface and that the SEC-WORLD-005 transport repair behaves as intended in CI.
 
-Only an actual phone round trip resulting in successful backend verification may upgrade this item to Sandbox evidence. That evidence remains separate from the outstanding registered-AgentKit signed recovery-route execution.
+Only after Security independently closes SEC-WORLD-005 should the human phone round trip run. Only an actual Sandbox app round trip resulting in successful backend verification may upgrade this item to Sandbox evidence. That evidence remains separate from the registered-AgentKit signed recovery-route execution.
