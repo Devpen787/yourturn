@@ -71,17 +71,23 @@ if (required.every((file) => fs.existsSync(file))) {
     "Sandbox APIs fail closed unless the dedicated loopback development launch is active",
   );
   assert(
-    guard.includes('new URL(origin).origin === requestUrl.origin') &&
+    guard.includes("isEquivalentLoopbackOrigin") &&
+      guard.includes("originUrl.protocol === requestUrl.protocol") &&
+      guard.includes("effectivePort(originUrl) === effectivePort(requestUrl)") &&
       guard.includes("Origin is defense-in-depth"),
-    "Origin remains a defense-in-depth browser check, not the transport trust anchor",
+    "Origin remains defense-in-depth while localhost/127.0.0.1 normalize only on the same scheme and port",
   );
   assert(
     boundaryCheck.includes("nonLoopbackIpv4Addresses") &&
       boundaryCheck.includes(
         "Supported Sandbox launch accepted a TCP connection through a non-loopback interface",
       ) &&
-      boundaryCheck.includes("Sandbox API must fail closed in production"),
-    "boundary test exercises real listener isolation and non-development fail-closed behavior",
+      boundaryCheck.includes("Sandbox API must fail closed in production") &&
+      boundaryCheck.includes("Browser Origin 127.0.0.1 must be accepted") &&
+      boundaryCheck.includes("Browser Origin localhost must be accepted") &&
+      boundaryCheck.includes("Loopback Origin on a different port must be rejected") &&
+      boundaryCheck.includes("Loopback Origin on a different scheme must be rejected"),
+    "boundary test exercises listener isolation, fail-closed runtime, and browser-shaped loopback Origin normalization",
   );
   assert(
     signer.includes("process.env.WORLD_ID_RP_SIGNING_KEY") &&
@@ -147,5 +153,5 @@ if (failures.length > 0) {
 }
 
 console.log(
-  "\nWorld ID Sandbox harness is CI/CONFIGURED only until SEC-WORLD-005 is independently closed and a real Sandbox app round trip succeeds.",
+  "\nWorld ID Sandbox harness contract is intact; live Sandbox evidence and Security disposition are tracked separately.",
 );
