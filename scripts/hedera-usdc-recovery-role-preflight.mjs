@@ -2,7 +2,8 @@ import { appendFileSync } from "node:fs";
 
 const MIRROR = "https://testnet.mirrornode.hedera.com/api/v1";
 const usdcTokenId = "0.0.429274";
-const minimumAtomicUnits = 40_000_000n;
+const mandateMinimumAtomicUnits = 40_000_000n;
+const canonicalProofAtomicUnits = 45_000_000n;
 const bookingTokenId = process.env.BOOKED_RIGHTS_TOKEN_ID ?? "0.0.8505698";
 const guestA = process.env.HEDERA_GUEST_A_ID ?? "0.0.8504405";
 const treasury = process.env.HEDERA_TREASURY_ID ?? "0.0.8504300";
@@ -47,7 +48,8 @@ const selected = candidates.find(
   ({ holder, spender }) =>
     Number.isSafeInteger(holder.bookingSerial) &&
     holder.bookingSerial > 0 &&
-    spender.usdcAtomicUnits >= minimumAtomicUnits
+    spender.usdcAssociated &&
+    spender.usdcAtomicUnits >= canonicalProofAtomicUnits
 );
 
 const publicState = {
@@ -55,7 +57,8 @@ const publicState = {
   bookingTokenId,
   receiverAccountId: receiver,
   usdcTokenId,
-  requiredUsdcAtomicUnits: minimumAtomicUnits.toString(),
+  mandateMinimumUsdcAtomicUnits: mandateMinimumAtomicUnits.toString(),
+  requiredCanonicalProofUsdcAtomicUnits: canonicalProofAtomicUnits.toString(),
   accounts: [guestAState, treasuryState].map((item) => ({
     accountId: item.accountId,
     bookingSerial: item.bookingSerial,
@@ -67,7 +70,7 @@ const publicState = {
 };
 
 if (!selected) {
-  console.log(JSON.stringify({ ok: false, status: "no_viable_existing_keyed_role_pair", ...publicState }, null, 2));
+  console.log(JSON.stringify({ ok: false, status: "no_viable_existing_keyed_role_pair_for_45_usdc", ...publicState }, null, 2));
   process.exit(3);
 }
 
@@ -86,7 +89,7 @@ console.log(
   JSON.stringify(
     {
       ok: true,
-      status: "viable_existing_keyed_role_pair_selected",
+      status: "viable_existing_keyed_role_pair_selected_for_45_usdc",
       ...publicState,
       selected: {
         holderAccountId: selected.holder.accountId,

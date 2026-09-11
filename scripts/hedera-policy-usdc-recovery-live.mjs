@@ -18,6 +18,8 @@ import {
 } from "../lib/hedera-agent-kit/usdc-recovery-semantics.ts";
 
 const MIRROR = "https://testnet.mirrornode.hedera.com/api/v1";
+const CANONICAL_RECOVERY_ATOMIC_UNITS = "45000000";
+const BELOW_MINIMUM_RECOVERY_ATOMIC_UNITS = "32000000";
 const guestAAccountId = AccountId.fromString(
   process.env.HEDERA_GUEST_A_ID ?? "0.0.8504405"
 ).toString();
@@ -161,8 +163,13 @@ async function waitForBalanceDeltas(beforeSpender, beforeHolder, amount) {
 function createOneShotNonceStore() {
   let claimed = false;
   let fingerprint = null;
+  let reservations = 0;
   return {
+    get reservations() {
+      return reservations;
+    },
     async reserve({ fingerprint: nextFingerprint }) {
+      reservations += 1;
       if (!claimed) {
         claimed = true;
         fingerprint = nextFingerprint;
@@ -215,16 +222,60 @@ function validateMirrorSettlement(tx, serial, amount) {
 }
 
 const selected = await verifySelectedOwnerHeldSerial();
-const amount = BigInt(HEDERA_USDC_MIN_RECOVERY_ATOMIC_UNITS);
+const amount = BigInt(CANONICAL_RECOVERY_ATOMIC_UNITS);
 const [beforeSpender, beforeHolder] = await Promise.all([
   tokenBalance(spenderAccountId),
   tokenBalance(holderAccountId),
 ]);
 if (beforeSpender.atomicUnits < amount) {
   throw new Error(
-    `usdc_recovery_insufficient_testnet_usdc:${spenderAccountId}:${beforeSpender.atomicUnits.toString()}`
+    `usdc_recovery_insufficient_testnet_usdc_for_45:${spenderAccountId}:${beforeSpender.atomicUnits.toString()}`
   );
 }
+
+const nowMs = Date.now();
+const delegation = {
+  delegationId: `live-usdc-${selected.serial}-${nowMs}`,
+  delegatedAgentAccountId: spenderAccountId,
+  spenderAccountId,
+  tokenId: bookingTokenId,
+  serial: selected.serial,
+  holderAccountId,
+  allowedActions: ["RECOVER"],
+  minimumRecovery: {
+    asset: { kind: "HTS", tokenId: HEDERA_TESTNET_USDC_TOKEN_ID },
+    atomicUnits: HEDERA_USDC_MIN_RECOVERY_ATOMIC_UNITS,
+  },
+  expiresAtMs: nowMs + 15 * 60 * 1000,
+  cancellationAllowed: false,
+  providerPolicyId: "live-usdc-provider-allow",
+  revokedAtMs: null,
+};
+
+const deniedNonceStore = createOneShotNonceStore();
+const deniedInvocation = {
+  agentAccountId: spenderAccountId,
+  currentHolderAccountId: holderAccountId,
+  action: "RECOVER",
+  nonce: `live-usdc-denied-32-${selected.serial}-${nowMs}`,
+  providerPolicy: { id: delegation.providerPolicyId, state: "ALLOW" },
+  recovery: {
+    asset: { kind: "HTS", tokenId: HEDERA_TESTNET_USDC_TOKEN_ID },
+    atomicUnits: BELOW_MINIMUM_RECOVERY_ATOMIC_UNITS,
+  },
+  receiverAccountId,
+};
+const denied = await preparePolicyAuthorizedUsdcRecovery({
+  delegation,
+  invocation: deniedInvocation,
+  nonceStore: deniedNonceStore,
+  now: () => nowMs,
+});
+assert.equal(denied.ok, false, "32_usdc_offer_must_be_denied");
+assert.equal(denied.transactionBytesProduced, false, "32_usdc_denial_must_not_produce_bytes");
+assert.equal(denied.decision.outcome, "BLOCK");
+assert.equal(denied.decision.reason, "BELOW_MINIMUM_RECOVERY");
+assert.equal(deniedNonceStore.reservations, 0, "32_usdc_denial_must_precede_nonce_reservation");
 
 const authority = {
   tokenId: bookingTokenId,
@@ -260,46 +311,30 @@ try {
   approvalClient.close();
 }
 
-const nowMs = Date.now();
-const delegation = {
-  delegationId: `live-usdc-${selected.serial}-${nowMs}`,
-  delegatedAgentAccountId: spenderAccountId,
-  spenderAccountId,
-  tokenId: bookingTokenId,
-  serial: selected.serial,
-  holderAccountId,
-  allowedActions: ["RECOVER"],
-  minimumRecovery: {
-    asset: { kind: "HTS", tokenId: HEDERA_TESTNET_USDC_TOKEN_ID },
-    atomicUnits: HEDERA_USDC_MIN_RECOVERY_ATOMIC_UNITS,
-  },
-  expiresAtMs: nowMs + 15 * 60 * 1000,
-  cancellationAllowed: false,
-  providerPolicyId: "live-usdc-provider-allow",
-  revokedAtMs: null,
-};
 const invocation = {
   agentAccountId: spenderAccountId,
   currentHolderAccountId: holderAccountId,
   action: "RECOVER",
-  nonce: `live-usdc-${selected.serial}-${nowMs}`,
+  nonce: `live-usdc-accepted-45-${selected.serial}-${nowMs}`,
   providerPolicy: { id: delegation.providerPolicyId, state: "ALLOW" },
   recovery: {
     asset: { kind: "HTS", tokenId: HEDERA_TESTNET_USDC_TOKEN_ID },
-    atomicUnits: HEDERA_USDC_MIN_RECOVERY_ATOMIC_UNITS,
+    atomicUnits: CANONICAL_RECOVERY_ATOMIC_UNITS,
   },
   receiverAccountId,
 };
-
+const acceptedNonceStore = createOneShotNonceStore();
 const prepared = await preparePolicyAuthorizedUsdcRecovery({
   delegation,
   invocation,
-  nonceStore: createOneShotNonceStore(),
+  nonceStore: acceptedNonceStore,
   now: () => nowMs,
 });
 if (!prepared.ok) {
   throw new Error(`usdc_recovery_policy_blocked:${prepared.decision.reason}`);
 }
+assert.equal(acceptedNonceStore.reservations, 1, "45_usdc_acceptance_must_reserve_once");
+assert.equal(prepared.settlement.atomicUnits, CANONICAL_RECOVERY_ATOMIC_UNITS);
 
 const unsignedBytes = Buffer.from(prepared.envelope.bytesBase64, "base64");
 const unsignedBytesSha256 = crypto
@@ -314,7 +349,7 @@ validateAtomicUsdcRecoveryTransaction(transaction, {
   spenderAccountId,
   receiverAccountId,
   settlementTokenId: HEDERA_TESTNET_USDC_TOKEN_ID,
-  settlementAmountAtomicUnits: HEDERA_USDC_MIN_RECOVERY_ATOMIC_UNITS,
+  settlementAmountAtomicUnits: CANONICAL_RECOVERY_ATOMIC_UNITS,
   settlementRecipientAccountId: holderAccountId,
   settlementDecimals: HEDERA_USDC_DECIMALS,
 });
@@ -354,7 +389,7 @@ const { afterSpender, afterHolder } = await waitForBalanceDeltas(
 const proof = {
   ok: true,
   evidenceLevel: "LIVE/TESTNET",
-  status: "policy_authorized_atomic_nft_usdc_recovery_verified",
+  status: "policy_authorized_combined_nft_usdc_recovery_verified",
   network: "testnet",
   bookingRight: {
     tokenId: bookingTokenId,
@@ -371,6 +406,19 @@ const proof = {
     reason: prepared.decision.reason,
     providerPolicyId: delegation.providerPolicyId,
     minimumUsdcAtomicUnits: HEDERA_USDC_MIN_RECOVERY_ATOMIC_UNITS,
+    deniedOffer: {
+      atomicUnits: BELOW_MINIMUM_RECOVERY_ATOMIC_UNITS,
+      outcome: denied.decision.outcome,
+      reason: denied.decision.reason,
+      nonceReservations: deniedNonceStore.reservations,
+      transactionBytesProduced: denied.transactionBytesProduced,
+      networkMutationAttempted: false,
+    },
+    acceptedOffer: {
+      atomicUnits: CANONICAL_RECOVERY_ATOMIC_UNITS,
+      outcome: prepared.decision.outcome,
+      nonceReservations: acceptedNonceStore.reservations,
+    },
     replayStoreForLiveProof:
       "one-shot-in-process; durable Redis semantics separately CI/security-cleared in H2",
   },
@@ -381,7 +429,7 @@ const proof = {
     containsBookingNftAndUsdc: true,
     tokenId: HEDERA_TESTNET_USDC_TOKEN_ID,
     decimals: HEDERA_USDC_DECIMALS,
-    atomicUnits: HEDERA_USDC_MIN_RECOVERY_ATOMIC_UNITS,
+    atomicUnits: CANONICAL_RECOVERY_ATOMIC_UNITS,
     payerAccountId: spenderAccountId,
     recipientAccountId: holderAccountId,
     unsignedReturnBytesSha256: unsignedBytesSha256,

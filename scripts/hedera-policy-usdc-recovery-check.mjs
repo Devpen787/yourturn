@@ -22,6 +22,8 @@ const spenderAccountId = "0.0.1002";
 const receiverAccountId = "0.0.1003";
 const agentAccountId = "0.0.1004";
 const serial = 7;
+const canonicalRecoveryAtomicUnits = "45000000";
+const belowMinimumRecoveryAtomicUnits = "32000000";
 
 const delegation = {
   delegationId: "booking-7-usdc-v1",
@@ -41,7 +43,7 @@ const delegation = {
   revokedAtMs: null,
 };
 
-function invocation(nonce, amount = HEDERA_USDC_MIN_RECOVERY_ATOMIC_UNITS, patch = {}) {
+function invocation(nonce, amount = canonicalRecoveryAtomicUnits, patch = {}) {
   return {
     agentAccountId,
     currentHolderAccountId: holderAccountId,
@@ -77,7 +79,7 @@ function createStore({ unavailable = false } = {}) {
   };
 }
 
-function expected(amount = HEDERA_USDC_MIN_RECOVERY_ATOMIC_UNITS) {
+function expected(amount = canonicalRecoveryAtomicUnits) {
   return {
     bookingTokenId,
     serial,
@@ -94,7 +96,7 @@ function expected(amount = HEDERA_USDC_MIN_RECOVERY_ATOMIC_UNITS) {
 const validStore = createStore();
 const valid = await preparePolicyAuthorizedUsdcRecovery({
   delegation,
-  invocation: invocation("valid-001"),
+  invocation: invocation("valid-45-001"),
   nonceStore: validStore,
   now: () => nowMs,
 });
@@ -102,7 +104,7 @@ assert.equal(valid.ok, true);
 assert.equal(valid.transactionBytesProduced, true);
 assert.equal(valid.decision.outcome, "ALLOW");
 assert.equal(valid.settlement.tokenId, HEDERA_TESTNET_USDC_TOKEN_ID);
-assert.equal(valid.settlement.atomicUnits, HEDERA_USDC_MIN_RECOVERY_ATOMIC_UNITS);
+assert.equal(valid.settlement.atomicUnits, canonicalRecoveryAtomicUnits);
 assert.equal(valid.settlement.decimals, HEDERA_USDC_DECIMALS);
 assert.equal(valid.settlement.payerAccountId, spenderAccountId);
 assert.equal(valid.settlement.recipientAccountId, holderAccountId);
@@ -145,7 +147,7 @@ for (const [name, allowedActions] of [
 
 async function expectProtectedStop({
   nonce,
-  amount = HEDERA_USDC_MIN_RECOVERY_ATOMIC_UNITS,
+  amount = canonicalRecoveryAtomicUnits,
   invocationPatch = {},
   store = createStore(),
   reason,
@@ -163,12 +165,13 @@ async function expectProtectedStop({
 }
 
 const belowStore = createStore();
-await expectProtectedStop({
-  nonce: "below-001",
-  amount: "39999999",
+const { result: exact32Blocked } = await expectProtectedStop({
+  nonce: "below-32-001",
+  amount: belowMinimumRecoveryAtomicUnits,
   store: belowStore,
   reason: "BELOW_MINIMUM_RECOVERY",
 });
+assert.equal(exact32Blocked.decision.outcome, "BLOCK");
 assert.equal(belowStore.reservations, 0);
 
 for (const [state, reason, outcome] of [
@@ -212,7 +215,7 @@ await assert.rejects(
       invocation: invocation("wrong-usdc-token-001", undefined, {
         recovery: {
           asset: { kind: "HTS", tokenId: "0.0.429275" },
-          atomicUnits: HEDERA_USDC_MIN_RECOVERY_ATOMIC_UNITS,
+          atomicUnits: canonicalRecoveryAtomicUnits,
         },
       }),
       nonceStore: createStore(),
@@ -244,7 +247,7 @@ async function maliciousRaw({ name, rawPatch, reason }) {
       spenderAccountId,
       receiverAccountId,
       settlementTokenId: HEDERA_TESTNET_USDC_TOKEN_ID,
-      settlementAmountAtomicUnits: HEDERA_USDC_MIN_RECOVERY_ATOMIC_UNITS,
+      settlementAmountAtomicUnits: canonicalRecoveryAtomicUnits,
       settlementRecipientAccountId: holderAccountId,
       settlementDecimals: HEDERA_USDC_DECIMALS,
       ...rawPatch,
@@ -264,7 +267,7 @@ for (const [name, rawPatch, reason] of [
   ["wrong-spender", { spenderAccountId: "0.0.1999" }, "SPENDER_MISMATCH"],
   ["wrong-receiver", { receiverAccountId: "0.0.1998" }, "RECEIVER_MISMATCH"],
   ["wrong-settlement-token", { settlementTokenId: "0.0.429275" }, "SETTLEMENT_TOKEN_MISMATCH"],
-  ["wrong-settlement-amount", { settlementAmountAtomicUnits: "40000001" }, "SETTLEMENT_AMOUNT_MISMATCH"],
+  ["wrong-settlement-amount", { settlementAmountAtomicUnits: "45000001" }, "SETTLEMENT_AMOUNT_MISMATCH"],
   ["wrong-settlement-recipient", { settlementRecipientAccountId: "0.0.1997" }, "SETTLEMENT_RECIPIENT_MISMATCH"],
   ["wrong-decimals", { settlementDecimals: 5 }, "SETTLEMENT_DECIMALS_MISMATCH"],
 ]) {
@@ -291,7 +294,7 @@ assert.equal(duplicate.transactionBytesProduced, false);
 
 const conflict = await preparePolicyAuthorizedUsdcRecovery({
   delegation,
-  invocation: invocation("replay-001", "41000000"),
+  invocation: invocation("replay-001", "46000000"),
   nonceStore: replayStore,
   now: () => nowMs,
 });
@@ -337,12 +340,14 @@ console.log(
     {
       ok: true,
       evidenceLevel: "CI/LOCAL",
-      status: "policy_authorized_atomic_usdc_recovery_verified",
+      status: "policy_authorized_usdc_recovery_semantics_verified",
       network: "testnet",
       usdc: {
         tokenId: HEDERA_TESTNET_USDC_TOKEN_ID,
         decimals: HEDERA_USDC_DECIMALS,
-        minimumAtomicUnits: HEDERA_USDC_MIN_RECOVERY_ATOMIC_UNITS,
+        mandateMinimumAtomicUnits: HEDERA_USDC_MIN_RECOVERY_ATOMIC_UNITS,
+        canonicalAcceptedAtomicUnits: canonicalRecoveryAtomicUnits,
+        canonicalDeniedAtomicUnits: belowMinimumRecoveryAtomicUnits,
       },
       assertions: {
         exactOneBookingNftMovement: true,
@@ -352,6 +357,8 @@ console.log(
         h2PolicyAttachedBeforeBytes: true,
         exactSettlementBoundToPolicyQuote: true,
         holderIsSettlementRecipient: true,
+        canonical45UsdcOfferProducesBoundedBytes: true,
+        exact32UsdcOfferRejectedBeforeNonce: true,
         invalidAllowedActionsRejectedBeforeNonce: true,
         recoverStringRejectedAsInvalidDelegation: true,
         substringStringRejectedAsInvalidDelegation: true,
