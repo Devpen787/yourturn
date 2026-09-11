@@ -51,13 +51,15 @@
       "slice": "R1a successor executable",
       "executableSha": "8632b81a10f4501db7914b653da493966b04e250",
       "continuityRun": "34611662531",
-      "status": "BUILD_PROOF_PARTIAL_16_OF_32_WHOLE_PRODUCT_GATE_RED",
+      "status": "BOUNDED_R1A_REVIEWABLE_WHOLE_PRODUCT_REVISE_16_OF_32_GATE_RED_NOT_GOLDEN",
+      "independentReviewCommentId": 5638140666,
       "submissionCritical": false,
       "openGates": [
         "Bob/provider continuity",
+        "NAV-04/NAV-06/NAV-07/NAV-08",
         "B1-B4",
         "R2-R5",
-        "independent #34 exact-candidate acceptance"
+        "independent exact-head whole-product acceptance and valid human Golden freeze approval"
       ]
     }
   },
@@ -69,7 +71,7 @@
       "curated Hedera H1"
     ],
     "integrationReady": false,
-    "reason": "Hedera has an independently qualified LIVE/TESTNET downstream checkpoint for the canonical booking NFT + 45-USDC settlement transaction, but World SEC-WORLD-006 remains OPEN/MEDIUM while unreferenced repair candidate 4dd5cdc8... awaits independent exact-source retest, the canonical Ledger-mandate bridge is missing, Ledger v2 369ea0d1... is still not GitHub-reconstructable and lacks runtime/loopback/device clearance, sponsor-backed fixture replacement is incomplete, and final integrated E2E is not complete. Ledger SEC-005/006 software authority lifecycle remains Security-green at CI/CONFIGURED."
+    "reason": "Hedera has an independently qualified LIVE/TESTNET downstream checkpoint for the canonical booking NFT + 45-USDC settlement transaction, but World SEC-WORLD-006 remains OPEN/MEDIUM after unreferenced repair candidate 4dd5cdc8... failed independent lease-expiry stale-writer retest in #16 comment 5638843971; a fenced successor plus full-matrix retest is required. The canonical Ledger-mandate bridge is missing, Ledger v2 369ea0d1... is still not GitHub-reconstructable and lacks runtime/loopback/device clearance, sponsor-backed fixture replacement is incomplete, and final integrated E2E is not complete. Ledger SEC-005/006 software authority lifecycle remains Security-green at CI/CONFIGURED."
   },
   "sponsors": {
     "hedera": {
@@ -119,12 +121,14 @@
         "secWorld006Run": "34622702126",
         "secWorld006Job": "103340281661",
         "repairCandidate": "4dd5cdc8d507991464cad093b4f6492cfa87cb6f",
-        "repairCandidateClass": "CANDIDATE_LOCAL_SYNTHETIC_UNREFERENCED_NOT_ADOPTED",
-        "repairRetestRequestCommentId": 5638192319,
+        "repairCandidateClass": "CANDIDATE_LOCAL_SYNTHETIC_UNREFERENCED_NOT_ADOPTED_FAILED_INDEPENDENT_RETEST",
+        "repairRetestCommentId": 5638843971,
+        "repairRetestDisposition": "FAILED_LEASE_EXPIRY_STALE_WRITER_CLOBBER_SEC_WORLD_006_REMAINS_OPEN",
+        "staleWriterReproducerSha256": "ed826aa7511e84dddaae45c5714ad4c528bc5d72fa92bd3c4cc7bd7b86279c5b",
         "localSignerRuling": "NARROWLY_CLEARED_FOR_LOCAL_CREDENTIAL_LOADING_AND_SIGNATURE_PREPARATION_ONLY",
         "credentialBearingTargetRuling": "HOLD_SEC_WORLD_006"
       },
-      "currentEvidence": "LIVE/AGENTBOOK for registration/resolution; REAL NON-PRODUCTION SANDBOX proof with World v4 backend verification; Sandbox loopback/browser-Origin cleanup independently Security-clean; CI/READY, NOT LIVE/SIGNED-ROUTE for registered-agent recovery. SEC-WORLD-006 independently reproduces partial-commit failure semantics on create_listing and cancel_release. Unreferenced candidate 4dd5cdc8... reports builder-side synthetic repair coverage but has no branch CI/status and awaits independent retest, so the credential-bearing target mutation path remains HOLD.",
+      "currentEvidence": "LIVE/AGENTBOOK for registration/resolution; REAL NON-PRODUCTION SANDBOX proof with World v4 backend verification; Sandbox loopback/browser-Origin cleanup independently Security-clean; CI/READY, NOT LIVE/SIGNED-ROUTE for registered-agent recovery. SEC-WORLD-006 independently reproduces partial-commit failure semantics on create_listing and cancel_release. Unreferenced candidate 4dd5cdc8... remains LOCAL/SYNTHETIC and failed independent lease-expiry stale-writer retest in #16 comment 5638843971, so the credential-bearing target mutation path remains HOLD and a fenced successor is required.",
       "integrationReady": false,
       "requirementToEvidence": {
         "signedRequester": {
@@ -134,12 +138,13 @@
         },
         "failureAtomicityAndResume": {
           "requirement": "An authorized World-protected recovery must not report a clean failure after durable local/Hedera effects or become unretryable solely because replay was consumed before a downstream partial commit; partial effects must be durably recorded and safely resumed/reconciled without duplicate value movement",
-          "code": "Published base fails in lib/adapters/booking-port.ts executeCreateListing/executeCancelRelease; unreferenced candidate 4dd5cdc8d507991464cad093b4f6492cfa87cb6f adds durable operation/saga handling and synthetic regression",
-          "evidence": "RED — SEC-WORLD-006 OPEN/MEDIUM. Base failure independently reproduced by attacker b6f35a78... run 34622702126 job 103340281661. Repair candidate 4dd5cdc8... is builder-reported CANDIDATE/LOCAL-SYNTHETIC only; independent retest requested in #16 comment 5638192319."
+          "code": "Published base fails in lib/adapters/booking-port.ts executeCreateListing/executeCancelRelease; unreferenced candidate 4dd5cdc8d507991464cad093b4f6492cfa87cb6f adds durable operation/saga handling but later durable transitions are not lease/generation/revision fenced",
+          "evidence": "RED — SEC-WORLD-006 OPEN/MEDIUM. Base partial-commit failure independently reproduced by attacker b6f35a78... run 34622702126 job 103340281661. Candidate 4dd5cdc8... independently failed lease-expiry stale-writer retest in #16 comment 5638843971: an expired worker can overwrite a successor's newer durable receipts/state. This proves stale-progress clobbering, not a proven duplicate refund/burn."
         }
       },
       "blockers": [
-        "Independently attack exact repair candidate 4dd5cdc8... against SEC-WORLD-006; close/adopt only if it survives. Candidate existence alone does not authorize credential-bearing target mutation.",
+        "Produce an exact successor with lease/generation/revision-fenced durable transitions or equivalent monotonic CAS/serialized writer boundary so expired workers cannot overwrite successor progress",
+        "Independently rerun the lease-expiry stale-writer sequence plus the original SEC-WORLD-006 listing-HCS / burn-after-transfer / HCS-after-transfer+burn / unknown-receipt / concurrent-or-changed-scope resume matrix; adopt only after closure",
         "Adopt/review the bounded proof-response hardening separately; LOCAL/FIXTURE evidence alone is not qualification",
         "After target clearance, execute one locally signed registered-agent recovery route against initialized non-production YourTurn state and capture reviewer-safe LIVE/SIGNED-ROUTE evidence",
         "Replace branch-local ApprovalGrant authority scaffolding with canonical activated Ledger Recovery Mandate projection for final integration"
@@ -203,6 +208,9 @@
       "securityRun": "34622702126",
       "repairCandidate": "4dd5cdc8d507991464cad093b4f6492cfa87cb6f",
       "repairCandidateAccepted": false,
+      "repairCandidateIndependentRetestPassed": false,
+      "repairRetestCommentId": 5638843971,
+      "requiredSuccessor": "lease/generation/revision-fenced durable transitions or equivalent monotonic CAS/serialized writer boundary plus independent stale-writer and original SEC-WORLD-006 matrix retest",
       "liveExecutionCaptured": false,
       "privateKeyMustRemainLocal": true
     },
@@ -261,7 +269,7 @@
     "evidencePack": {
       "status": "RED",
       "contractExists": true,
-      "reason": "The pack contract exists, but World repair candidate 4dd5cdc8... still needs independent SEC-WORLD-006 closure/adoption, World LIVE/SIGNED-ROUTE plus canonical-mandate bridge remain missing, Ledger v2 369ea0d1... still needs exact-source/runtime/loopback clearance plus LIVE/DEVICE evidence, sponsor-backed fixture replacement and the final integrated E2E remain missing. Hedera's canonical 45-USDC settlement transaction is qualified LIVE/TESTNET at its exact transaction boundary."
+      "reason": "The pack contract exists, but World SEC-WORLD-006 remains OPEN after candidate 4dd5cdc8... failed independent stale-writer retest; a fenced successor, full-matrix closure/adoption, World LIVE/SIGNED-ROUTE plus canonical-mandate bridge, Ledger v2 exact-source/runtime/loopback clearance plus LIVE/DEVICE evidence, sponsor-backed fixture replacement and final integrated E2E remain missing. Hedera's canonical 45-USDC settlement transaction is qualified LIVE/TESTNET at its exact transaction boundary."
     }
   },
   "finalAcceptance": {
