@@ -117,7 +117,7 @@ async function run(viewport, prefix) {
 
     await direct(context, prefix, "xc2-provider-reconcile-issue", "50-xc2-provider-reconcile-issue", ["not fully reconciled", "Still confirming", "Not complete"], "Reconciliation", "Studio A");
     await direct(context, prefix, "xc2-history-partial", "51-xc2-history-partial", ["still being finalized", "Final reconciliation is still being confirmed", "Pending"], "Activity", "Maya Keller");
-    await direct(context, prefix, "xc2-maya-history", "52-xc2-maya-history", ["Friday Yoga recovery complete.", "YourTurn recovered 45 USDC", "Booking fulfilled"], "Activity", "Maya Keller");
+    await direct(context, prefix, "xc2-maya-history", "52-xc2-maya-history", ["Friday Yoga recovery complete.", "You recovered 45 USDC", "Booking fulfilled"], "Activity", "Maya Keller");
 
     await expandProofAndCapture(context, prefix, "xc2-bob-checked-in", "53-xc2-proof-checkin", "Check-in record seam", "My bookings", "Bob");
     await expandProofAndCapture(context, prefix, "xc2-provider-reconciled", "54-xc2-proof-provider", "Provider reconciliation seam", "Reconciliation", "Studio A");
