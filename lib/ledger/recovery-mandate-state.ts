@@ -8,6 +8,11 @@ import {
   authorizeRecoveryMandateOnce,
   validateRecoveryMandate,
 } from "./recovery-mandate.ts";
+import {
+  readStableRecoveryMandateAuthorityVersion,
+  storeActiveRecoveryMandateIfAuthorityVersionUnchanged,
+  type RecoveryMandateAuthorityBoundaryStore,
+} from "./recovery-mandate-authority-boundary.ts";
 
 const BIGINT_ZERO = BigInt(0);
 const MAX_SAFE_INTEGER_BIGINT = BigInt(Number.MAX_SAFE_INTEGER);
@@ -45,6 +50,7 @@ export type ActiveRecoveryMandateRecord = {
   mandate: SerializedRecoveryMandate;
   digest: string;
   recoveredSignerAddress: string;
+  authorityStateVersion: number;
 };
 
 export type RecoveryMandateActivationRevalidator = (
@@ -169,6 +175,7 @@ export async function loadPreparedRecoveryMandate(input: {
 
 export async function activatePreparedRecoveryMandate(input: {
   store: RecoveryMandateStateStore;
+  authorityBoundaryStore: RecoveryMandateAuthorityBoundaryStore;
   replayStore: RecoveryMandateReplayStore;
   mandateId: string;
   ownerId: string;
@@ -207,11 +214,20 @@ export async function activatePreparedRecoveryMandate(input: {
     nowUnixSeconds,
   });
 
-  // Replay is now consumed. Re-read the mutable predicates again immediately
-  // before final authority creation so a state transition racing signature
-  // verification cannot silently promote stale prepared authority. If this
-  // second check fails, no active record is written and the consumed mandate
-  // cannot be retried; the owner must prepare/sign a fresh mandate.
+  // Capture a stable serialization version before the final live read. Every
+  // relevant booking/listing mutation flips this version odd before side
+  // effects and advances it to a new even version afterward. If a mutation is
+  // already in flight, activation fails closed here.
+  const authorityStateVersion =
+    await readStableRecoveryMandateAuthorityVersion({
+      store: input.authorityBoundaryStore,
+      bookingSerial: verified.mandate.bookingSerial,
+    });
+
+  // Replay is now consumed. Re-read the mutable predicates while tied to the
+  // captured stable version. The final active write below is an atomic
+  // compare-version + SET NX, so a mutation beginning after this read cannot
+  // leave an active authority record based on the stale state.
   await input.revalidateMutableAuthority(verified.mandate);
 
   const ttlSeconds = assertSafeTtl(mandate.expiresAt, nowUnixSeconds);
@@ -222,19 +238,21 @@ export async function activatePreparedRecoveryMandate(input: {
     mandate: serializeMandate(mandate),
     digest: verified.digest,
     recoveredSignerAddress: verified.recoveredSignerAddress,
+    authorityStateVersion,
   };
 
-  // Replay is consumed before the active record is written. If this write fails,
-  // the request fails closed and the owner must prepare/sign a fresh mandate;
-  // we never retry the already-consumed signature into an ambiguous authority state.
-  const stored = await input.store.set(
-    activeRecoveryMandateKey(mandate.mandateId),
-    JSON.stringify(active),
-    { nx: true, ex: ttlSeconds }
-  );
-  if (stored !== "OK") {
-    throw new Error("Recovery mandate activation state already exists or could not be stored");
-  }
+  // This Lua-backed compare-and-set is the final SEC-LEDGER-005 boundary. It
+  // checks the exact stable version observed around final validation and writes
+  // active authority in the same Redis atomic operation. Any relevant mutation
+  // that starts after validation changes the version before this SET NX can run.
+  await storeActiveRecoveryMandateIfAuthorityVersionUnchanged({
+    store: input.authorityBoundaryStore,
+    bookingSerial: mandate.bookingSerial,
+    expectedStableVersion: authorityStateVersion,
+    activeKey: activeRecoveryMandateKey(mandate.mandateId),
+    activeValue: JSON.stringify(active),
+    ttlSeconds,
+  });
 
   return { verified, active };
 }
