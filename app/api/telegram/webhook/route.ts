@@ -89,22 +89,26 @@ export async function POST(req: Request) {
     }
 
     const command = parseTelegramCommand(update.message?.text ?? "");
-    const mutatesBooking =
-      allowMutations &&
-      command.serial != null &&
-      (command.kind === "approve_listing" || command.kind === "approve_refund");
     const execute = () =>
       handleTelegramUpdate(update, {
         appBaseUrl: appBaseUrl(),
         allowMutations,
       });
-    const result = mutatesBooking
-      ? await withRecoveryMandateAuthorityMutation({
-          store: getRedis() as unknown as RecoveryMandateAuthorityBoundaryStore,
-          bookingSerial: command.serial!,
-          mutate: execute,
-        })
-      : await execute();
+
+    let result;
+    if (
+      allowMutations &&
+      (command.kind === "approve_listing" || command.kind === "approve_refund") &&
+      command.serial != null
+    ) {
+      result = await withRecoveryMandateAuthorityMutation({
+        store: getRedis() as unknown as RecoveryMandateAuthorityBoundaryStore,
+        bookingSerial: command.serial,
+        mutate: execute,
+      });
+    } else {
+      result = await execute();
+    }
 
     if (!fixtureDryRun && result.chatId && process.env.TELEGRAM_BOT_TOKEN) {
       for (const message of result.messages) {
