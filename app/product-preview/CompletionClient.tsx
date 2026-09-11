@@ -210,14 +210,13 @@ export default function CompletionClient() {
         <Frame eyebrow="Activity" title="Friday Yoga recovery complete." intro="A readable receipt of what happened to your booking.">
           <Timeline items={[
             { title: "You asked YourTurn to recover the booking", body: "Friday Yoga only, minimum 40 USDC, expiry Tomorrow · 17:00, cancellation forbidden.", state: "Complete" },
-            { title: "YourTurn recovered 45 USDC", body: "The accepted handoff stayed inside your approved recovery rules.", state: "Complete" },
+            { title: "You recovered 45 USDC", body: "The accepted handoff stayed inside your approved recovery rules.", state: "Complete" },
             { title: "Friday Yoga transferred", body: "The booking is no longer usable from your My bookings.", state: "Complete" },
             { title: "Booking fulfilled", body: "Studio A fulfilled the recovered booking for the next holder.", state: "Complete" },
           ]} />
           <ProofDrawer title="Recovery receipt seam" body="This human-readable receipt is Product Workbench evidence. Technical evidence from Ledger, World, Hedera, booking ownership, and provider fulfilment must be attached to the same execution before any LIVE proof is claimed." />
         </Frame>
       )}
-
       {view === "xc2-bob-history" && (
         <Frame eyebrow="Activity" title="Friday Yoga activity." intro="How this booking became yours and how it was used.">
           <Timeline items={[
