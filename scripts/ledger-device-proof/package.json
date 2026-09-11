@@ -7,7 +7,12 @@
     "node": ">=22"
   },
   "scripts": {
-    "proof": "node device-proof.mjs"
+    "address": "node device-address.mjs",
+    "capture": "node capture-prepared.mjs",
+    "proof": "node device-proof.mjs",
+    "bundle": "node qualification-check.mjs",
+    "downstream": "node downstream-check.mjs",
+    "qualify": "node qualification-session.mjs"
   },
   "dependencies": {
     "@ledgerhq/context-module": "2.5.0",
