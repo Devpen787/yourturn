@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { Wallet } from "ethers";
 import { resolveEnrolledLedgerSignerAddress } from "../lib/ledger/ledger-signer-enrollment.ts";
+import {
+  withRecoveryMandateAuthorityMutation,
+} from "../lib/ledger/recovery-mandate-authority-boundary.ts";
 import { assertRecoveryMandateLiveBookingState } from "../lib/ledger/recovery-mandate-booking-guard.ts";
 import { buildRecoveryMandateTypedData } from "../lib/ledger/recovery-mandate.ts";
 import { createRedisRecoveryMandateReplayStore } from "../lib/ledger/recovery-mandate-replay.ts";
@@ -66,10 +69,15 @@ function makeMandate(overrides = {}) {
   };
 }
 
-function createRedisFixture() {
+function createRedisFixture(options = {}) {
   const records = new Map();
+  let beforeConditionalAuthorityWrite =
+    options.beforeConditionalAuthorityWrite ?? null;
   return {
     records,
+    setBeforeConditionalAuthorityWrite(hook) {
+      beforeConditionalAuthorityWrite = hook;
+    },
     async get(key) {
       return records.get(key)?.value ?? null;
     },
@@ -77,6 +85,45 @@ function createRedisFixture() {
       if (options.nx && records.has(key)) return null;
       records.set(key, { value, options });
       return "OK";
+    },
+    async eval(_script, keys, args) {
+      // Test adapter for the three Redis Lua operations used by the production
+      // authority-boundary helper. It models Redis command atomicity while
+      // allowing the accepted SEC-LEDGER-005 interleaving immediately before
+      // the final compare-version + active SET NX operation.
+      if (keys.length === 1 && args.length === 0) {
+        const current = Number(records.get(keys[0])?.value ?? 0);
+        if (!Number.isSafeInteger(current)) return -2;
+        if (current % 2 !== 0) return -1;
+        const next = current + 1;
+        records.set(keys[0], { value: String(next), options: {} });
+        return next;
+      }
+      if (keys.length === 1 && args.length === 1) {
+        const current = Number(records.get(keys[0])?.value ?? 0);
+        const expected = Number(args[0]);
+        if (current !== expected || current % 2 === 0) return -1;
+        const next = current + 1;
+        records.set(keys[0], { value: String(next), options: {} });
+        return next;
+      }
+      if (keys.length === 2 && args.length === 3) {
+        if (beforeConditionalAuthorityWrite) {
+          const hook = beforeConditionalAuthorityWrite;
+          beforeConditionalAuthorityWrite = null;
+          await hook();
+        }
+        const current = Number(records.get(keys[0])?.value ?? 0);
+        const expected = Number(args[0]);
+        if (current !== expected || current % 2 !== 0) return -1;
+        if (records.has(keys[1])) return 0;
+        records.set(keys[1], {
+          value: String(args[1]),
+          options: { nx: true, ex: Number(args[2]) },
+        });
+        return 1;
+      }
+      throw new Error("Unexpected authority-boundary eval shape in fixture");
     },
   };
 }
@@ -148,6 +195,26 @@ function revalidatorFor(liveState) {
   };
 }
 
+async function activateFixture({
+  redis,
+  replayStore,
+  mandate,
+  signature,
+  ownerId = mandate.ownerId,
+  revalidateMutableAuthority,
+}) {
+  return activatePreparedRecoveryMandate({
+    store: redis,
+    authorityBoundaryStore: redis,
+    replayStore,
+    mandateId: mandate.mandateId,
+    ownerId,
+    signature,
+    revalidateMutableAuthority,
+    nowUnixSeconds: NOW,
+  });
+}
+
 async function assertInitialStaleStateFails({
   label,
   expectedError,
@@ -171,14 +238,12 @@ async function assertInitialStaleStateFails({
   mutate(liveState);
 
   await assert.rejects(
-    activatePreparedRecoveryMandate({
-      store: redis,
+    activateFixture({
+      redis,
       replayStore,
-      mandateId: mandate.mandateId,
-      ownerId: mandate.ownerId,
+      mandate,
       signature,
       revalidateMutableAuthority: revalidatorFor(liveState),
-      nowUnixSeconds: NOW,
     }),
     expectedError,
     `${label} must fail closed before active authority exists`
@@ -198,14 +263,12 @@ async function assertInitialStaleStateFails({
   // distinct from a final-boundary race, which intentionally consumes/fails.
   liveState.slot = validSlot();
   liveState.listing = null;
-  const recovered = await activatePreparedRecoveryMandate({
-    store: redis,
+  const recovered = await activateFixture({
+    redis,
     replayStore,
-    mandateId: mandate.mandateId,
-    ownerId: mandate.ownerId,
+    mandate,
     signature,
     revalidateMutableAuthority: revalidatorFor(liveState),
-    nowUnixSeconds: NOW,
   });
   assert.equal(recovered.active.state, "active");
 }
@@ -223,36 +286,31 @@ const signature = await sign(mandate);
 const validLiveState = { slot: validSlot(), listing: null };
 
 await assert.rejects(
-  activatePreparedRecoveryMandate({
-    store: redis,
+  activateFixture({
+    redis,
     replayStore,
-    mandateId: mandate.mandateId,
-    ownerId: "owner-bob",
+    mandate,
     signature,
+    ownerId: "owner-bob",
     revalidateMutableAuthority: revalidatorFor(validLiveState),
-    nowUnixSeconds: NOW,
   }),
   /does not belong/
 );
 
 const results = await Promise.allSettled([
-  activatePreparedRecoveryMandate({
-    store: redis,
+  activateFixture({
+    redis,
     replayStore,
-    mandateId: mandate.mandateId,
-    ownerId: mandate.ownerId,
+    mandate,
     signature,
     revalidateMutableAuthority: revalidatorFor(validLiveState),
-    nowUnixSeconds: NOW,
   }),
-  activatePreparedRecoveryMandate({
-    store: redis,
+  activateFixture({
+    redis,
     replayStore,
-    mandateId: mandate.mandateId,
-    ownerId: mandate.ownerId,
+    mandate,
     signature,
     revalidateMutableAuthority: revalidatorFor(validLiveState),
-    nowUnixSeconds: NOW,
   }),
 ]);
 assert.equal(
@@ -272,6 +330,7 @@ const active = await loadActiveRecoveryMandate({
   ownerId: mandate.ownerId,
 });
 assert.equal(active.record.state, "active");
+assert.equal(active.record.authorityStateVersion, 0);
 assert.equal(active.mandate.agentId, "yourturn-concierge");
 assert.equal(active.mandate.bookingSerial, BigInt(193));
 assert.equal(active.mandate.minimumRecoveryAtomicUnits, BigInt(40_000_000));
@@ -295,27 +354,23 @@ const wrongSignature = await substituteWallet.signTypedData(
   badTyped.value
 );
 await assert.rejects(
-  activatePreparedRecoveryMandate({
-    store: redis,
+  activateFixture({
+    redis,
     replayStore,
-    mandateId: badSignatureMandate.mandateId,
-    ownerId: badSignatureMandate.ownerId,
+    mandate: badSignatureMandate,
     signature: wrongSignature,
     revalidateMutableAuthority: revalidatorFor(validLiveState),
-    nowUnixSeconds: NOW,
   }),
   /signature signer mismatch/
 );
 
 const correctAfterBadSignature = await sign(badSignatureMandate);
-await activatePreparedRecoveryMandate({
-  store: redis,
+await activateFixture({
+  redis,
   replayStore,
-  mandateId: badSignatureMandate.mandateId,
-  ownerId: badSignatureMandate.ownerId,
+  mandate: badSignatureMandate,
   signature: correctAfterBadSignature,
   revalidateMutableAuthority: revalidatorFor(validLiveState),
-  nowUnixSeconds: NOW,
 });
 
 await assertInitialStaleStateFails({
@@ -350,8 +405,8 @@ await assertInitialStaleStateFails({
   },
 });
 
-// Accepted SEC-LEDGER-005 reproducer shape: the booking was valid when the
-// mandate was prepared/signed, then every load-bearing predicate changes.
+// Accepted SEC-LEDGER-005 stale-state reproducer: all mutable predicates changed
+// after preparation. Initial live validation must reject without active state.
 const reproRedis = createRedisFixture();
 const reproReplayStore = createRedisRecoveryMandateReplayStore(reproRedis);
 const reproMandate = makeMandate({
@@ -376,14 +431,12 @@ const staleReproLive = {
   listing: activeListing(),
 };
 await assert.rejects(
-  activatePreparedRecoveryMandate({
-    store: reproRedis,
+  activateFixture({
+    redis: reproRedis,
     replayStore: reproReplayStore,
-    mandateId: reproMandate.mandateId,
-    ownerId: reproMandate.ownerId,
+    mandate: reproMandate,
     signature: reproSignature,
     revalidateMutableAuthority: revalidatorFor(staleReproLive),
-    nowUnixSeconds: NOW,
   }),
   /no longer held|policy no longer permits|active resale listing|holder changed/
 );
@@ -396,10 +449,8 @@ await assert.rejects(
   /not found|expired/
 );
 
-// Race at the final authority boundary: first live read is valid, then a
-// listing appears while signature verification/replay consumption is underway.
-// The second live read must block authority creation. Because replay was
-// consumed, the same signature can never be retried into a later valid state.
+// Earlier race: first live read is valid, then a listing appears before the
+// second live validation. The second read must block authority creation.
 const raceRedis = createRedisFixture();
 const raceReplayStore = createRedisRecoveryMandateReplayStore(raceRedis);
 const raceMandate = makeMandate({
@@ -426,18 +477,20 @@ const raceRevalidator = async (signedMandate) => {
   });
 };
 await assert.rejects(
-  activatePreparedRecoveryMandate({
-    store: raceRedis,
+  activateFixture({
+    redis: raceRedis,
     replayStore: raceReplayStore,
-    mandateId: raceMandate.mandateId,
-    ownerId: raceMandate.ownerId,
+    mandate: raceMandate,
     signature: raceSignature,
     revalidateMutableAuthority: raceRevalidator,
-    nowUnixSeconds: NOW,
   }),
   /active resale listing/
 );
-assert.equal(raceValidationCount, 2, "activation must re-read live state at final authority creation");
+assert.equal(
+  raceValidationCount,
+  2,
+  "activation must re-read live state at final authority creation"
+);
 await assert.rejects(
   loadActiveRecoveryMandate({
     store: raceRedis,
@@ -447,17 +500,94 @@ await assert.rejects(
   /not found|expired/
 );
 await assert.rejects(
-  activatePreparedRecoveryMandate({
-    store: raceRedis,
+  activateFixture({
+    redis: raceRedis,
     replayStore: raceReplayStore,
-    mandateId: raceMandate.mandateId,
-    ownerId: raceMandate.ownerId,
+    mandate: raceMandate,
     signature: raceSignature,
     revalidateMutableAuthority: revalidatorFor(validLiveState),
-    nowUnixSeconds: NOW,
   }),
   /already been consumed/,
   "a signature consumed before a final-boundary stale failure must not become reusable"
+);
+
+// Accepted independent SEC-LEDGER-005 final-boundary reproducer: BOTH live
+// validations observe valid state. A competing listing mutation begins and
+// completes after the second successful validation but immediately before the
+// active-authority Redis operation. The mutation advances the shared serialized
+// version, so the compare-version + SET NX must reject and leave no active
+// authority record.
+const finalRaceLive = { slot: validSlot(), listing: null };
+const finalRaceRedis = createRedisFixture();
+const finalRaceReplayStore = createRedisRecoveryMandateReplayStore(finalRaceRedis);
+const finalRaceMandate = makeMandate({
+  mandateId: "mandate-atomic-final-boundary-race",
+  nonce: "runtime-atomic-final-boundary-race",
+});
+await storePreparedRecoveryMandate({
+  store: finalRaceRedis,
+  mandate: finalRaceMandate,
+  ownerId: finalRaceMandate.ownerId,
+  nowUnixSeconds: NOW,
+});
+const finalRaceSignature = await sign(finalRaceMandate);
+let finalRaceValidationCount = 0;
+const finalRaceRevalidator = async (signedMandate) => {
+  finalRaceValidationCount += 1;
+  assertRecoveryMandateLiveBookingState({
+    mandate: signedMandate,
+    live: {
+      slot: finalRaceLive.slot,
+      listing: finalRaceLive.listing,
+      expectedHolderAccountId: EXPECTED_HOLDER,
+    },
+  });
+};
+finalRaceRedis.setBeforeConditionalAuthorityWrite(async () => {
+  await withRecoveryMandateAuthorityMutation({
+    store: finalRaceRedis,
+    bookingSerial: finalRaceMandate.bookingSerial,
+    mutate: async () => {
+      finalRaceLive.slot = validSlot({ listingActive: true });
+      finalRaceLive.listing = activeListing();
+    },
+  });
+});
+await assert.rejects(
+  activateFixture({
+    redis: finalRaceRedis,
+    replayStore: finalRaceReplayStore,
+    mandate: finalRaceMandate,
+    signature: finalRaceSignature,
+    revalidateMutableAuthority: finalRaceRevalidator,
+  }),
+  /state changed after final validation/,
+  "a mutation after the last successful validation must make the atomic active write fail"
+);
+assert.equal(
+  finalRaceValidationCount,
+  2,
+  "accepted final-boundary reproducer requires both ordinary live validations to succeed"
+);
+await assert.rejects(
+  loadActiveRecoveryMandate({
+    store: finalRaceRedis,
+    mandateId: finalRaceMandate.mandateId,
+    ownerId: finalRaceMandate.ownerId,
+  }),
+  /not found|expired/,
+  "final-boundary race must leave no active authority record"
+);
+await assert.rejects(
+  activateFixture({
+    redis: finalRaceRedis,
+    replayStore: finalRaceReplayStore,
+    mandate: finalRaceMandate,
+    signature: finalRaceSignature,
+    revalidateMutableAuthority: revalidatorFor(validLiveState),
+  }),
+  /already been consumed/,
+  "final-boundary CAS rejection must preserve one-shot replay consumption"
 );
 
 const prepareRoute = readFileSync(
@@ -478,16 +608,49 @@ const activationStateSource = readFileSync(
   new URL("../lib/ledger/recovery-mandate-state.ts", import.meta.url),
   "utf8"
 );
+const authorityBoundarySource = readFileSync(
+  new URL(
+    "../lib/ledger/recovery-mandate-authority-boundary.ts",
+    import.meta.url
+  ),
+  "utf8"
+);
 const bookingGuardSource = readFileSync(
   new URL("../lib/ledger/recovery-mandate-booking-guard.ts", import.meta.url),
   "utf8"
 );
+const resaleListRoute = readFileSync(
+  new URL("../app/api/resale-list/route.ts", import.meta.url),
+  "utf8"
+);
+const resaleBuyRoute = readFileSync(
+  new URL("../app/api/resale-buy/route.ts", import.meta.url),
+  "utf8"
+);
+const freezeRoute = readFileSync(
+  new URL("../app/api/freeze/route.ts", import.meta.url),
+  "utf8"
+);
+const unfreezeRoute = readFileSync(
+  new URL("../app/api/unfreeze/route.ts", import.meta.url),
+  "utf8"
+);
+const markUsedRoute = readFileSync(
+  new URL("../app/api/mark-used/route.ts", import.meta.url),
+  "utf8"
+);
+const agentConfirmRoute = readFileSync(
+  new URL("../app/api/agent/confirm/route.ts", import.meta.url),
+  "utf8"
+);
+
 for (const source of [prepareRoute, activateRoute]) {
   assert.doesNotMatch(source, /mintApprovalGrant|verifyApprovalGrant/);
   assert.doesNotMatch(source, /HEDERA_OPERATOR_KEY|booked-rights-approval-secret/);
 }
 assert.match(activateRoute, /getRedis\(\)/);
 assert.match(activateRoute, /createRedisRecoveryMandateReplayStore\(redis\)/);
+assert.match(activateRoute, /authorityBoundaryStore:\s*redis/);
 assert.match(activateRoute, /activatePreparedRecoveryMandate/);
 assert.match(activateRoute, /bookingPort\.getSlot\(serial\)/);
 assert.match(activateRoute, /bookingPort\.getListing\(serial\)/);
@@ -495,6 +658,38 @@ assert.match(activateRoute, /assertRecoveryMandateLiveBookingState/);
 assert.match(activateRoute, /expectedHolderAccountId/);
 assert.match(activationStateSource, /await input\.revalidateMutableAuthority\(mandate\)/);
 assert.match(activationStateSource, /await input\.revalidateMutableAuthority\(verified\.mandate\)/);
+assert.match(
+  activationStateSource,
+  /readStableRecoveryMandateAuthorityVersion/,
+  "activation must capture the serialized booking authority version"
+);
+assert.match(
+  activationStateSource,
+  /storeActiveRecoveryMandateIfAuthorityVersionUnchanged/,
+  "active authority must use compare-version + SET NX rather than a separate write"
+);
+assert.doesNotMatch(
+  activationStateSource,
+  /input\.store\.set\(\s*activeRecoveryMandateKey/,
+  "active authority must not regress to a separate ordinary SET NX"
+);
+assert.match(authorityBoundarySource, /current ~= expected/);
+assert.match(authorityBoundarySource, /"NX", "EX"/);
+assert.match(authorityBoundarySource, /withRecoveryMandateAuthorityMutation/);
+for (const source of [
+  resaleListRoute,
+  resaleBuyRoute,
+  freezeRoute,
+  unfreezeRoute,
+  markUsedRoute,
+  agentConfirmRoute,
+]) {
+  assert.match(
+    source,
+    /withRecoveryMandateAuthorityMutation/,
+    "booking/listing mutation surface must participate in the shared serialized authority boundary"
+  );
+}
 assert.match(bookingGuardSource, /slot\.status !== "HELD"/);
 assert.match(bookingGuardSource, /slot\.policySnapshot\.resaleAllowed/);
 assert.match(bookingGuardSource, /slot\.policy\.resaleAllowed/);
@@ -543,19 +738,22 @@ console.log(
         "concurrent duplicate activation has exactly one winner",
         "active state preserves agent/serial/minimum/asset/cancellation scope",
         "Ledger-specific routes never mint or verify legacy reusable approval grants",
-        "activation route instantiates the real Redis adapter at the authority boundary",
-        "activation re-reads holder/status/booked-policy/current-policy/listing predicates before replay consumption and immediately before active authority creation",
+        "activation route instantiates the real Redis replay and authority-boundary adapters",
+        "activation re-reads holder/status/booked-policy/current-policy/listing predicates before replay consumption and at final authority creation",
         "stale holder fails closed with no active authority",
         "stale held/transferable status fails closed with no active authority",
         "stale provider resale policy fails closed with no active authority",
         "conflicting active listing fails closed with no active authority",
         "accepted SEC-LEDGER-005 combined stale-state reproducer no longer activates authority",
-        "a final-boundary state race consumes the one-shot signature but never creates authority or permits retry",
+        "booking/listing/status mutation surfaces share an odd/even serialized authority version",
+        "final active authority creation atomically compares the validated stable version and SET NX writes the authority",
+        "accepted final-boundary race after both successful validations advances the version and leaves no active authority",
+        "final-boundary rejection preserves consumed one-shot replay semantics",
       ],
       deviceProof: false,
       downstreamRecoveryExecution: false,
       claimBoundary:
-        "CI proves stale prepared booking authority cannot activate across holder/status/provider-policy/listing changes while preserving the dedicated Redis one-shot path and server-controlled signer enrollment. It does not prove Ledger hardware provenance or that active mandate state is yet consumed by Hedera recovery execution.",
+        "CI proves stale prepared booking authority cannot activate across holder/status/provider-policy/listing changes, including the SEC-LEDGER-005 mutation after the last successful validation, while preserving the dedicated Redis one-shot path and server-controlled signer enrollment. It does not prove Ledger hardware provenance or that active mandate state is yet consumed by Hedera recovery execution.",
     },
     null,
     2
