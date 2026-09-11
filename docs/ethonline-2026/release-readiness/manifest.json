@@ -12,6 +12,15 @@
     "immutableBaseline": "d0b5f875afb4f2b29af29bc5972cf1edc404d473",
     "frozenFoundation": "89ded956e67c343b7abefc36e33044c6064a7798"
   },
+  "partnerTracks": {
+    "count": 3,
+    "exact": [
+      "Hedera Continuity",
+      "World AgentKit Continuity",
+      "Ledger Continuity"
+    ],
+    "deliberateChangeRecorded": false
+  },
   "productTruth": {
     "thesis": "Ledger defines what the human authorized; World proves which human-backed delegated agent is asking; Hedera enforces what the agent can do and settles/proves the result.",
     "coreRule": "provider rules ∩ holder mandate ∩ acquirer eligibility/payment",
@@ -32,7 +41,9 @@
         "truthBoundary": "Golden freezes behavior/presentation, not sponsor evidence class. Sponsor-dependent transitions remain fixture until exact integration evidence replaces them."
       }
     ],
-    "nextSlice": "XC-01 — Eligible next holder + provider-recognized handoff"
+    "nextSlice": "XC-01 — Eligible next holder + provider-recognized handoff",
+    "nextSliceStatus": "REVISE_NON_SUBMISSION_CRITICAL",
+    "nextSliceBlocker": "Exact executable eb3bcdb84ff95352adf1d0c387996f9a4692c52f remains REVISE until Bob's successful holder path transitions the shell from Find a spot to My bookings and the revised exact candidate is re-rendered and re-reviewed."
   },
   "integration": {
     "heldHead": "1bf50c02dd3d925f2db03bd9ba0bbac4713c1380",
@@ -63,10 +74,18 @@
     "world": {
       "head": "2ab04f4420cccc2c090cd5f5634e447d399eb139",
       "continuityRun": "34432753300",
-      "currentEvidence": "LIVE/AGENTBOOK for registration/resolution; CI/READY, NOT LIVE for signed recovery route; Sandbox proof not yet captured",
+      "sandboxCandidateHead": "403f2dcb1e185455b5fb09e76caab1e40f7d0ebc",
+      "sandboxContinuityRun": "34533470589",
+      "security": {
+        "secWorld005": "OPEN_MEDIUM",
+        "independentRun": "34538944271",
+        "attackerHead": "e458c4c858903bca2b8f70367361caad65cafd12"
+      },
+      "currentEvidence": "LIVE/AGENTBOOK for registration/resolution; CI/READY, NOT LIVE for signed recovery route; World ID Sandbox CI/CONFIGURED but SECURITY BLOCKED and SANDBOX RED",
       "integrationReady": false,
       "blockers": [
-        "Complete actual World ID Sandbox tester verification and reviewer-safe evidence",
+        "Repair SEC-WORLD-005 by transport-binding the supported Sandbox launch to loopback and failing closed outside intended development mode, then pass independent Security retest",
+        "Only after SEC-WORLD-005 closure: complete the actual World ID Sandbox tester verification and reviewer-safe evidence",
         "Execute locally signed registered-agent recovery route against initialized non-production YourTurn state",
         "Replace branch-local ApprovalGrant authority scaffolding with canonical activated Ledger Recovery Mandate projection for final integration"
       ]
@@ -93,13 +112,51 @@
       "realOrMainnetFundsAuthorized": false
     },
     "worldSandbox": {
+      "status": "SECURITY_BLOCKED",
+      "candidateHead": "403f2dcb1e185455b5fb09e76caab1e40f7d0ebc",
+      "securityFinding": "SEC-WORLD-005",
       "appDownloaded": true,
-      "proofCaptured": false
+      "proofCaptured": false,
+      "phoneProofDeferredUntilSecurityClosure": true
     },
     "worldSignedRoute": {
       "runnerReady": true,
       "liveExecutionCaptured": false,
       "privateKeyMustRemainLocal": true
+    }
+  },
+  "submissionPackage": {
+    "publicReadme": {
+      "status": "RED",
+      "heldIntegrationSha": "1bf50c02dd3d925f2db03bd9ba0bbac4713c1380",
+      "currentState": "Held integration README still presents the pre-event Week 5 Hedera submission and does not yet contain the final ETHOnline Continuity before/after section.",
+      "requiredBeforeLock": "One public ETHOnline README that clearly separates the immutable pre-event baseline from the new Delegated Recovery work and links only evidence valid for the final integrated candidate."
+    },
+    "stableDeployment": {
+      "status": "RED",
+      "currentDeclaredUrl": "https://yourturn-sage.vercel.app",
+      "currentState": "The declared stable URL belongs to the pre-event Week 5 surface, not a final integrated ETHOnline candidate. PR #42's readiness preview deployment also hit the Vercel free-tier daily deployment limit, so no final candidate URL is pinned here.",
+      "requiredBeforeLock": "Pin and verify one stable reviewer-facing URL for the final integrated ETHOnline candidate; do not substitute a stale baseline or unqualified sponsor preview."
+    },
+    "video": {
+      "status": "RED",
+      "finalVideoPinned": false,
+      "requiredBeforeLock": "Pin the final judge-facing video asset and confirm any applicable duration limit against the final sponsor/submission requirements."
+    },
+    "screenshots": {
+      "status": "PARTIAL",
+      "currentState": "Golden YT-01→YT-08 rendered evidence exists, but final integrated sponsor-backed screenshots/receipt evidence do not.",
+      "requiredBeforeLock": "Select reviewer-safe final screenshots bound to the exact integrated candidate and exact evidence classes."
+    },
+    "submissionFields": {
+      "status": "RED",
+      "finalCopyLocked": false,
+      "requiredBeforeLock": "Lock final project description, Continuity before/after, exactly three partner selections, demo/evidence links, repo link, stable deployment link and video/screenshots only after their evidence is current."
+    },
+    "evidencePack": {
+      "status": "RED",
+      "contractExists": true,
+      "reason": "The pack contract exists, but Hedera 45-USDC LIVE evidence, World Sandbox/signed-route evidence, Ledger SEC-005/device evidence and the final integrated E2E remain missing."
     }
   },
   "finalAcceptance": {
