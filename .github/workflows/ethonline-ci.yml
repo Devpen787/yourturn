@@ -52,10 +52,12 @@ jobs:
         run: npm run ledger:mandate-check
 
       - name: Ledger DMK device ceremony contract check
-        # Pure CI qualification of the ceremony contract only. The actual
-        # LIVE/DEVICE claim still requires a physical Ledger running the pinned
-        # DMK/Signer/Node-HID stack in scripts/ledger-device-proof/.
-        run: node scripts/ledger-device-proof/ceremony-check.mjs
+        # Pure CI qualification of the ceremony/evidence contract only. The
+        # actual LIVE/DEVICE claim still requires a physical Ledger running the
+        # pinned DMK/Signer/Node-HID stack in scripts/ledger-device-proof/.
+        run: |
+          node scripts/ledger-device-proof/ceremony-check.mjs
+          node scripts/ledger-device-proof/qualification-contract-check.mjs
 
       - name: Ledger current DMK Node-HID import smoke
         # Install the isolated, pinned hardware-proof stack without changing the
@@ -65,6 +67,10 @@ jobs:
         run: |
           npm install --no-package-lock --legacy-peer-deps
           npm run proof -- --help
+          npm run capture -- --help
+          npm run bundle -- --help
+          npm run downstream -- --help
+          npm run qualify -- --help
 
       - name: Continuity baseline must remain documented
         run: |
