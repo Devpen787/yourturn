@@ -30,9 +30,11 @@ async function assertNoTechLeak(page) {
 }
 
 async function assertHeader(page, label, identity) {
-  const header = (await page.locator("header").innerText()).replace(/\s+/g, " ");
-  if (!header.includes(label) || !header.includes(identity)) {
-    throw new Error(`XC-02 header mismatch; expected ${label}/${identity}: ${header}`);
+  const header = page.locator("header");
+  const visibleHeader = (await header.innerText()).replace(/\s+/g, " ");
+  const semanticHeader = ((await header.textContent()) ?? "").replace(/\s+/g, " ");
+  if (!visibleHeader.includes(label) || !semanticHeader.includes(identity)) {
+    throw new Error(`XC-02 header mismatch; expected visible ${label} and semantic ${identity}: visible=${visibleHeader}; full=${semanticHeader}`);
   }
 }
 
