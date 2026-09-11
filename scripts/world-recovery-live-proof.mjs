@@ -108,10 +108,69 @@ async function requestJson(url, init) {
   return body;
 }
 
+function assertRecoveryPreflightState({ slot, holdings, listing, actorId, serial }) {
+  if (!slot || typeof slot !== "object") {
+    throw new Error(
+      `Serial ${serial} is not initialized in the target environment. Use an existing non-production booked serial; do not create/fund new state for this proof.`
+    );
+  }
+  if (slot.status !== "HELD") {
+    throw new Error(
+      `Serial ${serial} must be HELD before create_listing proof; current status is ${String(slot.status)}`
+    );
+  }
+  if (slot.resaleAllowed !== true) {
+    throw new Error(`Serial ${serial} does not allow resale under its stored provider policy`);
+  }
+  if (!Array.isArray(holdings) || !holdings.some((item) => item?.serial === serial)) {
+    throw new Error(`Serial ${serial} is not currently held by ${actorId}`);
+  }
+  if (listing?.active) {
+    throw new Error(`Serial ${serial} already has an active listing`);
+  }
+}
+
+async function preflightRecoveryState({ baseUrl, actor, serial }) {
+  const readUrl = `${baseUrl}/api/agent/read`;
+  const [slotResponse, holdingsResponse, listingResponse] = await Promise.all([
+    requestJson(readUrl, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "getSlot", serial }),
+    }),
+    requestJson(readUrl, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "listHoldings", holder: actor }),
+    }),
+    requestJson(readUrl, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "getListing", serial }),
+    }),
+  ]);
+
+  assertRecoveryPreflightState({
+    slot: slotResponse?.data,
+    holdings: holdingsResponse?.data,
+    listing: listingResponse?.data,
+    actorId: actor.id,
+    serial,
+  });
+
+  return {
+    initialized: true,
+    serial,
+    actor: actor.id,
+    slotStatus: slotResponse.data.status,
+    resaleAllowed: slotResponse.data.resaleAllowed === true,
+    currentHolderMatchesActor: true,
+    activeListingAbsent: true,
+  };
+}
+
 async function selfTest() {
-  const wallet = new Wallet(
-    "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
-  );
+  const wallet = Wallet.createRandom();
   const resource = "http://localhost:3000/api/agent/confirm";
   const header = await signAgentkitHeader(wallet, resource, "selftest0001");
   const parsed = parseAgentkitHeader(header);
@@ -121,8 +180,34 @@ async function selfTest() {
   assert.equal(parsed.uri, resource);
   assert.deepEqual(parsed.resources, [resource]);
   assert.equal(parsed.chainId, "eip155:480");
+
+  const readyState = {
+    slot: { serial: 7, status: "HELD", resaleAllowed: true },
+    holdings: [{ serial: 7, status: "HELD" }],
+    listing: null,
+    actorId: "guestA",
+    serial: 7,
+  };
+  assert.doesNotThrow(() => assertRecoveryPreflightState(readyState));
+  assert.throws(
+    () => assertRecoveryPreflightState({ ...readyState, holdings: [] }),
+    /not currently held by guestA/
+  );
+  assert.throws(
+    () =>
+      assertRecoveryPreflightState({
+        ...readyState,
+        slot: { serial: 7, status: "FROZEN", resaleAllowed: true },
+      }),
+    /must be HELD/
+  );
+  assert.throws(
+    () => assertRecoveryPreflightState({ ...readyState, listing: { active: true } }),
+    /already has an active listing/
+  );
+
   console.log(
-    "World recovery live-proof runner self-test passed: exact resource + official AgentKit signature verification."
+    "World recovery live-proof runner self-test passed: exact resource + official AgentKit signature verification + non-secret target-state preflight."
   );
 }
 
@@ -151,6 +236,32 @@ async function main() {
   const expectedAgent = getAddress(
     flag("agent") || process.env.WORLD_AGENT_ADDRESS || DEFAULT_REGISTERED_AGENT
   );
+  const actor = { kind: "demoActor", id: actorId };
+
+  // Resolve every non-secret target-state prerequisite before reading local
+  // signer/admin secrets. This does not mutate state and makes a failed local
+  // ceremony actionable without exposing or unnecessarily loading the agent key.
+  const preflight = await preflightRecoveryState({ baseUrl, actor, serial });
+  if (process.argv.includes("--preflight")) {
+    console.log(
+      JSON.stringify(
+        {
+          ok: true,
+          evidenceLevel: "LOCAL/PREFLIGHT",
+          targetClass: local ? "local" : "explicit-non-production-remote",
+          expectedAgentAddress: expectedAgent,
+          ...preflight,
+          humanIdExposed: false,
+          claimBoundary:
+            "This checks only non-secret target readiness for the registered-agent proof. It does not sign, authorize, mutate, or prove LIVE/SIGNED-ROUTE.",
+        },
+        null,
+        2
+      )
+    );
+    return;
+  }
+
   const privateKey = requiredSecret("WORLD_AGENT_PRIVATE_KEY");
   const approvalAdminSecret = requiredSecret(
     "BOOKED_RIGHTS_APPROVAL_ADMIN_SECRET",
@@ -163,7 +274,6 @@ async function main() {
     );
   }
 
-  const actor = { kind: "demoActor", id: actorId };
   const previewUrl = `${baseUrl}/api/agent/preview`;
   const grantUrl = `${baseUrl}/api/agent/approval-grant`;
   const confirmUrl = `${baseUrl}/api/agent/confirm`;
@@ -243,12 +353,13 @@ async function main() {
         agentAddress: expectedAgent,
         verifierNetwork: "worldchain",
         agentBookResolved: true,
+        targetPreflight: preflight,
         mutationVerified: true,
         worldTrust: confirmResponse.worldTrust,
         humanIdExposed: false,
         completedAt: new Date().toISOString(),
         claimBoundary:
-          "This proves the registered delegated agent signed the exact recovery resource, passed YourTurn's official AgentKit + AgentBook gate, and the configured create-listing write became readable. It does not prove World grants booking ownership or provider entitlement.",
+          "This proves the registered delegated agent signed the exact recovery resource, passed YourTurn's official AgentKit + AgentBook gate, and the configured create-listing write became readable. It does not prove World grants booking ownership or provider entitlement, and branch-local ApprovalGrantClaims are not final holder authority.",
       },
       null,
       2
@@ -261,7 +372,9 @@ main().catch((error) => {
     JSON.stringify(
       {
         ok: false,
-        evidenceLevel: "LIVE/SIGNED-ROUTE",
+        evidenceLevel: process.argv.includes("--preflight")
+          ? "LOCAL/PREFLIGHT"
+          : "LIVE/SIGNED-ROUTE",
         error: error instanceof Error ? error.message : String(error),
         humanIdExposed: false,
       },
