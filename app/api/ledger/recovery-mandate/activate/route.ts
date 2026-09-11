@@ -4,6 +4,10 @@ import { bookingPort } from "@/lib/adapters/booking-port";
 import { requireGuestAppUser } from "@/lib/auth/guest-api-auth";
 import { getActorCredentials } from "@/lib/hedera/client";
 import {
+  RecoveryMandateAuthorityBoundaryError,
+  type RecoveryMandateAuthorityBoundaryStore,
+} from "@/lib/ledger/recovery-mandate-authority-boundary";
+import {
   RecoveryMandateBookingStateError,
   assertRecoveryMandateLiveBookingState,
 } from "@/lib/ledger/recovery-mandate-booking-guard";
@@ -26,7 +30,9 @@ const activateBodySchema = z.object({
   signature: z.string().regex(/^0x[0-9a-fA-F]+$/).min(132).max(132),
 });
 
-type LedgerMandateRedis = RecoveryMandateStateStore & RecoveryMandateAtomicSetStore;
+type LedgerMandateRedis = RecoveryMandateStateStore &
+  RecoveryMandateAtomicSetStore &
+  RecoveryMandateAuthorityBoundaryStore;
 
 export async function POST(req: Request) {
   try {
@@ -89,13 +95,14 @@ export async function POST(req: Request) {
     // This route deliberately does not mint or accept the legacy reusable
     // approval-grant bearer token. The prepared server-side mandate is the
     // complete expectation; its signature is consumed once through durable
-    // Redis before an active authority record can exist. Mutable booking state
-    // is re-read before replay consumption and again immediately before final
-    // active-authority creation.
+    // Redis. Final active-authority creation is additionally conditional on
+    // the exact serialized booking/listing state version observed around the
+    // last live validation, closing the SEC-LEDGER-005 final-boundary race.
     const redis = getRedis() as unknown as LedgerMandateRedis;
     const replayStore = createRedisRecoveryMandateReplayStore(redis);
     const { verified, active } = await activatePreparedRecoveryMandate({
       store: redis,
+      authorityBoundaryStore: redis,
       replayStore,
       mandateId: parsed.data.mandateId,
       ownerId: appUser.id,
@@ -113,6 +120,7 @@ export async function POST(req: Request) {
       state: active.state,
       activatedAt: active.activatedAt,
       expiresAt: active.mandate.expiresAt,
+      authorityStateVersion: active.authorityStateVersion,
       authority: {
         agentId: active.mandate.agentId,
         bookingTokenId: active.mandate.bookingTokenId,
@@ -123,10 +131,13 @@ export async function POST(req: Request) {
         cancellationAllowed: active.mandate.cancellationAllowed,
       },
       claimBoundary:
-        "A cryptographically valid EIP-712 signature can activate the exact prepared mandate once only while live holder/status/provider-policy/listing predicates still permit it. Hardware provenance remains unproven until the identical payload is signed on a Ledger through DMK.",
+        "A cryptographically valid EIP-712 signature can activate the exact prepared mandate once only while live holder/status/provider-policy/listing predicates still permit it and the serialized booking authority version remains unchanged through the atomic active write. Hardware provenance remains unproven until the identical payload is signed on a Ledger through DMK.",
     });
   } catch (e) {
-    if (e instanceof RecoveryMandateBookingStateError) {
+    if (
+      e instanceof RecoveryMandateBookingStateError ||
+      e instanceof RecoveryMandateAuthorityBoundaryError
+    ) {
       return NextResponse.json(fail(e.message, "CONFLICT"), { status: 409 });
     }
     const msg = e instanceof Error ? e.message : String(e);
