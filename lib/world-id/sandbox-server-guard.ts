@@ -1,10 +1,13 @@
-const SANDBOX_LOOPBACK_HOST = "127.0.0.1";
+const SANDBOX_REQUEST_HOSTS = new Set(["127.0.0.1", "localhost"]);
 const SANDBOX_TRANSPORT_MARKER = "loopback-v1";
 
 export function isLocalWorldIdSandboxRequest(request: Request): boolean {
   // The network boundary is established by the supported Sandbox launch binding
   // Next.js to 127.0.0.1. These runtime checks are fail-closed backstops; neither
-  // Request.url nor Origin is treated as proof of the remote peer address.
+  // Request.url nor Origin is treated as proof of the remote peer address. Next.js
+  // may normalize an internally constructed request URL to localhost even when the
+  // actual listener is explicitly bound to 127.0.0.1, so URL host is only a
+  // secondary consistency check.
   if (process.env.NODE_ENV !== "development") {
     return false;
   }
@@ -24,7 +27,7 @@ export function isLocalWorldIdSandboxRequest(request: Request): boolean {
     return false;
   }
 
-  if (requestUrl.hostname !== SANDBOX_LOOPBACK_HOST) {
+  if (!SANDBOX_REQUEST_HOSTS.has(requestUrl.hostname)) {
     return false;
   }
 
