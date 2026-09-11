@@ -17,8 +17,14 @@ import {
 } from "@/lib/auth/guest-api-auth";
 import { getActorCredentials } from "@/lib/hedera/client";
 import { createScheduledRecoveryPayment } from "@/lib/hedera/schedule";
+import {
+  RecoveryMandateAuthorityBoundaryError,
+  withRecoveryMandateAuthorityMutation,
+  type RecoveryMandateAuthorityBoundaryStore,
+} from "@/lib/ledger/recovery-mandate-authority-boundary";
 import { mintApprovalGrant } from "@/lib/server/approval-grants";
 import { upsertAutomationProof } from "@/lib/store/automation-proofs";
+import { getRedis } from "@/lib/store/redis";
 import { upsertRecoveryReceipt } from "@/lib/store/recovery-receipts";
 import { fail, recoveryConfirmBodySchema } from "@/lib/validation/api";
 
@@ -76,11 +82,21 @@ export async function POST(req: Request) {
       source: grant.claims.source,
       approvalId: grant.claims.grantId,
     } as const;
-    if (preview.action === "cancel_release") {
-      const result = await bookingPort.confirmCancelRelease({
-        previewId: parsed.data.previewId,
-        approval,
+    const boundaryStore = getRedis() as unknown as RecoveryMandateAuthorityBoundaryStore;
+    const mutateBooking = <T>(mutate: () => Promise<T>) =>
+      withRecoveryMandateAuthorityMutation({
+        store: boundaryStore,
+        bookingSerial: preview.serial,
+        mutate,
       });
+
+    if (preview.action === "cancel_release") {
+      const result = await mutateBooking(() =>
+        bookingPort.confirmCancelRelease({
+          previewId: parsed.data.previewId,
+          approval,
+        })
+      );
       const releaseHashscanUrl = result.hashscanUrls.transferToTreasury ?? undefined;
       const policyChecks = evaluateYourTurnAgentPolicies({
         toolId: "yourturn.recovery.confirm_refund_release",
@@ -157,10 +173,12 @@ export async function POST(req: Request) {
       });
     }
 
-    const result = await bookingPort.confirmCreateListing({
-      previewId: parsed.data.previewId,
-      approval,
-    });
+    const result = await mutateBooking(() =>
+      bookingPort.confirmCreateListing({
+        previewId: parsed.data.previewId,
+        approval,
+      })
+    );
     if (!slot.policySnapshot.scheduleAutomationEnabled) {
       return NextResponse.json(
         fail(
@@ -273,6 +291,9 @@ export async function POST(req: Request) {
       receipt,
     });
   } catch (e) {
+    if (e instanceof RecoveryMandateAuthorityBoundaryError) {
+      return NextResponse.json(fail(e.message, "CONFLICT"), { status: 409 });
+    }
     if (e instanceof BookingPortError) {
       return NextResponse.json(fail(e.message, e.code), { status: e.status });
     }
