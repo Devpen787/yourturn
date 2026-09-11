@@ -71,6 +71,65 @@ async function assertNoHorizontalScroll(page) {
   }
 }
 
+const PROOF_DISCLAIMER = "No LIVE sponsor execution is claimed by this Product Workbench state.";
+
+// Evidence classes that would promote this fixture surface if they appeared.
+// Case-sensitive: the product copy uses uppercase evidence-class tokens, and
+// the only legitimate "LIVE" on this surface is inside PROOF_DISCLAIMER.
+const FORBIDDEN_EVIDENCE_TOKENS = [/\bLIVE\b/, /\bTESTNET\b/, /\bMAINNET\b/, /\bSETTLED\b/, /\bCONFIRMED ON CHAIN\b/];
+
+// Identifiers that must never reach a customer-facing proof surface.
+const FORBIDDEN_IDENTIFIERS = [
+  { re: /0x[0-9a-fA-F]{40}/, label: "raw EVM/World address" },
+  { re: /\b[0-9a-fA-F]{64}\b/, label: "raw World nullifier / tx hash" },
+  { re: /\b0\.0\.\d+\b/, label: "raw Hedera account/token id" },
+];
+
+// The Golden runner expands its proof drawer and captures it (21-recovery-proof).
+// XC-01 also needs rendered evidence for the collapsed proof variants, because
+// ordinary innerText assertions cannot inspect hidden <details> content.
+async function assertProofDrawerTruth(page, expectedTitle) {
+  const drawer = page.locator("details").filter({ hasText: "View technical proof" }).first();
+  if ((await drawer.count()) === 0) {
+    throw new Error(`No technical proof drawer on this XC-01 state (expected "${expectedTitle}")`);
+  }
+
+  // Proof must start closed: technical evidence stays secondary to the customer outcome.
+  if (await drawer.evaluate((el) => el.open)) {
+    throw new Error(`Proof drawer starts expanded; technical proof must not lead the journey: ${expectedTitle}`);
+  }
+
+  await drawer.locator("summary").click();
+  if (!(await drawer.evaluate((el) => el.open))) {
+    throw new Error(`Proof drawer did not expand on click: ${expectedTitle}`);
+  }
+
+  const drawerText = (await drawer.innerText()).replace(/\s+/g, " ").trim();
+
+  if (!drawerText.includes("FIXTURE")) {
+    throw new Error(`Proof drawer is missing its FIXTURE evidence class: ${drawerText}`);
+  }
+  if (!drawerText.includes(expectedTitle)) {
+    throw new Error(`Proof drawer missing expected variant "${expectedTitle}": ${drawerText}`);
+  }
+  if (!drawerText.includes(PROOF_DISCLAIMER)) {
+    throw new Error(`Proof drawer missing the non-LIVE disclaimer: ${drawerText}`);
+  }
+
+  // Everything outside the disclaimer must stay free of promoted evidence classes.
+  const residual = drawerText.split(PROOF_DISCLAIMER).join(" ");
+  for (const token of FORBIDDEN_EVIDENCE_TOKENS) {
+    if (token.test(residual)) {
+      throw new Error(`Proof drawer promotes fixture evidence (${token}) in "${expectedTitle}": ${residual}`);
+    }
+  }
+  for (const { re, label } of FORBIDDEN_IDENTIFIERS) {
+    if (re.test(drawerText)) {
+      throw new Error(`Proof drawer leaked ${label} in "${expectedTitle}": ${drawerText}`);
+    }
+  }
+}
+
 async function screenshot(page, prefix, name) {
   await assertNoHorizontalScroll(page);
   await assertNoLegacyPersonaOrProofLeak(page);
@@ -243,6 +302,32 @@ async function runXc01(browser, viewport, prefix) {
   await context.close();
 }
 
+// Renders the expanded state of all three ProofKind variants. Direct-load only:
+// this deliberately does not touch the interactive Bob path, so it stays
+// independent of the XC-01 header-continuity repair.
+async function runProofTruth(browser, viewport, prefix) {
+  const context = await browser.newContext({ viewport });
+
+  const variants = [
+    { view: "xc-provider-policy", name: "37-xc-proof-provider", title: "Provider-rule integration seam" },
+    { view: "xc-eligibility", name: "38-xc-proof-acquirer", title: "Eligibility and payment integration seam" },
+    { view: "xc-opportunity", name: "39-xc-proof-handoff", title: "Cross-holder reconciliation seam" },
+  ];
+
+  for (const { view, name, title } of variants) {
+    const page = await context.newPage();
+    await page.goto(`${baseUrl}/product-preview?view=${view}`, { waitUntil: "networkidle" });
+    await assertProofDrawerTruth(page, title);
+    // screenshot() re-runs overflow, legacy/identity leak and audience-header
+    // assertions -- now against the expanded drawer, which they could not reach
+    // while it was collapsed.
+    await screenshot(page, prefix, name);
+    await page.close();
+  }
+
+  await context.close();
+}
+
 async function runBreakpointSmoke(browser, width) {
   const context = await browser.newContext({ viewport: { width, height: 900 } });
   const page = await context.newPage();
@@ -261,6 +346,8 @@ const browser = await chromium.launch({ headless: true });
 try {
   await runXc01(browser, { width: 1440, height: 1000 }, "desktop");
   await runXc01(browser, { width: 390, height: 844 }, "mobile");
+  await runProofTruth(browser, { width: 1440, height: 1000 }, "desktop");
+  await runProofTruth(browser, { width: 390, height: 844 }, "mobile");
   for (const width of [360, 430, 768, 1024]) {
     await runBreakpointSmoke(browser, width);
   }
@@ -269,5 +356,5 @@ try {
 }
 
 console.log(
-  "Product Workbench XC-01 visual check passed provider policy/block, Bob availability/eligibility/payment/handoff, partial reconciliation, usable booking, provider holder-change states, ownership-shell transition, audience headers, and responsive smoke widths."
+  "Product Workbench XC-01 visual check passed provider policy/block, Bob availability/eligibility/payment/handoff, partial reconciliation, usable booking, provider holder-change states, ownership-shell transition, audience headers, expanded FIXTURE/non-LIVE proof truth for all three proof variants, and responsive smoke widths."
 );
