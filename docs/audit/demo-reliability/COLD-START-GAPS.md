@@ -37,6 +37,13 @@ Evidence class: **CI-LOCAL**, from a clean disposable checkout. Env **names only
 
 ## Documentation gap
 
+> **CORRECTED 2026-09-11.** The count below is an inventory of env names read
+> anywhere in the repo, including CI-only and script-only paths. It is **not** a
+> list of 52 universally required secrets. Requirements are mode-specific — see
+> `scripts/preflight/mode-preflight.mjs`, which derives required vs optional per
+> demo mode from the actual code gates.
+
+
 - env names read by code: **70**
 - documented in `.env.example`: **19**
 - **undocumented but read at runtime: 52**

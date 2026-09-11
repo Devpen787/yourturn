@@ -1,4 +1,13 @@
-# Interruption / Failure Recovery Matrix
+# Interruption / Failure Recovery Matrix (corrected)
+
+> **CORRECTED 2026-09-11.** Rows classified "REQUIRES RESET (not yet implemented)"
+> should be read as **"requires a NEW demonstration with fresh identities"**, not as
+> a request to delete replay keys. Starting a new demonstration is a different
+> operation from retrying an uncertain one; see
+> `scripts/demo-reliability/retry-reconciliation.mjs`, which asserts that an
+> uncertain submitted operation keeps its transaction identity and that a retry
+> produces no second transfer.
+
 
 Evidence class: **FIXTURE / CI-LOCAL**, from `scripts/demo-reliability/interruption-matrix.mjs`.
 

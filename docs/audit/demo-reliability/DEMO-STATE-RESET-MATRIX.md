@@ -1,4 +1,16 @@
-# Demo State / Reset Matrix
+# Demo State / Reset Matrix (corrected)
+
+> **CORRECTED 2026-09-11.** The "should reset? yes" recommendations for the
+> ledger/world/hedera replay namespaces are **withdrawn**. Per Integration #17,
+> deleting consumed-replay records reactivates old credentials and must not be
+> implemented without independent Security review. The supported mechanism for a
+> second demo is **fresh identities plus the new serial that `mintSlotNfts()`
+> returns**, proven by `fresh-run-repeatability.mjs` with zero key deletion.
+>
+> Also corrected: `/api/reset-demo` is a **network-mutating bootstrap** that
+> remints NFTs, not a Redis/UI reset. Read the row meanings as "what survives",
+> not as "what to delete".
+
 
 Evidence class: **AUDIT / CI-LOCAL**. No reset implementation is proposed in product code.
 
