@@ -60,12 +60,15 @@ jobs:
           node scripts/ledger-device-proof/qualification-contract-check.mjs
 
       - name: Ledger current DMK Node-HID import smoke
-        # Install the isolated, pinned hardware-proof stack without changing the
-        # application lockfile. --help imports the same DMK/Signer/Node-HID
-        # modules used by the real device ceremony, but does not touch hardware.
+        # Install the isolated, pinned hardware-proof stack from ITS OWN committed
+        # lockfile so CI tests the same resolved graph Security reviews. This still
+        # does not touch the application lockfile: npm ci runs in the helper
+        # directory against scripts/ledger-device-proof/package-lock.json.
+        # --help imports the same DMK/Signer/Node-HID modules used by the real
+        # device ceremony, but does not touch hardware.
         working-directory: scripts/ledger-device-proof
         run: |
-          npm install --no-package-lock --legacy-peer-deps
+          npm ci --legacy-peer-deps
           npm run proof -- --help
           npm run capture -- --help
           npm run bundle -- --help
