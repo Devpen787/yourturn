@@ -14,6 +14,11 @@ import {
   authorizeWorldRecoveryWrite,
   isWorldProtectedRecoveryAction,
 } from "@/lib/world-agentkit/recovery-write-gate";
+import {
+  confirmWorldCancelRelease,
+  confirmWorldCreateListing,
+  RecoveryOperationReconcileError,
+} from "@/lib/world-agentkit/recovery-saga";
 
 export const runtime = "nodejs";
 
@@ -129,15 +134,26 @@ export async function POST(req: Request) {
             approval,
           }),
         });
-      case "create_listing":
+      case "create_listing": {
+        const delegatedAgentAddress = grant.delegatedAgentAddress?.trim();
+        if (!delegatedAgentAddress) {
+          return NextResponse.json(
+            fail("World recovery authorization is missing delegated agent", "FORBIDDEN"),
+            { status: 403 }
+          );
+        }
         return NextResponse.json({
           ok: true as const,
           worldTrust,
-          result: await bookingPort.confirmCreateListing({
+          result: await confirmWorldCreateListing({
             previewId: parsed.data.previewId,
-            approval,
+            authorization: {
+              grantId: grant.grantId,
+              delegatedAgentAddress,
+            },
           }),
         });
+      }
       case "buy_listing":
         return NextResponse.json({
           ok: true as const,
@@ -170,17 +186,43 @@ export async function POST(req: Request) {
             approval,
           }),
         });
-      case "cancel_release":
+      case "cancel_release": {
+        const delegatedAgentAddress = grant.delegatedAgentAddress?.trim();
+        if (!delegatedAgentAddress) {
+          return NextResponse.json(
+            fail("World recovery authorization is missing delegated agent", "FORBIDDEN"),
+            { status: 403 }
+          );
+        }
         return NextResponse.json({
           ok: true as const,
           worldTrust,
-          result: await bookingPort.confirmCancelRelease({
+          result: await confirmWorldCancelRelease({
             previewId: parsed.data.previewId,
-            approval,
+            authorization: {
+              grantId: grant.grantId,
+              delegatedAgentAddress,
+            },
           }),
         });
+      }
     }
   } catch (e) {
+    if (e instanceof RecoveryOperationReconcileError) {
+      return NextResponse.json(
+        {
+          ok: false as const,
+          error: e.message,
+          code: "RECOVERY_RECONCILING" as const,
+          recovery: {
+            operationId: e.operationId,
+            status: "reconciling" as const,
+            phase: e.phase,
+          },
+        },
+        { status: 202 }
+      );
+    }
     if (e instanceof BookingPortError) {
       return NextResponse.json(fail(e.message, e.code), { status: e.status });
     }
