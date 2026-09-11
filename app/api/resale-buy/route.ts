@@ -4,6 +4,12 @@ import {
   enforceLockedGuestActor,
   requireGuestAppUser,
 } from "@/lib/auth/guest-api-auth";
+import {
+  RecoveryMandateAuthorityBoundaryError,
+  withRecoveryMandateAuthorityMutation,
+  type RecoveryMandateAuthorityBoundaryStore,
+} from "@/lib/ledger/recovery-mandate-authority-boundary";
+import { getRedis } from "@/lib/store/redis";
 import { fail, resaleBuyBodySchema } from "@/lib/validation/api";
 
 export const runtime = "nodejs";
@@ -25,16 +31,25 @@ export async function POST(req: Request) {
       buyer: { kind: "demoActor", id: parsed.data.actor },
       serial: parsed.data.serial,
     });
-    const result = await bookingPort.confirmBuyListing({
-      previewId: preview.previewId,
-      approval: {
-        approvedBy: parsed.data.actor,
-        approvedAt: new Date().toISOString(),
-        source: "ui_click",
-      },
+    const boundaryStore = getRedis() as unknown as RecoveryMandateAuthorityBoundaryStore;
+    const result = await withRecoveryMandateAuthorityMutation({
+      store: boundaryStore,
+      bookingSerial: parsed.data.serial,
+      mutate: () =>
+        bookingPort.confirmBuyListing({
+          previewId: preview.previewId,
+          approval: {
+            approvedBy: parsed.data.actor,
+            approvedAt: new Date().toISOString(),
+            source: "ui_click",
+          },
+        }),
     });
     return NextResponse.json({ ok: true as const, ...result });
   } catch (e) {
+    if (e instanceof RecoveryMandateAuthorityBoundaryError) {
+      return NextResponse.json(fail(e.message, "CONFLICT"), { status: 409 });
+    }
     if (e instanceof BookingPortError) {
       return NextResponse.json(fail(e.message, e.code), { status: e.status });
     }
