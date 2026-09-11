@@ -71,6 +71,13 @@ jobs:
         # launch is reachable only through 127.0.0.1. No RP signing key is used.
         run: npm run world:sandbox-boundary-check
 
+      - name: Independent SEC-WORLD-005 transport retest
+        # Security-owned reproducer of the former non-loopback attack. It uses
+        # no RP signing key and independently attacks generic dev, the exact
+        # supported Sandbox command, Host/forwarding metadata, Origin, and every
+        # non-loopback IPv4 interface visible to the runner.
+        run: node --experimental-transform-types scripts/security/world-sandbox-005-independent-retest.mjs
+
       - name: Continuity baseline must remain documented
         run: |
           grep -q 'd0b5f875afb4f2b29af29bc5972cf1edc404d473' docs/ethonline-2026/CONTINUITY_BASELINE.md
