@@ -24,7 +24,10 @@ type ProductPreviewHeaderMode =
   | "provider-today"
   | "provider-reconcile"
   | "provider-activity"
-  | "maya-activity";
+  | "maya-activity"
+  | "provider-setup"
+  | "provider-inventory"
+  | "provider-bookings";
 
 const NAV = [
   {
@@ -45,25 +48,13 @@ const NAV = [
   },
 ] as const;
 
-function NavLink({
-  href,
-  label,
-  active,
-  className,
-}: {
-  href: string;
-  label: string;
-  active: boolean;
-  className?: string;
-}) {
+function NavLink({ href, label, active, className }: { href: string; label: string; active: boolean; className?: string }) {
   return (
     <Link
       href={href}
       className={cn(
         "rounded-md px-2.5 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus focus-visible:ring-offset-2",
-        active
-          ? "font-semibold text-slate-950"
-          : "font-medium text-slate-800 hover:text-slate-950",
+        active ? "font-semibold text-slate-950" : "font-medium text-slate-800 hover:text-slate-950",
         className
       )}
       aria-current={active ? "page" : undefined}
@@ -74,18 +65,10 @@ function NavLink({
 }
 
 function showProviderInNav(pathname: string, sessionUser: SessionUser): boolean {
-  if (process.env.NEXT_PUBLIC_SHOW_PROVIDER_NAV_ON_CUSTOMER_PAGES === "true") {
-    return true;
-  }
-  if (sessionUser?.appRole === "issuer") {
-    return true;
-  }
-  if (sessionUser?.appRole === "user") {
-    return pathname.startsWith("/issuer");
-  }
-  if (pathname === "/" || pathname.startsWith("/issuer")) {
-    return true;
-  }
+  if (process.env.NEXT_PUBLIC_SHOW_PROVIDER_NAV_ON_CUSTOMER_PAGES === "true") return true;
+  if (sessionUser?.appRole === "issuer") return true;
+  if (sessionUser?.appRole === "user") return pathname.startsWith("/issuer");
+  if (pathname === "/" || pathname.startsWith("/issuer")) return true;
   return false;
 }
 
@@ -100,6 +83,9 @@ function ProductPreviewHeader({ mode }: { mode: ProductPreviewHeaderMode }) {
     "provider-reconcile": { href: "/product-preview?view=xc2-provider-reconciled", label: "Reconciliation", ariaLabel: "Provider", identity: "Studio A" },
     "provider-activity": { href: "/product-preview?view=xc2-provider-history", label: "Activity", ariaLabel: "Provider", identity: "Studio A" },
     "maya-activity": { href: "/product-preview?view=xc2-maya-history", label: "Activity", ariaLabel: "Customer", identity: "Maya Keller" },
+    "provider-setup": { href: "/product-preview?view=xc3-provider-join", label: "Setup", ariaLabel: "Provider", identity: "Studio A" },
+    "provider-inventory": { href: "/product-preview?view=xc3-provider-inventory", label: "Inventory", ariaLabel: "Provider", identity: "Studio A" },
+    "provider-bookings": { href: "/product-preview?view=xc3-provider-sale-success", label: "Bookings", ariaLabel: "Provider", identity: "Studio A" },
   };
   const nav = config[mode];
 
@@ -129,11 +115,7 @@ function ProductPreviewHeader({ mode }: { mode: ProductPreviewHeaderMode }) {
   );
 }
 
-export function SiteHeader({
-  sessionUser = null,
-}: {
-  sessionUser?: SessionUser;
-}) {
+export function SiteHeader({ sessionUser = null }: { sessionUser?: SessionUser }) {
   const pathname = usePathname() ?? "";
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -144,7 +126,11 @@ export function SiteHeader({
     const view = searchParams.get("view") ?? "";
     let mode: ProductPreviewHeaderMode = "maya";
 
-    if (view.startsWith("xc2-provider-reconcile")) mode = "provider-reconcile";
+    if (view.startsWith("xc3-provider-join") || view.startsWith("xc3-provider-profile")) mode = "provider-setup";
+    else if (view.startsWith("xc3-provider-inventory") || view.startsWith("xc3-provider-session")) mode = "provider-inventory";
+    else if (view.startsWith("xc3-provider-sale")) mode = "provider-bookings";
+    else if (view.startsWith("xc3-provider-today") || view === "xc3-provider-stale-holder") mode = "provider-today";
+    else if (view.startsWith("xc2-provider-reconcile")) mode = "provider-reconcile";
     else if (view === "xc2-provider-history") mode = "provider-activity";
     else if (view.startsWith("xc2-provider-")) mode = "provider-today";
     else if (view === "xc2-bob-history") mode = "bob-activity";
@@ -157,9 +143,7 @@ export function SiteHeader({
     return <ProductPreviewHeader mode={mode} />;
   }
 
-  const navItems = showProviderInNav(pathname, sessionUser)
-    ? NAV
-    : NAV.filter((item) => item.href !== "/issuer");
+  const navItems = showProviderInNav(pathname, sessionUser) ? NAV : NAV.filter((item) => item.href !== "/issuer");
   const compactCustomerLanding = pathname === "/" && !sessionUser;
 
   return (
@@ -175,33 +159,20 @@ export function SiteHeader({
         >
           <BrandLockup variant="calendarTurn" markClassName="h-8 w-8" />
         </Link>
-        <nav
-          className="ml-auto flex min-w-0 flex-nowrap items-center justify-end gap-x-1 sm:flex-wrap sm:gap-x-2 sm:gap-y-1.5"
-          aria-label="Main"
-        >
+        <nav className="ml-auto flex min-w-0 flex-nowrap items-center justify-end gap-x-1 sm:flex-wrap sm:gap-x-2 sm:gap-y-1.5" aria-label="Main">
           {sessionUser ? (
             <span
               className="hidden max-w-[14rem] min-w-0 items-center gap-x-1.5 rounded-full border border-slate-300/80 bg-slate-100/90 px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm ring-1 ring-slate-900/[0.04] sm:inline-flex md:max-w-[18rem]"
               title={sessionUser.email}
             >
               <span className="shrink-0 font-normal text-slate-500">Signed in</span>
-              <span className="shrink-0 text-slate-300" aria-hidden>
-                ·
-              </span>
+              <span className="shrink-0 text-slate-300" aria-hidden>·</span>
               <span className="min-w-0 truncate text-slate-800">{sessionUser.email}</span>
             </span>
           ) : null}
-          <div
-            className={cn(
-              "flex flex-nowrap items-center gap-x-1 sm:flex-wrap sm:gap-x-2",
-              sessionUser && "border-l border-slate-200/90 pl-2 sm:ml-0.5 sm:pl-3"
-            )}
-          >
+          <div className={cn("flex flex-nowrap items-center gap-x-1 sm:flex-wrap sm:gap-x-2", sessionUser && "border-l border-slate-200/90 pl-2 sm:ml-0.5 sm:pl-3")}>
             {navItems.map((item) => {
-              const href =
-                pathname === "/" && item.href === "/my-bookings"
-                  ? "/product-preview"
-                  : item.href;
+              const href = pathname === "/" && item.href === "/my-bookings" ? "/product-preview" : item.href;
               const landingVisibility = compactCustomerLanding
                 ? item.href === "/slots"
                   ? "hidden sm:inline-flex"
@@ -210,15 +181,7 @@ export function SiteHeader({
                     : undefined
                 : undefined;
 
-              return (
-                <NavLink
-                  key={item.href}
-                  href={href}
-                  label={item.label}
-                  active={item.match(pathname)}
-                  className={landingVisibility}
-                />
-              );
+              return <NavLink key={item.href} href={href} label={item.label} active={item.match(pathname)} className={landingVisibility} />;
             })}
           </div>
           {sessionUser ? (
@@ -242,12 +205,7 @@ export function SiteHeader({
           ) : (
             <>
               <NavLink href="/login" label="Sign in" active={pathname.startsWith("/login")} />
-              <NavLink
-                href="/register"
-                label="Register"
-                active={pathname.startsWith("/register")}
-                className={compactCustomerLanding ? "hidden sm:inline-flex" : undefined}
-              />
+              <NavLink href="/register" label="Register" active={pathname.startsWith("/register")} className={compactCustomerLanding ? "hidden sm:inline-flex" : undefined} />
             </>
           )}
         </nav>
