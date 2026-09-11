@@ -10,6 +10,7 @@ on:
       - components/home/**
       - scripts/product-workbench-visual-check.mjs
       - scripts/product-workbench-xc01-visual-check.mjs
+      - scripts/product-workbench-xc02-visual-check.mjs
       - .github/workflows/product-workbench-visual.yml
   workflow_dispatch:
 
@@ -53,12 +54,13 @@ jobs:
           cat /tmp/yourturn-product-preview.log
           exit 1
 
-      - name: Run rendered Golden and XC-01 journey checks
+      - name: Run rendered Golden, XC-01 and XC-02 journey checks
         env:
           PRODUCT_WORKBENCH_BASE_URL: http://127.0.0.1:3000
         run: |
           node scripts/product-workbench-visual-check.mjs
           node scripts/product-workbench-xc01-visual-check.mjs
+          node scripts/product-workbench-xc02-visual-check.mjs
 
       - name: Upload desktop and mobile evidence
         if: always()
