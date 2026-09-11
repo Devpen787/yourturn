@@ -1,0 +1,36 @@
+name: ETHOnline Hedera USDC Recovery Existing Transaction Verification
+
+on:
+  push:
+    branches:
+      - 'feature/ethonline-hedera'
+    paths:
+      - '.github/workflows/ethonline-hedera-usdc-recovery-existing-proof.yml'
+      - 'scripts/hedera-usdc-recovery-existing-proof.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-existing-usdc-recovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      HEDERA_USDC_EXISTING_PROOF_OUT: hedera-usdc-recovery-existing-proof.json
+
+    steps:
+      - name: Checkout exact Hedera head
+        uses: actions/checkout@v4
+
+      - name: Verify existing canonical recovery through public Mirror state
+        run: node scripts/hedera-usdc-recovery-existing-proof.mjs
+
+      - name: Upload public verification artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hedera-usdc-recovery-existing-proof-${{ github.run_id }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: hedera-usdc-recovery-existing-proof.json
