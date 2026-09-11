@@ -20,8 +20,12 @@ async function guard(page, label, identity) {
   if (/0x[0-9a-fA-F]{40}/.test(body) || /\b0\.0\.\d+\b/.test(body)) throw new Error("Raw protocol identifier leaked into XC-03");
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   if (overflow > 1) throw new Error(`XC-03 horizontal overflow: ${overflow}px`);
-  const header = (await page.locator("header").innerText()).replace(/\s+/g, " ");
-  if (!header.includes(label) || !header.includes(identity)) throw new Error(`XC-03 header mismatch; expected ${label}/${identity}: ${header}`);
+  const header = page.locator("header");
+  const visibleHeader = (await header.innerText()).replace(/\s+/g, " ");
+  const semanticHeader = ((await header.textContent()) ?? "").replace(/\s+/g, " ");
+  if (!visibleHeader.includes(label) || !semanticHeader.includes(identity)) {
+    throw new Error(`XC-03 header mismatch; expected visible ${label} and semantic ${identity}: visible=${visibleHeader}; full=${semanticHeader}`);
+  }
 }
 
 async function snap(page, prefix, name, label, identity) {
