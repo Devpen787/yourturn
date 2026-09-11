@@ -3,48 +3,53 @@
 ## Current objective — #44 UX integrity completion
 
 Branch: `ux/yourturn-product-workbench`. Candidate route: `/product-preview`.
-Read `completion-contract.md`, build issue #44, latest independent Product Reviewer #34, and exact branch CI before acting.
+Read `completion-contract.md`, build issue #44, latest independent Product Reviewer #34, and exact branch CI before acting. Do not return to old architecture-only, XC-01 header or receipt-copy tasks.
 
-The architecture-only and narrow XC-01/receipt-copy handoffs are superseded as active work. No new journey family is needed. The current goal is state-safe navigation, four missing bridges/actions, functional requested provider/customer scope, and cross-journey proof.
+## Latest executable increment — R1a holder repair
 
-## Current increment
+Exact executable: **`8632b81a10f4501db7914b653da493966b04e250`**.
 
-**R0 regression suite and milestone routing. No product-runtime fix is claimed.**
+Devinson explicitly approved proceeding after the R0 evidence: **“I approve - please keep going.”** The permission is for the bounded engineering successor, not an independent reviewer verdict, Golden freeze, extension of the earlier temporary freeze delegation, or sponsor/release authority. #34 has not been impersonated or bypassed for final adoption.
 
-The new `scripts/product-workbench-integrity-check.mjs` operates header returns, reload, Back/Forward, mobile visible actor identity, and the four reported missing continuations. It asserts desired behaviour, preserves RED failures and produces paired exact-head PNGs + machine-readable results. A positive in-body return control distinguishes the known functioning path from its broken header equivalent. Setup/tool errors are not counted as reproduced defects.
+Implemented:
+- holder-only versioned fixture facts are stored independently of URL location;
+- Maya's completed recovery survives header/body return, reload, Back and Forward;
+- active and pending recovery remain visible in bookings/detail, with an explicit resume path;
+- initial/replacement approval, rejection and cancellation retain their existing authority semantics; duplicate fixture completion is idempotent;
+- a forged/stale holder success or approval URL cannot create facts;
+- unavailable/corrupt/failed browser storage fails closed instead of restoring a fictitious owned booking;
+- preview actor names are visible on mobile; preview navigation targets are at least 44px.
 
-The Visual workflow retains the original four segment suites and adds this integrity gate. Read the current run's `integrity/results.json` inside `product-workbench-rendered-evidence`; execution results are recorded in #44 rather than repeated docs commits. R0 is not whole-product acceptance.
+Implementation and scope details: `r1a-holder-repair.md`. The holder adapter is **not** a live authority source, complete multi-actor scenario, or cross-tab race solution. Bob/provider fixture clients are still unchanged and are not yet projections of this store. Extend the coherent model in subsequent R1 work; do not introduce another independent actor-specific success store.
 
-Product-runtime baseline: `4468de0d0a72c7ac14513122c4d16657490f1645`.
-Historical segment proof: Continuity `34551695637`, Visual `34551693262`, artifact `10181148190` (142 PNG checkpoints). This narrower green proof is not invalidated, but it never demonstrated the newly tested cross-journey/return behaviours.
+## Exact verification
 
-## Next actions and owners
+- Continuity `34611662531`: **SUCCESS**, including production build.
+- Visual `34611656533`: **FAILURE only at the retained R0 integrity step**.
+- Production build/start, all four existing segment suites, 19 holder model tests and all **12 R1a browser executions**: **PASS**.
+- Unchanged R0 suite: **16 PASS / 16 FAIL**, improved from **5 PASS / 27 FAIL**. These are viewport executions, not counts of unique defects. No setup/runtime/evidence errors or console errors in the two new browser reports.
+- Artifact `product-workbench-rendered-evidence` / **`10267984840`**, bound to exact `8632b81...`.
+- Verified ZIP SHA256: `18fdc26b0a4ec0a3e6825d145e3dcab9f83f0327058a315e5171b2cc9a78f139`.
+- 218 PNGs: 142 segment checkpoints, 64 R0 before/after images, 12 R1a images; exact-head JSON under `integrity/` and `holder-navigation/`.
+- Builder inspected actual selected desktop/mobile recovered, active, pending-resumed, error and entry images. This is not independent #34 clearance of the whole artifact.
 
-1. UX Workbench: obtain the exact R0 CI result; repair harness/setup problems if any. Preserve all product files during this baseline.
-2. Independent #34: inspect failure pairs and current source; explicitly dispose the concrete Golden-impacting continuity defects and R1 successor/navigation, shell and fulfilment semantics.
-3. UX Workbench: implement the approved R1 state foundation first; then B1–B4, R3 requested scope, and R4 connected scenario. Do not patch four links on top of resettable ownership.
-4. #34: actual PNG + interaction review of the exact resulting candidate; only GOLDEN-READY after all material acceptance is satisfied.
-5. Devinson: valid exact-candidate approval before freeze. The earlier temporary standing approval window is not silently renewed by this routing change.
+The 11 newly passing R0 executions are Maya recovered-header, active-header, recovery reload, authorization Back/Forward at both widths, plus three visible mobile identities. Remaining 16 failures are Bob payment reload/history, Bob check-in header return, provider fulfilment header return, and B1–B4 at both widths. No expected-failure waiver or `continue-on-error` was added.
 
-The latest user request authorizes getting this bounded repair programme implemented and evidenced; it is not a freeze/deploy/sponsor authorization.
+## Next concrete work
 
-## Historical Golden records — preserved, not whole-product clearance
+1. Finish R1 by making Bob payment/ownership/check-in and provider attendance/fulfilment persistent independent of locations, with correct history and resume. Derive role-specific screens from one coherent fixture lifecycle; the holder repair alone is not a shared-booking proof.
+2. Consume any concrete #34 findings on R1a, preserving the passing holder tests and original authority assertions. Do not reimplement the old fixed Maya blocker or widen into a new journey family.
+3. Then B1–B4, R3 functional requested scope and R4 single-seed cross-actor evidence, as specified in `completion-contract.md`.
+4. R5 still requires all material gates passing, independent exact-head PNG/interaction review and valid human approval before freeze. No new Golden record has been created.
 
-- YT-01→04: `24bbf0d7516499069f5102ae4bf724b0cb376b94`, `golden/yt-01-04.md`.
-- YT-05→08: `d5309a96d532ee107011c2a5cefc3000b9e4932f`, `golden/yt-05-08.md`.
-- XC-01: `046ad8d3cad863813dca7a3fc9cb09abaf5939e0`, `golden/xc-01.md`.
-- XC-02 / XC-03: implemented fixture segments, not frozen at the baseline. The one-line receipt repair did not close the whole-product defects in #44.
+## Historical Golden records
 
-Do not edit historical Golden records to conceal defects. Any necessary runtime correction must be a reviewed successor preserving the approved visual language, mandate limits, replacement semantics and evidence boundary.
+YT-01→04 `24bbf0d7516499069f5102ae4bf724b0cb376b94`; YT-05→08 `d5309a96d532ee107011c2a5cefc3000b9e4932f`; XC-01 `046ad8d3cad863813dca7a3fc9cb09abaf5939e0`. Their files under `golden/` are unchanged. The R1a executable is an explicitly bounded successor candidate, not a silent historical rewrite. XC-02/XC-03 remain fixture segments, not a frozen connected product.
 
-## Binding rules
+## Binding and execution boundaries
 
-Use `DESIGN.md`, `GLOSSARY.md`, `CRAFT.md`, `invariants.md`, `review-checklist.md`, `stakeholder-journeys.md`, `stakeholder-coverage-gate.md` and `integration-ledger.md`.
+Preserve YourTurn visual language, `/product-preview`, Friday Yoga scope, 40-USDC minimum / 32 blocked / 45 recovered, frozen expiry/no-cancel terms, replacement reject/cancel preserving existing authority, and `provider rules ∩ holder mandate ∩ acquirer eligibility/payment`. Provider policy is pre-defined/load-bearing, without per-recovery staff approval.
 
-Keep `provider rules ∩ holder mandate ∩ acquirer eligibility/payment`. Provider rules are pre-defined/load-bearing; staff do not approve each compliant recovery. Ledger authorizes the off-chain mandate, World verifies the exact requester, Hedera enforces/settles; no sponsor/backend semantics change in this lane. Fixture UI state never becomes live authority. Preserve 40-USDC minimum / 32 blocked / 45 recovered, no cancellation and replacement reject/cancel retaining current authority.
+Use `DESIGN.md`, `GLOSSARY.md`, `CRAFT.md`, `invariants.md`, `review-checklist.md`, stakeholder docs and `integration-ledger.md`. Attendance, service fulfilment and recovery settlement are separate facts. Browser fixture state is never live authorization. Sponsor/security readiness stays independently owned by #5/#7/#8/#16.
 
-Sponsor/security state is independently owned by #5/#7/#8/#16; do not copy stale sponsor heads here. This work does not lift a device/dependency/security hold.
-
-## Execution boundary
-
-GitHub CI is available for the test run. Local git clone failed DNS. No local full-app run or active unattended schedule is claimed. A role contract or issue assignment is not proof that a worker started. Evidence, not status prose, closes milestones.
+GitHub Actions is the verified full-app browser/build environment. Local model/type/syntax tests also ran; local full-app clone remains unavailable due DNS. No unattended schedule, background worker acknowledgment, deployment, spending, secret action, sponsor/backend semantic change or self-certified Golden is claimed.

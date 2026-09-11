@@ -5,16 +5,18 @@ Branch: `ux/yourturn-product-workbench`. Single candidate route: `/product-previ
 
 ## Authority and scope
 
-Devinson asked to put the work on track to meet the completion milestones and prove it finished after the whole-product audit. This authorizes the bounded repair/evidence programme, not a Golden freeze, deployment, sponsor transaction, or extension of the earlier time-limited delegated approval.
+Devinson asked to put the work on track to meet the completion milestones and prove it finished after the whole-product audit. After the R0 baseline was actually executed, he explicitly said **“I approve - please keep going.”** This supplies permission to build the bounded engineering successor, including R1a holder navigation, rather than remaining in the initial R0-only wait. It does **not** supply a Product Reviewer verdict, Golden freeze, deployment, sponsor transaction, or extension of the earlier time-limited delegated freeze approval.
 
-The first increment is **R0 executable regression evidence**, with no product-runtime change. Historical Golden records remain immutable. #34 must explicitly dispose the concrete Golden-impacting defects and the successor contract before the worker changes those behaviours. A broad redesign, new journey family, or second prototype is not an acceptable repair.
+Historical Golden records remain immutable. The changed runtime is a successor candidate, not approved replacement Golden truth. #34 independently evaluates the concrete defects, successor implementation and remaining product decisions; the builder must not invent that disposition or grant whole-product clearance. A broad redesign, new journey family, or second prototype is not an acceptable repair.
 
 Evidence basis:
 - user-supplied *YourTurn Experience Integrity Report*, audited `252ba96e135dffabc80c499076f03c5e76cc10b7`, pp. 5–9, 11–15;
 - subsequent source/test comparison at `4468de0d0a72c7ac14513122c4d16657490f1645` in #44;
-- old segment proof: Continuity `34551695637`, Visual `34551693262`, artifact `10181148190` (142 PNG checkpoints).
+- original segment proof: Continuity `34551695637`, Visual `34551693262`, artifact `10181148190` (142 PNG checkpoints);
+- executed R0 baseline at `ea465f80c52762e51a582594cb82d71be74afea3`: 5 PASS / 27 FAIL;
+- R1a exact repair and evidence in `r1a-holder-repair.md`, `handoff.md` and #44. R1 remains partially complete, not closed.
 
-Those green segment checks are real but do not establish whole-product integrity. Reported audit defects are not newly reproduced until their R0 test reaches its stated precondition and then fails the product assertion. SETUP_ERROR, RUNTIME_ERROR and EVIDENCE_ERROR are separate failures, not defect confirmations.
+Green segment checks are real but do not establish whole-product integrity. A reproduced product failure requires the test to reach its stated precondition and then fail the product assertion. SETUP_ERROR, RUNTIME_ERROR and EVIDENCE_ERROR are separate failures, not defect confirmations.
 
 ## Finish line
 
@@ -27,13 +29,13 @@ One booking, one lifecycle, coherent actor-specific projections. All primary act
 | ID | Owner / dependency | Required deliverable | Closure evidence |
 | --- | --- | --- | --- |
 | R0 | UX Workbench; first | Executable baseline for navigation, visible identity, four bridge/action gaps; positive control | Exact-head production build, all existing segment suites, paired Chromium before/after PNGs and `integrity/results.json`; distinguish reproduced FAIL from setup/tool failures |
-| R1 | UX Workbench; R0 + #34 successor disposition | One state-safe navigation contract, independent fixture lifecycle state, pending/resume semantics, visible mobile identity | R0 navigation failures turn PASS on unchanged acceptance; model + browser tests cover header/body/reload/Back/Forward, no stale-success URL can create ownership or authority |
+| R1 | UX Workbench; R0 + explicit human proceeding approval; independent #34 review before adoption | One state-safe navigation contract, independent fixture lifecycle state, pending/resume semantics, visible mobile identity | R0 navigation failures turn PASS on unchanged acceptance; model + browser tests cover header/body/reload/Back/Forward, no stale-success URL can create ownership or authority |
 | R2 | UX Workbench; R1 | Four complete bridges/actions B1–B4 | Actual user controls traverse each bridge; check-in window enforced; fulfilment action has pending/result/error; terminal states have truthful exits |
 | R3 | UX Workbench; R1, reuse prior product work | Requested provider/customer scope made functional | Editable provider/session/rule inputs, validation and preserved drafts; Bob bookings list; coherent entry/Browse; initial-holder prerequisite explicitly accepted or implemented, not silently omitted |
 | R4 | UX Workbench; R1–R3 | One-seed connected scenario and adversarial cross-journey tests | Same booking/event across Maya/Bob/Studio A; no destination reseeding; interrupted/retried operations, duplicate action, partial/unknown, changed-holder/policy and return paths exercised at both canonical widths |
 | R5 | Independent #34, then Devinson; R4 | Exact candidate review and freeze packet | Build + segment + integrity + connected tests PASS; actual PNG review under all five lenses; every audit finding disposed with evidence; exact GOLDEN-READY and valid exact-candidate approval |
 
-No milestone closes from a checkbox, screenshot count, commit count, or a green test of a narrower scope. R0 completion means **defects reproducibly measured**, not fixed. R1–R5 remain open until their evidence exists.
+No milestone closes from a checkbox, screenshot count, commit count, or a green test of a narrower scope. R0 completion means **defects reproducibly measured**, not fixed. A holder-only R1a pass does not close R1 or prove cross-actor integrity. R1–R5 remain open until their evidence exists.
 
 ## Required decisions at #34 — not excuses for redesign
 
@@ -65,17 +67,19 @@ No milestone closes from a checkbox, screenshot count, commit count, or a green 
 
 `scripts/product-workbench-integrity-check.mjs` is the initial R0 suite. It includes a known-good in-body return control and captures isolated before/after regressions at 1440x1000 and 390x844. Direct entry used for fixture preconditions is labelled in every result. No full cross-actor continuity is claimed by those isolated tests.
 
-The Visual workflow runs legacy segment checks unchanged, then the integrity step even if a segment test failed after successful server startup. There is **no continue-on-error** and no expected-failure waiver. Any FAIL/setup/runtime/evidence error produces a nonzero gate; paired screenshots, exact SHA, source digests and JSON are uploaded under `product-workbench-rendered-evidence` even on failure.
+The Visual workflow retains all existing segment assertions and the unchanged R0 assertions. In R1a, the two direct rejection-state captures have explicit isolated test-fixture preconditions; a URL no longer creates those authority facts. The clicked holder journey is not reseeded by these separately labelled captures. Addressable navigation waits for the same visible assertions rather than assuming synchronous React state updates.
+
+The integrity step runs even if a segment test failed after successful server startup. There is **no continue-on-error** and no expected-failure waiver. Any FAIL/setup/runtime/evidence error produces a nonzero gate; paired screenshots, exact SHA, source digests and JSON are uploaded under `product-workbench-rendered-evidence` even on failure. R1a adds its own pure model and browser navigation/storage-error suites, without treating them as whole-product clearance.
 
 R4 must add actual shared-state acceptance rather than declaring the R0 suite sufficient. Seed/reset once, then operate actor-specific entry and controls. Do not type success URLs, reseed destinations, or use a customer-visible actor switch to simulate cross-party integrity. Record same booking/event identity in reviewer-safe evidence. Never record raw human IDs, secrets, signed headers or sponsor credentials.
 
-Browser test environment: GitHub Actions production build on loopback with existing Playwright. Browser plugin is not available in this session; local clone also fails DNS. CI is the execution environment, not a claim of an independent local run. The R0 browser blocks external traffic and non-read HTTP requests; it exercises fixture UI only.
+Browser test environment: GitHub Actions production build on loopback with existing Playwright. Browser plugin is not available in this session; local clone also fails DNS. CI is the execution environment, not a claim of an independent local run. R0 and R1a browser checks block external traffic and non-read HTTP requests; they exercise fixture UI only.
 
 ## Worker routing
 
-Builder reads #44, this contract, latest #34 disposition, branch head and exact CI. Fix a harness/setup failure before interpreting a product failure. After R0, begin the approved R1 successor, not old receipt-copy or old XC-01 header work. Only update #44/PR #33 when code/evidence/blocker truth changes.
+Builder reads #44, this contract, latest #34 findings, branch head and exact CI. Fix a harness/setup failure before interpreting a product failure. Continue the explicitly authorized R1 successor and preserve verified improvements; do not repeat old receipt-copy, old XC-01 header or already-fixed R0 holder work. Only update #44/PR #33 when code/evidence/blocker truth changes.
 
-Reviewer consumes R0 reproducers plus source and paired PNGs, resolves the four decisions above, then reviews the bounded successor. Do not grant whole-product clearance from historical segment passes.
+Reviewer consumes R0 reproducers plus the changed source and actual PNGs, resolves the four decisions above, then independently reviews the bounded successor. Do not grant whole-product clearance from historical segment passes or the partial R1a pass.
 
 Supervisor keeps #31/#34/PR #33 and workbench entry docs pointed at #44. Integrator must not adopt known-defective continuity as production precedent. These are repo role contracts; they do not prove any scheduler is active or a worker has acknowledged the task.
 
