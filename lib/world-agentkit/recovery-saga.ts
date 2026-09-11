@@ -6,6 +6,7 @@ import {
 import {
   accountsEqual,
   getActorCredentials,
+  getFeeCollectorAccountId,
   tryResolveGuestActor,
 } from "@/lib/hedera/client";
 import { getHashscanTxUrl } from "@/lib/hedera/hashscan";
@@ -130,12 +131,21 @@ type MirrorNftTransfer = {
   receiver_account_id?: string;
 };
 
+type MirrorAssessedCustomFee = {
+  amount?: number | string;
+  collector_account_id?: string;
+  effective_payer_account_ids?: string[];
+  token_id?: string | null;
+};
+
 type MirrorTransaction = {
   transaction_id?: string;
   nonce?: number;
   result?: string;
   transfers?: MirrorHbarTransfer[];
   nft_transfers?: MirrorNftTransfer[];
+  token_transfers?: unknown[];
+  assessed_custom_fees?: MirrorAssessedCustomFee[];
 };
 
 type CancelTransferVerification =
@@ -254,12 +264,37 @@ function sumHbarTransfers(
   return found ? total : null;
 }
 
+function assessedRoyaltyAmount(input: {
+  fees: MirrorAssessedCustomFee[] | undefined;
+  holderAccountId: string;
+  feeCollectorAccountId: string;
+}): bigint | null {
+  if (!Array.isArray(input.fees) || input.fees.length !== 1) return null;
+  const [fee] = input.fees;
+  if (!fee || fee.token_id != null || !fee.collector_account_id) return null;
+  if (!accountsEqual(fee.collector_account_id, input.feeCollectorAccountId)) {
+    return null;
+  }
+  const payers = fee.effective_payer_account_ids;
+  if (
+    !Array.isArray(payers) ||
+    payers.length !== 1 ||
+    !accountsEqual(payers[0], input.holderAccountId)
+  ) {
+    return null;
+  }
+  const amount = mirrorAmount(fee.amount);
+  if (amount === null || amount <= 0n) return null;
+  return amount;
+}
+
 async function verifyCancelTransferTransaction(input: {
   transactionId: string;
   tokenId: string;
   serial: number;
   holderAccountId: string;
   treasuryAccountId: string;
+  feeCollectorAccountId: string;
   refundHbar: number;
 }): Promise<CancelTransferVerification> {
   const response = (await getTransactionById(input.transactionId)) as
@@ -296,6 +331,11 @@ async function verifyCancelTransferTransaction(input: {
     transaction.transfers,
     input.treasuryAccountId
   );
+  const royaltyAmount = assessedRoyaltyAmount({
+    fees: transaction.assessed_custom_fees,
+    holderAccountId: input.holderAccountId,
+    feeCollectorAccountId: input.feeCollectorAccountId,
+  });
   const matchingNftTransfers = (transaction.nft_transfers ?? []).filter(
     (transfer) =>
       transfer.token_id === input.tokenId &&
@@ -306,25 +346,50 @@ async function verifyCancelTransferTransaction(input: {
       accountsEqual(transfer.receiver_account_id, input.treasuryAccountId)
   );
 
-  if (holderNet !== expectedRefund) {
+  if (royaltyAmount === null || royaltyAmount >= expectedRefund) {
     return {
       status: "mismatch",
-      reason: "Exact recovery transaction does not prove the holder refund credit",
+      reason: "Exact recovery transaction does not prove the expected HBAR royalty assessment",
     };
   }
-  // The treasury may also be the transaction payer, so its Mirror net can
-  // include network fees in addition to the refund. It must debit at least the
-  // authorized refund amount; a fee-only treasury debit is not sufficient.
-  if (treasuryNet === null || treasuryNet > -expectedRefund) {
+  if ((transaction.token_transfers?.length ?? 0) !== 0) {
     return {
       status: "mismatch",
-      reason: "Exact recovery transaction does not prove the treasury refund debit",
+      reason: "Exact recovery transaction contains unexpected fungible-token transfers",
     };
   }
-  if (matchingNftTransfers.length !== 1) {
+  if ((transaction.nft_transfers?.length ?? 0) !== 1 || matchingNftTransfers.length !== 1) {
     return {
       status: "mismatch",
-      reason: "Exact recovery transaction does not prove the authorized NFT transfer",
+      reason: "Exact recovery transaction does not prove the sole authorized NFT transfer",
+    };
+  }
+  // Mirror balance rows are NET after assessed custom fees. For BOOKED's
+  // royalty transaction, reconstruct the authorized gross refund by adding the
+  // assessed HBAR royalty paid by the holder back to the holder's net credit.
+  if (holderNet === null || holderNet + royaltyAmount !== expectedRefund) {
+    return {
+      status: "mismatch",
+      reason: "Exact recovery transaction does not prove the authorized gross holder refund",
+    };
+  }
+  // If the fee collector is also treasury (the current BOOKED configuration),
+  // treasury's Mirror net contains the royalty credit. Remove that credit before
+  // proving treasury funded the full gross refund. Any network fee paid by
+  // treasury only makes the adjusted debit more negative, which remains valid.
+  const treasuryRoyaltyCredit = accountsEqual(
+    input.feeCollectorAccountId,
+    input.treasuryAccountId
+  )
+    ? royaltyAmount
+    : 0n;
+  if (
+    treasuryNet === null ||
+    treasuryNet - treasuryRoyaltyCredit > -expectedRefund
+  ) {
+    return {
+      status: "mismatch",
+      reason: "Exact recovery transaction does not prove the authorized gross treasury refund debit",
     };
   }
 
@@ -794,6 +859,7 @@ export async function confirmWorldCancelRelease(input: {
           serial: preview.input.serial,
           holderAccountId,
           treasuryAccountId: stored.treasuryAccountId,
+          feeCollectorAccountId: getFeeCollectorAccountId().toString(),
           refundHbar: slot.primaryPriceHbar,
         });
       } catch (error) {
