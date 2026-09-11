@@ -30,7 +30,7 @@ All three sponsor branches modify `package.json` relative to foundation:
 - World adds AgentKit/AgentBook/signed-route/Sandbox scripts and dependencies.
 - Ledger adds Recovery Mandate/device scripts.
 
-**Plan:** assemble script/dependency deltas deliberately. Never resolve by taking one branch's complete `package.json` over another. Re-run `npm ci --legacy-peer-deps`, production build and exact sponsor checks after composition.
+**Plan:** assemble script/dependency deltas deliberately. Never resolve by taking one branch's complete `package.json` over another. Re-run `npm ci --legacy-peer-deps`, production build and exact sponsor checks after composition. Dependency/security disposition is now itself a gating concern for the Ledger device runtime; green lifecycle CI cannot be treated as blanket runtime-dependency clearance.
 
 ### `package-lock.json`
 World modifies the lockfile; other sponsor branches may depend on the existing locked Hedera/Hiero stack.
@@ -66,17 +66,17 @@ Current branch `feature/ethonline-ledger@7ac9e8ea3ba8a51ff3ec889774fd8f8724677b4
 
 SEC-LEDGER-006 is independently **CLOSED at CI/CONFIGURED** on the Security-accepted owner `a1126a0e7d2e5bb679914b0409209799520f8646` by attacker `feature/ethonline-security-ledger-006-retest@7e03f28ad0182ff1aec112a8a05ddd5a2bfcf914`, run `34555366707`, job `103126811462` — SUCCESS. The guarded active-authority loader compares the captured stable even authority-state version with current authoritative state, revalidates current holder/status/provider-policy/listing predicates, rechecks the version after live validation, rejects odd/in-flight or missing-context state, and preserves one-shot replay. A raw `mandate-active:*` record is never sufficient authority.
 
-The current branch additionally pins the physical qualification ceremony in `docs/ethonline-2026/ledger/DEVICE_QUALIFICATION_RUNBOOK.md`: the same server-prepared Recovery Mandate is taken through device reject → host cancel → device approve, reviewer-safe evidence collection, then downstream wrong-signature/single-activation/replay checks. This is **CI GREEN / READY FOR HUMAN DEVICE SESSION**, not `LIVE/DEVICE` evidence, and it performs no recovery execution or fund movement. Physical identical-mandate DMK approve + reject/cancel remains RED until captured. Final integrated code must preserve `loadActiveRecoveryMandate()` or an equivalent atomic guarded boundary.
+The current branch also pins the physical qualification ceremony in `docs/ethonline-2026/ledger/DEVICE_QUALIFICATION_RUNBOOK.md`: the same server-prepared Recovery Mandate is intended to pass through device reject → host cancel → device approve, reviewer-safe evidence collection, then downstream wrong-signature/single-activation/replay checks. The contract is **CI GREEN**, but the physical session is **not currently human-ready**: Security #16 comment `5634713735` placed a precautionary dependency signing/app-start hold after local audit data surfaced unresolved high/critical advisory entries. A local public-address verification succeeded but created no mandate signature, activation, or DEVICE provenance. The isolated helper reported 7 audit entries (6 moderate, 1 high); the root install reported 32 entries including 2 critical, with exact root advisory/reachability disposition pending. This separate hold does not reopen SEC-LEDGER-005/006 and does not prove compromise. Do not load ceremony credentials, start the ceremony app, sign/activate a mandate, or run the physical ceremony until bounded dependency triage/remediation and independent Security acceptance explicitly reopen an exact runtime graph. Physical identical-mandate DMK approve + reject/cancel remains RED. Final integrated code must preserve `loadActiveRecoveryMandate()` or an equivalent atomic guarded boundary.
 
 ### World
 AgentBook production registration/resolution is **LIVE/AGENTBOOK**. SEC-WORLD-004 is independently closed for the current signed-request gate. Base World head `8aff17268adbad8e52b4b077c85bbe50034d6c13`, Continuity `34554016785` SUCCESS, provides the non-secret signed-route preflight. The registered-agent recovery route remains **CI/READY, NOT LIVE/SIGNED-ROUTE**.
 
 World ID Sandbox is **GREEN real non-production SANDBOX evidence** on `feature/ethonline-world-sandbox-proof@65383c83626a7121a6f47a3c88ac69b1304b363f`, exact-head Continuity `34549541999` SUCCESS; SEC-WORLD-005 remains closed. The real iOS Proof of Human round trip returned to YourTurn and World v4 backend verification succeeded.
 
-PR #43 browser-Origin cleanup at `ccb07e45888a3c15ee691a5db7465029d76f4c7f`, owner Continuity `34553728277` SUCCESS, has now passed bounded independent Security regression. Attacker `feature/ethonline-security-world-origin-regression@6e7523a4597ff3e0434758e9412c399ce8a819be`; Continuity `34558923596`, job `103137419536` — SUCCESS/CLEAN. Intended `localhost`/`127.0.0.1` aliases work only on matching scheme/effective port, while wrong scheme/port/non-loopback/suffix-confusion/`Origin:null`, generic-dev/production activation and non-loopback TCP fail closed. The completed Sandbox proof remains valid and does not need to be repeated.
+PR #43 browser-Origin cleanup at `ccb07e45888a3c15ee691a5db7465029d76f4c7f`, owner Continuity `34553728277` SUCCESS, has passed bounded independent Security regression. Attacker `feature/ethonline-security-world-origin-regression@6e7523a4597ff3e0434758e9412c399ce8a819be`; Continuity `34558923596`, job `103137419536` — SUCCESS/CLEAN. Intended `localhost`/`127.0.0.1` aliases work only on matching scheme/effective port, while wrong scheme/port/non-loopback/suffix-confusion/`Origin:null`, generic-dev/production activation and non-loopback TCP fail closed. The completed Sandbox proof remains valid and does not need to be repeated.
 
 ### Hedera
-H0/H1 retain their independently accepted LIVE/TESTNET evidence. H2/new NFT+USDC recovery at `40890aab7729075edbf5efac5f5367f4b5a022e1` is **CI/LOCAL + Security**, while canonical 45-USDC LIVE/TESTNET evidence remains RED pending +25.02 testnet USDC to `0.0.8504405`, execution and independent exact-artifact review. No `atomic` claim until one verified transaction proves both movements.
+H0/H1 retain their independently accepted LIVE/TESTNET evidence. H2/new NFT+USDC recovery at `40890aab7729075edbf5efac5f5367f4b5a022e1` is **CI/LOCAL + Security**, while canonical 45-USDC LIVE/TESTNET evidence remains RED. The last verified public balance was 19.98 testnet USDC, historically implying a 25.02 shortfall, but a later top-up has been reported. A fresh public balance/role check is now required; do not repeat the historical shortfall as current or treat the top-up report as proof. After prerequisites are verified, execute the canonical 45-USDC workflow and obtain independent exact-artifact review. No `atomic` claim until one verified transaction proves both movements.
 
 ## Golden UX integration forecast
 
@@ -87,9 +87,9 @@ Use `docs/product-workbench/integration-ledger.md` as the line-by-line fixture�
 ## Intended integration dependency order
 
 1. **Hold current integration** until a coherent sponsor slice is qualified; no wholesale branch merge.
-2. **Ledger authority consumption:** software/security lifecycle is closed at CI/CONFIGURED and the exact physical ceremony is human-ready. Capture the real identical-mandate DMK approve + reject/cancel evidence; when integration is authorized, preserve the guarded current-authority loader rather than raw active-state reads.
+2. **Ledger authority consumption:** software/security lifecycle is closed at CI/CONFIGURED, but first resolve the separate dependency-security hold and obtain independent Security acceptance of the exact runtime graph. Only then capture real identical-mandate DMK approve + reject/cancel evidence; when integration is authorized, preserve the guarded current-authority loader rather than raw active-state reads.
 3. **World signed requester path:** the Sandbox guard regression is closed. Execute the real registered-agent signed route, then bind expected agent/booking/action scope to the canonical current Ledger mandate projection. Sandbox proof is already complete and remains a separate evidence class.
-4. **Hedera H2/USDC:** after external testnet liquidity exists, execute the canonical 45-USDC LIVE/TESTNET proof and independently review the exact artifact before importing that surface.
+4. **Hedera H2/USDC:** freshly verify the reported top-up through public testnet balance/role evidence; if prerequisites are sufficient, execute the canonical 45-USDC LIVE/TESTNET proof and independently review the exact artifact before importing that surface.
 5. **Golden YT-05→YT-08 + XC-01 behavior:** wire fixture transitions to qualified runtime states using the acceptance ledger.
 6. Run one integrated adversarial E2E before any submission lock.
 
@@ -114,6 +114,7 @@ Stop integration and route the mismatch before proceeding if any of these occurs
 - World needs a second independent holder authorization source;
 - Ledger authority can activate against stale/unversioned booking state;
 - integrated code bypasses the Security-cleared guarded current-authority loader or can consume an already-active mandate after its captured authoritative state becomes stale;
+- Ledger device runtime/dependency graph is not independently cleared for the exact signing path;
 - Hedera prepared/submitted semantics differ from the Golden 40-min / 32-block / 45-success contract;
 - Bob/payment/provider rules are implicit or contradictory;
 - a conflict resolution drops a security/evidence test;
