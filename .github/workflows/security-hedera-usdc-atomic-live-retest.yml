@@ -1,0 +1,45 @@
+name: Security Hedera USDC Atomic LIVE Retest
+
+on:
+  push:
+    branches:
+      - 'feature/ethonline-security-hedera-usdc-atomic-retest'
+    paths:
+      - '.github/workflows/security-hedera-usdc-atomic-live-retest.yml'
+      - 'scripts/security/hedera-usdc-atomic-live-retest.mjs'
+      - 'scripts/hedera-policy-usdc-recovery-live.mjs'
+      - 'lib/hedera-agent-kit/policy-authorized-usdc-recovery.ts'
+      - 'lib/hedera-agent-kit/usdc-recovery-semantics.ts'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  independent-atomic-live-retest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout independent security branch
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Independently attack canonical 45 USDC LIVE transaction and 32 USDC control
+        run: node --no-warnings --experimental-transform-types scripts/security/hedera-usdc-atomic-live-retest.mjs
+
+      - name: Upload independent security evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-hedera-usdc-atomic-live-retest-${{ github.run_id }}
+          if-no-files-found: error
+          retention-days: 14
+          path: security-hedera-usdc-atomic-live-retest.json
