@@ -41,6 +41,20 @@ PWB@`b99f1134` conflicts with INT only on product-preview UI and workbench docs.
 
 Not in scope for this ordering: World Sandbox proof branch (`cc0ffe57`), which carries **SEC-WORLD-005 MEDIUM/OPEN** and must close on its own track before it can qualify anything.
 
+## Amendment — Ledger 3c5da4e introduces a real code conflict
+
+Re-verified after Ledger advanced to `3c5da4ea26b3`: `app/api/agent/confirm/route.ts` now has a **content** conflict between World's `authorizeWorldRecoveryWrite` wrapper and Ledger's `withRecoveryMandateAuthorityMutation` wrapper around the same `bookingPort.confirm*` call sites.
+
+This strengthens the ordering argument rather than changing it: step **B (Ledger) before D (World)** is now mandatory, because World's gate must be re-pointed at the mandate *and* re-layered outside Ledger's serialization boundary in a single deliberate edit. The correct composition is:
+
+```
+authorizeWorldRecoveryWrite(...)        // verify requester first
+  -> withRecoveryMandateAuthorityMutation(...)   // then serialize the mutation
+     -> bookingPort.confirm*(...)
+```
+
+Owner: Integrator, with World and Ledger agreeing the nesting order. Do not resolve by taking one side.
+
 ## What could still break the demo with all three lanes green
 
 1. **Replay/nonce state survives `reset-demo`.** `reset-demo` clears `clearAllListings`, `clearAutomationProofs`, `clearRecoveryReceipts` only. It does **not** clear `bookedrights:ledger:mandate-{prepared,active,consumed}:*`, `ethonline:hedera:booking-right:*`, or `bookedrights:world-agentkit:nonce`. Re-running a rehearsed demo with the same `mandateId`/`nonce` hits one-shot replay rejection and the recovery fails on stage while every check is green. **Highest-probability demo-day failure.**

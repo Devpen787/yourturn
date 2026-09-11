@@ -68,7 +68,9 @@ Three separate authority carriers exist simultaneously:
 
 `recovery-write-gate.ts` states it directly: *"The existing server-signed, exact-scoped ApprovalGrant is the branch's current YourTurn mandate carrier."* That is the parallel authority the final architecture forbids.
 
-`ApprovalGrantClaims` is HMAC-signed by `approvalSecret()`, which falls back through `BOOKED_RIGHTS_PREVIEW_SECRET` → `HEDERA_OPERATOR_KEY` → a hardcoded literal default. A carrier with a hardcoded fallback secret must not be the final authority object.
+`ApprovalGrantClaims` is HMAC-signed by `approvalSecret()`, which falls back through `BOOKED_RIGHTS_PREVIEW_SECRET` → `HEDERA_OPERATOR_KEY` → a hardcoded literal default.
+
+World already mitigates this for its own surface: `/api/agent/confirm` refuses a World-protected recovery action unless `BOOKED_RIGHTS_APPROVAL_SECRET` is explicitly configured. The fallback therefore still applies to every *other* grant consumer, including `/api/recovery/confirm`. The carrier is acceptable as a preview/session artifact; it should not be the final authority object.
 
 ## Storage-key collisions
 
@@ -84,3 +86,19 @@ The risk is the opposite of collision — see `FINAL-INTEGRATION-ORDER.md` §Dem
 ## Evidence-label conflicts
 
 None found. Every lane self-labels conservatively: Ledger `CI_CONFIGURED` with `"downstreamRecoveryExecution": false`; Hedera `signed:false, submitted:false`; World separates AgentBook LIVE from the CI/READY signed harness.
+
+
+## Late-breaking collision (appeared during this rehearsal)
+
+`feature/ethonline-ledger` advanced `dfb3fec6328c` → `3c5da4ea26b3` at 2026-09-11T02:34 with the SEC-LEDGER-005 serialization repair.
+
+`lib/ledger/recovery-mandate.ts` is **byte-identical** at both heads (`0fc6b3ee`), so every field-level finding in `AUTHORITY-CHAIN-MAP.md` is unaffected.
+
+But `1c763ce fix(ledger): serialize agent booking mutations` edits **`app/api/agent/confirm/route.ts`** — World's route. `git merge-tree` against the rehearsal tree now reports a genuine **content conflict** there, not an append conflict:
+
+- **World** wraps the route's `bookingPort.confirm*` call sites with `authorizeWorldRecoveryWrite` (requester gate) and refuses protected recovery without an explicit approval secret.
+- **Ledger** wraps the *same* call sites with `withRecoveryMandateAuthorityMutation` (serialized authority boundary).
+
+Both wrap the identical statements, so no union resolution is safe. They must compose in a defined order: World verification gates **before** the mutation; the Ledger serialization boundary wraps **the mutation itself**. Resolving this by taking one side drops either requester verification or the SEC-LEDGER-005 race fix.
+
+This is also a lane-boundary event: Ledger is now editing a route that World owns.
