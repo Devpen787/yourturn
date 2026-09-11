@@ -1,138 +1,64 @@
 # YourTurn Product Workbench
 
-Canonical UX branch: `ux/yourturn-product-workbench`.
+Canonical UX branch: `ux/yourturn-product-workbench`. Single candidate: `/product-preview`.
 
-This workbench turns YourTurn into one coherent **two-sided booking product** while Hedera, World and Ledger implementation remains owned by the sponsor workstreams.
+## Start here — current work is UX integrity completion
 
-## Operating loop
+**Active build: #44. Independent review: #34. Draft PR: #33.**
 
-`candidate → product review → GOLDEN-READY → explicit human approval → Golden/frozen → implementation`
+Read `completion-contract.md` -> `handoff.md` -> latest #34 disposition -> exact-head CI. The previous architecture-only and narrow XC-01/receipt-copy instructions are historical, not the active objective.
 
-A journey is the unit of design. Screens are states inside a journey.
+We have tested fixture segments, not yet one state-consistent product. Finish the existing lifecycle before adding journey families:
 
-### Rules
+`R0 reproduce -> R1 state-safe navigation -> R2 four bridges/actions -> R3 requested provider/customer scope -> R4 one-seed cross-journey tests -> R5 independent review + exact human freeze`
 
-1. Reuse, change/adapt, or explicitly reject existing YourTurn work before rebuilding.
-2. Normal customer language wins over sponsor terminology.
-3. Sponsor evidence is inspectable in a reviewer/proof surface; it must not take over the core journey.
-4. Golden journeys are product truth. Sponsor implementation must wire into them without silently redesigning them.
-5. Only one journey set is actively under product review at a time.
-6. No status-only commits. A commit must change product behavior, proof, testability, or documentation required to implement/review a journey.
-7. Keep the product story end-to-end: provider rules permit the action, Maya loses the booking and receives value, Bob receives a usable booking.
-8. Check every broader slice against the stakeholder architecture: service provider + customer, with current-holder and next-holder roles covered where relevant.
-9. Golden product artifacts are design/presentation contracts, not automatically implementation owners.
-10. Never promote FIXTURE/CI/configured evidence to LIVE through copy or styling.
+The first increment adds executable R0 regressions and their evidence pipeline; it does not change the product runtime. Review `integrity/results.json` in the exact-head rendered artifact. RED findings must be fixed, not waived or called Golden because a narrower suite is green.
 
 ## Product model
 
-The primary customer object is a **booking**, not an NFT/token.
+YourTurn is a two-sided booking product: service providers and customers. Customers have current-holder and next-holder roles during an exchange. The primary object is a **booking**, not a token.
 
-YourTurn has two stakeholder classes:
-
-- **Service provider** — creates/fulfils the service and defines reusable booking rules;
-- **Customer** — consumes or exchanges the service, operationally as current holder or next holder.
-
-Core permission rule:
+A valid recovery must satisfy:
 
 `provider rules ∩ holder mandate ∩ acquirer eligibility/payment`
 
-The provider sets reusable rules before the individual recovery. A compliant recovery should not require a provider employee to manually approve that transfer.
+Provider rules are reusable and load-bearing before recovery, not per-transfer staff approval. Ledger supplies off-chain holder authorization, World exact human-backed requester verification, and Hedera enforcement/execution/settlement. World must not become a parallel holder-authority source.
 
-Primary customer areas remain:
+## Historical Golden design contracts
 
-- Home;
-- My Bookings;
-- Find a spot;
-- Activity;
-- Account.
+| Scope | Exact executable | Record |
+| --- | --- | --- |
+| YT-01→04 | `24bbf0d7516499069f5102ae4bf724b0cb376b94` | `golden/yt-01-04.md` |
+| YT-05→08 | `d5309a96d532ee107011c2a5cefc3000b9e4932f` | `golden/yt-05-08.md` |
+| XC-01 | `046ad8d3cad863813dca7a3fc9cb09abaf5939e0` | `golden/xc-01.md` |
 
-Primary booking actions remain `Use booking` and `Change plans`.
+Preserve the historical records and approved visual/authority contracts. #44 identifies concrete runtime continuity defects; a correction requires independent successor disposition, not a silent Golden rewrite. Golden status does not establish every possible navigation path or upgrade sponsor evidence.
 
-## ETHOnline hero — Delegated Recovery
+XC-02/XC-03 are built fixture segments, not frozen at the current product baseline. Their previous segment CI does not clear #44.
 
-A person owns a booking they cannot use. They tell YourTurn exactly what one AI agent may do with that booking. The agent may recover value automatically inside those rules; anything outside the mandate is blocked or returned to the person.
+## Binding workbench files
 
-Sponsor roles remain singular:
+- `completion-contract.md`: milestone owners, acceptance evidence, full-audit disposition and active sequencing.
+- `handoff.md`: current increment, actual execution boundary and next action.
+- `journeys.md`: coverage versus Golden/connected/runtime truth.
+- `DESIGN.md`, `GLOSSARY.md`, `CRAFT.md`: Golden-derived visual language, domain terms and state/accessibility/copy discipline.
+- `invariants.md`, `review-checklist.md`: product and independent review constraints.
+- `stakeholder-journeys.md`, `stakeholder-coverage-gate.md`: provider/holder/acquirer coverage.
+- `integration-ledger.md`: UI owner, real interface/owner, evidence class and failure/rollback requirements.
+- `architecture-review.md`, `next-slice.md`: historical architecture/XC-01 rationale; do not use their old next-action wording instead of #44.
 
-- **Ledger** defines what the human authorized in the off-chain Recovery Mandate;
-- **World** proves which human-backed agent is asking and whether it is the exact delegated one;
-- **Hedera** enforces/executes booking transfer and settlement after the permission intersection passes.
+## Operating loop
 
-World must not become a second holder-authorization system. Provider policy remains load-bearing.
+`candidate -> mechanical proof -> independent five-lens review -> GOLDEN-READY -> exact human approval -> Golden freeze -> integration`
 
-## Golden product truth
+A serious interaction, visual, accessibility, comprehension or trust defect blocks clearance. A screenshot of a directly selected fixture is state evidence, not proof of its incoming path. Shared state is not demonstrated by separately loading Maya, Bob and provider success screens.
 
-**YT-01 through YT-08 are human-approved Golden.**
+Navigation selects location; it does not establish ownership, authorization, payment, check-in or fulfilment. Workbench fixture persistence must never become production authorization.
 
-- YT-01→YT-04 frozen executable: `24bbf0d7516499069f5102ae4bf724b0cb376b94`;
-- YT-05→YT-08 frozen executable: `d5309a96d532ee107011c2a5cefc3000b9e4932f`.
+Keep proof collapsed/secondary and honestly labelled. Never expose raw World identifiers or promote FIXTURE/CI to LIVE. No merge, production/mainnet deployment, spending, secret change or sponsor/backend semantic change is authorized.
 
-Records:
+## Prior work to reuse before runtime repair
 
-- `golden/yt-01-04.md`;
-- `golden/yt-05-08.md`.
+Mine `feat/product-issuer-holder-ux` and `main` for useful provider forms, state handling and navigation, then adapt to the approved Golden contract. `codex/ethglobal-final-public` remains the immutable pre-event baseline; foundation remains `feature/ethonline-2026-foundation`.
 
-Do not redesign or silently mutate either executable. Golden freezes approved behavior/presentation, **not sponsor evidence class**.
-
-## Current phase — architecture/product-contract review
-
-Do **not** start or advance a new executable journey from this README.
-
-The current review package is:
-
-- `architecture-review.md` — exact architecture review packet and gate;
-- `DESIGN.md` — Golden-derived visual/product design contract;
-- `GLOSSARY.md` — preferred customer language + `Avoid:` aliases;
-- `CRAFT.md` — prospective state/accessibility/responsive/copy/interaction discipline;
-- `integration-ledger.md` — YT-05→YT-08 Golden fixture → real implementation owner/interface/evidence/failure map;
-- `stakeholder-journeys.md` — holder/acquirer/provider product architecture;
-- `stakeholder-coverage-gate.md` — mandatory cross-lane coverage gate;
-- `next-slice.md` — proposed smallest connected continuation;
-- `invariants.md` — durable product rules;
-- `review-checklist.md` — executable candidate/Golden gate;
-- `handoff.md` — exact current state and next action.
-
-`architecture-review.md` explicitly separates design inputs as **OBSERVED / PROVIDED / INFERRED**, decisions as **KEEP / CHANGE / DO NOT COPY**, audits every material Golden YT-05→08 state/action against `integration-ledger.md`, and records the stakeholder-gate result.
-
-## Proposed connected continuation
-
-The smallest connected continuation proposed for later executable work is:
-
-### XC-01 — Eligible next holder + provider-recognized handoff
-
-`Studio A pre-defined rules → Bob finds/evaluates Friday Yoga → Bob satisfies eligibility + commits 45 USDC → current provider/holder/acquirer conditions reconcile → Bob receives Friday Yoga as a normal usable booking → Studio A recognizes Bob as authoritative current holder`
-
-Minimum lane coverage:
-
-- acquirer A-01→A-04;
-- provider P-03, P-06, P-07;
-- already-Golden Maya YT-08 remains unchanged;
-- partial/unknown state fails closed.
-
-YT-09/YT-10 are bridge concepts inside this broader continuation, not a standalone holder-only next set.
-
-## Pre-existing exploratory XC-01 code
-
-Branch history contains exploratory executable `eb3bcdb84ff95352adf1d0c387996f9a4692c52f` and rendered evidence. The current architecture-only gate does **not** adopt, advance or freeze it. Historical green CI is not contract approval.
-
-If the architecture package is later classified `REVIEWABLE`, that executable may be treated as prior work and compared against the reviewed contract before any candidate is routed forward.
-
-## Source branches to mine
-
-- `codex/ethglobal-final-public` — immutable pre-event baseline;
-- `feat/product-issuer-holder-ux` — strongest prior holder/provider/acquirer interaction work;
-- `main` — auth/account/roles/product shell and broader surfaces;
-- `feature/ethonline-2026-foundation` — ETHOnline technical foundation.
-
-Do not treat any one source branch as the complete UX answer.
-
-## Exact next action
-
-**Product Reviewer #34 reviews the architecture/product contract only.**
-
-The reviewer reads `architecture-review.md` and its referenced artifacts and returns:
-
-- `REVISE` with the precise design/product/integration/stakeholder defect; or
-- `REVIEWABLE` meaning one smallest connected executable set may be explicitly routed next.
-
-Do not self-freeze, do not advance the exploratory XC-01 executable during this gate, and do not widen into another journey set.
+No new visual direction or competing route. Commit only material code/tests or required acceptance/routing changes. CI reports and #44 carry outcomes; no repeated status-only commits.

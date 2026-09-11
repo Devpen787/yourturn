@@ -1,146 +1,48 @@
-# Journey Registry
+# Journey registry — coverage is not connected-product completion
 
-Status vocabulary: `candidate`, `review`, `GOLDEN-READY`, `Golden`, `implemented`, `blocked`.
+Active completion issue: **#44**. Execution/closure contract: `completion-contract.md`.
 
-| Journey | User outcome | Status | ETHOnline priority |
-| --- | --- | --- | --- |
-| YT-01 Understand & enter | Visitor understands YourTurn and can enter the product | Golden | P0 |
-| YT-02 My Bookings | Holder sees owned bookings and their meaningful states | Golden | P0 |
-| YT-03 Booking detail | Holder can use a booking or change plans | Golden | P0 |
-| YT-04 Recovery setup | Holder defines what YourTurn may do | Golden | P0 |
-| YT-05 Delegate | Holder understands and authorizes the mandate with Ledger | Golden | P0 |
-| YT-06 Agent working | Holder sees the exact human-backed delegated agent working | Golden | P0 |
-| YT-07 Block / escalate | Out-of-scope offer is blocked and escalation boundary is clear | Golden | P0 |
-| YT-08 Successful recovery | In-scope offer completes the approved product recovery outcome | Golden | P0 |
-| YT-09 New holder | Next holder sees and can use the transferred booking | architecture bridge / not independently active | P1 |
-| YT-10 Activity & proof | Parties understand what happened; technical proof remains secondary | queued / bridge | P1 |
+Historical Golden references remain valid records of approved design. Concrete runtime continuity defects require a reviewed successor. Do not infer connected coverage, implementation ownership or LIVE evidence from the Golden label.
 
-## Golden product truth
+| Journey/lane | Built coverage | Approval / remaining integrity |
+| --- | --- | --- |
+| YT-01 Entry | Landing + prepared Maya entry | Historical Golden; coherent Browse/provider entry and original-holder prerequisite still need disposition |
+| YT-02 Bookings | Maya bookings and in-body recovered return | Historical Golden; header/reload must not resurrect ownership; active recovery must remain visible |
+| YT-03 Booking detail | Detail, Use booking notice, Change plans | Historical Golden; canonical use treatment and secondary-card affordances remain in #44 |
+| YT-04 Recovery setup | Booking scope, minimum, expiry, no-cancel, acknowledgement | Historical Golden; preserve contract; navigation/draft and time semantics need successor evidence |
+| YT-05 Delegate | Fixture approve/reject/cancel and replacement paths | Historical Golden; interrupted/resumed authority and navigation proof still required; not DEVICE proof |
+| YT-06 Agent working | Bounded human-backed agent and recovery status | Historical Golden; preserve active state across returns; stop/revoke disposition required |
+| YT-07 Block/escalate | 32 blocked; lower minimum needs fresh authority | Historical Golden; preserve replacement reject/cancel retaining 40-USDC authority |
+| YT-08 Recovery success | 45 recovered, transferred booking, in-body return | Historical Golden; header/reload contradiction and B2 receipt bridge remain |
+| YT-09 / A-04 | XC-01 Bob receives normal confirmed booking | Covered by historical Golden XC-01; B1 into check-in missing; real bookings destination still required |
+| A-01→03 | XC-01 discovery, eligibility, payment/reconciliation fixtures | Historical Golden XC-01; payment/history/resume and shared transfer evidence remain |
+| P-03/P-06/P-07 | XC-01 reusable rules + holder change | Historical Golden XC-01; B3 provider continuation and shared authoritative state evidence remain |
+| A-05 / P-08 | XC-02 check-in, expected/fulfilled/reconciled fixtures | Built, not frozen; B1/B3/B4 and post-action navigation still unresolved |
+| YT-10 / A-06 | XC-02 Maya/Bob/provider activity and proof | Built, not queued from scratch; B2, useful exits and shared-event truth still required |
+| P-01/P-02/P-04/P-05 | XC-03 pre-filled setup/inventory/publish/sale/Today | Built fixture walkthrough, not full editable provider product; R3 remains open |
 
-### YT-01 → YT-04
+## Immutable historical Golden records
 
-Frozen executable: `24bbf0d7516499069f5102ae4bf724b0cb376b94`.
+- YT-01→04: `24bbf0d7516499069f5102ae4bf724b0cb376b94`, `golden/yt-01-04.md`.
+- YT-05→08: `d5309a96d532ee107011c2a5cefc3000b9e4932f`, `golden/yt-05-08.md`.
+- XC-01: `046ad8d3cad863813dca7a3fc9cb09abaf5939e0`, `golden/xc-01.md`.
 
-Golden record: `docs/product-workbench/golden/yt-01-04.md`.
+The current product-runtime baseline is `4468de0d0a72c7ac14513122c4d16657490f1645`. Its segment production/Chromium proof is real: Continuity `34551695637`, Visual `34551693262`, artifact `10181148190` (142 PNG checkpoints). Neither XC-02 nor XC-03 is frozen on that shared candidate. The #44 regression increment changes tests/routing, not those product bytes.
 
-Customer story:
+## Active sequence and evidence
 
-`Landing → enter → My Bookings → Friday Yoga → Change plans → Let YourTurn handle it → minimum/expiry/actions → secure-approval handoff`
+R0 adds desired-behaviour regressions for header/reload/history, visible identity and B1–B4. Read its exact-head `integrity/results.json`; a reproduced RED baseline is not a fixed product. R1 repairs the approved state foundation, R2 connects actions, R3 closes requested editable/navigation scope, R4 proves one scenario across actors, R5 independently reviews/freezes the exact successor.
 
-### YT-05 → YT-08
+No further holder-only YT-09/YT-10 extension. These outcomes already exist under XC names; they need reconciliation and tested connections.
 
-Frozen executable: `d5309a96d532ee107011c2a5cefc3000b9e4932f`.
-
-Golden record: `docs/product-workbench/golden/yt-05-08.md`.
-
-Exact-head evidence:
-
-- ETHOnline Continuity Gate `34497826067`: **SUCCESS**;
-- Product Workbench Visual Check `34497819955`: **SUCCESS**;
-- artifact `product-workbench-rendered-evidence` / `10160672183`;
-- 44 PNGs: 22 desktop `1440×1000` + 22 mobile `390×844`;
-- five-lens Product Reviewer PASS;
-- explicit human freeze approval on 2026-09-10.
-
-Frozen continuous story:
-
-`secure approval → Ledger not ready → waiting → approve / reject / cancel → verified human-backed delegated agent starts recovery → 32 USDC blocked → optional new-authorization seam for lower minimum → replacement reject/cancel preserves current 40 USDC recovery → 45 USDC allowed → transfer + settlement completion state → You recovered 45 USDC → Friday Yoga removed from Maya's usable bookings`
-
-Frozen authority/product behavior:
-
-- Friday Yoga only;
-- minimum recovery 40 USDC;
-- expiry `Tomorrow · 17:00`;
-- cancellation forbidden;
-- initial Ledger reject/cancel creates no authority;
-- replacement authorization never silently widens the live mandate;
-- rejecting/cancelling a proposed 30-USDC replacement leaves the existing 40-USDC recovery active and unchanged;
-- exact delegated agent is human-backed/verified without exposing a raw World human identifier;
-- 32 USDC is blocked with no transfer/settlement and no needless owner interruption;
-- lowering the minimum requires fresh authorization;
-- 45 USDC is inside scope and proceeds without another owner prompt;
-- completion reads `You recovered 45 USDC` and Friday Yoga is no longer usable by Maya;
-- Ledger authorizes the off-chain Recovery Mandate; it is not represented as signing Hedera HTS transactions;
-- technical proof remains secondary to the customer experience.
-
-## Golden truth boundary
-
-Golden freezes **product behavior and presentation**, not evidence class.
-
-The YT-05→YT-08 executable contains fixture/demo sponsor transitions where real sponsor integration is not yet wired. Integration must replace them with real Ledger / World / Hedera state while preserving the approved journey and `integration-ledger.md` failure behavior.
-
-## Post-Golden architecture gate
-
-The current Product Workbench phase is **architecture/product-contract review**, not a new executable journey.
-
-Required source-of-truth package:
-
-- `architecture-review.md` — review packet and exact gate;
-- `DESIGN.md` — Golden-derived design contract;
-- `GLOSSARY.md` — customer language + `Avoid:` aliases;
-- `CRAFT.md` — prospective state/accessibility/responsive/copy rules;
-- `integration-ledger.md` — YT-05→08 fixture-to-real acceptance ledger;
-- `stakeholder-journeys.md` — holder/acquirer/provider architecture;
-- `stakeholder-coverage-gate.md` — applied cross-lane gate;
-- `next-slice.md` — proposed smallest connected continuation.
-
-`architecture-review.md` explicitly audits every material YT-05→08 state/action against the integration ledger and normalizes design-source decisions to **OBSERVED / PROVIDED / INFERRED** plus **KEEP / CHANGE / DO NOT COPY**.
-
-Do **not** treat YT-09/YT-10 as an isolated holder-only next set.
-
-## Proposed next connected set
-
-### XC-01 — Eligible next holder + provider-recognized handoff
-
-Status: **proposed architecture; awaiting product-contract review**.
-
-Connected story:
-
-`Studio A pre-defined recovery rules → Bob finds/evaluates Friday Yoga → Bob satisfies eligibility + commits 45 USDC → current provider/payment/holder truth reconciles → Bob receives Friday Yoga as a normal usable booking → Studio A recognizes Bob as authoritative current holder`
-
-Minimum proposed coverage:
-
-- provider P-03: pre-defined transfer/recovery/cancellation/eligibility/cutoff rules;
-- provider P-06: compliant recovery needs no manual per-recovery staff approval;
-- provider P-07: authoritative current holder changes Maya → Bob;
-- acquirer A-01→A-04: find, evaluate, eligibility/payment, normal usable booking;
-- Golden Maya YT-08 behavior remains unchanged;
-- partial or stale cross-lane truth must fail closed rather than render success.
-
-Core permission rule:
+## Rules to preserve
 
 `provider rules ∩ holder mandate ∩ acquirer eligibility/payment`
 
-Provider policy is pre-defined and load-bearing.
+Friday Yoga only; 40-USDC minimum; unchanged Golden expiry/no-cancel contract; 32 denied with no transfer/settlement; replacement rejection/cancellation preserves current mandate; 45 accepted inside scope; Maya recovers 45 USDC and loses usable ownership. Provider rules remain pre-defined, no per-recovery approval. Raw World identifiers stay hidden; proof remains secondary and fixture-labelled until real interfaces replace it.
 
-## Pre-existing exploratory XC-01 code
+Attendance, fulfilment, payment settlement and history reconciliation are distinct. A missing later attendance record cannot erase an already confirmed recovery.
 
-Branch history contains exploratory XC-01 executable `eb3bcdb84ff95352adf1d0c387996f9a4692c52f` plus rendered evidence. The current architecture gate does **not** adopt, advance, review for Golden, or freeze that executable. Do not use its green CI to bypass contract review.
+## Completion boundary
 
-If the architecture package is later classified `REVIEWABLE`, the next executable set must be explicitly routed under the reviewed contract. The pre-existing candidate may then be evaluated for reuse against that contract rather than assumed correct because it already exists.
-
-## Integration evidence boundary
-
-Key implementation truth remains:
-
-- Ledger runtime guards are **CI_CONFIGURED**; hardware/device provenance and downstream Hedera consumption remain open;
-- World AgentBook registration/resolution is **LIVE**; bounded signed `create_listing` harness is **CI/READY, NOT LIVE**; registered-agent signed recovery mutation and separate World ID Sandbox proof remain outstanding; World must bind to the real Recovery-Mandate path without replacing Ledger authority or exposing raw human identity;
-- Hedera policy/atomic-USDC semantics are **CI/LOCAL** and RETURN_BYTES remain unsigned/unsubmitted until real sign/submit/receipt/state reconciliation proves settlement.
-
-The Golden product and any exploratory candidate are design/product evidence, not automatically production implementation owners.
-
-## Exact next action
-
-Product Reviewer #34 reviews `architecture-review.md` and its referenced contract files and classifies the **contract only** as `REVISE` or `REVIEWABLE`.
-
-If `REVISE`, correct only the named architecture/coverage/evidence defect. If `REVIEWABLE`, explicitly route the smallest connected XC-01 executable set into the normal candidate → exact rendered evidence → Product Reviewer → `GOLDEN-READY` → explicit human freeze loop.
-
-Do not self-freeze, do not widen to another slice, and do not silently mutate either Golden executable.
-
-## Completion principle
-
-The broader product loop is complete only when all relevant perspectives reconcile:
-
-- provider policy permits the recovery and the authoritative holder/fulfilment state is coherent;
-- Maya no longer owns a usable Friday Yoga booking and receives the correct recovery value;
-- Bob owns the same normal usable booking and can follow the provider's fulfil/check-in path.
+UX completion requires normal controls to reach each relevant state and preserve it across return/reload/history; one same-booking/event scenario reconciles Maya, Bob and Studio A. Direct-loaded screenshots prove only the displayed state. Integration is separate under `integration-ledger.md` and #5/#16; no fixture storage becomes live authorization.
