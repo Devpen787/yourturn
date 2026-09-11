@@ -46,10 +46,12 @@ assert.ok(
     confirmRouteSource.indexOf("await bookingPort.confirmCreateListing"),
   "World authorization should precede the create-listing mutation"
 );
+const consumeIndex = verifierSource.indexOf("await nonceStore.consume(nonceKey)");
+const allowedReturnIndex = verifierSource.lastIndexOf("verification,");
+assert.ok(consumeIndex >= 0, "World verifier must contain nonce consumption");
 assert.ok(
-  verifierSource.indexOf("await nonceStore.consume(nonceKey)") <
-    verifierSource.indexOf('status: "allowed"'),
-  "authorized request nonce must be consumed before the route proceeds"
+  allowedReturnIndex > consumeIndex,
+  "authorized request nonce must be consumed before the allowed result is returned"
 );
 
 // Fault-injection model of the exact observed implementation order. The HCS
