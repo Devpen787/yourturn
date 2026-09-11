@@ -48,12 +48,17 @@
       "truthBoundary": "Golden product truth only; sponsor-dependent transitions remain fixture until exact integration evidence replaces them."
     },
     "currentPostGoldenWork": {
-      "slices": ["XC-02", "XC-03"],
-      "executableSha": "4468de0d0a72c7ac14513122c4d16657490f1645",
-      "continuityRun": "34551695637",
-      "visualRun": "34551693262",
-      "status": "BUILD_PROOF_COMPLETE_EXACT_REREVIEW_PENDING",
-      "submissionCritical": false
+      "slice": "R1a successor executable",
+      "executableSha": "8632b81a10f4501db7914b653da493966b04e250",
+      "continuityRun": "34611662531",
+      "status": "BUILD_PROOF_PARTIAL_16_OF_32_WHOLE_PRODUCT_GATE_RED",
+      "submissionCritical": false,
+      "openGates": [
+        "Bob/provider continuity",
+        "B1-B4",
+        "R2-R5",
+        "independent #34 exact-candidate acceptance"
+      ]
     }
   },
   "integration": {
@@ -64,7 +69,7 @@
       "curated Hedera H1"
     ],
     "integrationReady": false,
-    "reason": "Hedera now has an independently qualified LIVE/TESTNET downstream checkpoint for the canonical booking NFT + 45-USDC settlement transaction, but World signed-route plus canonical Ledger-mandate bridge, Ledger dependency-security clearance plus DEVICE evidence, sponsor-backed fixture replacement and final integrated E2E are not complete. Ledger SEC-005/006 software authority lifecycle is Security-green at CI/CONFIGURED and the ceremony contract is CI-green, but a separate dependency triage currently blocks credential loading, app startup, mandate signing/activation and the physical ceremony."
+    "reason": "Hedera has an independently qualified LIVE/TESTNET downstream checkpoint for the canonical booking NFT + 45-USDC settlement transaction, but World SEC-WORLD-006 is OPEN/MEDIUM and blocks the credential-bearing target mutation path, the canonical Ledger-mandate bridge is missing, Ledger dependency-security clearance plus DEVICE evidence is missing, sponsor-backed fixture replacement is incomplete, and final integrated E2E is not complete. Ledger SEC-005/006 software authority lifecycle remains Security-green at CI/CONFIGURED while a separate dependency triage blocks the physical ceremony."
   },
   "sponsors": {
     "hedera": {
@@ -98,7 +103,7 @@
     },
     "world": {
       "head": "8aff17268adbad8e52b4b077c85bbe50034d6c13",
-      "continuityRun": "34554016785",
+      "continuityRun": "34622414540",
       "sandboxEvidenceHead": "65383c83626a7121a6f47a3c88ac69b1304b363f",
       "sandboxQualifyingRuntimeHead": "ff0e2cd0eec1ede1d4e28c2e1a99603e7832177f",
       "sandboxContinuityRun": "34549541999",
@@ -106,14 +111,34 @@
       "sandboxCleanupContinuityRun": "34553728277",
       "security": {
         "secWorld005": "CLOSED_CI_CONFIGURED",
-        "independentRun": "34547005448",
-        "attackerHead": "98c399712fa6f38779df9666b982cf1b78a528f5",
-        "cleanupRegressionRetest": "CLEAN_CI_CONFIGURED_RUN_34558923596_ATTACKER_6e7523a4597ff3e0434758e9412c399ce8a819be"
+        "secWorld005IndependentRun": "34547005448",
+        "secWorld005AttackerHead": "98c399712fa6f38779df9666b982cf1b78a528f5",
+        "cleanupRegressionRetest": "CLEAN_CI_CONFIGURED_RUN_34558923596_ATTACKER_6e7523a4597ff3e0434758e9412c399ce8a819be",
+        "secWorld006": "OPEN_MEDIUM_INTEGRATION_BLOCKING",
+        "secWorld006AttackerHead": "b6f35a78d2b1a464aab82cd5cbd91fcbec6e53a5",
+        "secWorld006Run": "34622702126",
+        "secWorld006Job": "103340281661",
+        "localSignerRuling": "NARROWLY_CLEARED_FOR_LOCAL_CREDENTIAL_LOADING_AND_SIGNATURE_PREPARATION_ONLY",
+        "credentialBearingTargetRuling": "HOLD_SEC_WORLD_006"
       },
-      "currentEvidence": "LIVE/AGENTBOOK for registration/resolution; REAL NON-PRODUCTION SANDBOX proof with World v4 backend verification; Sandbox loopback/browser-Origin cleanup independently Security-clean; CI/READY, NOT LIVE/SIGNED-ROUTE for registered-agent recovery",
+      "currentEvidence": "LIVE/AGENTBOOK for registration/resolution; REAL NON-PRODUCTION SANDBOX proof with World v4 backend verification; Sandbox loopback/browser-Origin cleanup independently Security-clean; CI/READY, NOT LIVE/SIGNED-ROUTE for registered-agent recovery. SEC-WORLD-006 independently reproduces partial-commit failure semantics on create_listing and cancel_release, so the credential-bearing target mutation path remains HOLD.",
       "integrationReady": false,
+      "requirementToEvidence": {
+        "signedRequester": {
+          "requirement": "Only the exact registered human-backed delegated agent may pass the World requester gate",
+          "code": "lib/world-agentkit/server-verifier.ts + recovery-write-gate.ts + app/api/agent/confirm/route.ts",
+          "evidence": "CI/CONFIGURED + prior independent Security closures; no LIVE/SIGNED-ROUTE execution yet"
+        },
+        "failureAtomicityAndResume": {
+          "requirement": "An authorized World-protected recovery must not report a clean failure after durable local/Hedera effects or become unretryable solely because replay was consumed before a downstream partial commit; partial effects must be durably recorded and safely resumed/reconciled without duplicate value movement",
+          "code": "Current failing paths: lib/adapters/booking-port.ts executeCreateListing/executeCancelRelease; required repair is a durable idempotent recovery-operation/saga or equivalent outbox/resume boundary",
+          "evidence": "RED — SEC-WORLD-006 OPEN/MEDIUM; attacker b6f35a78d2b1a464aab82cd5cbd91fcbec6e53a5; Continuity 34622702126 job 103340281661 SUCCESS reproduces create_listing HCS partial write plus cancel_release transfer/burn/HCS partial commits"
+        }
+      },
       "blockers": [
-        "Execute locally signed registered-agent recovery route against initialized non-production YourTurn state",
+        "Repair SEC-WORLD-006 with a durable idempotent/reconcilable operation boundary and obtain independent Security retest/closure before any credential-bearing target mutation",
+        "Adopt/review the bounded proof-response hardening; LOCAL/FIXTURE evidence alone is not qualification",
+        "After target clearance, execute one locally signed registered-agent recovery route against initialized non-production YourTurn state and capture reviewer-safe LIVE/SIGNED-ROUTE evidence",
         "Replace branch-local ApprovalGrant authority scaffolding with canonical activated Ledger Recovery Mandate projection for final integration"
       ]
     },
@@ -163,7 +188,11 @@
     "worldSignedRoute": {
       "runnerReady": true,
       "preflightHead": "8aff17268adbad8e52b4b077c85bbe50034d6c13",
-      "preflightContinuityRun": "34554016785",
+      "preflightContinuityRun": "34622414540",
+      "localSignerPreparationCleared": true,
+      "credentialBearingTargetMutationAuthorized": false,
+      "securityFinding": "SEC_WORLD_006_OPEN_MEDIUM",
+      "securityRun": "34622702126",
       "liveExecutionCaptured": false,
       "privateKeyMustRemainLocal": true
     },
@@ -211,12 +240,12 @@
     "submissionFields": {
       "status": "RED",
       "finalCopyLocked": false,
-      "requiredBeforeLock": "Lock final project description, Continuity before/after, exactly three partner selections, demo/evidence links, repo link, stable deployment link and video/screenshots only after their evidence is current."
+      "requiredBeforeLock": "Lock final project description, Continuity before/after, exactly three partner selections, repo/demo/evidence links, stable deployment link and video/screenshots only after their evidence is current."
     },
     "evidencePack": {
       "status": "RED",
       "contractExists": true,
-      "reason": "The pack contract exists, but World signed-route/canonical-mandate bridge, Ledger dependency-security clearance plus LIVE/DEVICE evidence, sponsor-backed fixture replacement and the final integrated E2E remain missing. Hedera's canonical 45-USDC settlement transaction is now qualified LIVE/TESTNET at its exact transaction boundary."
+      "reason": "The pack contract exists, but SEC-WORLD-006 failure-atomicity/resume repair and independent closure, World LIVE/SIGNED-ROUTE plus canonical-mandate bridge, Ledger dependency-security clearance plus LIVE/DEVICE evidence, sponsor-backed fixture replacement and the final integrated E2E remain missing. Hedera's canonical 45-USDC settlement transaction is qualified LIVE/TESTNET at its exact transaction boundary."
     }
   },
   "finalAcceptance": {
@@ -225,6 +254,7 @@
       "Ledger approves exact 40-USDC minimum mandate",
       "Wrong World agent → blocked before execution",
       "Exact delegated human-backed World agent → accepted requester",
+      "Injected World downstream failure after any durable effect → operation is explicitly partial/reconciling and safely resumable/idempotent; no duplicate economic effect and no false clean failure",
       "32-USDC offer → blocked with no booking transfer and no settlement",
       "Stale/revoked/provider-invalid mandate or rule → blocked",
       "Eligible Bob + authorized 45-USDC payment → allowed",
