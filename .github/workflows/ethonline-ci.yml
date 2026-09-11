@@ -59,6 +59,9 @@ jobs:
         # verification without pretending to be LIVE/AGENTBOOK or a live write.
         run: npm run world:recovery-live-proof:self-test
 
+      - name: Security attack - World signed-route HCS partial write
+        run: node scripts/security-world-hcs-partial-reproducer.mjs
+
       - name: Continuity baseline must remain documented
         run: |
           grep -q 'd0b5f875afb4f2b29af29bc5972cf1edc404d473' docs/ethonline-2026/CONTINUITY_BASELINE.md
