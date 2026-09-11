@@ -120,9 +120,18 @@ One product/documentation distinction that could be clearer for AgentKit Continu
 | Load-bearing recovery write gate | `app/api/agent/confirm/route.ts` for `create_listing` / `cancel_release` | CI/build at branch head; independent security re-attack still required |
 | Persistent replay protection | `lib/world-agentkit/nonce-store.ts` | CI adversarial replay/concurrency semantics; Redis configured path |
 | Privacy/data minimization | `toWorldPublicTrustSummary()` + live proof harness | CI + LIVE/AGENTBOOK artifact shows `humanIdExposed: false` |
-| World ID Sandbox App remote test | `app/world-sandbox/` + `app/api/world-id/sandbox/` | **GREEN — real round trip verified 2026-09-11**; see `world/WORLD-ID-SANDBOX-PROOF.md` |
+| World ID Sandbox App remote test | `app/world-sandbox/` + `app/api/world-id/sandbox/` | **GREEN — real round trip verified 2026-09-11 on `ff0e2cd`**; see `world/WORLD-ID-SANDBOX-PROOF.md` |
 | Developer Portal/Sandbox experiential feedback | this document | **COMPLETE — written from an actual exercised run** |
 
 ## Scope note
 
-Every observation in the Developer Portal and Sandbox App sections was encountered during the 2026-09-11 run. Nothing here is inferred from documentation alone, and failure modes we could not diagnose are recorded as undiagnosed rather than explained speculatively.
+Every observation in the Developer Portal and Sandbox App sections was encountered during the 2026-09-11 runs (pre-repair `403f2dc` and qualifying `ff0e2cd`). Nothing here is inferred from documentation alone, and failure modes we could not diagnose are recorded as undiagnosed rather than explained speculatively.
+
+## Scope boundary for this evidence
+
+Sandbox proof establishes that a human-backed World ID request can be created, handed to the Sandbox app, returned, and verified by World. It does **not** establish booking authority in YourTurn.
+
+- Sandbox proof: **real**, non-production.
+- AgentBook: remains **LIVE/AGENTBOOK**.
+- Registered-agent signed recovery route: remains **CI/READY, not LIVE/SIGNED-ROUTE**.
+- Final holder authority continues to derive from the activated Ledger Recovery Mandate. The World ID surface and the `ApprovalGrant` scaffold are not a second authority source.

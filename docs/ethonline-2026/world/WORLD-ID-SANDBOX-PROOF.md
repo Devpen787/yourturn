@@ -1,8 +1,11 @@
 # World ID Sandbox proof — ETHOnline 2026
 
-Status: **CI/CONFIGURED; SEC-WORLD-005 repair pending independent Security retest. A qualifying Sandbox app round trip on the repaired head is still required.**
+Status: **SANDBOX ROUND TRIP VERIFIED on the repaired head (`ff0e2cd`, 2026-09-11); SEC-WORLD-005 still pending independent Security retest, and a new transport-guard defect was found during the run — see [Origin normalization defect](#origin-normalization-defect-found-2026-09-11).**
 
-A real Sandbox round trip **was** observed on 2026-09-11, but against pre-repair commit `403f2dc` — before the SEC-WORLD-005 transport repair landed. It is recorded under [Observed run](#observed-run--2026-09-11-preliminary) as preliminary integration evidence and does **not** satisfy the gate above.
+Two separate things, deliberately not conflated:
+
+- **World integration evidence: GREEN.** A real signed request reached the iOS Sandbox app, a proof came back, and World's v4 verify endpoint accepted it. Observed twice — once pre-repair, once on the repaired head. See [Observed run](#observed-run--2026-09-11).
+- **SEC-WORLD-005 transport boundary: NOT CLEARED.** The repair still requires independent Security retest, and the qualifying run below had to use `http://localhost:3000` because the advertised `http://127.0.0.1:3000` returns 404 from a browser. That defect is documented and unfixed.
 
 This is an isolated sponsor-proof harness for the World AgentKit Continuity requirement. It does not change the human-approved YT-01→YT-08 Golden customer journey and does not promote AgentKit/AgentBook evidence by itself.
 
@@ -10,7 +13,7 @@ This is an isolated sponsor-proof harness for the World AgentKit Continuity requ
 
 World AgentKit Continuity requires meaningful AgentKit use, a working app, AgentBook registration/resolution where relevant, **World ID Sandbox App remote testing**, and grounded feedback covering the Developer Portal / Sandbox proof flow and errors encountered.
 
-The existing World branch already has AgentKit cryptographic verification and LIVE/AGENTBOOK registration/resolution. This increment closes only the missing Sandbox integration surface; evidence stays CI/CONFIGURED until the security gate is independently cleared and the actual phone handoff/backend verification complete.
+The existing World branch already has AgentKit cryptographic verification and LIVE/AGENTBOOK registration/resolution. This increment closes the missing Sandbox integration surface. The phone handoff and backend verification are now complete (see Observed run); the SEC-WORLD-005 transport gate remains open pending independent Security clearance.
 
 ## Official docs reviewed — 2026-09-11
 
@@ -73,33 +76,59 @@ No manual action creation is required for the first v4 Sandbox verification. If 
 | Transport-local secret use | `world:sandbox:dev` explicitly binds Next.js to `127.0.0.1`; Sandbox APIs additionally require development mode, explicit proof enablement and the dedicated launch marker | executable CI boundary check; independent Security retest pending |
 | Origin defense-in-depth | same-origin browser requests are enforced when `Origin` is present, but Origin is not treated as the transport trust anchor | executable CI boundary check |
 | Fail closed outside intended mode | production runtime and generic dev launch return 404 for the Sandbox API even if the proof feature flag is set | executable CI boundary check |
-| Proof handoff | `/world-sandbox` uses `IDKitRequestWidget` + `proofOfHuman()` | CI/CONFIGURED until phone round trip |
-| Backend verification | `POST /api/world-id/sandbox/verify` forwards IDKit payload as-is to World v4 verify endpoint | CI/build until real provider success |
+| Proof handoff | `/world-sandbox` uses `IDKitRequestWidget` + `proofOfHuman()` | **real cross-device QR/deep-link handoff to iOS Sandbox app succeeded 2026-09-11** |
+| Backend verification | `POST /api/world-id/sandbox/verify` forwards IDKit payload as-is to World v4 verify endpoint | **real provider success on `ff0e2cd`** |
 | Privacy-safe public result | success returns only environment/action/RP/time; proof, nullifier and raw human identifiers are not returned/logged | CI contract check |
-| Sandbox evidence | real signed request → Sandbox app → returned proof → v4 verification | **RED for qualification** — blocked until SEC-WORLD-005 independent closure plus a round trip on the repaired head. A pre-repair round trip succeeded 2026-09-11; see [Observed run](#observed-run--2026-09-11-preliminary) |
+| Sandbox evidence | real signed request → Sandbox app → returned proof → v4 verification | **GREEN — verified on repaired head `ff0e2cd` 2026-09-11**; see [Observed run](#observed-run--2026-09-11) |
 
-## Observed run — 2026-09-11 (preliminary)
+## Observed run — 2026-09-11
 
-> **This run does not clear the SEC-WORLD-005 gate.** It was performed against commit `403f2dc`, before the transport repair landed, and used the superseded `npm run dev` launch rather than `npm run world:sandbox:dev`. It is recorded because it is genuine evidence that the World-side integration path works end to end. A qualifying run must be repeated on the repaired head after Security independently closes SEC-WORLD-005.
+A real end-to-end Sandbox round trip was completed twice against a locally running harness. This section records only reviewer-safe evidence; no proof payload, nullifier, human identifier, or key material was captured, logged, or retained at any point.
 
-A real end-to-end Sandbox round trip was completed against a locally running harness. This section records only reviewer-safe evidence; no proof payload, nullifier, human identifier, or key material was captured, logged, or retained at any point.
+The qualifying run is run 2, on the repaired head under the supported launch.
 
-| Field | Observed value |
-| --- | --- |
-| Environment | `sandbox` |
-| Credential requested | Proof of Human (`proofOfHuman()`) |
-| Action | `yourturn-recovery-sandbox-2026` |
-| App ID | `app_ba495b56fa36135edd63753effe511f7` |
-| RP ID | `rp_c3e6060f9b2b5593` |
-| Commit under test | `403f2dcb1e185455b5fb09e76caab1e40f7d0ebc` |
-| RP signing request | `POST /api/world-id/sandbox/rp-context` → 200, TTL 300s |
-| Backend verification | `POST /api/world-id/sandbox/verify` → 200 |
-| World v4 verify | accepted (outbound call ~599ms; route returns 200 only on provider success) |
-| `proofVerified` | `true` |
-| Verified at | 2026-09-11T00:54Z (approx.; 02:54 CEST) |
-| Browser-visible state | "Sandbox proof verified" success panel rendered |
+| Field | Run 1 (pre-repair) | Run 2 (qualifying) |
+| --- | --- | --- |
+| Commit under test | `403f2dcb1e185455b5fb09e76caab1e40f7d0ebc` | `ff0e2cd0eec1ede1d4e28c2e1a99603e7832177f` |
+| Launch | `npm run dev` (superseded) | `npm run world:sandbox:dev` (supported, `127.0.0.1` bind + transport marker) |
+| Browser address | `http://localhost:3000` | `http://localhost:3000` (see defect below) |
+| Environment | `sandbox` | `sandbox` |
+| Credential requested | Proof of Human (`proofOfHuman()`) | Proof of Human (`proofOfHuman()`) |
+| Action | `yourturn-recovery-sandbox-2026` | `yourturn-recovery-sandbox-2026` |
+| App ID | `app_ba495b56fa36135edd63753effe511f7` | same |
+| RP ID | `rp_c3e6060f9b2b5593` | same |
+| RP signing request | `POST .../rp-context` → 200, TTL 300s | `POST .../rp-context` → 200, TTL 300s |
+| Backend verification | `POST .../verify` → 200 | `POST .../verify` → 200 |
+| World v4 verify | accepted (~599ms outbound) | accepted (~614ms outbound) |
+| `proofVerified` | `true` | `true` |
+| Verified at | 2026-09-11T00:54Z | 2026-09-11T01:06Z |
+| Browser-visible state | "Sandbox proof verified" | "Sandbox proof verified" |
+
+The verify route returns 200 only when World's `POST /api/v4/verify/{rp_id}` responds OK, so a 200 here is provider acceptance, not local optimism. Outbound duration is recorded because it distinguishes a genuine provider call from a request that failed before reaching World.
 
 Both success conditions required by this document were satisfied: the Sandbox iPhone completed the actual request, **and** YourTurn's backend received the IDKit result and got a success response from World `POST /api/v4/verify/{rp_id}`.
+
+## Origin normalization defect (found 2026-09-11)
+
+**Status: open, unfixed, not owned by this change.** Found while re-running the proof on the repaired head. Recorded here so the SEC-WORLD-005 independent retest covers it.
+
+`npm run world:sandbox:dev` binds Next.js to `127.0.0.1` and advertises `http://127.0.0.1:3000`. However, Next.js normalizes `request.url` to `localhost` even under an explicit `127.0.0.1` bind — the guard's own comment anticipates this for the hostname check, but the same-origin check then string-compares the browser's `Origin` header against that normalized `requestUrl.origin`.
+
+Measured against one running server:
+
+| Browser address | `Origin` header sent | `request.url` hostname | `Host` header | Guard verdict |
+| --- | --- | --- | --- | --- |
+| `http://127.0.0.1:3000` | `http://127.0.0.1:3000` | `localhost` | `127.0.0.1:3000` | **false → 404** |
+| `http://localhost:3000` | `http://localhost:3000` | `localhost` | `127.0.0.1:3000` | true |
+| *(no `Origin`, e.g. curl)* | none | `localhost` | `127.0.0.1:3000` | true |
+
+Consequence: a reviewer who follows the advertised URL gets 404 on every Sandbox API call and sees a harness that appears broken. The run above therefore used `http://localhost:3000`, which is an explicitly allowed host in `SANDBOX_REQUEST_HOSTS` and connects to the same `127.0.0.1` listener.
+
+**Why CI did not catch it:** `world:sandbox-boundary-check` sends no `Origin` header on its positive-path assertion (row 3 above) and uses `attacker.example` for its negative assertion — which would be rejected regardless. No case exercises a legitimate browser `Origin`, which is the only shape that fails.
+
+Suggested repair, for Security to accept or reject: validate the `Origin`'s hostname against `SANDBOX_REQUEST_HOSTS` with a matching port, rather than string-comparing against a URL the framework rewrites. Add a boundary-check case that sends a legitimate loopback browser `Origin` and asserts it is accepted.
+
+This was deliberately **not** patched here: SEC-WORLD-005 is mid-review by its owner, and editing a security control during its retest risks colliding with that work.
 
 ### Configuration confirmed during the run
 
@@ -188,8 +217,8 @@ If World ID proof becomes load-bearing product authorization later, durable null
 
 A green build, `world:sandbox-check`, or `world:sandbox-boundary-check` is **not** Sandbox proof and is **not** independent Security clearance. Those checks establish that the harness is structurally configured according to the reviewed IDKit 4.x API surface and that the SEC-WORLD-005 transport repair behaves as intended in CI.
 
-Only after Security independently closes SEC-WORLD-005 should the qualifying human phone round trip be claimed. Only an actual Sandbox app round trip resulting in successful backend verification may upgrade this item to Sandbox evidence.
+Only an actual Sandbox app round trip resulting in successful backend verification may upgrade the Sandbox item to real evidence. That condition is met by run 2 on commit `ff0e2cd`, executed under the supported launch.
 
-The 2026-09-11 preliminary run predates the repair and therefore does not satisfy that condition, even though the World-side path it exercised succeeded. Its value is that it de-risks the integration: the remaining question is the transport boundary, not whether the proof flow works.
+That is a claim about the **World integration**, not about the transport boundary. SEC-WORLD-005 remains open pending independent Security retest, and the [Origin normalization defect](#origin-normalization-defect-found-2026-09-11) found during run 2 is unfixed. A successful proof round trip is not evidence that the local transport boundary is correct; those two questions are independent and only the first is now answered.
 
 That evidence remains separate from the registered-AgentKit signed recovery-route execution. Sandbox proof establishes that a human-backed World ID request can be made and verified; it does **not** establish booking authority. Final authority in YourTurn derives from the activated Ledger Recovery Mandate, and this harness does not create a second authority source.
