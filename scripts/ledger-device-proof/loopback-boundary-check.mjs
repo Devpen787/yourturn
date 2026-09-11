@@ -21,6 +21,7 @@
  * rather than silently passing.
  */
 import net from "node:net";
+import { spawn } from "node:child_process";
 import os from "node:os";
 import fs from "node:fs";
 import path from "node:path";
@@ -75,9 +76,16 @@ ok(!/\bnpm run dev:clean\b/.test(runbook), "runbook no longer launches the cerem
 
 // ---- 2 + 3. runtime denial ----
 const external = nonLoopbackIpv4();
+let runtimeExercised = false;
 if (!external) {
-  console.log("  SKIP  no non-loopback IPv4 interface on this host; runtime denial not exercised");
+  // Security condition: this branch must NOT be accepted as confinement evidence.
+  // Printing SKIP and still exiting 0 would let a no-interface host masquerade as a
+  // passing denial proof, so the check reports NOT EXERCISED and fails.
+  console.log("  NOT EXERCISED  no non-loopback IPv4 interface on this host");
+  console.log("                 runtime denial was not proven; this is NOT confinement evidence");
+  failures += 1;
 } else {
+  runtimeExercised = true;
   console.log(`  (probing against this host's non-loopback IPv4: ${external.replace(/\d+$/, "x")})`);
 
   const bound = await listen("127.0.0.1");
@@ -96,7 +104,62 @@ if (!external) {
     "control: an UNBOUND listener (today's `next dev -p 3000`) IS reachable on that address — the flag is load-bearing");
 }
 
+// --- OPT-IN: actual Next process binding evidence (--with-next) ---
+// Off by default so CI stays fast and deterministic. When enabled it starts the REAL
+// `next dev -H 127.0.0.1` on an ephemeral port with NO application env, probes it, and
+// kills it. No credentials, no device, no mandate, no transaction: this is a transport
+// probe of the supported launch flag, not the ceremony.
+if (process.argv.includes("--with-next")) {
+  console.log("\n  --with-next: starting the real Next dev server bound to 127.0.0.1 (no app env)");
+  const port = 39871;
+  const child = spawn("npx", ["next", "dev", "-H", "127.0.0.1", "-p", String(port)], {
+    cwd: root, stdio: "ignore", env: { PATH: process.env.PATH, HOME: process.env.HOME, NODE_ENV: "development" },
+  });
+  const waitReady = async () => {
+    for (let i = 0; i < 60; i += 1) {
+      const r = await connect("127.0.0.1", port, 500);
+      if (r.connected) return true;
+      await new Promise((z) => setTimeout(z, 1000));
+    }
+    return false;
+  };
+  try {
+    const up = await waitReady();
+    ok(up, "real Next dev server accepted a connection on 127.0.0.1");
+    if (up) {
+      if (external) {
+        const ext = await connect(external, port);
+        ok(!ext.connected, `real Next dev server REFUSES the non-loopback address  [${ext.reason ?? "connected"}]`);
+      }
+      // -H 127.0.0.1 binds IPv4 only; ::1 must therefore also be unreachable.
+      const v6 = await connect("::1", port);
+      ok(!v6.connected, `real Next dev server REFUSES IPv6 ::1 (IPv4-only bind is deliberate)  [${v6.reason ?? "connected"}]`);
+    }
+  } finally {
+    try { child.kill("SIGKILL"); } catch {}
+  }
+}
+
+// --- runbook / CI install consistency (both must enforce the committed helper lock) ---
+const runbookTxt = fs.readFileSync(runbookPath, "utf8");
+const ciPath = path.join(root, ".github/workflows/ethonline-ci.yml");
+const ci = fs.readFileSync(ciPath, "utf8");
+ok(!/npm install\s+--no-package-lock/.test(runbookTxt),
+   "runbook does NOT install the helper with --no-package-lock");
+ok(/cd scripts\/ledger-device-proof\s*\nnpm ci --legacy-peer-deps/.test(runbookTxt),
+   "runbook installs the helper with lock-enforcing npm ci --legacy-peer-deps");
+ok(!/npm install\s+--no-package-lock/.test(ci),
+   "CI does NOT install the helper with --no-package-lock");
+ok(/npm ci --legacy-peer-deps/.test(ci),
+   "CI installs the helper with lock-enforcing npm ci --legacy-peer-deps");
+ok(fs.existsSync(path.join(root, "scripts/ledger-device-proof/package-lock.json")),
+   "helper lockfile that both paths depend on is committed");
+
 console.log(`\nLedger ceremony transport boundary: ${failures === 0 ? "PASS" : "FAIL"} (${failures} failure(s))`);
-console.log("  Evidence class: LOCAL. Proves transport binding semantics only.");
+console.log(`  runtime denial branch: ${runtimeExercised ? "EXERCISED" : "NOT EXERCISED"}`);
+console.log("  Evidence class: LOCAL. Generic Node TCP listeners + static command/runbook assertions.");
+console.log(process.argv.includes("--with-next")
+  ? "  --with-next exercised the REAL Next dev process binding; still no HTTP/browser-Origin authorization check."
+  : "  Does NOT execute Next; run with --with-next for real-process binding evidence. No browser-Origin check either way.");
 console.log("  Does NOT prove device provenance, route authorization, or that a real ceremony occurred.");
 process.exit(failures === 0 ? 0 : 1);

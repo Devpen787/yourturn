@@ -1,12 +1,20 @@
 # Ledger Recovery Mandate — Physical DMK Qualification Runbook
 
-Status: **software-ready for physical qualification; LIVE/DEVICE remains unproven until this run succeeds on hardware**.
+Status: **NOT RELEASED FOR HARDWARE.** The exact runtime/dependency candidate must be independently dispositioned by Security before this ceremony runs. `LIVE/DEVICE` remains unproven until a real run succeeds on hardware.
+
+The earlier "software-ready" status is withdrawn: it predates the dependency remediation candidate and must not be read as current runtime clearance.
 
 This runbook is intentionally narrow. It proves that one identical, server-prepared EIP-712 Recovery Mandate can be rejected, host-cancelled, and approved through Ledger DMK; that only the approved hardware signature crosses YourTurn's guarded one-shot activation boundary; and that the signature cannot be replayed. It does **not** execute a recovery, move funds, or claim Ledger signs Hedera HTS transactions.
 
 ## Security prerequisite
 
-Do not run the physical ceremony unless Security #16 still shows both SEC-LEDGER-005 and SEC-LEDGER-006 independently closed for the current Ledger software boundary. The ceremony must run from `feature/ethonline-ledger` with its exact-head Continuity Gate green.
+Do not run the physical ceremony until **all** of the following hold:
+
+1. Security #16 shows SEC-LEDGER-005 and SEC-LEDGER-006 still independently closed for their exact authority-lifecycle claims. **These closures are necessary but NOT sufficient** — they say nothing about the current dependency/runtime candidate.
+2. Independent Security has dispositioned the exact dependency-remediation candidate and lifted the signing/app-credential-loading hold. Builder-reported test results are not that disposition.
+3. The ceremony runs from the exact cleared candidate with its exact-head Continuity Gate green.
+
+Inherited status lines elsewhere in this repository do not substitute for (2).
 
 ## Docs reviewed for this qualification
 
@@ -50,7 +58,7 @@ From the repository root:
 
 ```bash
 cd scripts/ledger-device-proof
-npm install --no-package-lock --legacy-peer-deps
+npm ci --legacy-peer-deps
 npm run address
 ```
 

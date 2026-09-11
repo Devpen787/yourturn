@@ -150,3 +150,64 @@ loopback bind **or** an equivalent fail-closed boundary; the bind is what v3 imp
 
 Helper lockfile, lock-enforcing `npm ci --legacy-peer-deps`, and the existing
 `qualification-contract-check.mjs`. All rerun below.
+
+
+## v4 — successor to v3 `5091626c`
+
+v3 is preserved unchanged as evidence. v4 closes the two bounded handoff items from
+#2 comment 5640706990 / #16 comment 5640704402, plus the skipped-branch defect Security
+identified in the boundary checker.
+
+### 1. Remote source chain completed
+
+v3's blob was only a v2→v3 delta, and the v2 patch blob and root-lock blob I quoted were
+**never published** — both returned 404. Listing a locally computed hash in a comment does
+not make an object remotely retrievable, and reporting them as identities was misleading.
+
+v4 publishes a **cumulative patch from the published base `7ac9e8ea3ba8` to the v4
+successor**, so reviewers need exactly one artifact with no chain gaps, plus the original
+v2 patch as its own no-ref blob so v2's stated identity becomes real. Both are read back
+and hash-verified. No ref, branch or tag is created.
+
+### 2. Runbook now matches CI, and readiness no longer over-claims
+
+Step 1 installed the helper with `npm install --no-package-lock --legacy-peer-deps`, so the
+committed lock was enforced in CI but **not** in the actual human ceremony install. It is now
+`npm ci --legacy-peer-deps`.
+
+The inherited `software-ready` status is **withdrawn** — it predates this remediation
+candidate and must not be read as current runtime clearance. The Security prerequisite now
+states explicitly that SEC-LEDGER-005/006 closure is **necessary but not sufficient**, and
+that independent disposition of the exact dependency/runtime candidate plus lifting of the
+signing/app-credential-loading hold are required before hardware.
+
+`loopback-boundary-check.mjs` gained assertions that the runbook and CI both install the
+helper lock-enforcing and never with `--no-package-lock`, so the two cannot drift apart again.
+
+### 3. Skipped branch can no longer masquerade as denial evidence
+
+Security showed that with `os.networkInterfaces = () => ({})` the checker printed SKIP and
+still exited 0. That branch now reports **NOT EXERCISED** and **fails**. Verified with the
+same synthetic probe: `FAIL (1 failure(s))`, `runtime denial branch: NOT EXERCISED`.
+
+### 4. Real-Next binding evidence (answers the open question)
+
+Security asked whether actual credential-free Next binding and IPv6 denial evidence is
+required. v4 provides it as an **opt-in** `--with-next` mode, off by default so CI stays
+deterministic. It starts the real `next dev -H 127.0.0.1` on an ephemeral port with **no
+application environment**, then probes:
+
+| Probe | Result |
+| --- | --- |
+| real Next dev server on `127.0.0.1` | **ACCEPTS** |
+| real Next dev server on this host's non-loopback IPv4 | **REFUSES** `ECONNREFUSED` |
+| real Next dev server on IPv6 `::1` | **REFUSES** `ECONNREFUSED` |
+
+So the IPv4-only bind is real in the actual supported process, not just in generic TCP
+semantics, and `::1` is genuinely unbound.
+
+**What this still does not prove:** it is a transport boundary only. No HTTP-level or
+browser-Origin authorization check was added to `/api/auth/demo-login` or
+`/api/ledger/recovery-mandate/activate`. Loopback binding does not address browser-origin
+risk from a page running on the operator's own machine. Remaining Next/protobuf/runtime risk
+disposition stays with independent Security; nothing here self-clears it.
