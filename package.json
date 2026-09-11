@@ -10,6 +10,8 @@
     "lint": "next lint",
     "ethglobal:preflight": "node scripts/ethglobal-preflight.mjs",
     "ethglobal:e2e": "node scripts/ethglobal-e2e.mjs",
+    "submission:preflight": "node scripts/submission-readiness.mjs",
+    "submission:gate": "SUBMISSION_READINESS_STRICT=1 node scripts/submission-readiness.mjs",
     "hedera:agent-check": "NODE_OPTIONS=--no-warnings node scripts/hedera-agent-check.mjs",
     "hedera:nft-delegation-proof": "NODE_OPTIONS=--no-warnings node scripts/hedera-nft-delegation-proof.mjs",
     "hedera:delegated-recovery-hak-check": "NODE_OPTIONS=--no-warnings node scripts/hedera-delegated-recovery-hak-check.mjs",

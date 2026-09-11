@@ -1,0 +1,300 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Deterministic ETHOnline submission-readiness manifest. This file records exact approved inputs and current gates; it does not authorize merge, deployment, funding, secret changes, or evidence promotion.",
+  "safety": {
+    "defaultOrSubmissionMergeAuthorized": false,
+    "productionDeploymentAuthorized": false,
+    "mainnetAuthorized": false,
+    "fundingAuthorizedByAutomation": false,
+    "secretMutationAuthorized": false
+  },
+  "continuity": {
+    "immutableBaseline": "d0b5f875afb4f2b29af29bc5972cf1edc404d473",
+    "frozenFoundation": "89ded956e67c343b7abefc36e33044c6064a7798"
+  },
+  "partnerTracks": {
+    "count": 3,
+    "exact": [
+      "Hedera Continuity",
+      "World AgentKit Continuity",
+      "Ledger Continuity"
+    ],
+    "deliberateChangeRecorded": false
+  },
+  "productTruth": {
+    "thesis": "Ledger defines what the human authorized; World proves which human-backed delegated agent is asking; Hedera enforces what the agent can do and settles/proves the result.",
+    "coreRule": "provider rules ∩ holder mandate ∩ acquirer eligibility/payment",
+    "golden": [
+      {
+        "slice": "YT-01→YT-04",
+        "executableSha": "24bbf0d7516499069f5102ae4bf724b0cb376b94",
+        "recordPath": "docs/product-workbench/golden/yt-01-04.md",
+        "recordSourceBranch": "ux/yourturn-product-workbench",
+        "humanApproved": true
+      },
+      {
+        "slice": "YT-05→YT-08",
+        "executableSha": "d5309a96d532ee107011c2a5cefc3000b9e4932f",
+        "recordPath": "docs/product-workbench/golden/yt-05-08.md",
+        "recordSourceBranch": "ux/yourturn-product-workbench",
+        "humanApproved": true,
+        "truthBoundary": "Golden freezes behavior/presentation, not sponsor evidence class. Sponsor-dependent transitions remain fixture until exact integration evidence replaces them."
+      }
+    ],
+    "crossStakeholderGolden": {
+      "slice": "XC-01 — Eligible next holder + provider-recognized handoff",
+      "executableSha": "046ad8d3cad863813dca7a3fc9cb09abaf5939e0",
+      "humanApproved": true,
+      "truthBoundary": "Golden product truth only; sponsor-dependent transitions remain fixture until exact integration evidence replaces them."
+    },
+    "currentPostGoldenWork": {
+      "slice": "R1a successor executable",
+      "executableSha": "8632b81a10f4501db7914b653da493966b04e250",
+      "continuityRun": "34611662531",
+      "status": "BOUNDED_R1A_REVIEWABLE_WHOLE_PRODUCT_REVISE_16_OF_32_GATE_RED_NOT_GOLDEN",
+      "independentReviewCommentId": 5638140666,
+      "submissionCritical": false,
+      "openGates": [
+        "Bob/provider continuity",
+        "NAV-04/NAV-06/NAV-07/NAV-08",
+        "B1-B4",
+        "R2-R5",
+        "independent exact-head whole-product acceptance and valid human Golden freeze approval"
+      ]
+    }
+  },
+  "integration": {
+    "heldHead": "1bf50c02dd3d925f2db03bd9ba0bbac4713c1380",
+    "contents": [
+      "Golden YT-01→YT-04 presentation contract",
+      "Hedera H0",
+      "curated Hedera H1"
+    ],
+    "integrationReady": false,
+    "reason": "Hedera has an independently qualified LIVE/TESTNET downstream checkpoint for the canonical booking NFT + 45-USDC settlement transaction, but World SEC-WORLD-006 remains OPEN/MEDIUM. First repair 4dd5cdc8... failed independent lease-expiry stale-writer retest in #16 comment 5638843971; exact successor 0a4127a4... now exists as unreferenced REVIEWABLE SOURCE / LOCAL-SYNTHETIC evidence with zero CI/status/workflow runs and awaits independent stale-writer plus original full-matrix retest requested in #16 comment 5639446526. The canonical Ledger-mandate bridge is missing, Ledger v2 369ea0d1... is still not GitHub-reconstructable and lacks runtime/loopback/device clearance, sponsor-backed fixture replacement is incomplete, and final integrated E2E is not complete. Ledger SEC-005/006 software authority lifecycle remains Security-green at CI/CONFIGURED."
+  },
+  "sponsors": {
+    "hedera": {
+      "head": "411f703e164cac82b5498c1f25a2cf21af7bc4be",
+      "continuityRun": "34616924464",
+      "liveVerificationRun": "34614623240",
+      "security": {
+        "secHedera007": "CLOSED_CI_LOCAL",
+        "independentAttackerHead": "12aafe157a3f854fd507b99439ef864060310165",
+        "independentRun": "34617031728",
+        "independentJob": "103321398168",
+        "independentArtifact": "10270457474",
+        "dispositionCommentId": 5636886313
+      },
+      "currentEvidence": "H0/H1 retain independently reviewed LIVE/TESTNET evidence; H2 guarded policy/replay remains CI/LOCAL + Security; canonical customer-visible booking NFT + 45-USDC settlement is LIVE/TESTNET + independent Security at the single Hedera settlement-transaction boundary",
+      "integrationReady": true,
+      "claimBoundary": "Qualified as a downstream Hedera checkpoint only. Transaction-scoped atomic wording is supported for testnet transaction 0.0.8504405@1789139309.785362819; the entire recovery workflow is not proven atomic and final Ledger→World→Hedera adversarial E2E remains required.",
+      "requirementToEvidence": {
+        "belowMinimum": {
+          "requirement": "32-USDC offer must fail before preparation/value movement under the 40-USDC minimum",
+          "code": "lib/hedera-agent-kit/policy-authorized-usdc-recovery.ts + scripts/hedera-policy-usdc-recovery-live.mjs",
+          "evidence": "Independent Security re-execution: BLOCK / BELOW_MINIMUM_RECOVERY, 0 nonce reservations, no RETURN_BYTES"
+        },
+        "canonicalSettlement": {
+          "requirement": "Customer-visible new recovery settles the exact BOOKED NFT and exactly 45 testnet USDC with no widened transfers",
+          "code": "lib/hedera-agent-kit/usdc-recovery-semantics.ts + scripts/hedera-usdc-recovery-existing-proof.mjs",
+          "evidence": "LIVE/TESTNET transaction 0.0.8504405@1789139309.785362819; independent Security run 34617031728 artifact 10270457474"
+        }
+      },
+      "blockers": []
+    },
+    "world": {
+      "head": "8aff17268adbad8e52b4b077c85bbe50034d6c13",
+      "continuityRun": "34622414540",
+      "sandboxEvidenceHead": "65383c83626a7121a6f47a3c88ac69b1304b363f",
+      "sandboxQualifyingRuntimeHead": "ff0e2cd0eec1ede1d4e28c2e1a99603e7832177f",
+      "sandboxContinuityRun": "34549541999",
+      "sandboxCleanupHead": "ccb07e45888a3c15ee691a5db7465029d76f4c7f",
+      "sandboxCleanupContinuityRun": "34553728277",
+      "security": {
+        "secWorld005": "CLOSED_CI_CONFIGURED",
+        "secWorld005IndependentRun": "34547005448",
+        "secWorld005AttackerHead": "98c399712fa6f38779df9666b982cf1b78a528f5",
+        "cleanupRegressionRetest": "CLEAN_CI_CONFIGURED_RUN_34558923596_ATTACKER_6e7523a4597ff3e0434758e9412c399ce8a819be",
+        "secWorld006": "OPEN_MEDIUM_INTEGRATION_BLOCKING",
+        "secWorld006AttackerHead": "b6f35a78d2b1a464aab82cd5cbd91fcbec6e53a5",
+        "secWorld006Run": "34622702126",
+        "secWorld006Job": "103340281661",
+        "repairCandidate": "4dd5cdc8d507991464cad093b4f6492cfa87cb6f",
+        "repairCandidateClass": "CANDIDATE_LOCAL_SYNTHETIC_UNREFERENCED_NOT_ADOPTED_FAILED_INDEPENDENT_RETEST",
+        "repairRetestCommentId": 5638843971,
+        "repairRetestDisposition": "FAILED_LEASE_EXPIRY_STALE_WRITER_CLOBBER_SEC_WORLD_006_REMAINS_OPEN",
+        "staleWriterReproducerSha256": "ed826aa7511e84dddaae45c5714ad4c528bc5d72fa92bd3c4cc7bd7b86279c5b",
+        "successorCandidate": "0a4127a413dba7232c226454570e42b08788b7b3",
+        "successorParent": "4dd5cdc8d507991464cad093b4f6492cfa87cb6f",
+        "successorCandidateClass": "CANDIDATE_REVIEWABLE_SOURCE_LOCAL_SYNTHETIC_UNREFERENCED_NOT_ADOPTED_ZERO_CI",
+        "successorSourceHandoffCommentId": 5639446526,
+        "successorIndependentRetestPassed": false,
+        "localSignerRuling": "NARROWLY_CLEARED_FOR_LOCAL_CREDENTIAL_LOADING_AND_SIGNATURE_PREPARATION_ONLY",
+        "credentialBearingTargetRuling": "HOLD_SEC_WORLD_006"
+      },
+      "currentEvidence": "LIVE/AGENTBOOK for registration/resolution; REAL NON-PRODUCTION SANDBOX proof with World v4 backend verification; Sandbox loopback/browser-Origin cleanup independently Security-clean; CI/READY, NOT LIVE/SIGNED-ROUTE for registered-agent recovery. SEC-WORLD-006 independently reproduces partial-commit failure semantics on create_listing and cancel_release. First unreferenced repair 4dd5cdc8... failed independent lease-expiry stale-writer retest in #16 comment 5638843971. Exact successor 0a4127a4... now exists as GitHub-retrievable CANDIDATE / REVIEWABLE SOURCE / LOCAL-SYNTHETIC only, with zero statuses/workflow runs and independent stale-writer plus original full-matrix retest pending from #16 comment 5639446526. Credential-bearing target mutation remains HOLD.",
+      "integrationReady": false,
+      "requirementToEvidence": {
+        "signedRequester": {
+          "requirement": "Only the exact registered human-backed delegated agent may pass the World requester gate",
+          "code": "lib/world-agentkit/server-verifier.ts + recovery-write-gate.ts + app/api/agent/confirm/route.ts",
+          "evidence": "CI/CONFIGURED + prior independent Security closures; no LIVE/SIGNED-ROUTE execution yet"
+        },
+        "failureAtomicityAndResume": {
+          "requirement": "An authorized World-protected recovery must not report a clean failure after durable local/Hedera effects or become unretryable solely because replay was consumed before a downstream partial commit; partial effects must be durably recorded and safely resumed/reconciled without duplicate value movement",
+          "code": "Published base fails in lib/adapters/booking-port.ts executeCreateListing/executeCancelRelease; first repair 4dd5cdc8d507991464cad093b4f6492cfa87cb6f adds durable operation/saga handling but failed stale-writer fencing; exact successor 0a4127a413dba7232c226454570e42b08788b7b3 changes lib/store/recovery-operations.ts + lib/world-agentkit/recovery-saga.ts + scripts/world-sec-world-006-stale-writer-regression.mjs, adding durable revision, exact-operation lease-token binding and Redis Lua saves fenced on current lease token + expected revision",
+          "evidence": "RED — SEC-WORLD-006 OPEN/MEDIUM. Base partial-commit failure independently reproduced by attacker b6f35a78... run 34622702126 job 103340281661. First repair 4dd5cdc8... independently failed lease-expiry stale-writer retest in #16 comment 5638843971. Successor 0a4127a4... is unreferenced REVIEWABLE SOURCE / LOCAL-SYNTHETIC with zero CI/status/workflow runs; independent stale-writer + original listing-HCS / burn-after-transfer / HCS-after-transfer+burn / unknown-receipt / concurrent-or-changed-scope full-matrix retest is pending under #16 comment 5639446526."
+        }
+      },
+      "blockers": [
+        "Independently rerun the lease-expiry stale-writer sequence plus the original SEC-WORLD-006 listing-HCS / burn-after-transfer / HCS-after-transfer+burn / unknown-receipt / concurrent-or-changed-scope resume matrix against exact successor 0a4127a413dba7232c226454570e42b08788b7b3; adopt only after clean independent closure",
+        "Adopt/review the bounded proof-response hardening separately; LOCAL/FIXTURE evidence alone is not qualification",
+        "After target clearance, execute one locally signed registered-agent recovery route against initialized non-production YourTurn state and capture reviewer-safe LIVE/SIGNED-ROUTE evidence",
+        "Replace branch-local ApprovalGrant authority scaffolding with canonical activated Ledger Recovery Mandate projection for final integration"
+      ]
+    },
+    "ledger": {
+      "head": "7ac9e8ea3ba8a51ff3ec889774fd8f8724677b4d",
+      "continuityRun": "34558524222",
+      "security": {
+        "secLedger005": "CLOSED_CI_CONFIGURED",
+        "secLedger006": "CLOSED_CI_CONFIGURED",
+        "independentAttackerHead": "7e03f28ad0182ff1aec112a8a05ddd5a2bfcf914",
+        "independentRun": "34555366707",
+        "dependencySigningHold": "OPEN_PRECAUTIONARY_TRIAGE_DOES_NOT_REOPEN_SEC005_006",
+        "dependencyHoldIssue": 16,
+        "dependencyHoldCommentId": 5634713735,
+        "latestRuntimeReviewCommentId": 5638105252,
+        "sourceHandoffBlockedCommentId": 5637990536,
+        "localV2Candidate": "369ea0d13d84abb61bad9368ea9d96acdd2dbdfd",
+        "localV2BuilderResultsCommentId": 5637571899
+      },
+      "currentEvidence": "CI/CONFIGURED with SEC-LEDGER-005 and SEC-LEDGER-006 independently closed; physical ceremony contract/runbook exact-head CI GREEN. Current local v2 dependency-remediation candidate 369ea0d1... has builder-reported corrected qualification-contract testing, lock-enforcing helper npm ci and safe local battery, but exact v2 source/locks are not GitHub-reconstructable. Independent Security also requires exact-source review plus explicit loopback or equivalent fail-closed local transport/origin confinement before device release. LIVE/DEVICE remains RED.",
+      "integrationReady": false,
+      "blockers": [
+        "Publish exact sanitized base→v2 369ea0d1... source/locks/hashes by a non-deploying GitHub review path so Ledger intake and Security can reconstruct the candidate",
+        "Obtain independent Security acceptance for the exact v2 runtime dependency graph and explicit loopback or equivalent fail-closed local transport/origin boundary with executable non-loopback denial before credential loading, ceremony-app startup, mandate signing/activation or physical device action",
+        "After Security reopens the session, execute the pinned identical-mandate physical DMK reject -> host cancel -> approve ceremony and capture reviewer-safe evidence before claiming LIVE/DEVICE",
+        "Consume final downstream authority only through loadActiveRecoveryMandate() or an equivalent atomic guarded boundary with current stable authority version and live holder/status/provider-policy/listing revalidation",
+        "Prove the final integrated Ledger→World→Hedera path preserves stale/revoked/out-of-scope fail-closed and one-shot replay behavior"
+      ]
+    }
+  },
+  "externalActions": {
+    "hederaTestnetLiquidity": {
+      "status": "RESOLVED_NO_FURTHER_FUNDING_REQUIRED",
+      "account": "0.0.8504405",
+      "targetHeroSettlementUsdc": "45.00",
+      "freshBalanceCheckRequired": false,
+      "proofCaptured": true,
+      "liveTransaction": "0.0.8504405@1789139309.785362819",
+      "realOrMainnetFundsAuthorized": false
+    },
+    "worldSandbox": {
+      "status": "COMPLETE_REAL_NON_PRODUCTION_SANDBOX_PROOF",
+      "evidenceHead": "65383c83626a7121a6f47a3c88ac69b1304b363f",
+      "qualifyingRuntimeHead": "ff0e2cd0eec1ede1d4e28c2e1a99603e7832177f",
+      "continuityRun": "34549541999",
+      "securityFinding": "SEC-WORLD-005_CLOSED_CI_CONFIGURED",
+      "securityClosureRun": "34547005448",
+      "proofCaptured": true,
+      "backendVerificationSucceeded": true,
+      "productionIdentityClaim": false
+    },
+    "worldSignedRoute": {
+      "runnerReady": true,
+      "preflightHead": "8aff17268adbad8e52b4b077c85bbe50034d6c13",
+      "preflightContinuityRun": "34622414540",
+      "localSignerPreparationCleared": true,
+      "credentialBearingTargetMutationAuthorized": false,
+      "securityFinding": "SEC_WORLD_006_OPEN_MEDIUM",
+      "securityRun": "34622702126",
+      "firstRepairCandidate": "4dd5cdc8d507991464cad093b4f6492cfa87cb6f",
+      "firstRepairIndependentRetestPassed": false,
+      "repairRetestCommentId": 5638843971,
+      "successorCandidate": "0a4127a413dba7232c226454570e42b08788b7b3",
+      "successorCandidateClass": "CANDIDATE_REVIEWABLE_SOURCE_LOCAL_SYNTHETIC_UNREFERENCED_ZERO_CI_NOT_ADOPTED",
+      "successorSourceHandoffCommentId": 5639446526,
+      "successorIndependentRetestPassed": false,
+      "requiredSuccessor": "Exact successor exists; independent stale-writer rollover plus original SEC-WORLD-006 full-matrix retest and reviewed adoption are required before target clearance",
+      "liveExecutionCaptured": false,
+      "privateKeyMustRemainLocal": true
+    },
+    "ledgerDevice": {
+      "status": "RED_DEPENDENCY_SECURITY_HOLD_NO_MANDATE_PROOF",
+      "softwareGateSec005Closed": true,
+      "softwareGateSec006Closed": true,
+      "publicAddressVerificationCompleted": true,
+      "mandateSignatureCaptured": false,
+      "mandateActivated": false,
+      "dependencyTriageRequired": true,
+      "localV2Candidate": "369ea0d13d84abb61bad9368ea9d96acdd2dbdfd",
+      "localV2GitHubReconstructable": false,
+      "sourceHandoffBlockedCommentId": 5637990536,
+      "runtimeReviewCommentId": 5638105252,
+      "dependencyAuditObserved": {
+        "initialIsolatedHelper": "7 entries: 6 moderate, 1 high",
+        "initialRootInstall": "32 entries: 8 low, 7 moderate, 15 high, 2 critical; exact root advisory/reachability disposition pending",
+        "v2BuilderReportedHelper": "0 vulnerabilities after helper npm ci; not independently accepted until exact v2 source/locks are reconstructable",
+        "v2BuilderReportedRoot": "32 -> 23 residuals; not independently accepted until exact v2 source/locks are reconstructable"
+      },
+      "requiredEvidence": "Exact v2 source/lock reconstruction + independent runtime/dependency and loopback/local-origin clearance, then identical Recovery Mandate real DMK approve plus reject/cancel with reviewer-safe outputs",
+      "runbookHead": "7ac9e8ea3ba8a51ff3ec889774fd8f8724677b4d",
+      "continuityRun": "34558524222",
+      "runbookPath": "docs/ethonline-2026/ledger/DEVICE_QUALIFICATION_RUNBOOK.md"
+    }
+  },
+  "submissionPackage": {
+    "publicReadme": {
+      "status": "RED",
+      "heldIntegrationSha": "1bf50c02dd3d925f2db03bd9ba0bbac4713c1380",
+      "currentState": "Held integration README still presents the pre-event Week 5 Hedera submission and does not yet contain the final ETHOnline Continuity before/after section.",
+      "requiredBeforeLock": "One public ETHOnline README that clearly separates the immutable pre-event baseline from the new Delegated Recovery work and links only evidence valid for the final integrated candidate."
+    },
+    "stableDeployment": {
+      "status": "RED",
+      "currentDeclaredUrl": "https://yourturn-sage.vercel.app",
+      "currentState": "The declared stable URL belongs to the pre-event Week 5 surface, not a final integrated ETHOnline candidate. PR #42's readiness preview deployment also hit the Vercel free-tier daily deployment limit, so no final candidate URL is pinned here.",
+      "requiredBeforeLock": "Pin and verify one stable reviewer-facing URL for the final integrated ETHOnline candidate; do not substitute a stale baseline or unqualified sponsor preview."
+    },
+    "video": {
+      "status": "RED",
+      "finalVideoPinned": false,
+      "requiredBeforeLock": "Pin the final judge-facing video asset and confirm any applicable duration limit against the final sponsor/submission requirements."
+    },
+    "screenshots": {
+      "status": "PARTIAL",
+      "currentState": "Golden YT-01→YT-08 and XC-01 product evidence exists, but final integrated sponsor-backed screenshots/receipt evidence do not.",
+      "requiredBeforeLock": "Select reviewer-safe final screenshots bound to the exact integrated candidate and exact evidence classes."
+    },
+    "submissionFields": {
+      "status": "RED",
+      "finalCopyLocked": false,
+      "requiredBeforeLock": "Lock final project description, Continuity before/after, exactly three partner selections, repo/demo/evidence links, stable deployment link and video/screenshots only after their evidence is current."
+    },
+    "evidencePack": {
+      "status": "RED",
+      "contractExists": true,
+      "reason": "The pack contract exists, but World SEC-WORLD-006 remains OPEN: first candidate 4dd5cdc8... failed independent stale-writer retest and exact successor 0a4127a4... remains unreferenced REVIEWABLE SOURCE / LOCAL-SYNTHETIC pending independent full-matrix closure/adoption; World LIVE/SIGNED-ROUTE plus canonical-mandate bridge, Ledger v2 exact-source/runtime/loopback clearance plus LIVE/DEVICE evidence, sponsor-backed fixture replacement and final integrated E2E remain missing. Hedera's canonical 45-USDC settlement transaction is qualified LIVE/TESTNET at its exact transaction boundary."
+    }
+  },
+  "finalAcceptance": {
+    "requiredSequence": [
+      "Ledger rejects → no authority",
+      "Ledger approves exact 40-USDC minimum mandate",
+      "Wrong World agent → blocked before execution",
+      "Exact delegated human-backed World agent → accepted requester",
+      "Injected World downstream failure after any durable effect → operation is explicitly partial/reconciling and safely resumable/idempotent; no duplicate economic effect and no false clean failure",
+      "32-USDC offer → blocked with no booking transfer and no settlement",
+      "Stale/revoked/provider-invalid mandate or rule → blocked",
+      "Eligible Bob + authorized 45-USDC payment → allowed",
+      "Hedera executes exactly one booking transfer + exact settlement",
+      "Maya receives 45 USDC and no longer has usable Friday Yoga",
+      "Bob becomes authoritative normal usable holder",
+      "Studio A recognizes Bob for fulfilment/check-in",
+      "Replay → blocked/idempotent with no duplicate value movement"
+    ],
+    "readyForSubmission": false
+  }
+}
