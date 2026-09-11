@@ -114,6 +114,14 @@ function expectationFromPrepared(
   };
 }
 
+function assertRecordedAuthorityStateVersion(version: number): void {
+  if (!Number.isSafeInteger(version) || version < 0 || version % 2 !== 0) {
+    throw new Error(
+      "Active recovery mandate has an invalid captured authority state version"
+    );
+  }
+}
+
 export function preparedRecoveryMandateKey(mandateId: string): string {
   return `bookedrights:ledger:mandate-prepared:${mandateId}`;
 }
@@ -257,10 +265,22 @@ export async function activatePreparedRecoveryMandate(input: {
   return { verified, active };
 }
 
+/**
+ * Load an active mandate only when the mutable product authority that justified
+ * activation is still current. The captured version is checked on both sides
+ * of a fresh holder/status/provider-policy/listing read. A serialized mutation
+ * that completed after activation, or that races this validation, therefore
+ * makes the active record unusable instead of silently reviving stale authority.
+ *
+ * Downstream recovery code must use this guarded loader at the authority-
+ * consuming boundary; reading `mandate-active:*` directly is not authorization.
+ */
 export async function loadActiveRecoveryMandate(input: {
   store: RecoveryMandateStateStore;
+  authorityBoundaryStore: RecoveryMandateAuthorityBoundaryStore;
   mandateId: string;
   ownerId: string;
+  revalidateMutableAuthority: RecoveryMandateActivationRevalidator;
 }): Promise<{ record: ActiveRecoveryMandateRecord; mandate: RecoveryMandate }> {
   const raw = await input.store.get<ActiveRecoveryMandateRecord | string>(
     activeRecoveryMandateKey(input.mandateId)
@@ -276,5 +296,45 @@ export async function loadActiveRecoveryMandate(input: {
   if (mandate.ownerId !== input.ownerId || mandate.mandateId !== input.mandateId) {
     throw new Error("Active recovery mandate record failed owner/id integrity check");
   }
+  if (!input.authorityBoundaryStore) {
+    throw new Error(
+      "Active recovery mandate loading requires the authoritative booking state boundary"
+    );
+  }
+  if (typeof input.revalidateMutableAuthority !== "function") {
+    throw new Error(
+      "Active recovery mandate loading requires live booking authority revalidation"
+    );
+  }
+
+  assertRecordedAuthorityStateVersion(record.authorityStateVersion);
+
+  const authorityStateVersionBefore =
+    await readStableRecoveryMandateAuthorityVersion({
+      store: input.authorityBoundaryStore,
+      bookingSerial: mandate.bookingSerial,
+    });
+  if (authorityStateVersionBefore !== record.authorityStateVersion) {
+    throw new Error(
+      "Active recovery mandate is stale because booking authority state changed after activation"
+    );
+  }
+
+  await input.revalidateMutableAuthority(mandate);
+
+  const authorityStateVersionAfter =
+    await readStableRecoveryMandateAuthorityVersion({
+      store: input.authorityBoundaryStore,
+      bookingSerial: mandate.bookingSerial,
+    });
+  if (
+    authorityStateVersionAfter !== record.authorityStateVersion ||
+    authorityStateVersionAfter !== authorityStateVersionBefore
+  ) {
+    throw new Error(
+      "Booking authority state changed while validating the active recovery mandate"
+    );
+  }
+
   return { record, mandate };
 }
