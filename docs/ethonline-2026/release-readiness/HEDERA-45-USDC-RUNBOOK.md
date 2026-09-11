@@ -1,6 +1,6 @@
-# Hedera 45-USDC LIVE/TESTNET Proof Runbook
+# Hedera 45-USDC LIVE/TESTNET Proof Runbook + Qualification Record
 
-Purpose: make the eventual canonical Hedera proof mechanical and reviewer-safe. This document **does not authorize funding, signing, submission, secret changes, mainnet use, or production deployment**.
+Purpose: preserve the exact canonical Hedera proof contract and its reviewer-safe qualification record. This document **does not authorize funding, signing, another submission, secret changes, mainnet use, or production deployment**.
 
 ## Frozen product semantics
 
@@ -11,87 +11,92 @@ Purpose: make the eventual canonical Hedera proof mechanical and reviewer-safe. 
 - Customer outcome: **`You recovered 45 USDC`**.
 - Provider policy is pre-defined/load-bearing; no manual provider approval is added for a compliant recovery.
 
-## Current external prerequisite
+## Current qualification — COMPLETE for the exact Hedera transaction boundary
 
-Public-state preflight previously established testnet account `0.0.8504405` at **19.98 testnet USDC**. The canonical 45-USDC proof therefore requires **+25.02 testnet USDC** to that existing testnet account.
+The former testnet-liquidity prerequisite is resolved. **No additional funding action is required or authorized by this runbook.**
 
-That top-up is a human/external action. Automation must not perform it. No real/mainnet funds are requested or authorized.
+Qualified sponsor checkpoint:
 
-## Software gate before the run
+`feature/ethonline-hedera@411f703e164cac82b5498c1f25a2cf21af7bc4be`
 
-Use exact Hedera sponsor head:
+Credential-bearing canonical transaction lineage:
 
-`40890aab7729075edbf5efac5f5367f4b5a022e1`
+`4e21ad340b9ac9d14567aeeb57f528a4353fcd83`
 
-Required precondition:
+Exact public Hedera Testnet transaction:
 
-- SEC-HEDERA-007 remains independently CLOSED at CI/LOCAL (independent run `34489546446`).
-- Exact-head Continuity remains green (`34487132901`) or a newer exact-head run is explicitly reviewed.
-- No unreviewed sponsor-head drift is substituted for this SHA.
+`0.0.8504405@1789139309.785362819`
 
-## Preflight — no mutation
+Verification / review:
 
-Before signing/submission, verify only public/config state:
+- exact-head Continuity `34616924464` — SUCCESS;
+- existing-live-proof verification `34614623240` — SUCCESS;
+- independent Security attacker `12aafe157a3f854fd507b99439ef864060310165`;
+- Security run `34617031728`, job `103321398168` — SUCCESS;
+- Security artifact `10270457474`;
+- Security disposition: #16 comment `5636886313`.
 
-1. Hedera network is exactly **testnet**.
-2. Testnet USDC token is exactly the intended existing token for this proof (`0.0.429274`).
-3. Existing role/account mapping is the reviewed mapping for the current runner.
-4. `0.0.8504405` has at least **45.00 testnet USDC** after the external top-up.
-5. Required BOOKED serial/ownership state still matches the runner's expected holder/spender/receiver roles.
-6. Provider policy state resolves to the exact allowed state/version expected by the recovery invocation.
-7. No secret values are printed; only secret presence may be checked.
-8. The 32-USDC negative remains executable and fails before nonce/RETURN_BYTES/value movement.
+The independent review re-read public Testnet state rather than trusting filtered sponsor output. It established:
 
-If any preflight fails, stop before mutation.
+- exactly one BOOKED NFT transfer: token `0.0.8505698`, serial `213`, `0.0.8504300 -> 0.0.8504715`, `is_approval=true`;
+- exactly two fungible-token transfer entries, both testnet USDC `0.0.429274`;
+- exact USDC movement: `-45,000,000` from `0.0.8504405`, `+45,000,000` to `0.0.8504300`;
+- transaction result `SUCCESS`;
+- final owner of serial `213`: `0.0.8504715`;
+- final observed USDC balances: `34,980,000` for `0.0.8504405` and `45,020,000` for `0.0.8504300`.
 
-## Canonical proof sequence
+The independent verifier also rejected widened or incorrect in-memory variants: an extra NFT transfer, an extra unrelated fungible transfer, the wrong USDC amount, and the wrong NFT receiver.
 
-The exact proof should establish, in order:
+## Policy boundary proven alongside the live settlement
+
+The same review re-executed the policy controls without secrets or mutation:
 
 1. **32-USDC negative**
-   - same booking/mandate/provider rule;
-   - decision is below-minimum BLOCK;
-   - no prepared/submitted transfer;
-   - no booking ownership change;
-   - no settlement movement.
+   - decision: `BLOCK / BELOW_MINIMUM_RECOVERY`;
+   - 0 nonce reservations;
+   - no `RETURN_BYTES`;
+   - static execution-order assertions require denial before owner-secret loading.
 
 2. **45-USDC positive**
-   - same 40-USDC mandate minimum;
-   - exact provider rule remains valid;
-   - exact delegated recovery action is allowed;
-   - prepared bytes decode to exactly one intended BOOKED NFT movement and exactly one 45-USDC HTS movement;
-   - no extra token/HBAR movement;
-   - signing/submission uses the reviewed noncustodial/external signer boundary;
-   - Hedera testnet receipt succeeds.
+   - same 40-USDC minimum;
+   - preparation succeeds;
+   - decoded bytes pass the exact NFT + USDC semantic validator;
+   - static execution-order assertions require semantic validation before spender-secret loading/signing.
 
-3. **Authoritative reconciliation**
-   - Mirror/HashScan/public state confirms the intended BOOKED serial owner changed to the intended receiver/acquirer role;
-   - Maya/current holder received exactly 45 USDC;
-   - transaction/receipt/final-state references agree;
-   - replay of the same execution cannot cause a second transfer/settlement.
+H2 guarded policy/replay remains separately qualified at `CI/LOCAL + Security`; the live settlement does not relabel every H2 component as LIVE.
 
-## Evidence capture
+## Exact code / evidence mapping
 
-Only public/reviewer-safe fields may be recorded:
+| Requirement | Code path | Evidence |
+| --- | --- | --- |
+| 40-USDC mandate minimum / 32-USDC block | `lib/hedera-agent-kit/policy-authorized-usdc-recovery.ts`, `scripts/hedera-policy-usdc-recovery-live.mjs` | independent re-execution in Security run `34617031728` |
+| Exact combined booking + USDC semantics | `lib/hedera-agent-kit/usdc-recovery-semantics.ts` | decoded transaction semantics + independent widened-transfer attacks |
+| Existing live public transaction verification | `scripts/hedera-usdc-recovery-existing-proof.mjs`, workflow `.github/workflows/ethonline-hedera-usdc-recovery-existing-proof.yml` | run `34614623240`; public tx `0.0.8504405@1789139309.785362819` |
+| Independent live-artifact qualification | Security attacker `12aafe157a3f854fd507b99439ef864060310165` | run `34617031728`, artifact `10270457474`, #16 comment `5636886313` |
 
-- exact source SHA;
-- workflow/run/artifact identifier if GitHub Actions is used;
-- Hedera **testnet** transaction id/hash;
-- token id and booking serial;
-- public account ids needed to establish role/state;
-- receipt status;
-- pre/post public ownership;
-- pre/post public USDC balances sufficient to establish exact 45-USDC movement;
-- 32-USDC negative result;
-- evidence timestamp;
-- explicit evidence class.
+## Claim boundary
 
-Never record private keys, raw environment output, secret values, recovery material, or unrelated account data.
+Allowed judge-facing wording:
 
-## Promotion rule
+> On Hedera Testnet, YourTurn atomically settled the booking NFT and 45 USDC in one successful Hedera transaction.
 
-A successful builder-run artifact is **not self-certifying**. After the run, Security #16 must independently inspect the exact live artifact and verify the transaction literally contains the intended booking and USDC movements with no widening.
+Equivalent wording is allowed only when **atomicity is explicitly scoped to this single Hedera settlement transaction**.
 
-Only after that review may the new customer recovery path be promoted to LIVE/TESTNET or marked integration-ready.
+Do **not** claim:
 
-Do not use the word **atomic** for the customer recovery claim until one actual independently verified Hedera transaction contains both movements and final state reconciles.
+- the entire Ledger → World → Hedera recovery workflow is atomic;
+- the serial-allowance setup occurred in the same transaction;
+- the final cross-sponsor adversarial E2E is complete;
+- the one-shot in-process replay store used for this LIVE proof is itself durable Redis replay evidence.
+
+Durable replay remains a separate CI/Security-cleared claim, and the final integrated authority path remains a separate submission gate.
+
+## Evidence privacy
+
+Reviewer-safe evidence may include only exact public source SHAs, workflow/run/artifact references, public Hedera testnet transaction IDs, token/serial/account IDs needed to establish the public transaction, receipt/final state, and evidence labels.
+
+Never publish private keys, raw environment output, secret values, recovery material, or unrelated account data.
+
+## Reproduction rule
+
+This record is no longer a funding or execution request. Any later reproduction must independently re-establish testnet role/state prerequisites and receive the appropriate human/security authorization before signing or submitting. A rerun is **not required for the existing qualified transaction-boundary claim** unless the qualifying code/evidence claim changes.
