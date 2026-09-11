@@ -71,6 +71,11 @@ jobs:
         # launch is reachable only through 127.0.0.1. No RP signing key is used.
         run: npm run world:sandbox-boundary-check
 
+      - name: Independent World Sandbox Origin regression attack
+        # Security retest for the localhost/127.0.0.1 browser-Origin cleanup.
+        # No RP key is configured and no provider call or signature is allowed.
+        run: NODE_OPTIONS=--no-warnings node scripts/security/world-sandbox-origin-regression-retest.mjs
+
       - name: Continuity baseline must remain documented
         run: |
           grep -q 'd0b5f875afb4f2b29af29bc5972cf1edc404d473' docs/ethonline-2026/CONTINUITY_BASELINE.md
