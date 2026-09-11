@@ -64,23 +64,37 @@
       "curated Hedera H1"
     ],
     "integrationReady": false,
-    "reason": "Hedera H2/USDC LIVE proof, World signed-route plus canonical Ledger-mandate bridge, Ledger dependency-security clearance plus DEVICE evidence, sponsor-backed fixture replacement and final integrated E2E are not complete. Ledger SEC-005/006 software authority lifecycle is Security-green at CI/CONFIGURED and the ceremony contract is CI-green, but a separate dependency triage currently blocks credential loading, app startup, mandate signing/activation and the physical ceremony."
+    "reason": "Hedera now has an independently qualified LIVE/TESTNET downstream checkpoint for the canonical booking NFT + 45-USDC settlement transaction, but World signed-route plus canonical Ledger-mandate bridge, Ledger dependency-security clearance plus DEVICE evidence, sponsor-backed fixture replacement and final integrated E2E are not complete. Ledger SEC-005/006 software authority lifecycle is Security-green at CI/CONFIGURED and the ceremony contract is CI-green, but a separate dependency triage currently blocks credential loading, app startup, mandate signing/activation and the physical ceremony."
   },
   "sponsors": {
     "hedera": {
-      "head": "40890aab7729075edbf5efac5f5367f4b5a022e1",
-      "continuityRun": "34487132901",
+      "head": "411f703e164cac82b5498c1f25a2cf21af7bc4be",
+      "continuityRun": "34616924464",
+      "liveVerificationRun": "34614623240",
       "security": {
         "secHedera007": "CLOSED_CI_LOCAL",
-        "independentRun": "34489546446"
+        "independentAttackerHead": "12aafe157a3f854fd507b99439ef864060310165",
+        "independentRun": "34617031728",
+        "independentJob": "103321398168",
+        "independentArtifact": "10270457474",
+        "dispositionCommentId": 5636886313
       },
-      "currentEvidence": "CI/LOCAL for new H2-bound NFT+USDC recovery; H0/H1 retain their independently verified LIVE/TESTNET evidence",
-      "integrationReady": false,
-      "blockers": [
-        "Freshly verify the configured testnet USDC balance and role prerequisites after the reported top-up; do not reuse the historical 19.98 balance / 25.02 shortfall as current truth without recheck",
-        "Execute canonical 45-USDC LIVE/TESTNET recovery while preserving 40-USDC minimum and 32-USDC denial",
-        "Independently Security-review the exact live artifact before promotion"
-      ]
+      "currentEvidence": "H0/H1 retain independently reviewed LIVE/TESTNET evidence; H2 guarded policy/replay remains CI/LOCAL + Security; canonical customer-visible booking NFT + 45-USDC settlement is LIVE/TESTNET + independent Security at the single Hedera settlement-transaction boundary",
+      "integrationReady": true,
+      "claimBoundary": "Qualified as a downstream Hedera checkpoint only. Transaction-scoped atomic wording is supported for testnet transaction 0.0.8504405@1789139309.785362819; the entire recovery workflow is not proven atomic and final Ledger→World→Hedera adversarial E2E remains required.",
+      "requirementToEvidence": {
+        "belowMinimum": {
+          "requirement": "32-USDC offer must fail before preparation/value movement under the 40-USDC minimum",
+          "code": "lib/hedera-agent-kit/policy-authorized-usdc-recovery.ts + scripts/hedera-policy-usdc-recovery-live.mjs",
+          "evidence": "Independent Security re-execution: BLOCK / BELOW_MINIMUM_RECOVERY, 0 nonce reservations, no RETURN_BYTES"
+        },
+        "canonicalSettlement": {
+          "requirement": "Customer-visible new recovery settles the exact BOOKED NFT and exactly 45 testnet USDC with no widened transfers",
+          "code": "lib/hedera-agent-kit/usdc-recovery-semantics.ts + scripts/hedera-usdc-recovery-existing-proof.mjs",
+          "evidence": "LIVE/TESTNET transaction 0.0.8504405@1789139309.785362819; independent Security run 34617031728 artifact 10270457474"
+        }
+      },
+      "blockers": []
     },
     "world": {
       "head": "8aff17268adbad8e52b4b077c85bbe50034d6c13",
@@ -127,12 +141,12 @@
   },
   "externalActions": {
     "hederaTestnetLiquidity": {
-      "status": "TOP_UP_REPORTED_FRESH_PUBLIC_BALANCE_UNVERIFIED",
+      "status": "RESOLVED_NO_FURTHER_FUNDING_REQUIRED",
       "account": "0.0.8504405",
-      "lastVerifiedTestnetUsdc": "19.98",
-      "historicalRequiredAdditionalTestnetUsdc": "25.02",
       "targetHeroSettlementUsdc": "45.00",
-      "freshBalanceCheckRequired": true,
+      "freshBalanceCheckRequired": false,
+      "proofCaptured": true,
+      "liveTransaction": "0.0.8504405@1789139309.785362819",
       "realOrMainnetFundsAuthorized": false
     },
     "worldSandbox": {
@@ -202,7 +216,7 @@
     "evidencePack": {
       "status": "RED",
       "contractExists": true,
-      "reason": "The pack contract exists, but Hedera 45-USDC LIVE evidence, World signed-route/canonical-mandate bridge, Ledger dependency-security clearance plus LIVE/DEVICE evidence, sponsor-backed fixture replacement and the final integrated E2E remain missing."
+      "reason": "The pack contract exists, but World signed-route/canonical-mandate bridge, Ledger dependency-security clearance plus LIVE/DEVICE evidence, sponsor-backed fixture replacement and the final integrated E2E remain missing. Hedera's canonical 45-USDC settlement transaction is now qualified LIVE/TESTNET at its exact transaction boundary."
     }
   },
   "finalAcceptance": {
