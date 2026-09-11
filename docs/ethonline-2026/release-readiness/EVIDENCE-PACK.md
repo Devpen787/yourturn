@@ -1,12 +1,12 @@
 # ETHOnline Final Evidence Pack Contract
 
-This file defines the **shape of the final proof pack before the final proofs exist**. Empty/missing slots stay explicitly missing; they must never be filled with fixture or CI evidence under a LIVE label.
+This file defines the **shape of the final proof pack before all final proofs exist**. Empty/missing slots stay explicitly missing; they must never be filled with fixture or CI evidence under a LIVE label.
 
 ## Evidence principles
 
 - One customer transaction, not three sponsor demos.
 - Every claim points to an exact source SHA and exact evidence reference.
-- Evidence classes are literal: `FIXTURE`, `CI/LOCAL`, `CI/CONFIGURED`, `LIVE/AGENTBOOK`, `LIVE/SIGNED-ROUTE`, `LIVE/TESTNET`, `LIVE/DEVICE`.
+- Evidence classes are literal: `FIXTURE`, `CI/LOCAL`, `CI/CONFIGURED`, `LIVE/AGENTBOOK`, `SANDBOX`, `LIVE/SIGNED-ROUTE`, `LIVE/TESTNET`, `LIVE/DEVICE`.
 - Customer success is shown first; sponsor evidence is secondary/expandable.
 - Exactly three partner tracks remain in scope unless deliberately changed: Hedera Continuity, World AgentKit Continuity, Ledger Continuity.
 - No private key, raw AgentKit signature/header, raw World human id/proof, recovery phrase, device secret, admin secret, Redis credential, or environment dump.
@@ -18,36 +18,48 @@ Required:
 - immutable pre-event baseline SHA;
 - frozen foundation SHA;
 - final integrated candidate SHA;
-- exact Golden YT-01→04 and YT-05→08 SHAs;
+- exact Golden YT-01→04, YT-05→08 and XC-01 SHAs;
 - exact qualified Hedera / World / Ledger SHAs;
 - final `manifest.json` snapshot.
 
 ### 01 — Golden customer journey
 Required:
-- reviewed desktop/mobile Golden evidence for YT-01→08;
-- human Golden records;
+- reviewed desktop/mobile Golden evidence for YT-01→08 and XC-01;
+- human Golden records/approval evidence;
 - explicit note that Golden freezes behavior/presentation, not sponsor evidence class.
+
+Current Golden truth:
+- YT-01→04: `24bbf0d7516499069f5102ae4bf724b0cb376b94`;
+- YT-05→08: `d5309a96d532ee107011c2a5cefc3000b9e4932f`;
+- XC-01: `046ad8d3cad863813dca7a3fc9cb09abaf5939e0`.
 
 ### 02 — Ledger authorization
 Required before `LIVE/DEVICE`:
 - exact Recovery Mandate fields/hash sufficient to prove sameness without secret leakage;
 - real device approve evidence;
 - separate real reject/cancel evidence on the identical ceremony contract;
-- SEC-LEDGER-005 independent closure evidence;
-- proof that stale/revoked/out-of-scope state cannot become usable authority.
+- proof that the hardware result is bound to that exact mandate;
+- no substitution of CI ceremony checks for physical provenance.
 
-Current Ledger boundary: `feature/ethonline-ledger@96d513ef1286cf06192315263039d631b91a0d18`, Continuity `34547247102` SUCCESS, contains the builder's atomic/versioned/serialized final-state repair. **SEC-LEDGER-005 remains OPEN/MEDIUM until independent Security retests that exact repair.** This builder evidence does not authorize physical device qualification. If device proof is absent, label the slot RED/NOT PROVEN; never substitute CI ceremony checks.
+Required before an active Ledger mandate becomes **load-bearing downstream authority**:
+- SEC-LEDGER-006 independently closed or an equivalent Security-accepted fail-closed lifecycle boundary;
+- proof that the loaded/consumed active record matches the current stable authority-state version and current mutable booking/listing/provider predicates, or is atomically invalidated/revoked on relevant mutations;
+- stale/revoked/out-of-scope state cannot become usable authority.
+
+Current Ledger boundary: `feature/ethonline-ledger@96d513ef1286cf06192315263039d631b91a0d18`, owner Continuity `34547247102` SUCCESS. Independent attacker `a0aff3978e2a8c6022bf88207174a518141c5aeb`, run `34551214063` SUCCESS, **CLOSED SEC-LEDGER-005 at CI/CONFIGURED** for the stale-preparation/final-write race. The same independent run opened **SEC-LEDGER-006 MEDIUM / OPEN**: after legitimate activation, a later relevant serialized booking mutation can advance the authority-state version while production `loadActiveRecoveryMandate()` still returns the captured old record as active. SEC-006 blocks final Ledger→World→Hedera authority consumption, but Security explicitly states it does **not** by itself block collecting orthogonal physical DMK approve/reject evidence. `LIVE/DEVICE` remains RED until that real ceremony is captured safely.
 
 ### 03 — World requester proof
 Required:
 - `LIVE/AGENTBOOK` registration/resolution evidence;
-- actual World ID Sandbox tester proof **only after the Sandbox transport boundary is Security-cleared**;
+- real World ID Sandbox proof with successful World backend verification and reviewer-safe evidence;
 - actual locally signed registered-agent recovery-route execution evidence before `LIVE/SIGNED-ROUTE`;
 - exact requester→delegated-agent match;
 - privacy proof: `humanIdExposed:false` or equivalent public boundary;
 - evidence that final authority came from the Ledger Recovery Mandate projection, not branch-local legacy approval scaffolding.
 
-Current Sandbox boundary: draft PR #43 / candidate `cc0ffe578286419d359cf3bb4030f2c45ecabe5e` is `CI/CONFIGURED` with Continuity `34546081264` SUCCESS. Independent Security run `34547005448` against attacker head `98c399712fa6f38779df9666b982cf1b78a528f5` **CLOSED SEC-WORLD-005 at CI/CONFIGURED**: the supported Sandbox launch is loopback-bound, generic/production launch paths fail closed, and non-loopback socket attempts are rejected. This closure is only for the transport/locality gate. **SANDBOX proof remains RED** until one real local phone round trip completes with successful World backend verification and reviewer-safe evidence. No RP key/signature/proof/provider request was exercised by the Security closure itself.
+Current Sandbox truth: SEC-WORLD-005 is independently **CLOSED at CI/CONFIGURED** by run `34547005448`. The required cross-device Sandbox proof is now **GREEN as real non-production SANDBOX evidence** on `feature/ethonline-world-sandbox-proof@65383c83626a7121a6f47a3c88ac69b1304b363f`, with qualifying repaired-runtime proof lineage `ff0e2cd0eec1ede1d4e28c2e1a99603e7832177f` and exact-head Continuity `34549541999` SUCCESS. The exercised path was signed RP request → YourTurn desktop harness → QR/deep-link → iOS World ID Sandbox app → user acceptance/verification → proof returned to YourTurn → YourTurn backend → World `POST /api/v4/verify/{rp_id}` → success. Reviewer-visible result was `Sandbox proof verified`. No RP private key, raw proof, nullifier, connector URI, or raw World human identifier is published/committed.
+
+The remaining localhost/127.0.0.1 browser-Origin mismatch on PR #43 is a bounded local usability/guard cleanup. It does not retroactively negate the successful Sandbox proof. The registered-agent recovery route remains `CI/READY, NOT LIVE/SIGNED-ROUTE` and is still RED for real execution.
 
 ### 04 — Hedera policy + settlement
 Required:
@@ -58,7 +70,7 @@ Required:
 - replay/idempotency evidence;
 - explicit 40-minimum / 45-success distinction.
 
-Do not call the combined customer recovery `atomic` until one actual independently reviewed Hedera transaction proves both movements.
+Current H2/new NFT+USDC recovery remains `CI/LOCAL + Security`; canonical 45-USDC `LIVE/TESTNET` evidence is RED pending +25.02 testnet USDC to `0.0.8504405`, execution of the existing canonical workflow, and independent review of that exact artifact. H0/H1 retain their previously accepted LIVE/TESTNET evidence. Do not call the combined customer recovery `atomic` until one actual independently reviewed Hedera transaction proves both movements.
 
 ### 05 — Provider / acquirer reconciliation
 Required:
@@ -69,12 +81,12 @@ Required:
 - Studio A recognizes Bob for fulfilment/check-in;
 - Maya no longer has the usable booking and received 45 USDC.
 
-A token/transaction receipt alone does not fill this slot.
+A token/transaction receipt alone does not fill this slot. XC-01 is Golden product truth, but sponsor-dependent transitions remain fixture until the final integrated runtime proves them.
 
 ### 06 — Integrated adversarial E2E
 Required:
 - exact integrated SHA;
-- pass/block outcomes for Ledger reject/cancel, wrong World agent, 32-USDC offer, stale/revoked/expired/provider-invalid state, 45-USDC success and replay;
+- pass/block outcomes for Ledger reject/cancel, wrong World agent, 32-USDC offer, stale/revoked/expired/provider-invalid state, post-activation authority staleness, 45-USDC success and replay;
 - one sanitized machine-readable summary;
 - links/references to the exact supporting evidence above.
 
@@ -106,14 +118,15 @@ For each slot record:
 
 ## Current known truth
 
-- Golden YT-01→08: GREEN as product truth.
+- Golden YT-01→08 and XC-01: GREEN as human-approved product truth.
 - Hedera H0/H1: retain existing independently reviewed `LIVE/TESTNET` claims.
 - Hedera H2/new NFT+USDC recovery: `CI/LOCAL + Security`; canonical 45-USDC `LIVE/TESTNET` artifact remains RED pending the external testnet-liquidity prerequisite and exact-artifact review.
 - World AgentBook: `LIVE/AGENTBOOK`.
-- World signed recovery route: `CI/READY`, NOT LIVE.
-- World Sandbox: PR #43 candidate `cc0ffe578286419d359cf3bb4030f2c45ecabe5e` is `CI/CONFIGURED + Security`; SEC-WORLD-005 is CLOSED at that evidence level by run `34547005448`, but actual Sandbox phone/backend-verification proof remains RED.
-- Ledger: `feature/ethonline-ledger@96d513ef1286cf06192315263039d631b91a0d18` is exact-head CI-green (`34547247102`) with the final-state repair; SEC-LEDGER-005 remains OPEN/MEDIUM pending independent retest, and `LIVE/DEVICE` remains RED.
-- XC-01: non-submission-critical `REVISE`; exact candidate `eb3bcdb84ff95352adf1d0c387996f9a4692c52f` must make Bob's successful holder state transition the product shell from `Find a spot` to `My bookings`, then be re-rendered and re-reviewed before any advancement.
+- World Sandbox: **GREEN real non-production SANDBOX evidence** on `65383c83626a7121a6f47a3c88ac69b1304b363f`; SEC-WORLD-005 remains closed. Do not relabel it as production identity or booking authority.
+- World signed recovery route: `CI/READY`, NOT LIVE/SIGNED-ROUTE; real registered-agent execution remains RED.
+- Ledger SEC-LEDGER-005: **CLOSED CI/CONFIGURED** by independent run `34551214063` against owner `96d513ef1286cf06192315263039d631b91a0d18`.
+- Ledger SEC-LEDGER-006: **OPEN/MEDIUM** for stale already-active authority after later booking mutation; blocks final downstream authority consumption, not orthogonal DMK provenance collection.
+- Ledger `LIVE/DEVICE`: RED until real identical-mandate approve plus reject/cancel evidence is captured.
 - Full Ledger→World→Hedera E2E: RED / missing.
 
 ## Final submission packet readiness
@@ -121,8 +134,8 @@ For each slot record:
 - **Public README before/after: RED.** The held integration README still presents the pre-event Week 5 Hedera submission. Before lock, publish one final ETHOnline README that clearly separates the immutable baseline from the new Delegated Recovery work and links only evidence valid for the final integrated candidate.
 - **Stable final integrated deployment: RED.** `https://yourturn-sage.vercel.app` is the pre-event Week 5 surface, not the final integrated ETHOnline candidate. PR #42's readiness preview also hit the Vercel free-tier daily deployment limit. Do not substitute a stale baseline URL or unqualified sponsor preview for the final stable reviewer URL.
 - **Final video: RED.** No final judge-facing video is pinned yet; verify any applicable duration rule before lock.
-- **Screenshots: PARTIAL.** Golden YT-01→08 rendered evidence exists, but final integrated sponsor-backed screenshots/receipt evidence do not.
+- **Screenshots: PARTIAL.** Golden YT-01→08/XC-01 rendered product evidence exists, but final integrated sponsor-backed screenshots/receipt evidence do not.
 - **Submission fields: RED.** Final project description, Continuity before/after, exactly three partner selections, repo/demo/evidence links, stable deployment URL and final media are not locked.
-- **Evidence pack: RED.** The contract exists, but Hedera 45-USDC LIVE evidence, World Sandbox/signed-route LIVE evidence, Ledger SEC-005 independent closure/device evidence and the final integrated adversarial E2E are still missing.
+- **Evidence pack: RED.** The contract exists, but Hedera 45-USDC LIVE evidence, World signed-route/canonical-mandate bridge, Ledger SEC-006 downstream-authority closure plus LIVE/DEVICE evidence, sponsor-backed fixture replacement and the final integrated adversarial E2E are still missing.
 
 Any newer truth must update `manifest.json` and the relevant evidence slot together; prose alone does not upgrade evidence.
