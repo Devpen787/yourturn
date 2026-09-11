@@ -64,7 +64,7 @@
       "curated Hedera H1"
     ],
     "integrationReady": false,
-    "reason": "Hedera H2/USDC LIVE proof, World signed-route plus canonical Ledger-mandate bridge, Ledger SEC-006 downstream-authority closure plus DEVICE evidence, sponsor-backed fixture replacement and final integrated E2E are not complete."
+    "reason": "Hedera H2/USDC LIVE proof, World signed-route plus canonical Ledger-mandate bridge, Ledger DEVICE evidence, sponsor-backed fixture replacement and final integrated E2E are not complete. Ledger SEC-005/006 software authority lifecycle is Security-green at CI/CONFIGURED but does not substitute for device or integrated execution evidence."
   },
   "sponsors": {
     "hedera": {
@@ -83,39 +83,42 @@
       ]
     },
     "world": {
-      "head": "2ab04f4420cccc2c090cd5f5634e447d399eb139",
-      "continuityRun": "34432753300",
+      "head": "8aff17268adbad8e52b4b077c85bbe50034d6c13",
+      "continuityRun": "34554016785",
       "sandboxEvidenceHead": "65383c83626a7121a6f47a3c88ac69b1304b363f",
       "sandboxQualifyingRuntimeHead": "ff0e2cd0eec1ede1d4e28c2e1a99603e7832177f",
       "sandboxContinuityRun": "34549541999",
+      "sandboxCleanupHead": "ccb07e45888a3c15ee691a5db7465029d76f4c7f",
+      "sandboxCleanupContinuityRun": "34553728277",
       "security": {
         "secWorld005": "CLOSED_CI_CONFIGURED",
         "independentRun": "34547005448",
-        "attackerHead": "98c399712fa6f38779df9666b982cf1b78a528f5"
+        "attackerHead": "98c399712fa6f38779df9666b982cf1b78a528f5",
+        "cleanupRegressionRetest": "PENDING_BOUNDED_RETEST"
       },
       "currentEvidence": "LIVE/AGENTBOOK for registration/resolution; REAL NON-PRODUCTION SANDBOX proof with World v4 backend verification; CI/READY, NOT LIVE/SIGNED-ROUTE for registered-agent recovery",
       "integrationReady": false,
       "blockers": [
+        "Complete the bounded Security regression retest for PR #43 localhost/127.0.0.1 guard normalization without reopening the completed Sandbox proof unless a regression is found",
         "Execute locally signed registered-agent recovery route against initialized non-production YourTurn state",
-        "Replace branch-local ApprovalGrant authority scaffolding with canonical activated Ledger Recovery Mandate projection for final integration",
-        "Finish bounded localhost/127.0.0.1 browser-Origin cleanup on PR #43 without weakening the already-cleared loopback transport boundary"
+        "Replace branch-local ApprovalGrant authority scaffolding with canonical activated Ledger Recovery Mandate projection for final integration"
       ]
     },
     "ledger": {
-      "head": "96d513ef1286cf06192315263039d631b91a0d18",
-      "continuityRun": "34547247102",
+      "head": "a1126a0e7d2e5bb679914b0409209799520f8646",
+      "continuityRun": "34554710275",
       "security": {
         "secLedger005": "CLOSED_CI_CONFIGURED",
-        "secLedger006": "OPEN_MEDIUM_DOWNSTREAM_AUTHORITY",
-        "independentAttackerHead": "a0aff3978e2a8c6022bf88207174a518141c5aeb",
-        "independentRun": "34551214063"
+        "secLedger006": "CLOSED_CI_CONFIGURED",
+        "independentAttackerHead": "7e03f28ad0182ff1aec112a8a05ddd5a2bfcf914",
+        "independentRun": "34555366707"
       },
-      "currentEvidence": "CI/CONFIGURED with SEC-LEDGER-005 independently closed; SEC-LEDGER-006 remains OPEN/MEDIUM for post-activation stale-authority consumption; physical DEVICE evidence remains RED",
+      "currentEvidence": "CI/CONFIGURED with SEC-LEDGER-005 and SEC-LEDGER-006 independently closed; physical DEVICE evidence remains RED",
       "integrationReady": false,
       "blockers": [
-        "Repair and independently retest SEC-LEDGER-006 before an active stored mandate is treated as sufficient current downstream recovery authority",
-        "Capture real identical-mandate DMK approve plus reject/cancel evidence before claiming LIVE/DEVICE; SEC-LEDGER-006 does not itself block collecting this orthogonal provenance evidence",
-        "Prove final downstream authority consumption fails closed against current authoritative booking/listing/provider state before Ledger→World→Hedera integration"
+        "Capture real identical-mandate DMK approve plus reject/cancel evidence before claiming LIVE/DEVICE",
+        "Consume final downstream authority only through loadActiveRecoveryMandate() or an equivalent atomic guarded boundary with current stable authority version and live holder/status/provider-policy/listing revalidation",
+        "Prove the final integrated Ledger→World→Hedera path preserves stale/revoked/out-of-scope fail-closed and one-shot replay behavior"
       ]
     }
   },
@@ -141,13 +144,15 @@
     },
     "worldSignedRoute": {
       "runnerReady": true,
+      "preflightHead": "8aff17268adbad8e52b4b077c85bbe50034d6c13",
+      "preflightContinuityRun": "34554016785",
       "liveExecutionCaptured": false,
       "privateKeyMustRemainLocal": true
     },
     "ledgerDevice": {
       "status": "RED_NOT_YET_CAPTURED",
       "softwareGateSec005Closed": true,
-      "sec006BlocksHardwareCollection": false,
+      "softwareGateSec006Closed": true,
       "requiredEvidence": "Identical Recovery Mandate real DMK approve plus reject/cancel with reviewer-safe outputs"
     }
   },
@@ -182,7 +187,7 @@
     "evidencePack": {
       "status": "RED",
       "contractExists": true,
-      "reason": "The pack contract exists, but Hedera 45-USDC LIVE evidence, World signed-route/canonical-mandate bridge, Ledger SEC-006 downstream-authority closure plus DEVICE evidence, sponsor-backed fixture replacement and the final integrated E2E remain missing."
+      "reason": "The pack contract exists, but Hedera 45-USDC LIVE evidence, World signed-route/canonical-mandate bridge, Ledger LIVE/DEVICE evidence, sponsor-backed fixture replacement and the final integrated E2E remain missing."
     }
   },
   "finalAcceptance": {
