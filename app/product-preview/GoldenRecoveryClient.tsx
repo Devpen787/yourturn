@@ -1,25 +1,6 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-import { useState } from "react";
-
-type Step =
-  | "enter"
-  | "bookings"
-  | "detail"
-  | "plans"
-  | "setup"
-  | "approval"
-  | "ledgerNotReady"
-  | "ledgerWaiting"
-  | "ledgerRejected"
-  | "ledgerCancelled"
-  | "ledgerApproved"
-  | "recoveryActive"
-  | "offerBlocked"
-  | "reauthorize"
-  | "offerAllowed"
-  | "recoverySuccess";
+import { useHolderJourney } from "./useHolderJourney";
 
 type ProofStage = "ledger" | "agent" | "blocked" | "success";
 
@@ -258,76 +239,47 @@ function AgentCard({ minimum }: { minimum: number }) {
   );
 }
 
-function initialStep(view: string | null): Step {
-  const map: Record<string, Step> = {
-    bookings: "bookings",
-    "ledger-not-ready": "ledgerNotReady",
-    "ledger-waiting": "ledgerWaiting",
-    "ledger-rejected": "ledgerRejected",
-    "ledger-cancelled": "ledgerCancelled",
-    "replacement-ledger-rejected": "ledgerRejected",
-    "replacement-ledger-cancelled": "ledgerCancelled",
-    "ledger-approved": "ledgerApproved",
-    "recovery-active": "recoveryActive",
-    "offer-blocked": "offerBlocked",
-    reauthorize: "reauthorize",
-    "offer-allowed": "offerAllowed",
-    "recovery-success": "recoverySuccess",
-  };
-  return view && map[view] ? map[view] : "enter";
-}
-
 export default function ProductPreviewPage() {
-  const searchParams = useSearchParams();
-  const startingView = searchParams.get("view");
-  const startingStep = initialStep(startingView);
-  const [step, setStep] = useState<Step>(startingStep);
-  const [confirmedScope, setConfirmedScope] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [activeMinimum, setActiveMinimum] = useState(40);
-  const [approvalMinimum, setApprovalMinimum] = useState(
-    startingView === "reauthorize" ||
-      startingView === "replacement-ledger-rejected" ||
-      startingView === "replacement-ledger-cancelled"
-      ? 30
-      : 40
-  );
-  const [offerAmount, setOfferAmount] = useState(
-    startingView === "offer-allowed" || startingView === "recovery-success" ? 45 : 32
-  );
-  const [recovered, setRecovered] = useState(startingStep === "recoverySuccess");
-  const [recoveredAmount, setRecoveredAmount] = useState(
-    startingStep === "recoverySuccess" ? 45 : 0
-  );
-  const isReplacementApproval = approvalMinimum !== activeMinimum;
+  const {
+    ready, error, retryState, step, setStep, confirmedScope, setConfirmedScope,
+    notice, setNotice, activeMinimum, approvalMinimum, setApprovalMinimum,
+    offerAmount, setOfferAmount, recovered, recoveredAmount, isReplacementApproval,
+    recoveryIsActive, approvalPending, recoveryStopped, startApproval, cancelApproval,
+    approveCurrentMandate, completeRecovery, returnToActiveRecovery, showLatestOffer, stopRecovery,
+  } = useHolderJourney();
 
   function chooseUnavailable(label: string) {
     setNotice(`${label} isn’t available for Friday Yoga right now.`);
   }
 
-  function showLatestOffer() {
-    setOfferAmount(32);
-    setStep(activeMinimum <= 32 ? "offerAllowed" : "offerBlocked");
+  if (error) {
+    return (
+      <StepFrame eyebrow="My bookings" title="Your booking state needs attention.">
+        <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-6">
+          <p className="text-sm leading-6 text-slate-800">{error}</p>
+          <button type="button" onClick={retryState} className={`${primaryButton} mt-5`}>Retry loading booking state</button>
+        </div>
+      </StepFrame>
+    );
   }
-
-  function approveCurrentMandate() {
-    setActiveMinimum(approvalMinimum);
-    setStep("ledgerApproved");
-  }
-
-  function completeRecovery() {
-    setRecovered(true);
-    setRecoveredAmount(offerAmount);
-    setStep("recoverySuccess");
-  }
-
-  function returnToActiveRecovery() {
-    setApprovalMinimum(activeMinimum);
-    setStep("recoveryActive");
+  if (!ready) {
+    return <StepFrame eyebrow="My bookings" title="Loading your booking."><p role="status">Restoring your latest booking state…</p></StepFrame>;
   }
 
   return (
     <div className="pb-16">
+      {(step === "bookings" || step === "detail") && !recovered && (recoveryIsActive || approvalPending || recoveryStopped) && (
+        <div className="mx-auto mb-3 max-w-4xl rounded-2xl border border-sky-100 bg-sky-50 p-5">
+          <p role="status" className="text-sm font-semibold text-slate-950">
+            {recoveryIsActive ? `Recovery active · ${activeMinimum} USDC minimum · Tomorrow · 17:00` : approvalPending ? "Approval pending" : "Recovery stopped"}
+          </p>
+          {approvalPending ? <p className="mt-2 text-sm text-slate-700">Your approval is still pending. Leaving this screen does not approve or cancel it.</p> : null}
+          <div className="mt-3 flex flex-wrap gap-3">
+            {recoveryIsActive ? <button type="button" onClick={() => setStep("recoveryActive")} className={secondaryButton}>View active recovery</button> : null}
+            {approvalPending ? <button type="button" onClick={() => setStep("ledgerWaiting")} className={secondaryButton}>Resume approval</button> : null}
+          </div>
+        </div>
+      )}
       {step === "enter" && (
         <StepFrame
           eyebrow="YourTurn"
@@ -392,7 +344,7 @@ export default function ProductPreviewPage() {
               >
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <BookingIdentity />
-                  <StatusPill tone="green">Confirmed</StatusPill>
+                  <StatusPill tone={recoveryIsActive ? "blue" : approvalPending ? "amber" : "green"}>{recoveryIsActive ? "Recovery active" : approvalPending ? "Approval pending" : "Confirmed"}</StatusPill>
                 </div>
                 <div className="mt-8 flex items-center justify-between border-t border-slate-100 pt-5">
                   <span className="text-sm text-slate-500">Your next booking</span>
@@ -470,7 +422,7 @@ export default function ProductPreviewPage() {
               <div className="p-7 sm:p-9">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <BookingIdentity />
-                  <StatusPill tone="green">Confirmed</StatusPill>
+                  <StatusPill tone={recoveryIsActive ? "blue" : approvalPending ? "amber" : "green"}>{recoveryIsActive ? "Recovery active" : approvalPending ? "Approval pending" : "Confirmed"}</StatusPill>
                 </div>
                 <dl className="mt-8 grid gap-5 border-t border-slate-100 pt-6 sm:grid-cols-2">
                   <div>
@@ -503,7 +455,7 @@ export default function ProductPreviewPage() {
                 <div>
                   <p className="text-sm font-semibold text-slate-950">What do you want to do?</p>
                   <p className="mt-2 text-sm leading-6 text-slate-600">
-                    Your booking stays confirmed unless you choose a change-plans option.
+                    {recoveryIsActive ? "Recovery is active inside your approved limits. This booking remains yours until a permitted handoff completes." : approvalPending ? "Approval is still pending. Returning here does not cancel or approve it." : "Your booking stays confirmed unless you choose a change-plans option."}
                   </p>
                 </div>
                 <div className="mt-8 space-y-3">
@@ -520,11 +472,11 @@ export default function ProductPreviewPage() {
                     type="button"
                     onClick={() => {
                       setNotice(null);
-                      setStep("plans");
+                      setStep(recoveryIsActive ? "recoveryActive" : "plans");
                     }}
                     className={`${primaryButton} w-full`}
                   >
-                    Change plans
+                    {recoveryIsActive ? "Manage recovery" : "Change plans"}
                   </button>
                 </div>
               </div>
@@ -755,11 +707,13 @@ export default function ProductPreviewPage() {
       {step === "ledgerNotReady" && (
         <StepFrame
           eyebrow="Secure approval"
-          title="Connect your Ledger to authorize recovery."
+          title={approvalPending ? "Your approval is still pending." : "Connect your Ledger to authorize recovery."}
           intro={
-            approvalMinimum === activeMinimum
-              ? `YourTurn will ask the device to approve only the ${approvalMinimum} USDC minimum Recovery Mandate shown here. No recovery authority exists yet.`
-              : `YourTurn will ask the device to approve only the ${approvalMinimum} USDC minimum replacement Recovery Mandate shown here. Your current ${activeMinimum} USDC authority stays active until this replacement is approved.`
+            approvalPending
+              ? "Return to your existing approval attempt. Navigation does not cancel, approve, or create another mandate."
+              : approvalMinimum === activeMinimum
+                ? `YourTurn will ask the device to approve only the ${approvalMinimum} USDC minimum Recovery Mandate shown here. No recovery authority exists yet.`
+                : `YourTurn will ask the device to approve only the ${approvalMinimum} USDC minimum replacement Recovery Mandate shown here. Your current ${activeMinimum} USDC authority stays active until this replacement is approved.`
           }
         >
           <BackButton
@@ -785,16 +739,16 @@ export default function ProductPreviewPage() {
               <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-xl">
                 ◇
               </div>
-              <h2 className="mt-5 text-xl font-semibold">Ledger not connected.</h2>
+              <h2 className="mt-5 text-xl font-semibold">{approvalPending ? "Approval is still pending." : "Ledger not connected."}</h2>
               <p className="mt-3 text-sm leading-6 text-slate-300">
-                Connect your secure device, unlock it, and keep it with you while you review the mandate.
+                {approvalPending ? "Resume the same attempt to review its status or cancel it explicitly." : "Connect your secure device, unlock it, and keep it with you while you review the mandate."}
               </p>
               <button
                 type="button"
-                onClick={() => setStep("ledgerWaiting")}
+                onClick={startApproval}
                 className="mt-6 inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
               >
-                Connect Ledger
+                {approvalPending ? "Resume approval" : "Connect Ledger"}
               </button>
               {approvalMinimum !== activeMinimum ? (
                 <button
@@ -851,7 +805,7 @@ export default function ProductPreviewPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setStep("ledgerCancelled")}
+                onClick={cancelApproval}
                 className="mt-3 inline-flex min-h-[44px] w-full items-center justify-center rounded-full border border-white/20 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
               >
                 Cancel approval
@@ -1040,10 +994,7 @@ export default function ProductPreviewPage() {
             </button>
             <button
               type="button"
-              onClick={() => {
-                setNotice("Recovery stopped. Friday Yoga remains yours and no further offers will be accepted.");
-                setStep("detail");
-              }}
+              onClick={stopRecovery}
               className={secondaryButton}
             >
               Stop recovery
@@ -1166,7 +1117,7 @@ export default function ProductPreviewPage() {
           intro={`The offer meets your ${activeMinimum} USDC minimum. YourTurn can complete this recovery without asking you again because it is inside the mandate you approved.`}
         >
           <div className="grid gap-5 lg:grid-cols-[1fr_0.9fr]">
-            <div className="rounded-[1.75rem] border border-emerald-100 bg-white p-6 shadow-sm sm:p-7">
+            <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <BookingIdentity compact />
                 <StatusPill tone="green">Within your limits</StatusPill>

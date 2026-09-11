@@ -14,6 +14,7 @@ on:
       - scripts/product-workbench-xc02-visual-check.mjs
       - scripts/product-workbench-xc03-visual-check.mjs
       - scripts/product-workbench-integrity-check.mjs
+      - scripts/product-workbench-holder-*.mjs
       - .github/workflows/product-workbench-visual.yml
   workflow_dispatch:
 
@@ -42,6 +43,9 @@ jobs:
           npm install --no-save --package-lock=false --legacy-peer-deps playwright@1.55.0
           npx playwright install --with-deps chromium
 
+      - name: Check holder fixture invariants (#44 R1a)
+        run: node --experimental-strip-types scripts/product-workbench-holder-state-check.mjs
+
       - name: Production build
         run: npm run build
 
@@ -67,6 +71,12 @@ jobs:
           node scripts/product-workbench-xc02-visual-check.mjs
           node scripts/product-workbench-xc03-visual-check.mjs
 
+      - name: Check holder navigation and storage failures (#44 R1a)
+        if: ${{ !cancelled() && steps.start.outcome == 'success' }}
+        env:
+          PRODUCT_WORKBENCH_BASE_URL: http://127.0.0.1:3000
+        run: node scripts/product-workbench-holder-navigation-check.mjs
+
       - name: Check navigation integrity and missing bridges (#44 R0)
         if: ${{ !cancelled() && steps.start.outcome == 'success' }}
         env:
@@ -81,4 +91,5 @@ jobs:
           path: |
             artifacts/product-workbench/*.png
             artifacts/product-workbench/integrity/
+            artifacts/product-workbench/holder-navigation/
           if-no-files-found: error

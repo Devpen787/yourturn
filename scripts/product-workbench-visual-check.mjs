@@ -1,6 +1,7 @@
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { chromium } from "playwright";
+import { rejectedHolderContext } from "./product-workbench-holder-fixtures.mjs";
 
 const baseUrl = process.env.PRODUCT_WORKBENCH_BASE_URL ?? "http://127.0.0.1:3000";
 const outDir = path.resolve("artifacts/product-workbench");
@@ -17,13 +18,16 @@ const bannedCustomerCopy = [
 const legacyBookingCopy = ["live pass", "list your pass for resale"];
 
 async function assertVisible(page, text) {
-  const matches = page.getByText(text, { exact: false });
-  const count = await matches.count();
-  for (let index = 0; index < count; index += 1) {
-    if (await matches.nth(index).isVisible()) {
-      return;
+  // Addressable Next navigation is asynchronous; wait for the same visible predicate.
+  const deadline = Date.now() + 5000;
+  do {
+    const matches = page.getByText(text, { exact: false });
+    const count = await matches.count();
+    for (let index = 0; index < count; index += 1) {
+      if (await matches.nth(index).isVisible()) return;
     }
-  }
+    await page.waitForTimeout(75);
+  } while (Date.now() < deadline);
   throw new Error(`Expected visible text: ${text}`);
 }
 
@@ -112,18 +116,21 @@ async function screenshot(page, prefix, name) {
 }
 
 async function inspectRejectedState(context, viewport, prefix) {
-  const page = await context.newPage();
+  // This device result is an explicit test fixture, NOT created by the URL.
+  const isolated = await rejectedHolderContext(context.browser(), viewport);
+  const page = await isolated.newPage();
   await page.goto(`${baseUrl}/product-preview?view=ledger-rejected`, { waitUntil: "networkidle" });
   await assertVisible(page, "Approval was rejected on your Ledger.");
   await assertVisible(page, "no recovery authority was created");
   await assertVisible(page, "Not authorized");
   await assertNoRawWorldIdentifier(page);
   await screenshot(page, prefix, "10-ledger-rejected");
-  await page.close();
+  await isolated.close();
 }
 
 async function inspectReplacementRejectedState(context, viewport, prefix) {
-  const page = await context.newPage();
+  const isolated = await rejectedHolderContext(context.browser(), viewport, true);
+  const page = await isolated.newPage();
   await page.goto(`${baseUrl}/product-preview?view=replacement-ledger-rejected`, {
     waitUntil: "networkidle",
   });
@@ -140,7 +147,7 @@ async function inspectReplacementRejectedState(context, viewport, prefix) {
   await assertVisible(page, "Recovery active");
   await assertVisible(page, "40 USDC or more");
   await assertVisible(page, "Tomorrow · 17:00");
-  await page.close();
+  await isolated.close();
 }
 
 async function runJourney(browser, viewport, prefix) {
