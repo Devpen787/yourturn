@@ -51,6 +51,9 @@ jobs:
       - name: Ledger Recovery Mandate contract check
         run: npm run ledger:mandate-check
 
+      - name: Independent SEC-LEDGER-006 active authority retest
+        run: node --experimental-transform-types scripts/security-ledger-006-retest.mjs
+
       - name: Ledger DMK device ceremony contract check
         # Pure CI qualification of the ceremony contract only. The actual
         # LIVE/DEVICE claim still requires a physical Ledger running the pinned
