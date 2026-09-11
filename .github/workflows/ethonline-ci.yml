@@ -48,6 +48,17 @@ jobs:
           HEDERA_TREASURY_ID: '0.0.9002'
         run: npm run hedera:agent-check
 
+      - name: World AgentKit trust-boundary contract check
+        run: npm run world:contract-check
+
+      - name: World recovery write gate adversarial check
+        run: npm run world:recovery-write-check
+
+      - name: World signed recovery live-proof runner self-test
+        # Offline fixture only: validates exact-resource AgentKit signing and
+        # verification without pretending to be LIVE/AGENTBOOK or a live write.
+        run: npm run world:recovery-live-proof:self-test
+
       - name: Continuity baseline must remain documented
         run: |
           grep -q 'd0b5f875afb4f2b29af29bc5972cf1edc404d473' docs/ethonline-2026/CONTINUITY_BASELINE.md

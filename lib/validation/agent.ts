@@ -90,6 +90,10 @@ export const approvalGrantBodySchema = z.object({
   ]),
   actor: bookingActorRefSchema.optional(),
   serial: z.number().int().positive().optional(),
+  delegatedAgentAddress: z
+    .string()
+    .regex(/^0x[0-9a-fA-F]{40}$/, "delegatedAgentAddress must be an EVM address")
+    .optional(),
   approvedBy: z.string().min(1),
   ttlSeconds: z.number().int().positive().max(3600).optional(),
   source: z.enum(["agent_handoff", "api_client"]).optional(),

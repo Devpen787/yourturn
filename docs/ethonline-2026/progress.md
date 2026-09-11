@@ -70,3 +70,49 @@ Append one block per meaningful run:
 - Failed/open: no Hedera ETHOnline sponsor acceptance item is green yet; no serial-scoped allowance, revoke, transfer, USDC recovery, or testnet claim was executed in this increment.
 - Claim impact: foundation gate only. This is CI evidence, not LIVE/TESTNET Hedera evidence.
 - Exact next action: create `feature/ethonline-hedera` from the latest reviewed foundation head and implement PRD 01 serial-scoped NFT allowance/revocation with real Hedera testnet evidence.
+
+## World entries
+
+### 2026-09-09 22:56 Europe/Zurich — World worker 01
+- Branch/SHA: `feature/ethonline-world` @ `5b27ec45c9b2405f3f468e33d2cd20ab6fe3e7b7`; draft PR #22.
+- Mission: define a fail-closed World human-backed-agent trust boundary without changing Hedera booking/settlement semantics.
+- Changed: added `lib/world-agentkit/trust-boundary.ts`, deterministic contract checks, CI coverage, and current AgentKit qualification/integration contract docs.
+- Verification actually run: GitHub Actions run `34403769815` passed install, production build, inherited Hedera policy/proof check, `npm run world:contract-check`, and continuity-baseline checks.
+- Evidence: CI proves the normalized post-verification gate blocks spoofed source, non-human-backed, AgentBook-unresolved, wrong-resource, expired and invalid-time evidence; public summary omits agent address and raw `humanId`.
+- Failed/open: no official `@worldcoin/agentkit` runtime integration yet; no live request validation, AgentBook resolution, Sandbox proof, or feedback artifact. These remain RED.
+- Claim impact: CI-green groundwork only. It narrows the trust boundary and privacy rules but is not sponsor qualification evidence by itself.
+- Exact next action: implement the official low-level verifier adapter after branch/security gates are clean.
+
+### 2026-09-09 23:16 Europe/Zurich — World security repair
+- Branch/SHA: `feature/ethonline-world` @ `f41eaafcac6eabe68fafb8cd9e5eb84664c1d88b`.
+- Mission: repair SEC-WORLD-001/002 before any World-backed recovery write path.
+- Changed: exact equality between the World-verified requester and the independently resolved delegated agent; EVM-address validation/canonicalization; 30-second maximum future clock skew; negative fixtures for wrong/malformed agent and future timestamps; public summary remains privacy-minimized.
+- Verification actually run: exact-head continuity run `34405732527` SUCCESS.
+- Evidence: CI/contract only. Independent Security Attacker subsequently closed SEC-WORLD-001/002 at contract level.
+- Failed/open: SEC-WORLD-003 remains OPEN; no official AgentKit cryptographic verification, live AgentBook resolution, World Sandbox evidence, sponsor feedback document, or live recovery write-path proof exists.
+- Claim impact: hardened groundwork, not World qualification.
+- Exact next action: realign the branch to frozen foundation `89ded956...`; then add the official `@worldcoin/agentkit` verifier/AgentBook adapter as a separate bounded increment.
+
+### 2026-09-10 00:17 Europe/Zurich — World branch-hygiene repair
+- Branch/SHA: `feature/ethonline-world` code checkpoint `4e96bb713761be6239ffc6d76494b08ad97010a9`; this handoff commit follows that checkpoint.
+- Mission: clear the existing branch divergence / non-mergeable PR gate before adding another World primitive.
+- Changed: rebuilt the exact World trust-boundary increment directly on frozen foundation `89ded956e67c343b7abefc36e33044c6064a7798`, preserving the security-fixed code, contract tests, CI hook and integration contract while taking the frozen foundation as the sole parent. PR #22 is now mergeable; compare is 1 ahead / 0 behind before this handoff-doc commit. No product/runtime authority behavior was expanded.
+- Docs reviewed: current ETHOnline 2026 World AgentKit Continuity wording; current AgentKit integration guide + SDK reference; AgentBook registration/resolution path; World ID Sandbox semantics/access docs; official `worldcoin/agentkit` repository confirms current `@worldcoin/agentkit` and `@worldcoin/agentkit-core` package version `0.2.1`.
+- Branch archaeology: immutable `codex/ethglobal-final-public@d0b5f875...` = REUSE as before-state truth; `main` + `feat/product-issuer-holder-ux` = REFERENCE only for this increment because no auth/session/customer UX seam changed; no pre-event World AgentKit integration was found to reuse.
+- Verification actually run: GitHub Actions run `34411211754` SUCCESS on `4e96bb...`: install, production build, inherited Hedera Agent Kit check, `npm run world:contract-check`, and continuity-baseline guard all passed. PR #22 became mergeable after realignment.
+- Evidence: CI + repository topology only. This proves branch compatibility and preserves deterministic World contract behavior; it does **not** prove AgentKit cryptography, AgentBook, Sandbox or a World-backed recovery write.
+- Failed/open: SEC-WORLD-003 remains open. `@worldcoin/agentkit` is not yet installed in YourTurn; official request/signature verification, live AgentBook resolution, Sandbox remote proof, feedback document and World-gated recovery behavior remain RED.
+- Claim impact: branch-hygiene blocker is cleared; World sponsor qualification remains RED.
+- Exact next action: one separate bounded increment installing official `@worldcoin/agentkit@0.2.1` and implementing the low-level server verifier adapter (`parseAgentkitHeader` -> validation incl. nonce hook -> signature verification -> AgentBook lookup -> privacy-minimized `WorldAgentVerification`) with deterministic tamper/resource/unresolved/replay negatives. Do not wire Hedera settlement until that adapter is green and independently attacked.
+
+### 2026-09-10 01:27 Europe/Zurich — World official AgentKit verifier adapter
+- Branch/SHA: `feature/ethonline-world`; verified code checkpoint `51bb8040bdffa58b962bcaa598368076600c2003`; documentation/cleanup commits follow this checkpoint.
+- Mission: replace the internal-object-only trust boundary with an official AgentKit cryptographic request-verification path, without claiming live AgentBook/Sandbox qualification.
+- Changed: pinned official `@worldcoin/agentkit@0.2.1`; added `server-verifier.ts` using official `parseAgentkitHeader` -> `validateAgentkitMessage` -> `verifyAgentkitSignature` -> AgentBook lookup; added an explicit exact full-resource URI check because AgentKit 0.2.1 validation currently compares the signed URI host; reduced the returned AgentBook result to a boolean so the raw anonymous human identifier does not escape; added a Redis-backed nonce store using hashed resource+nonce keys plus atomic `SET NX EX`; fail closed on nonce-store errors; expanded CI tests with real SIWE/EIP-191 signatures, replay, tampered signature, same-host wrong endpoint, unresolved AgentBook, valid-but-wrong agent and missing-header negatives.
+- Docs reviewed: current ETHOnline 2026 World AgentKit Continuity qualification; current World `Integrate AgentKit` and `SDK Reference`; official `worldcoin/agentkit` 0.2.1 parser/validator/signature/AgentBook source; current AgentBook registration guide; current Sandbox access/semantics docs. Current online integration docs say default registration is World Chain and lookup always World Chain, while the repository's current `cli/REGISTRATION.md` text describes Base as the default automatic registration path; treat that docs/repo discrepancy as unresolved until the live Sandbox/AgentBook proof uses one confirmed canonical path.
+- Branch archaeology: immutable pre-event branch = REUSE as before-state truth; no pre-event World AgentKit integration found; `main` + `feat/product-issuer-holder-ux` = REFERENCE only because this increment touches no auth/session/account or user-facing UX seam.
+- Verification actually run: continuity run `34416821760` SUCCESS on `51bb804...`: dependency install, production build, inherited Hedera check, expanded World AgentKit contract check, and continuity baseline guard all passed. The first expanded-test runs correctly failed on a SIWE-invalid non-alphanumeric test nonce; the diagnostic identified the exact issue and the final test uses protocol-valid alphanumeric nonces.
+- Evidence: CI only. Cryptographic EIP-191/SIWE request signing and official AgentKit verification are exercised with the installed SDK. AgentBook resolution in deterministic CI is intentionally injected/mocked; the production adapter defaults to official `createAgentBookVerifier()`, but no live AgentBook registration/lookup or World ID Sandbox flow has yet been proven. The Redis nonce implementation is code/CI evidence, not deployed persistence evidence.
+- Failed/open: SEC-WORLD-003 should remain OPEN pending independent security retest plus live AgentBook/Sandbox evidence. World-backed recovery write behavior is not wired; required feedback is incomplete; no live human-level counters are claimed.
+- Claim impact: official AgentKit requester cryptography moves from RED/unimplemented to CI-proven groundwork. World sponsor qualification remains RED/YELLOW because AgentBook + Sandbox + load-bearing app integration are still absent.
+- Exact next action: register/resolve one dedicated test agent through the canonical World AgentBook path using the World ID Sandbox App, capture reproducible live evidence, and independently retest SEC-WORLD-003 before wiring the World result into recovery execution.

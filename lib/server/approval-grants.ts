@@ -12,6 +12,11 @@ export type ApprovalGrantClaims = {
   action: BookingPortAction | "any";
   actor?: BookingActorRef;
   serial?: number;
+  /**
+   * Optional delegated EVM agent binding. World-protected recovery writes make
+   * this mandatory and exact-scoped before AgentKit verification can proceed.
+   */
+  delegatedAgentAddress?: string;
   approvedBy: string;
   approvedAt: string;
   expiresAt: string;
@@ -75,6 +80,7 @@ export function mintApprovalGrant(input: {
   action: ApprovalGrantClaims["action"];
   actor?: BookingActorRef;
   serial?: number;
+  delegatedAgentAddress?: string;
   approvedBy: string;
   ttlSeconds?: number;
   source?: ApprovalGrantClaims["source"];
@@ -96,6 +102,9 @@ export function mintApprovalGrant(input: {
     action: input.action,
     actor: input.actor,
     serial: input.serial,
+    ...(input.delegatedAgentAddress
+      ? { delegatedAgentAddress: input.delegatedAgentAddress.trim() }
+      : {}),
     approvedBy: input.approvedBy,
     approvedAt: new Date().toISOString(),
     expiresAt: new Date(Date.now() + ttlSeconds * 1000).toISOString(),
