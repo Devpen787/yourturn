@@ -14,7 +14,7 @@ export function HomeHero() {
       <div className="relative grid gap-10 md:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)] md:items-center">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-300">
-            Transferable service bookings
+            Flexible service bookings
           </p>
           <h1 className="mt-4 max-w-[14ch] text-4xl font-semibold tracking-tight text-white md:text-5xl">
             Book the spot.
@@ -22,28 +22,28 @@ export function HomeHero() {
             Keep your options.
           </h1>
           <p className="mt-5 max-w-lg text-base leading-7 text-slate-300 md:text-lg">
-            For studios, therapists, and coaching where a missed session still
-            matters. Customers keep a pass they can track, use, or resell within
-            rules the business sets.
+            Keep every reservation in one place. Use it normally, change plans when
+            life gets in the way, or recover value without giving up control of the
+            rest of your account.
           </p>
           <div className="mt-8 flex flex-wrap gap-4">
             <Link
-              href="/slots"
+              href="/product-preview"
               className={cn(
                 "inline-flex min-h-[44px] items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-medium text-slate-950 no-underline shadow-sm transition-colors hover:bg-slate-100",
                 heroFocus
               )}
             >
-              Browse sessions
+              Open my bookings
             </Link>
             <Link
-              href="/my-bookings"
+              href="/slots"
               className={cn(
                 "inline-flex min-h-[44px] items-center justify-center rounded-full border border-white/20 px-5 py-2.5 text-sm font-medium text-white no-underline transition-colors hover:border-white/30 hover:bg-white/8",
                 heroFocus
               )}
             >
-              Open my passes
+              Browse sessions
             </Link>
           </div>
         </div>
@@ -59,26 +59,26 @@ export function HomeHero() {
           />
           <div className="relative w-full rounded-[1.75rem] border border-white/10 bg-white/10 p-5 shadow-[0_18px_40px_-20px_rgba(15,23,42,0.75)] backdrop-blur md:mr-5 md:max-w-[17.5rem] md:self-end">
             <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
-              Tonight
+              This Friday
             </p>
-            <p className="mt-3 text-2xl font-semibold text-white">Handstand Flow</p>
-            <p className="mt-2 text-sm text-slate-300">6:00 PM · 1 spot left</p>
+            <p className="mt-3 text-2xl font-semibold text-white">Friday Yoga</p>
+            <p className="mt-2 text-sm text-slate-300">18:00 · Studio A · Zürich</p>
             <div className="mt-5 h-px bg-white/10" />
             <p className="mt-4 text-sm leading-relaxed text-slate-300">
-              Last opening, still governed by provider rules.
+              Confirmed now. Flexible if your plans change.
             </p>
           </div>
           <div className="relative w-full rounded-[1.75rem] border border-slate-200/60 bg-slate-50 p-5 pb-6 text-slate-900 shadow-[0_24px_50px_-24px_rgba(15,23,42,0.45)] md:-mt-3 md:mr-0 md:max-w-[18rem] md:self-end md:ring-1 md:ring-slate-900/[0.04]">
             <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-              My pass
+              Your booking
             </p>
-            <p className="mt-3 text-xl font-semibold">Active booking</p>
+            <p className="mt-3 text-xl font-semibold">Keep it useful</p>
             <p className="mt-2 text-sm leading-relaxed text-slate-600">
-              See status, resale when your provider allows it, and what happens
-              next in one place.
+              Check in, change plans, or set clear limits and let YourTurn look for
+              a recovery on your behalf.
             </p>
             <div className="mt-5 inline-flex rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-medium text-emerald-900">
-              Ready to use
+              Confirmed
             </div>
           </div>
         </div>
