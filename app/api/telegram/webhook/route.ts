@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 import {
+  RecoveryMandateAuthorityBoundaryError,
+  withRecoveryMandateAuthorityMutation,
+  type RecoveryMandateAuthorityBoundaryStore,
+} from "@/lib/ledger/recovery-mandate-authority-boundary";
+import { getRedis } from "@/lib/store/redis";
+import {
   handleTelegramUpdate,
+  parseTelegramCommand,
   type TelegramUpdate,
 } from "@/lib/telegram/concierge";
 import { fail } from "@/lib/validation/api";
@@ -80,10 +87,25 @@ export async function POST(req: Request) {
         { status: 403 }
       );
     }
-    const result = await handleTelegramUpdate(update, {
-      appBaseUrl: appBaseUrl(),
-      allowMutations,
-    });
+
+    const command = parseTelegramCommand(update.message?.text ?? "");
+    const mutatesBooking =
+      allowMutations &&
+      command.serial != null &&
+      (command.kind === "approve_listing" || command.kind === "approve_refund");
+    const execute = () =>
+      handleTelegramUpdate(update, {
+        appBaseUrl: appBaseUrl(),
+        allowMutations,
+      });
+    const result = mutatesBooking
+      ? await withRecoveryMandateAuthorityMutation({
+          store: getRedis() as unknown as RecoveryMandateAuthorityBoundaryStore,
+          bookingSerial: command.serial!,
+          mutate: execute,
+        })
+      : await execute();
+
     if (!fixtureDryRun && result.chatId && process.env.TELEGRAM_BOT_TOKEN) {
       for (const message of result.messages) {
         await sendTelegramMessage(result.chatId, message);
@@ -95,6 +117,9 @@ export async function POST(req: Request) {
       result,
     });
   } catch (error) {
+    if (error instanceof RecoveryMandateAuthorityBoundaryError) {
+      return NextResponse.json(fail(error.message, "CONFLICT"), { status: 409 });
+    }
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(fail(message, "INTERNAL_ERROR"), { status: 500 });
   }
