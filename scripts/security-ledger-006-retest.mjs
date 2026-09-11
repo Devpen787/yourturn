@@ -304,7 +304,7 @@ async function replay() {
       revalidateMutableAuthority: revalidator(ctx.live),
       nowUnixSeconds: NOW,
     }),
-    /already consumed|replay|already exists|could not be stored/i,
+    /already (?:been )?consumed|replay|already exists|could not be stored/i,
     "an activated one-shot mandate must not reactivate"
   );
 }
