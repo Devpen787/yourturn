@@ -5,7 +5,13 @@ import {
   inspectBookingPortPreview,
 } from "@/lib/adapters/booking-port";
 import { accountsEqual, getActorCredentials } from "@/lib/hedera/client";
+import {
+  RecoveryMandateAuthorityBoundaryError,
+  withRecoveryMandateAuthorityMutation,
+  type RecoveryMandateAuthorityBoundaryStore,
+} from "@/lib/ledger/recovery-mandate-authority-boundary";
 import { verifyApprovalGrant } from "@/lib/server/approval-grants";
+import { getRedis } from "@/lib/store/redis";
 import { agentConfirmBodySchema } from "@/lib/validation/agent";
 import { fail } from "@/lib/validation/api";
 import type { BookingActorRef } from "@/lib/types/booking-port";
@@ -64,66 +70,90 @@ export async function POST(req: Request) {
       approvedAt: grant.approvedAt,
       source: grant.source,
     } as const;
+    const boundaryStore = getRedis() as unknown as RecoveryMandateAuthorityBoundaryStore;
+    const mutateBooking = <T>(mutate: () => Promise<T>) =>
+      withRecoveryMandateAuthorityMutation({
+        store: boundaryStore,
+        bookingSerial: preview.serial,
+        mutate,
+      });
 
     switch (preview.action) {
       case "book":
         return NextResponse.json({
           ok: true as const,
-          result: await bookingPort.confirmBook({
-            previewId: parsed.data.previewId,
-            approval,
-          }),
+          result: await mutateBooking(() =>
+            bookingPort.confirmBook({
+              previewId: parsed.data.previewId,
+              approval,
+            })
+          ),
         });
       case "create_listing":
         return NextResponse.json({
           ok: true as const,
-          result: await bookingPort.confirmCreateListing({
-            previewId: parsed.data.previewId,
-            approval,
-          }),
+          result: await mutateBooking(() =>
+            bookingPort.confirmCreateListing({
+              previewId: parsed.data.previewId,
+              approval,
+            })
+          ),
         });
       case "buy_listing":
         return NextResponse.json({
           ok: true as const,
-          result: await bookingPort.confirmBuyListing({
-            previewId: parsed.data.previewId,
-            approval,
-          }),
+          result: await mutateBooking(() =>
+            bookingPort.confirmBuyListing({
+              previewId: parsed.data.previewId,
+              approval,
+            })
+          ),
         });
       case "freeze":
         return NextResponse.json({
           ok: true as const,
-          result: await bookingPort.confirmFreeze({
-            previewId: parsed.data.previewId,
-            approval,
-          }),
+          result: await mutateBooking(() =>
+            bookingPort.confirmFreeze({
+              previewId: parsed.data.previewId,
+              approval,
+            })
+          ),
         });
       case "unfreeze":
         return NextResponse.json({
           ok: true as const,
-          result: await bookingPort.confirmUnfreeze({
-            previewId: parsed.data.previewId,
-            approval,
-          }),
+          result: await mutateBooking(() =>
+            bookingPort.confirmUnfreeze({
+              previewId: parsed.data.previewId,
+              approval,
+            })
+          ),
         });
       case "mark_used":
         return NextResponse.json({
           ok: true as const,
-          result: await bookingPort.confirmMarkUsed({
-            previewId: parsed.data.previewId,
-            approval,
-          }),
+          result: await mutateBooking(() =>
+            bookingPort.confirmMarkUsed({
+              previewId: parsed.data.previewId,
+              approval,
+            })
+          ),
         });
       case "cancel_release":
         return NextResponse.json({
           ok: true as const,
-          result: await bookingPort.confirmCancelRelease({
-            previewId: parsed.data.previewId,
-            approval,
-          }),
+          result: await mutateBooking(() =>
+            bookingPort.confirmCancelRelease({
+              previewId: parsed.data.previewId,
+              approval,
+            })
+          ),
         });
     }
   } catch (e) {
+    if (e instanceof RecoveryMandateAuthorityBoundaryError) {
+      return NextResponse.json(fail(e.message, "CONFLICT"), { status: 409 });
+    }
     if (e instanceof BookingPortError) {
       return NextResponse.json(fail(e.message, e.code), { status: e.status });
     }
