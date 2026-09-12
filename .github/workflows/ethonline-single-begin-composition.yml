@@ -1,0 +1,24 @@
+name: Single-begin composition qualification
+on:
+  push:
+    branches:
+      - feature/chatgpt-finishline-continuation
+  workflow_dispatch:
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --legacy-peer-deps
+      - name: Single-begin seam checks
+        run: node --experimental-transform-types scripts/single-begin-composition-check.mjs
+      - name: Existing prepare-retain model regression
+        run: node --experimental-transform-types scripts/hedera-prepare-retain-check.mjs --model
+      - run: npx tsc --noEmit --incremental false
+      - run: npm run build
