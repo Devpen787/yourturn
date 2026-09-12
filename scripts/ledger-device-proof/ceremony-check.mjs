@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 
 import {
+  LEDGER_DEVICE_PROOF_CONTRACT,
   assertExpectedCeremonyResult,
   isUserRejectedState,
   sanitizeDeviceState,
@@ -101,21 +102,37 @@ const interaction = sanitizeDeviceState({
     requiredUserInteraction: "signTypedData",
   },
 });
-const rejected = sanitizeDeviceState({
-  status: "error",
-  error: {
-    _tag: "EthAppCommandError",
-    errorCode: "6982",
-    message: "Security status not satisfied (Canceled by user)",
-  },
-});
+function rejectedRaw(errorCode, errorTag = "EthAppCommandError") {
+  return {
+    status: "error",
+    error: {
+      _tag: errorTag,
+      errorCode,
+      message: errorCode === "6985" ? "User refused" : "Canceled by user",
+    },
+  };
+}
+const rejected6982 = sanitizeDeviceState(rejectedRaw("6982"));
+const rejected6985 = sanitizeDeviceState(rejectedRaw("6985"));
+const rejected6984 = sanitizeDeviceState(rejectedRaw("6984"));
+const rejected6a80 = sanitizeDeviceState(rejectedRaw("6a80"));
+const rejected6800 = sanitizeDeviceState(rejectedRaw("6800"));
+const wrongTag6985 = sanitizeDeviceState(rejectedRaw("6985", "UnexpectedDeviceError"));
 const stopped = sanitizeDeviceState({ status: "stopped" });
 const completed = sanitizeDeviceState({ status: "completed" });
-assert.equal(isUserRejectedState({ status: "error", error: { errorCode: "6982" } }), true);
+
+assert.deepEqual(LEDGER_DEVICE_PROOF_CONTRACT.rejectErrorCodes, ["6982", "6985"]);
+assert.equal(isUserRejectedState(rejectedRaw("6982")), true);
+assert.equal(isUserRejectedState(rejectedRaw("6985")), true);
+assert.equal(isUserRejectedState(rejectedRaw("6985", "UnexpectedDeviceError")), false);
+assert.equal(isUserRejectedState(rejectedRaw("5515")), false);
+assert.equal(isUserRejectedState(rejectedRaw("6d00")), false);
+assert.equal(isUserRejectedState(rejectedRaw("6b00")), false);
 assert.equal(sawStoppedState([interaction, stopped]), true);
 assert.equal(sawStoppedState([interaction]), false);
 assert.equal(sawCompletedState([interaction, completed]), true);
 assert.equal(sawCompletedState([interaction]), false);
+
 assert.equal(
   assertExpectedCeremonyResult({
     expectation: "approve",
@@ -124,14 +141,16 @@ assert.equal(
   }),
   "approved"
 );
-assert.equal(
-  assertExpectedCeremonyResult({
-    expectation: "reject",
-    events: [interaction, rejected],
-    signature: null,
-  }),
-  "rejected"
-);
+for (const rejected of [rejected6982, rejected6985]) {
+  assert.equal(
+    assertExpectedCeremonyResult({
+      expectation: "reject",
+      events: [interaction, rejected],
+      signature: null,
+    }),
+    "rejected"
+  );
+}
 assert.equal(
   assertExpectedCeremonyResult({
     expectation: "cancel",
@@ -140,6 +159,37 @@ assert.equal(
     cancelRequested: true,
   }),
   "cancelled"
+);
+
+for (const rejected of [rejected6984, rejected6a80, rejected6800, wrongTag6985]) {
+  assert.throws(
+    () =>
+      assertExpectedCeremonyResult({
+        expectation: "reject",
+        events: [interaction, rejected],
+        signature: null,
+      }),
+    /did not return an accepted Ledger device-rejection outcome/
+  );
+}
+assert.throws(
+  () =>
+    assertExpectedCeremonyResult({
+      expectation: "reject",
+      events: [rejected6985],
+      signature: null,
+    }),
+  /typed-data user interaction was never observed/
+);
+assert.throws(
+  () =>
+    assertExpectedCeremonyResult({
+      expectation: "reject",
+      events: [interaction, rejected6985],
+      signature: null,
+      cancelRequested: true,
+    }),
+  /also contained completed\/host-cancel state/
 );
 assert.throws(
   () =>
@@ -174,7 +224,7 @@ assert.throws(
   () =>
     assertExpectedCeremonyResult({
       expectation: "cancel",
-      events: [interaction, rejected],
+      events: [interaction, rejected6982],
       signature: null,
       cancelRequested: true,
     }),
@@ -184,7 +234,7 @@ assert.throws(
   () =>
     assertExpectedCeremonyResult({
       expectation: "reject",
-      events: [interaction, rejected, completed],
+      events: [interaction, rejected6982, completed],
       signature: null,
     }),
   /also contained completed\/host-cancel state/
@@ -229,6 +279,7 @@ assert.equal(devicePackage.dependencies.rxjs, "7.8.2");
 console.log("Ledger DMK device ceremony contract: PASS");
 console.log("- exact domain/type/message semantics fail closed on mutation");
 console.log("- approve requires typed-data interaction + exclusive Completed terminal state + signature");
-console.log("- reject requires Ledger ETH error 6982 and no completed/host-cancel state");
+console.log("- reject requires typed-data interaction + EthAppCommandError 6982/6985 + no completed/host-cancel/signature");
+console.log("- unrelated rejection codes/tags remain fail-closed");
 console.log("- cancel requires DMK cancel() + exclusive Stopped terminal state and persists no signature");
 console.log("- runner contains no activation/fetch path and no legacy hw-app dependency");
