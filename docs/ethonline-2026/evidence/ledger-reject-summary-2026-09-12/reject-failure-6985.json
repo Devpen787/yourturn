@@ -1,0 +1,21 @@
+{
+  "capturedAt": "2026-09-12T15:12:32.922Z",
+  "sourceSha": "e1a908be6f1aeb551a07a170f8ee407f4a94aacc",
+  "mandateId": "226134e2-41be-4c22-ab4f-fd9c083ed555",
+  "mandateDigest": "0x346241c5cbc65b39a56eeea44820db21fdb90b58ce91e1db0e50da1d6aee45e7",
+  "phase": "reject",
+  "result": "FAILED_REJECTION_CODE_MISMATCH",
+  "humanReportedAction": "Rejected",
+  "canonicalTypedDataInteractionObserved": true,
+  "observedErrorCode": "6985",
+  "requiredErrorCode": "6982",
+  "completedObserved": false,
+  "signaturePersisted": false,
+  "activationAttempted": false,
+  "activeAuthorityRecordAbsent": true,
+  "recoveryExecutionAttempted": false,
+  "fundsMoved": false,
+  "checkerError": "reject ceremony did not return Ledger user-cancel code 6982",
+  "pinnedSdkObservation": "Signer Kit 1.18.0 SignTypedDataDeviceAction guard notRefusedByUser checks errorCode !== 6985",
+  "qualificationPassed": false
+}
