@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from "node:util";
 import { AgentMode, BaseTool, type Context } from "@hashgraph/hedera-agent-kit";
 import { Client, PublicKey, Transaction, type TransferTransaction } from "@hiero-ledger/sdk";
 import { z } from "zod";
@@ -67,7 +68,7 @@ class ExactPaymentReturnBytesTool extends BaseTool<unknown, SettledTransferParam
     private readonly transfer: TransferTransaction,
     private readonly expectedParams: SettledTransferParams,
     private readonly policy: BookingRightDelegationPolicy,
-    private readonly checkFresh: () => void,
+    private readonly checkFresh: () => Promise<void>,
   ) { super(); }
   async normalizeParams(raw: unknown, context: Context): Promise<SettledTransferParams> {
     if (context.mode !== AgentMode.RETURN_BYTES || context.accountId !== this.expectedParams.spenderAccountId ||
@@ -76,12 +77,12 @@ class ExactPaymentReturnBytesTool extends BaseTool<unknown, SettledTransferParam
   }
   async coreAction() {
     if (this.policy.lastDecision?.outcome !== "ALLOW") throw new ExactPaymentDenied("POLICY_ALLOW_REQUIRED");
-    this.checkFresh();
+    await this.checkFresh();
     return this.transfer;
   }
   async secondaryAction(transaction: TransferTransaction, _client: Client, context: Context) {
     if (context.mode !== AgentMode.RETURN_BYTES || transaction !== this.transfer) throw new ExactPaymentDenied("RETURN_BYTES_REQUIRED");
-    this.checkFresh();
+    await this.checkFresh();
     return { bytes: transaction.toBytes() };
   }
 }
@@ -112,7 +113,8 @@ export async function preparePolicyAuthorizedUsdcRecovery(
     // Snapshot both untrusted signature and resolved state across asynchronous boundaries.
     const operationId = args.operationId;
     const signatureHex = args.paymentAuthorization?.signatureHex;
-    state = structuredClone(await args.resolveState(operationId));
+    const resolveState = args.resolveState;
+    state = structuredClone(await resolveState(operationId));
     if (!state) return denied("EXECUTION_STATE_REQUIRED");
     const now = args.now ?? Date.now;
     const verified = verifyExactPaymentAuthorization(state, operationId, signatureHex, now());
@@ -150,11 +152,23 @@ export async function preparePolicyAuthorizedUsdcRecovery(
         throw new ExactPaymentDenied("EXECUTION_STATE_STALE");
       }
     };
+    const recheckCurrent = async () => {
+      checkFresh();
+      const fresh = structuredClone(await resolveState(operationId));
+      checkFresh();
+      if (!fresh) throw new ExactPaymentDenied("EXECUTION_STATE_REQUIRED");
+      // A resolver may refresh its observation timestamp, but no changed
+      // authority/economic fact may silently reuse Bob's original intent.
+      const { resolvedAtMs: _previousRead, ...previousFacts } = state!;
+      const { resolvedAtMs: _currentRead, ...currentFacts } = fresh;
+      if (!isDeepStrictEqual(previousFacts, currentFacts)) throw new ExactPaymentDenied("EXECUTION_STATE_CHANGED");
+      verifyExactPaymentAuthorization(fresh, operationId, signatureHex, now());
+    };
     client = Client.forTestnet(); // No operator, key, query, signing, or submit.
     const context: Context = { mode: AgentMode.RETURN_BYTES, accountId: c.transactionFeePayerAccountId, hooks: [policy] };
-    const tool = new ExactPaymentReturnBytesTool(verified.unsignedTransaction, params, policy, checkFresh);
+    const tool = new ExactPaymentReturnBytesTool(verified.unsignedTransaction, params, policy, recheckCurrent);
     const result = await tool.execute(client, context, params) as { bytes?: Uint8Array };
-    checkFresh();
+    await recheckCurrent();
     if (!result.bytes || policy.lastDecision?.outcome !== "ALLOW") {
       return denied(policy.lastDecision?.outcome !== "ALLOW" ? policy.lastDecision?.reason ?? "POLICY_ALLOW_REQUIRED" : "RETURN_BYTES_FAILED");
     }
@@ -174,7 +188,7 @@ export async function preparePolicyAuthorizedUsdcRecovery(
     // Verify that serialization preserved the exact body Bob authorized.
     decoded.addSignature(PublicKey.fromString(verified.publicKey), Buffer.from(signatureHex, "hex"));
     if (!PublicKey.fromString(verified.publicKey).verifyTransaction(decoded)) return denied("RETURN_BYTES_SIGNATURE_INVALID");
-    checkFresh();
+    await recheckCurrent();
     return {
       ok: true, decision: policy.lastDecision, transactionBytesProduced: true,
       envelope: {

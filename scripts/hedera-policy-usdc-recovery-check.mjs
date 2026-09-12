@@ -300,5 +300,30 @@ await test("historical live runner stops before environment or signing", async (
   assert.match(result.stderr,/historical_usdc_live_runner_retired_use_411f703_for_historical_evidence_only/);
 });
 
+for (const [name, mutate] of [
+  ["mandate revoked",s=>s.delegation.revokedAtMs=NOW],
+  ["mandate replaced",s=>s.delegation.delegationId="replacement"],
+  ["provider changed",s=>s.providerPolicy.version="new-version"],
+  ["holder changed",s=>s.invocation.currentHolderAccountId=ids.other],
+  ["allowance revoked",s=>s.bookingAllowance.spenderAccountId=ids.other],
+  ["funding changed",s=>s.fundingAccount.availableAtomicUnits="0"],
+  ["quote changed",s=>s.quote.hash="ff".repeat(32)],
+  ["action scope changed",s=>s.delegation.allowedActions=[]],
+]) await test(`fresh resolver after reservation: ${name}`,async()=>{
+  const s=fixture(),auth=await authorize(s),inner=new MemoryStore();
+  const store={reserve:async(...args)=>{const result=await inner.reserve(...args);mutate(s);return result;}};
+  denied(await run(s,{auth,store}),"EXECUTION_STATE_CHANGED");
+  assert.equal(inner.calls,1);
+});
+await test("resolver disappearance after reservation returns no bytes",async()=>{
+ const s=fixture(),auth=await authorize(s);let reads=0;
+ denied(await run(s,{auth,args:{resolveState:async()=>++reads===1?s:null}}),"EXECUTION_STATE_REQUIRED");
+});
+await test("resolver rereads exact state across RETURN_BYTES boundaries",async()=>{
+ const s=fixture();let reads=0;
+ assert.equal((await run(s,{args:{resolveState:async()=>{reads++;return structuredClone(s);}}})).ok,true);
+ assert(reads>=4);
+});
+
 console.log(JSON.stringify({ status:"PASS", evidenceClass:"CI/LOCAL", checks:checks.length, assertions:checks,
   liveTransactionsSigned:0, liveTransactionsSubmitted:0, historicalSource:"411f703e164cac82b5498c1f25a2cf21af7bc4be" },null,2));

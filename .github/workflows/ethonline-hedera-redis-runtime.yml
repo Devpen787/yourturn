@@ -2,7 +2,7 @@ name: ETHOnline Hedera Redis Runtime Qualification
 
 on:
   push:
-    branches: ['feature/ethonline-hedera-redis-runtime-qual']
+    branches: ['feature/ethonline-hedera-redis-runtime-qual', 'feature/ethonline-hedera-state-recheck-qual']
   workflow_dispatch:
 
 permissions:

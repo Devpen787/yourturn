@@ -124,3 +124,10 @@ Append one block per meaningful run:
 - Failed/open: hosted Upstash/deployed Redis, authoritative resolver/current-chain, external signer and final integration remain unqualified. This transport is test infrastructure, never a hosted-service claim.
 - Claim impact: pending CI/LOCAL real Redis evidence only; no LIVE/testnet/independent clearance.
 - Exact next action: execute hosted real Redis matrix, repair only reproduced harness defects, and hand exact source/run/artifact to independent #16 review.
+
+### 2026-09-12 — fresh resolver checks at Hedera RETURN_BYTES boundaries
+- Branch/base: `feature/ethonline-hedera-state-recheck-qual` from cleared87938abb; claim #16 5647402799.
+- Change: re-resolve authoritative state after asynchronous replay reservation and around serialization/return; permit observation timestamp refresh but reject changed authority/economic facts; re-verify the original native payment authorization. No signer/executor path added.
+- Verification actually run: 87 focused semantic checks PASS locally (77 inherited plus10 fresh-resolver cases), TypeScript PASS, empty inherited environment. In-reservation revoke/replacement/provider/holder/allowance/funding/quote/scope changes return no bytes; unavailable resolver also denies. Exact CI plus inherited real Redis pending.
+- Limits: trusted resolver itself and external signer recheck remain prerequisites; point-in-time rereads are not a chain lock. Existing exact-net zero-custom-fee policy remains unchanged; owner-configurable royalty support/canonical chain asset not silently selected. No credentials/device/real signing/transactions.
+- Next: exact hosted evidence and independent Security review.
