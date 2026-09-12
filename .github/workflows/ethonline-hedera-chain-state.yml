@@ -1,0 +1,32 @@
+name: ETHOnline Hedera Current Chain Reader Qualification
+
+on:
+  push:
+    branches: ['feature/ethonline-hedera-chain-state-qual']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  indexed-read-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Locked install
+        run: npm ci --legacy-peer-deps
+      - name: Production build
+        run: env -i PATH="$PATH" npm run build
+      - name: TypeScript
+        run: env -i PATH="$PATH" node node_modules/typescript/bin/tsc --noEmit --incremental false
+      - name: Existing Hedera Agent Kit check
+        run: env -i PATH="$PATH" HEDERA_GUEST_A_ID=0.0.9001 HEDERA_TREASURY_ID=0.0.9002 npm run hedera:agent-check
+      - name: Bounded public reader mock matrix
+        run: env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/hedera-current-chain-reader-check.mjs
+      - name: Inherited exact payment semantic matrix
+        run: env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/hedera-policy-usdc-recovery-check.mjs
