@@ -24,38 +24,58 @@ If any precondition is false, stop. Do not improvise a fallback identity, accoun
 
 Purpose: prove the human authorizes the **Recovery Mandate**, not the Hedera settlement transaction.
 
-### Approve case
+The repository already contains the dedicated DMK ceremony tooling under `scripts/ledger-device-proof/`. Use that existing runner; do not replace it with an ad-hoc signing script.
 
-1. Open the final supported Ledger mandate flow from the exact integrated candidate.
-2. Confirm the human-readable statement matches the exact mandate fields:
-   - owner;
-   - agent;
-   - booking token + serial;
-   - `resale` scope;
-   - minimum seller-net recovery;
-   - Hedera USDC settlement asset;
-   - expiry;
-   - nonce;
-   - cancellation not allowed.
-3. On the physical Ledger device, review and approve the exact typed-data authorization.
-4. Return only the signed mandate artifact to YourTurn.
-5. Verify the application activates exactly that mandate and records no broader authority.
-6. Capture safe evidence: exact app SHA, device/app version where appropriate, mandate digest, recovered public address, approve result, and timestamp. Do **not** capture secrets.
+### Exact local preparation
 
-### Reject case
+From the repository root on the exact selected SHA:
 
-1. Prepare a fresh mandate with a fresh nonce.
-2. Reject it on the Ledger device.
-3. Verify no current mandate/authority state changes.
-4. Capture the rejection result and unchanged-state proof.
+```bash
+npm ci --legacy-peer-deps
+npm run dev:ceremony
+```
 
-### Replay/stale case
+In another terminal:
 
-1. Retry the already consumed/activated nonce or use an expired/stale artifact as defined by the test.
-2. Verify YourTurn rejects it before any new authority/effect can start.
-3. Record the exact rejection reason and unchanged-state proof.
+```bash
+cd scripts/ledger-device-proof
+npm ci
+npm run capture -- \
+  --actor guestA \
+  --serial <FINAL_DEMO_SERIAL> \
+  --minimum-atomic <FINAL_SELLER_NET_MINIMUM_ATOMIC> \
+  --expires-in 7200 \
+  --base-url http://127.0.0.1:3000 \
+  --out ../../output/ledger-qualification/prepared.json
+```
 
-Success criteria: physical approve succeeds for one exact mandate; physical reject makes no authority change; stale/replayed artifact is denied. This proves device involvement only for the mandate authorization.
+Before touching the device, inspect `prepared.json` and confirm the human-readable statement matches the exact intended owner, agent, booking token/serial, `resale` scope, minimum seller-net recovery, Hedera USDC settlement asset, expiry, nonce and `cancellationAllowed=false`.
+
+### Exact qualification session
+
+Run:
+
+```bash
+npm run qualify -- \
+  --actor guestA \
+  --prepared ../../output/ledger-qualification/prepared.json \
+  --out-dir ../../output/ledger-qualification/session-1 \
+  --base-url http://127.0.0.1:3000
+```
+
+The existing qualification runner deliberately fixes the order and uses the **same prepared mandate**:
+
+1. physical **DEVICE REJECT**;
+2. host cancel after the DMK typed-data interaction becomes observable;
+3. physical **DEVICE APPROVE**;
+4. reviewer-safe identical-mandate bundle generation;
+5. downstream non-bypass proof where wrong signature is rejected, the hardware signature is accepted once, and replay is rejected.
+
+Follow the runner prompts exactly. Do not approve during the reject step and do not create a different mandate between reject/cancel/approve.
+
+Expected safe outputs under the fresh evidence directory include the reject, cancel and approve proofs, reviewer bundle and downstream proof. No recovery execution endpoint or funds are involved in this Ledger ceremony.
+
+Success criteria: physical reject makes no authority change; the exact same human-readable mandate can then be approved on-device; downstream activation accepts the hardware-approved mandate exactly once; wrong signature and replay are denied. This proves device involvement only for the mandate authorization.
 
 ## Ceremony B — World canonical signed request
 
@@ -98,6 +118,12 @@ Purpose: prove the final integrated candidate settles the exact Bob-funded D-010
    - no extra fungible/NFT/HBAR movement exists;
    - operation reaches `completed` with the indexed receipt digest.
 10. Save safe Mirror/HashScan links and the exact receipt/economic summary.
+
+### Important current gate
+
+Do **not** use `scripts/hedera-policy-usdc-recovery-live.mjs` for this ceremony: that runner is explicitly retired and preserved only for historical `411f703e...` evidence. Do **not** use `scripts/hedera-return-bytes-external-signer.mjs` for the final D-010 settlement either: its delegated-transfer semantic guard intentionally forbids hidden fungible transfers and therefore does not represent the new NFT + Bob-funded USDC + royalty transaction.
+
+The final one-shot submitter must consume only the exact fully signed bytes that already passed `BEFORE_SUBMIT`, must not sign/regenerate/rewrite them, must submit at most once after explicit human authorization, and must hand the exact transaction ID to the existing receipt reconciler. Until that bounded submitter exists and is reviewed, this ceremony remains RED rather than falling back to historical scripts.
 
 ### Failure rule
 
