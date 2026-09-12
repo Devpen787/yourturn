@@ -1,0 +1,152 @@
+name: Finish-line integrated candidate
+
+on:
+  push:
+    branches:
+      - feature/finishline-execution
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Preserve frozen runtime bytes
+        run: |
+          git diff --exit-code 25bc842b2c92772e17350ac6dffc021d144cbe32 HEAD -- \
+            app/api/agent/confirm \
+            lib/recovery \
+            lib/ledger \
+            lib/hedera-agent-kit \
+            lib/policy \
+            scripts/single-begin-composition-check.mjs \
+            scripts/current-business-eligibility-check.mjs \
+            scripts/public-enrollment-provisioning-check.mjs \
+            scripts/public-enrollment-server-config-check.mjs \
+            scripts/current-payment-authorization-check.mjs \
+            scripts/hedera-external-signing-check.mjs \
+            scripts/hedera-receipt-reader-check.mjs \
+            scripts/final-canonical-route-check.mjs \
+            scripts/hedera-prepare-retain-check.mjs
+      - run: npm ci --legacy-peer-deps
+      - name: Single-begin seam checks
+        run: node --experimental-transform-types scripts/single-begin-composition-check.mjs
+      - name: Business eligibility source checks
+        run: node --experimental-transform-types scripts/current-business-eligibility-check.mjs
+      - name: Public enrollment provisioning checks
+        run: node --experimental-transform-types scripts/public-enrollment-provisioning-check.mjs
+      - name: Public enrollment server config checks
+        run: node --experimental-transform-types scripts/public-enrollment-server-config-check.mjs
+      - name: Durable payment authorization checks
+        run: node --experimental-transform-types scripts/current-payment-authorization-check.mjs
+      - name: External signing validation regression
+        run: node --experimental-transform-types scripts/hedera-external-signing-check.mjs
+      - name: Indexed receipt reader regression
+        run: node --experimental-transform-types scripts/hedera-receipt-reader-check.mjs
+      - name: Final canonical route source guard
+        run: node scripts/final-canonical-route-check.mjs
+      - name: Existing prepare-retain model regression
+        run: node --experimental-transform-types scripts/hedera-prepare-retain-check.mjs --model
+      - name: TypeScript
+        run: npx tsc --noEmit --incremental false
+      - name: Production build
+        run: npm run build
+
+  product:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Preserve exact human-approved R5 Product bytes
+        run: |
+          git diff --exit-code 342f46ee6e0c4d0f332287d8433735c5ac015528 HEAD -- \
+            app/product-preview \
+            components/SiteHeader.tsx \
+            components/home \
+            docs/product-workbench \
+            scripts/product-workbench-booking-fixtures.mjs \
+            scripts/product-workbench-booking-navigation-check.mjs \
+            scripts/product-workbench-booking-state-check.mjs \
+            scripts/product-workbench-holder-fixtures.mjs \
+            scripts/product-workbench-holder-navigation-check.mjs \
+            scripts/product-workbench-holder-state-check.mjs \
+            scripts/product-workbench-integrity-check.mjs \
+            scripts/product-workbench-r2-bridge-check.mjs \
+            scripts/product-workbench-r2-state-check.mjs \
+            scripts/product-workbench-r3-browser-check.mjs \
+            scripts/product-workbench-r3-runtime-check.mjs \
+            scripts/product-workbench-r3-state-check.mjs \
+            scripts/product-workbench-r4-connected-check.mjs \
+            scripts/product-workbench-r5-browser-check.mjs \
+            scripts/product-workbench-r5-state-check.mjs \
+            scripts/product-workbench-visual-check.mjs \
+            scripts/product-workbench-xc01-visual-check.mjs \
+            scripts/product-workbench-xc02-visual-check.mjs \
+            scripts/product-workbench-xc03-visual-check.mjs
+      - run: npm ci --legacy-peer-deps
+      - name: Install Playwright
+        run: |
+          npm install --no-save --package-lock=false --legacy-peer-deps playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: R5 model and state checks
+        run: |
+          node --experimental-strip-types scripts/product-workbench-holder-state-check.mjs
+          node --experimental-strip-types scripts/product-workbench-booking-state-check.mjs
+          node --experimental-strip-types scripts/product-workbench-r2-state-check.mjs
+          node --experimental-strip-types scripts/product-workbench-r3-state-check.mjs
+          node --experimental-strip-types scripts/product-workbench-r3-runtime-check.mjs
+          node --experimental-strip-types scripts/product-workbench-r5-state-check.mjs
+      - name: TypeScript
+        run: npx tsc --noEmit --incremental false
+      - name: Production build
+        run: npm run build
+      - name: Start exact combined candidate
+        id: start
+        run: |
+          npm run start -- -p 3000 > /tmp/yourturn-finishline.log 2>&1 &
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:3000/product-preview > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/yourturn-finishline.log
+          exit 1
+      - name: Golden and adversarial browser checks
+        env:
+          PRODUCT_WORKBENCH_BASE_URL: http://127.0.0.1:3000
+        run: |
+          node scripts/product-workbench-visual-check.mjs
+          node scripts/product-workbench-xc01-visual-check.mjs
+          node scripts/product-workbench-xc02-visual-check.mjs
+          node scripts/product-workbench-xc03-visual-check.mjs
+          node scripts/product-workbench-holder-navigation-check.mjs
+          node scripts/product-workbench-booking-navigation-check.mjs
+          node scripts/product-workbench-integrity-check.mjs
+          node scripts/product-workbench-r2-bridge-check.mjs
+          node scripts/product-workbench-r3-browser-check.mjs
+          node scripts/product-workbench-r4-connected-check.mjs
+          node scripts/product-workbench-r5-browser-check.mjs
+      - name: Upload Product evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: finishline-product-evidence
+          path: artifacts/product-workbench/
+          if-no-files-found: error
