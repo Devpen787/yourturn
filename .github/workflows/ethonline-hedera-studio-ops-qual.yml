@@ -1,0 +1,111 @@
+name: ETHOnline Hedera Studio Ops Qualification
+
+on:
+  push:
+    branches:
+      - 'feature/ethonline-hedera-studio-ops-qual'
+    paths:
+      - 'lib/hedera-agent-kit/studio-ops-plugin.ts'
+      - 'scripts/hedera-studio-ops-check.mjs'
+      - 'docs/ethonline-2026/HEDERA-STUDIO-OPS.md'
+      - '.github/workflows/ethonline-hedera-studio-ops-qual.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  studio-ops-qual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact Studio Ops candidate
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Record dependency manifests before install
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum package.json package-lock.json | tee manifests.before
+
+      - name: Install locked root without dependency mutation
+        run: npm ci --legacy-peer-deps
+
+      - name: Prove Studio Ops source is read-only and credential-free
+        shell: bash
+        run: |
+          set -euo pipefail
+          file=lib/hedera-agent-kit/studio-ops-plugin.ts
+          ! grep -Eq 'PrivateKey|\.setOperator\(|handleTransaction|TokenAirdropTransaction|BatchTransaction|@hashgraph/hedera-agent-kit-mcp|process\.env' "$file"
+          grep -q 'extends BaseTool' "$file"
+          grep -q 'untypedQueryOutputParser' "$file"
+          for method in \
+            yourturn_studio_inventory_tool \
+            yourturn_studio_booking_holder_tool \
+            yourturn_studio_receive_readiness_tool \
+            yourturn_studio_policy_tool \
+            yourturn_studio_resale_receipt_tool \
+            yourturn_studio_network_health_tool; do
+            grep -q "$method" "$file"
+          done
+
+      - name: Run Studio Ops adversarial qualification
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --no-warnings scripts/hedera-studio-ops-check.mjs | tee hedera-studio-ops-proof.json
+
+      - name: Preserve Phase A controlled-transfer checks
+        run: node --no-warnings scripts/hedera-controlled-transfer-check.mjs
+
+      - name: Preserve inherited Hedera HAK checks
+        run: npm run hedera:delegated-recovery-hak-check
+
+      - name: Preserve inherited booking policy and payment checks
+        run: npm run hedera:booking-policy-check
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Production build
+        run: npm run build
+
+      - name: Dependency manifests must remain unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum package.json package-lock.json | tee manifests.after
+          diff -u manifests.before manifests.after
+
+      - name: Record exact source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "head_sha=${GITHUB_SHA}"
+            echo "tree_sha=$(git show -s --format=%T HEAD)"
+            echo "base_phase_a=facd02f14ebd80e591bfe66fca47f165494229f4"
+            echo "historical_live=411f703e164cac82b5498c1f25a2cf21af7bc4be"
+            echo "judge_reviewer=30033a109ce72df6299325df72fcf44d8ed56e01"
+            echo "official_mcp=STOP_ON_CURRENT_ROOT"
+            echo "signed=false"
+            echo "submitted=false"
+            echo "network_mutation=false"
+          } | tee hedera-studio-ops-source.txt
+
+      - name: Upload Studio Ops qualification artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hedera-studio-ops-qual-${{ github.sha }}
+          path: |
+            hedera-studio-ops-proof.json
+            hedera-studio-ops-source.txt
+            manifests.before
+            manifests.after
+          if-no-files-found: error
+          retention-days: 14
