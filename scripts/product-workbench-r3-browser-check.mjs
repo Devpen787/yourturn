@@ -36,21 +36,25 @@ try {
     await page.reload({ waitUntil: "networkidle" }); assert.equal(await page.getByLabel("Capacity").inputValue(), "14"); assert.equal((await providerState(page)).published.capacity, 12);
     await shot(page, viewport.name, "provider-draft-reload");
 
-    await page.getByLabel("Capacity").fill("0"); await page.getByRole("button", { name: "Save and publish", exact: true }).click();
+    await page.getByLabel("Capacity").fill("0"); await page.getByRole("button", { name: "Publish session", exact: true }).click();
     await visible(page, "Capacity must be a whole number"); assert.equal((await providerState(page)).published.capacity, 12);
     await shot(page, viewport.name, "provider-invalid");
 
     await page.getByLabel("Capacity").fill("14");
     await page.evaluate((k) => { const s = JSON.parse(localStorage.getItem(k)); s.saveMode = "fail-once"; localStorage.setItem(k, JSON.stringify(s)); window.dispatchEvent(new Event("yourturn:r3-provider-config-changed")); }, providerKey);
-    await page.getByRole("button", { name: "Save and publish", exact: true }).click();
+    await page.getByRole("button", { name: "Publish session", exact: true }).click();
     await visible(page, "could not be saved"); assert.equal((await providerState(page)).published.capacity, 12);
     await shot(page, viewport.name, "provider-save-failure");
 
-    await page.getByRole("button", { name: "Save and publish", exact: true }).click();
+    await page.getByRole("button", { name: "Publish session", exact: true }).click();
     await page.waitForURL((u) => u.searchParams.get("view") === "xc3-provider-session-published");
     await visible(page, "14 places"); await visible(page, "Friday · 17:20");
     await shot(page, viewport.name, "provider-published");
     await page.reload({ waitUntil: "networkidle" }); await visible(page, "14 places");
+    await page.locator("header nav a").first().click(); await page.waitForURL((u) => u.searchParams.get("view") === "xc3-provider-inventory");
+    await page.getByRole("button", { name: "Configure Friday Yoga", exact: true }).click(); await page.waitForURL((u) => u.searchParams.get("view") === "xc3-provider-session-draft");
+    assert.equal(await page.getByLabel("Capacity").inputValue(), "14"); await visible(page, "14 places");
+    await shot(page, viewport.name, "provider-navigation-return");
     await context.close();
 
     const preContext = await seededContext(browser, size, bookingFixture());
@@ -79,11 +83,11 @@ try {
 
     const allErrors = [...errors, ...preErrors, ...bobErrors, ...mayaErrors];
     assert.equal(allErrors.length, 0, `Console/page errors: ${allErrors.join(" | ")}`);
-    results.push({ viewport: viewport.name, status: "PASS", evidenceClass: "FIXTURE", screenshots: 8, consoleErrors: 0 });
+    results.push({ viewport: viewport.name, status: "PASS", evidenceClass: "FIXTURE", screenshots: 9, consoleErrors: 0 });
     console.log(`PASS R3 ${viewport.name}`);
   }
 } finally { await browser.close(); }
 
-await writeFile(path.join(out, "results.json"), JSON.stringify({ schemaVersion: 1, candidateSha, generatedAt: new Date().toISOString(), scope: "R3 only: provider draft/published separation, validation/save failure, Bob My bookings projection, internal Browse, prepared Maya-owner fixture boundary", results }, null, 2));
+await writeFile(path.join(out, "results.json"), JSON.stringify({ schemaVersion: 1, candidateSha, generatedAt: new Date().toISOString(), scope: "R3 only: provider draft/published separation, validation/save failure, navigation/reload persistence, Bob My bookings projection, internal Browse, prepared Maya-owner fixture boundary", results }, null, 2));
 assert.equal(results.length, 2); assert(results.every((r) => r.status === "PASS"));
 console.log("R3 browser evidence: PASS 2/2 viewports");
