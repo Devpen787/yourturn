@@ -18,6 +18,18 @@ function parseScope(token: unknown, serial: unknown) {
       typeof serial !== "string" || !/^[1-9][0-9]{0,15}$/.test(serial) || BigInt(serial) > BigInt(Number.MAX_SAFE_INTEGER)) throw new Denied(400, "INVALID_BOOKING_SCOPE");
   return { token, serial: BigInt(serial) };
 }
+function requestOrigin(req: Request, url: URL): string {
+  // NextURL normalizes loopback hosts to localhost. Browser Origin retains the
+  // actual authority. Host is supplied by the HTTP request target (a browser
+  // cannot set it); never use caller-set X-Forwarded-Host or a body field.
+  const host = req.headers.get("host");
+  if (!host || !/^(?:[A-Za-z0-9.-]+|\[[0-9a-fA-F:]+\])(?::[0-9]{1,5})?$/.test(host)) throw new Denied(403, "SAME_ORIGIN_REQUIRED");
+  try {
+    const origin = new URL(`${url.protocol}//${host}`);
+    if (!["http:", "https:"].includes(origin.protocol)) throw new Error("protocol");
+    return origin.origin;
+  } catch { throw new Denied(403, "SAME_ORIGIN_REQUIRED"); }
+}
 async function readBody(req: Request): Promise<Record<string, unknown>> {
   if (req.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json") throw new Denied(415, "JSON_REQUIRED");
   const reader = req.body?.getReader();
@@ -73,7 +85,7 @@ export function createRecoveryMandateOwnerHandlers(deps: Dependencies) {
         if (req.method !== "POST") throw new Denied(405, "METHOD_NOT_ALLOWED");
         if (isTestnet() !== true) throw new Denied(503, "TESTNET_REQUIRED");
         const url = new URL(req.url);
-        if (req.headers.get("origin") !== url.origin || (req.headers.get("sec-fetch-site") !== null && req.headers.get("sec-fetch-site") !== "same-origin")) throw new Denied(403, "SAME_ORIGIN_REQUIRED");
+        if (req.headers.get("origin") !== requestOrigin(req, url) || (req.headers.get("sec-fetch-site") !== null && req.headers.get("sec-fetch-site") !== "same-origin")) throw new Denied(403, "SAME_ORIGIN_REQUIRED");
         if (url.search) throw new Denied(400, "INVALID_QUERY");
         const owner = await authenticate();
         const body = await readBody(req);

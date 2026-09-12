@@ -11,6 +11,7 @@ try{
  const body=JSON.stringify({tokenId:"0.0.700001",serial:"7",mandateId:"synthetic",digest:"0x"+"ab".repeat(32)});
  const unauth=await fetch(origin+"/api/ledger/recovery-mandate/revoke",{method:"POST",headers:{origin,"content-type":"application/json"},body,signal:AbortSignal.timeout(3000)});assert.equal(unauth.status,401);assert.equal((await unauth.json()).code,"SIGN_IN_REQUIRED");
  const cross=await fetch(origin+"/api/ledger/recovery-mandate/revoke",{method:"POST",headers:{origin:"https://other.invalid","content-type":"application/json"},body,signal:AbortSignal.timeout(3000)});assert.equal(cross.status,403);assert.equal((await cross.json()).code,"SAME_ORIGIN_REQUIRED");
+ const alias=await fetch(origin+"/api/ledger/recovery-mandate/revoke",{method:"POST",headers:{origin:`http://localhost:${port}`,"content-type":"application/json"},body,signal:AbortSignal.timeout(3000)});assert.equal(alias.status,403);assert.equal((await alias.json()).code,"SAME_ORIGIN_REQUIRED");
  const unsupported=await fetch(origin+"/api/ledger/recovery-mandate/revoke",{signal:AbortSignal.timeout(3000)});assert.equal(unsupported.status,405);
- console.log(JSON.stringify({status:"PASS",checks:4,evidenceClass:"REAL_NEXT_HTTP_UNAUTHENTICATED",credentialsLoaded:false,authorizedMutations:0}));
+ console.log(JSON.stringify({status:"PASS",checks:5,evidenceClass:"REAL_NEXT_HTTP_UNAUTHENTICATED",credentialsLoaded:false,authorizedMutations:0}));
 }finally{child.kill("SIGTERM");await Promise.race([new Promise(resolve=>child.once("exit",resolve)),delay(3000)]);if(child.exitCode===null)child.kill("SIGKILL");}

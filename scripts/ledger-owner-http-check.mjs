@@ -25,7 +25,7 @@ async function fixture(){
  const handlers=()=>createRecoveryMandateOwnerHandlers(deps);
  const body={tokenId:token,serial:serial.toString(),mandateId:run,digest:pointer.digest};
  const get=(query=`tokenId=${token}&serial=${serial}`)=>new Request("https://fixture.invalid/api/ledger/recovery-mandate/current?"+query);
- const post=(override={},headers={})=>new Request("https://fixture.invalid/api/ledger/recovery-mandate/revoke",{method:"POST",headers:{origin:"https://fixture.invalid","content-type":"application/json",...headers},body:JSON.stringify({...body,...override})});
+ const post=(override={},headers={})=>new Request("https://fixture.invalid/api/ledger/recovery-mandate/revoke",{method:"POST",headers:{host:"fixture.invalid",origin:"https://fixture.invalid","content-type":"application/json",...headers},body:JSON.stringify({...body,...override})});
  return {db,key,put,pointer,body,deps,handlers,get,post,getEvals:()=>evaluations,setSigned:v=>signed=v,setStored:v=>stored=v,setTestnet:v=>testnet=v};
 }
 async function test(name,fn){await fn();cases.push(name);console.log("PASS "+name);}
@@ -40,6 +40,8 @@ try {
  ])await test(name+" denies GET/revoke without writes",async()=>{const x=await fixture();change(x);await status(await x.handlers().GET(x.get()),401);await status(await x.handlers().POST(x.post()),401);assert.equal(x.getEvals(),0);});
  await test("stored user unavailable fails closed without session fallback",async()=>{const x=await fixture();x.deps.readStoredOwner=async()=>{throw new Error("private storage detail");};const b=await status(await x.handlers().POST(x.post()),503);assert.equal(JSON.stringify(b).includes("private"),false);assert.equal(x.getEvals(),0);});
  for(const origin of ["https://evil.invalid","null",""])await test("cross/missing origin "+origin+" refused",async()=>{const x=await fixture();await status(await x.handlers().POST(x.post({}, {origin})),403);assert.equal(x.getEvals(),0);});
+ for(const host of ["other.invalid","", "user@fixture.invalid", "fixture.invalid/path", "fixture.invalid:999999"])await test("mismatched or malformed HTTP host "+host+" refused",async()=>{const x=await fixture();await status(await x.handlers().POST(x.post({}, {host})),403);assert.equal(x.getEvals(),0);});
+ await test("forwarded host cannot override actual HTTP host",async()=>{const x=await fixture();await status(await x.handlers().POST(x.post({}, {host:"actual.invalid","x-forwarded-host":"fixture.invalid"})),403);assert.equal(x.getEvals(),0);});
  await test("cross-site fetch metadata refused",async()=>{const x=await fixture();await status(await x.handlers().POST(x.post({}, {"sec-fetch-site":"cross-site"})),403);assert.equal(x.getEvals(),0);});
  for(const value of [false,undefined])await test("network guard "+String(value)+" denies both",async()=>{const x=await fixture();x.setTestnet(value);await status(await x.handlers().GET(x.get()),503);await status(await x.handlers().POST(x.post()),503);});
  for(const [name,body] of [["body owner",{ownerId:"other"}],["actor substitution",{actor:"guestB"}],["zero serial",{serial:"0"}],["unsafe serial",{serial:"9007199254740992"}],["numeric serial",{serial:7}],["aliased token",{tokenId:"00.0.7"}],["oversized token",{tokenId:"0.0.9999999999999999999"}],["bad digest",{digest:"bad"}]])await test(name+" rejected",async()=>{const x=await fixture();await status(await x.handlers().POST(x.post(body)),400);assert.equal(x.getEvals(),0);});

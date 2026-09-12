@@ -150,3 +150,5 @@ Append one block per meaningful run:
 - Verification: local model HTTP checks and TypeScript; dedicated exact CI runs locked install/build/TypeScript, same handlers with actual Redis, actual Next unauthenticated/cross-origin HTTP requests, inherited current/operation suites. No hosted pass inferred before execution.
 - Open/claim limit: cookie auth inherits app primitive; real authenticated session, device/lifecycle evidence, guarded canonical consumers and integration selection remain separate. No secret/env file, device, signing/funds, acceptance weakening or historical Golden change.
 - Next: inspect exact CI and original artifact; separate Security review before consumption. See `LEDGER_OWNER_HTTP.md`.
+
+- First hosted owner run34712204990 passed build/TypeScript/real Redis handlers but actual NextHTTP exposed loopback URL normalization: same-origin127.0.0.1 returned403. The corrected boundary compares Origin to actual HTTP Host/protocol, refuses forwarded-host substitution, and adds a real localhost→127 cross-origin rejection. Failed evidence is retained; successor requires fresh full CI and independent review.
