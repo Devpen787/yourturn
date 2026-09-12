@@ -1,10 +1,12 @@
 import { createHash } from "node:crypto";
 import { getRedis } from "../store/redis.ts";
 import type { RecoveryMandateAuthorityBoundaryStore } from "../ledger/recovery-mandate-authority-boundary.ts";
-import { readRecoveryOperation, completeRecoveryOperation, takeOverRecoveryOperation, type RecoveryOperation } from "../ledger/recovery-mandate-operation.ts";
+import { readRecoveryOperation, completeRecoveryOperation, takeOverRecoveryOperation } from "../ledger/recovery-mandate-operation.ts";
 import { readRetainedRecoveryOutput } from "../ledger/recovery-retained-output.ts";
 import { validateExternalRecoverySigning, type ExternalSigningState } from "../hedera-agent-kit/external-signing-validation.ts";
-import { readPaymentRecordForReconciliation } from "../hedera-agent-kit/current-payment-record.ts";
+import { loadCurrentPaymentRecord, readPaymentRecordForReconciliation } from "../hedera-agent-kit/current-payment-record.ts";
+import { loadCurrentPaymentAuthorization } from "../hedera-agent-kit/current-payment-authorization.ts";
+import { paymentCommitmentMemo } from "../hedera-agent-kit/exact-payment-authorization.ts";
 import { readRecoverySettlementReceipt } from "../hedera-agent-kit/recovery-receipt-reader.ts";
 
 type Store = RecoveryMandateAuthorityBoundaryStore;
@@ -42,20 +44,29 @@ async function exactRetained(store:Store,s:ReturnType<typeof selection>){
   requireLifecycle(retained.operation.transactionId===retained.record.transactionId&&retained.operation.envelopeDigest===retained.record.envelopeDigest,"RETAINED_OPERATION_REFERENCES_REQUIRED");
   return retained;
 }
+async function currentServerPaymentAuthorization(store:Store,s:ReturnType<typeof selection>,now:()=>number,transactionId:string){
+  const payment=await loadCurrentPaymentRecord({store,now,operationId:s.operationId,authenticatedOwnerId:s.ownerId});
+  requireLifecycle(payment.commitment.transactionId===transactionId,"CURRENT_PAYMENT_TRANSACTION_MISMATCH");
+  const memo=paymentCommitmentMemo(payment.commitment),commitmentDigest=memo.slice(memo.lastIndexOf(":")+1);
+  requireLifecycle(/^[a-f0-9]{64}$/.test(commitmentDigest),"CURRENT_PAYMENT_COMMITMENT_INVALID");
+  const authorization=await loadCurrentPaymentAuthorization({store,now,operationId:s.operationId,authenticatedOwnerId:s.ownerId,expectedCommitmentDigest:commitmentDigest});
+  requireLifecycle(authorization.buyerAccountId===payment.commitment.receiverAccountId,"CURRENT_PAYMENT_AUTHORIZATION_BUYER_MISMATCH");
+  return Object.freeze({payment,authorization});
+}
 
 /** Read-only external-signer handoff. The retained proposal itself is immutable
- * and unsigned. The independently-cleared BEFORE_SIGN validator must consume
- * those exact retained bytes and may return the derived Bob-authorized bytes for
- * the external executor signer. This module creates no signing/submission permit
- * and exposes no private key. */
-export async function prepareExternalRecoverySigning(input:{
-  ownerId:string;operationId:string;intentHash:string;paymentAuthorization:{signatureHex:string};
-},dependencies:ExternalRecoveryLifecycleDependencies){
-  const s=selection(input),store=dependencies.store??getRedis(),retained=await exactRetained(store,s);
+ * and unsigned. Bob's exact payment authorization is loaded only from the
+ * authenticated durable server record bound to the current payment commitment;
+ * callers cannot inject or replace it. The independently-cleared BEFORE_SIGN
+ * validator may return derived Bob-authorized bytes for the external executor
+ * signer. No signing/submission permit or private key is exposed here. */
+export async function prepareExternalRecoverySigning(input:{ownerId:string;operationId:string;intentHash:string},dependencies:ExternalRecoveryLifecycleDependencies){
+  const s=selection(input),store=dependencies.store??getRedis(),now=dependencies.now??Date.now,retained=await exactRetained(store,s);
   requireLifecycle(retained.operation.phase==="effect-started","OPERATION_ALREADY_TERMINAL");
+  const {authorization}=await currentServerPaymentAuthorization(store,s,now,retained.record.transactionId);
   const validate=dependencies.validateSigning??validateExternalRecoverySigning;
   const result=await validate({phase:"BEFORE_SIGN",operationId:s.operationId,transactionBytesBase64:retained.record.bytesBase64,
-    paymentAuthorization:{signatureHex:input.paymentAuthorization.signatureHex},resolveCurrent:dependencies.resolveCurrentSigningState,now:dependencies.now});
+    paymentAuthorization:{signatureHex:authorization.signatureHex},resolveCurrent:dependencies.resolveCurrentSigningState,now});
   requireLifecycle(result.ok,"BEFORE_SIGN_VALIDATION_DENIED");
   requireLifecycle(result.phase==="BEFORE_SIGN"&&result.operationId===s.operationId&&result.transactionId===retained.record.transactionId&&
     result.transactionBytesSha256===exactOutputDigest(result.transactionBytesBase64)&&result.executionPermit===false&&result.submitted===false&&result.signedByThisModule===false,
@@ -63,17 +74,17 @@ export async function prepareExternalRecoverySigning(input:{
   return Object.freeze({...result,retainedEnvelopeDigest:retained.record.envelopeDigest,executionPermit:false as const});
 }
 
-/** Validation-only boundary for bytes returned by the external signer. A later
- * human-authorized caller may submit these exact bytes once. This module never
- * submits, retries, regenerates or signs them. */
-export async function validateExternallySignedRecovery(input:{
-  ownerId:string;operationId:string;intentHash:string;signedTransactionBytesBase64:string;paymentAuthorization:{signatureHex:string};
-},dependencies:ExternalRecoveryLifecycleDependencies){
-  const s=selection(input),store=dependencies.store??getRedis(),retained=await exactRetained(store,s);
+/** Validation-only boundary for bytes returned by the external executor signer.
+ * Bob's payment signature again comes only from the authenticated durable server
+ * record. A later human-authorized caller may submit the validated exact bytes
+ * once; this module never submits, retries, regenerates or signs them. */
+export async function validateExternallySignedRecovery(input:{ownerId:string;operationId:string;intentHash:string;signedTransactionBytesBase64:string},dependencies:ExternalRecoveryLifecycleDependencies){
+  const s=selection(input),store=dependencies.store??getRedis(),now=dependencies.now??Date.now,retained=await exactRetained(store,s);
   requireLifecycle(retained.operation.phase==="effect-started","OPERATION_ALREADY_TERMINAL");
+  const {authorization}=await currentServerPaymentAuthorization(store,s,now,retained.record.transactionId);
   const validate=dependencies.validateSigning??validateExternalRecoverySigning;
   const result=await validate({phase:"BEFORE_SUBMIT",operationId:s.operationId,transactionBytesBase64:input.signedTransactionBytesBase64,
-    paymentAuthorization:{signatureHex:input.paymentAuthorization.signatureHex},resolveCurrent:dependencies.resolveCurrentSigningState,now:dependencies.now});
+    paymentAuthorization:{signatureHex:authorization.signatureHex},resolveCurrent:dependencies.resolveCurrentSigningState,now});
   requireLifecycle(result.ok,"BEFORE_SUBMIT_VALIDATION_DENIED");
   requireLifecycle(result.phase==="BEFORE_SUBMIT"&&result.operationId===s.operationId&&result.transactionId===retained.record.transactionId&&
     result.transactionBytesBase64===input.signedTransactionBytesBase64&&result.transactionBytesSha256===exactOutputDigest(result.transactionBytesBase64)&&
