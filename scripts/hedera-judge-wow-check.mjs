@@ -273,6 +273,8 @@ try {
 } finally {
   globalThis.fetch = originalFetch;
   console.error = originalConsoleError;
+  reviewClient.close();
+  mcpOptions.client.close();
 }
 
 assert.equal(expectedFailureLogs, 6);
