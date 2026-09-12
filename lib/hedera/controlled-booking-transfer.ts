@@ -163,6 +163,24 @@ function assertNoSignatures(transaction: Transaction, code: string): void {
   requireExact(!signatures.some((entry) => entry.size !== 0), code);
 }
 
+/**
+ * Hiero JS 2.81's BatchTransaction decoder reconstructs inner transactions
+ * from their SignedTransaction body but intentionally passes an empty SDK
+ * transaction-id list to each inner object. Therefore payer IDs are asserted
+ * on the pre-serialization object whenever exposed; the decoded byte gate still
+ * validates every movement/type/account/batch-key/signature invariant.
+ */
+function assertPayerWhenDecoded(
+  transaction: Transaction,
+  expectedPayer: string,
+  code: string,
+): void {
+  const payer = transaction.transactionId?.accountId?.toString();
+  if (payer !== undefined && payer !== null) {
+    requireExact(payer === canonicalAccount(expectedPayer), code);
+  }
+}
+
 function assertFreezeOperation(
   transaction: Transaction,
   expectedType: "freeze" | "unfreeze",
@@ -187,8 +205,9 @@ function assertFreezeOperation(
     typed.accountId?.toString() === canonicalAccount(expectedAccountId),
     `CONTROLLED_${expectedType.toUpperCase()}_ACCOUNT_MISMATCH`,
   );
-  requireExact(
-    typed.transactionId?.accountId?.toString() === canonicalAccount(expectedPayer),
+  assertPayerWhenDecoded(
+    typed,
+    expectedPayer,
     `CONTROLLED_${expectedType.toUpperCase()}_PAYER_MISMATCH`,
   );
   assertNoSignatures(typed, `CONTROLLED_${expectedType.toUpperCase()}_UNEXPECTED_SIGNATURE`);
@@ -201,8 +220,9 @@ function assertExactSettlementTransfer(
   requireExact(transaction instanceof TransferTransaction, "CONTROLLED_TRANSFER_TYPE_MISMATCH");
   assertNoSignatures(transaction, "CONTROLLED_TRANSFER_UNEXPECTED_SIGNATURE");
   requireExact(transaction.hbarTransfers.size === 0, "CONTROLLED_TRANSFER_HBAR_SCOPE_WIDENED");
-  requireExact(
-    transaction.transactionId?.accountId?.toString() === canonicalAccount(intent.delegatedAgentAccountId),
+  assertPayerWhenDecoded(
+    transaction,
+    intent.delegatedAgentAccountId,
     "CONTROLLED_TRANSFER_ALLOWANCE_PAYER_MISMATCH",
   );
 
@@ -257,11 +277,11 @@ function assertExactSettlementTransfer(
  * and nothing is signed or submitted.
  *
  * The delegated agent remains the payer of the approved-NFT transfer inner
- * transaction because Hedera allowance semantics bind the approved spender to
- * that transfer. The provider operations role pays freeze/unfreeze operations
- * and the outer batch. HIP-551 assesses each inner fee independently, so this
- * helper intentionally does NOT claim a distinct provider payer sponsors the
- * delegated agent's inner transfer fee.
+ * transaction because current YourTurn allowance semantics bind the approved
+ * spender to that transfer. The provider operations role pays freeze/unfreeze
+ * operations and the outer batch. HIP-551 assesses each inner fee independently,
+ * so this helper intentionally does NOT claim a distinct provider payer sponsors
+ * the delegated agent's inner transfer fee.
  */
 export function buildControlledBookingTransferBatch(input: unknown): BatchTransaction {
   const intent = parseIntent(input);
