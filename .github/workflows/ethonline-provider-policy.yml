@@ -1,0 +1,46 @@
+name: ETHOnline Published Provider Policy Qualification
+on:
+  push:
+    branches: ['feature/ethonline-foundation-provider-policy-qual']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  provider-policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      redis:
+        image: redis:7.4.2
+        ports: ['16381:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Locked install
+        run: npm ci --legacy-peer-deps
+      - name: Production build
+        run: env -i PATH="$PATH" npm run build
+      - name: TypeScript
+        run: env -i PATH="$PATH" node node_modules/typescript/bin/tsc --noEmit --incremental false
+      - name: Existing Agent Kit check with public fixture accounts
+        run: env -i PATH="$PATH" HEDERA_GUEST_A_ID=0.0.9001 HEDERA_TREASURY_ID=0.0.9002 npm run hedera:agent-check
+      - name: Actual disposable Redis policy publication and races
+        run: env -i PATH="$PATH" NODE_OPTIONS=--no-warnings YT_PROVIDER_POLICY_REDIS_TEST=loopback-disposable YT_PROVIDER_POLICY_REDIS_PORT=16381 YT_SOURCE_SHA="${{ github.sha }}" node --experimental-transform-types scripts/published-provider-policy-check.mjs
+      - name: Evidence digest
+        run: sha256sum provider-policy-redis-evidence.json > provider-policy-redis-evidence.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: provider-policy-redis-${{ github.sha }}
+          path: |
+            provider-policy-redis-evidence.json
+            provider-policy-redis-evidence.sha256
+          if-no-files-found: error
+          retention-days: 30
