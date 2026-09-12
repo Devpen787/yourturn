@@ -83,7 +83,7 @@ try {
 
     const allErrors = [...errors, ...preErrors, ...bobErrors, ...mayaErrors];
     assert.equal(allErrors.length, 0, `Console/page errors: ${allErrors.join(" | ")}`);
-    results.push({ viewport: viewport.name, status: "PASS", evidenceClass: "FIXTURE", screenshots: 9, consoleErrors: 0 });
+    results.push({ viewport: viewport.name, status: "PASS", evidenceClass: "FIXTURE", screenshots: 10, consoleErrors: 0 });
     console.log(`PASS R3 ${viewport.name}`);
   }
 } finally { await browser.close(); }
