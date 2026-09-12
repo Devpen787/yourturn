@@ -226,7 +226,7 @@ The activation response must exactly match signed `agentId`, token/serial, actio
 
 ## Evidence artifacts
 
-A successful session creates these uncommitted files under `output/ledger-qualification/session-1/`:
+A successful session creates these uncommitted files under the fresh `$QUAL_DIR/device/` directory:
 
 - `reject-proof.json` — raw sanitized device states; no signature.
 - `cancel-proof.json` — raw sanitized device states; no signature; `cancelRequested=true`.
@@ -243,7 +243,7 @@ Stop and preserve the failing output without making a sponsor claim if any of th
 - derived device address differs from server enrollment;
 - the prepared digest changes between phases;
 - DMK never exposes the typed-data interaction;
-- reject does not surface supported `6982` user rejection;
+- reject does not surface contextual `EthAppCommandError` `6982` or `6985` user rejection;
 - cancel does not surface `Stopped`;
 - approve does not surface `Completed` + a signature recovering the enrolled signer;
 - wrong signature activates;
