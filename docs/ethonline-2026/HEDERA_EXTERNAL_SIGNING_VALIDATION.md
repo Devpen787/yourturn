@@ -1,0 +1,13 @@
+# External signing validation component
+
+This component consumes the independently reviewed exact-payment preparation and D-010 royalty contract. It validates a prepared body before an external signer and validates the returned two-signature body before a later caller submits. It never signs, executes, creates a transaction ID, reads credentials, or claims integration or LIVE evidence.
+
+`validateExternalRecoverySigning` requires a trusted current resolver for full payment state and the executor's native public key. There is no resolver implementation or account/asset choice in this change. The caller must supply reviewed canonical Ledger/provider/quote/identity/chain inputs. Raw request JSON and a wallet's self-reported key are not trusted dependencies.
+
+`BEFORE_SIGN` accepts only the exact unsigned native proposal, including all body bytes, and attaches Bob's already supplied valid body signature. `BEFORE_SUBMIT` requires exactly Bob and the current executor signatures on the complete reconstructed expected bytes. Body changes, hidden fields, extra signatures, different nodes or signature keys, malformed/noncanonical wire input and stale authority fail closed with no bytes returned. Both Ed25519 and ECDSA native executor keys are supported; threshold/contract keys are not.
+
+Full existing HAK holder policy runs again with net recovery. Its legacy-named nonce `reserve` adapter only checks three already bound persistent tombstones through read-only Redis Lua. It does not reserve again, release, overwrite or refresh anything. Two read passes check observed state and tombstone drift, with mandatory state/key checks around async reads and an original maximum five-second freshness window. Failed or expired checks leave all preparation reservations intact.
+
+A successful response is explicitly `VALIDATION_ONLY` and `executionPermit: false`. Revalidation can succeed repeatedly. It does not serialize submission, claim an operation, acquire the Ledger effect fence, lock consensus state, authenticate a receipt or grant permission to spend. The eventual caller must connect the reviewed canonical resolver and operation lifecycle, obtain the required human authorization, immediately revalidate at the real boundary, use the exact same transaction, and reconcile authenticated chain results. Indexed Mirror observations alone do not establish consensus-synchronous authority.
+
+Tests use only public deterministic synthetic keys and expired 2023 transaction IDs under an empty inherited environment. Hosted CI exercises the production read-only adapter/Lua against disposable Redis 7.4.2; a loopback REST transport wraps real Redis rather than emulating Lua. Test cleanup removes only generated namespaced keys.

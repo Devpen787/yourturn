@@ -139,3 +139,11 @@ Append one block per meaningful run:
 - Evidence: local development logs/evidence at base SHA with dirty source are not exact-head proof. Exact qualification artifact will be generated after commit. No dependency change or Product/Golden edit.
 - Limits/open: current-chain/provider registry/World-Ledger composition, external signer and real net receipt remain unqualified; no live chain/account selection, transaction or secret/device action. Unsupported custom fee combinations fail closed. D-010 permits provider-selected royalty; 10% is not a cap/floor.
 - Exact next action: exact hosted Continuity and extended Redis/royalty qualification; independent Security review before consumer composition/adoption. Product342f46ee was human-approved separately and remains unchanged.
+
+## 2026-09-12 — External signing validation qualification
+
+- Branch/base: `feature/ethonline-hedera-signing-boundary-qual` from independently cleared royalty `47b8f936a3c9cc793b4ecf1de1814a6b4f900515`; claim #16 5647773575. Exact committed head and hosted evidence follow in the GitHub handoff.
+- Mission/change: validate exact prepared unsigned bytes before an external signer, and exact returned Bob/executor native signatures before a later caller submits. Re-run current payment/holder policy, executor-key checks and read-only existing Redis tombstones. No signer/submission callback or new ID/reservation is introduced.
+- Evidence/verification: 60 focused local synthetic checks and TypeScript PASS; exact hosted workflow adds locked install, inherited 87 semantics/75 royalty/43 authorization and actual Redis. Hosted execution must pass before any CI claim.
+- Open/claim limits: validation only; canonical resolver, operation effect fence consumer, actual signing, authenticated full receipt, integration selection and LIVE settlement remain open. Indexed state cannot lock consensus. No credentials/device/funds/production action.
+- Exact next action: commit/push dedicated qualification ref, inspect exact CI/artifact, then independent Security review before any consumption. See `HEDERA_EXTERNAL_SIGNING_VALIDATION.md`.
