@@ -157,3 +157,11 @@ Append one block per meaningful run:
 - Verification: local synthetic boundary matrix and TypeScript; exact hosted workflow adds existing current/operation/projection tests plus actual Redis synthetic claim→owned read→one effect transition→revoked receipt-only completion. Hosted results remain pending until execution.
 - Open/claim limits: external authoritative resolver, requester validation, World consumer, real account provisioning, signing/device/transactions and final integration remain separate. No credential, hardware, real economic or production action performed.
 - Next: exact CI/artifact and independent Security before composing the canonical consumer.
+
+## 2026-09-12 — retain exact operation output before returning refs
+
+- Branch/base: `feature/ethonline-ledger-retained-output-qual` from881cfc7d; claim#16 5648160041. Existing lifecycle/owned-authority/dependency files unchanged.
+- Change: atomic exact-operation/output write-once retention, bounded canonical bytes with computed digest, immutable owner/intent/transaction identity, repeated guarded reads, existing fenced attachment, explicit unknown outcome. No TTL/delete or effect retry. Expired/revoked output is evidence only; existing receipt-only takeover can attach and reconcile without new permission.
+- Verification:33 focused local model cases and TypeScript PASS; hosted workflow runs actual Redis retention/concurrency/expiry/recovery plus inherited Ledger suites/build/baseline. No native transaction, economic or LIVE qualification inferred from opaque fixture bytes.
+- Open: actual reviewed economic preparer/retention adapter, current quote/payment/eligibility source, real provisioning and human proofs remain separate. No credentials/device/signing/funds or final integration selection performed.
+- Next: exact CI/artifact and separate independent review before consuming retention in an effect adapter.

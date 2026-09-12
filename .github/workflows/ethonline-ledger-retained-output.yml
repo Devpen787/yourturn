@@ -1,0 +1,53 @@
+name: Ledger retained operation output
+on:
+  push:
+    branches: [feature/ethonline-ledger-retained-output-qual]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  retained-output:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      redis:
+        image: redis:7.4.2
+        ports: [6379:6379]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --legacy-peer-deps
+      - name: Retained output model boundaries
+        run: env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/ledger-retained-output-check.mjs
+      - name: Retained output actual Redis boundaries
+        run: env -i PATH="$PATH" NODE_OPTIONS=--no-warnings YT_SOURCE_SHA="${{ github.sha }}" node --experimental-transform-types scripts/ledger-retained-output-check.mjs --redis
+      - name: Operation-owned read boundaries
+        run: env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/ledger-owned-authority-check.mjs
+      - run: npx tsc --noEmit --incremental false
+      - name: Existing Ledger and canonical contracts
+        run: |
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-strip-types scripts/ledger-recovery-mandate-runtime-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-strip-types scripts/ledger-current-mandate-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-strip-types scripts/ledger-operation-mandate-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-strip-types scripts/canonical-recovery-projection-check.mjs
+      - name: Actual claim-to-owned-read-to-effect-to-receipt state flow
+        run: env -i PATH="$PATH" NODE_OPTIONS=--no-warnings YT_SOURCE_SHA="${{ github.sha }}" node --experimental-transform-types scripts/ledger-owned-authority-redis-check.mjs
+      - run: npm run build
+      - run: npm run hedera:agent-check
+        env:
+          HEDERA_GUEST_A_ID: '0.0.9001'
+          HEDERA_TREASURY_ID: '0.0.9002'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ledger-retained-output-${{ github.sha }}
+          path: ledger-retained-output-evidence.json
+          if-no-files-found: error
+          retention-days: 30
