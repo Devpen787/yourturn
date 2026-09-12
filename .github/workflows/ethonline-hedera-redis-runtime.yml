@@ -1,0 +1,45 @@
+name: ETHOnline Hedera Redis Runtime Qualification
+
+on:
+  push:
+    branches: ['feature/ethonline-hedera-redis-runtime-qual']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  redis-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      redis:
+        image: redis:7.4.2
+        ports: ['16379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Locked install
+        run: npm ci --legacy-peer-deps
+      - name: Existing exact semantic matrix
+        run: env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/hedera-policy-usdc-recovery-check.mjs
+      - name: Exercise default adapter against real disposable Redis
+        run: env -i PATH="$PATH" NODE_OPTIONS=--no-warnings YT_SOURCE_SHA="${{ github.sha }}" YT_TEST_REDIS_PORT=16379 node --experimental-transform-types scripts/hedera-payment-redis-runtime-check.mjs
+      - name: Evidence digest
+        run: sha256sum hedera-payment-redis-runtime-evidence.json > hedera-payment-redis-runtime-evidence.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hedera-payment-redis-runtime-${{ github.sha }}
+          path: |
+            hedera-payment-redis-runtime-evidence.json
+            hedera-payment-redis-runtime-evidence.sha256
+          if-no-files-found: error
+          retention-days: 30

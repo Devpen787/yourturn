@@ -114,3 +114,13 @@ Append one block per meaningful run:
 - Failed/open: independent Security review; actual Redis-service execution of Lua; authoritative production resolver/device ceremony/external signer; current network state and live settlement qualification. Candidate is limited to Bob self-funding with one native account key, agent as allowance-spender/fee payer, one node and a 30–120-second exact authorization. No live signing, submission, funding, World/Ledger/Product/Goldens changes, merge, or production deploy.
 - Claim impact: CI/LOCAL semantic successor only. Historical `411f703e…` qualification remains exact historical evidence. No acceptance flag or sponsor/security qualification was self-promoted.
 - Exact next action: independent Security re-attack of the posted exact SHA, diff, signature binding, minimum/provider policy intersection, replay state, and unchanged dependency graph. Do not integrate or execute live until separately selected/authorized.
+
+### 2026-09-12 — isolated Redis runtime qualification
+- Branch/base: `feature/ethonline-hedera-redis-runtime-qual`, from `38a162f0758d4306d750ef7f893b297dacae48f6`.
+- Mission: close the unexecuted real Redis EVAL boundary without changing cleared semantic helpers.
+- Changed: credential-free hosted Redis service, minimal loopback Upstash wire transport and default-adapter adversarial runtime harness; no product/sponsor runtime change.
+- Verification actually run before publication: locked local install; script syntax and diff checks. Runtime execution is delegated to the exact-head hosted workflow; no local Redis executable is installed. Existing semantic matrix runs separately.
+- Evidence: workflow uploads JSON assertion record plus SHA256; actual result/run/artifact belongs in #16 after completion.
+- Failed/open: hosted Upstash/deployed Redis, authoritative resolver/current-chain, external signer and final integration remain unqualified. This transport is test infrastructure, never a hosted-service claim.
+- Claim impact: pending CI/LOCAL real Redis evidence only; no LIVE/testnet/independent clearance.
+- Exact next action: execute hosted real Redis matrix, repair only reproduced harness defects, and hand exact source/run/artifact to independent #16 review.
