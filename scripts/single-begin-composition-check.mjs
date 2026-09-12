@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { createSingleBeginComposition } from '../lib/recovery/single-begin-composition.ts';
 
 const claimed = Object.freeze({
@@ -46,4 +47,11 @@ function harness() {
   assert.equal(calls,1);
   assert.deepEqual(events,['prepare:claimed']);
 }
-console.log('PASS single-begin composition seam: caller revalidation is load-bearing before and at adapter begin resolver');
+{
+  const world=readFileSync(new URL('../lib/recovery/canonical-world-consumer.ts',import.meta.url),'utf8');
+  assert(!world.includes('beginRecoveryOperationEffect'), 'World consumer must not own begin-effect');
+  assert(!world.includes('recordRecoveryOperationEnvelope'), 'World consumer must not own retained-output recording');
+  assert(world.includes("output.operation.phase === 'effect-started'"), 'World consumer must require downstream persisted effect-started state');
+  assert(world.includes("isDeepStrictEqual(latest,output.operation)"), 'World consumer must reread authoritative operation state');
+}
+console.log('PASS single-begin composition seam: downstream adapter uniquely owns begin/retain and World revalidation stays load-bearing');
