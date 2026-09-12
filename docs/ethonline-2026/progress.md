@@ -90,3 +90,14 @@ Append one block per meaningful run:
 - Failed/open: full qualification must rerun on this repair; first-candidate results are not promoted to exact repaired-source results.
 - Claim impact: FIXTURE UX only; no independent acceptance or Golden change.
 - Exact next action: run all hosted gates on the repaired source and hand exact source plus original evidence to #34.
+
+### 2026-09-12 — execution lead R3 published-runtime repair
+- Branch/base: `feature/ethonline-ux-r3-runtime-qual`, from `b9dec6f8d31c0f5eb6dff01fa83fefdd4543aa80`.
+- Mission: resolve independent R3-01/02 without altering historical Golden records or sponsor authority.
+- Changed: published settings feed customer/provider session identities, booking Today/rules and check-in timing; actions reread published policy; invalid/unsupported rules fail closed; activity opens shared prepared/current-holder facts. A single fixed Friday fixture clock derives from the existing scenario phase; publishing cannot move it or change the holder mandate.
+- Verification actually run before commit: locked install, build, explicit tsc, 40 inherited holder/booking/R2 model cases, R3 provider/runtime checks, Hedera agent check using the CI's public fixture IDs; R3 browser desktop/mobile onward runtime/failed-save/cutoff checks PASS. Full segment/navigation/integrity/R2 local browser runs launched; exact committed-head hosted proof still required.
+- Evidence: local screenshots/logs are developmental evidence because their recorded HEAD precedes this commit; do not present them as exact-head proof. Hosted Visual artifact on this successor will bind final review.
+- Harness disposition: separate reviewer confirms #34 R3-02 supersedes the old XC-03 primary sale-path expectation. New clicked path asserts prepared Today; old pending/success assertions and PNGs remain explicitly isolated exploratory captures, not purchase provenance. All unrelated assertions and historical Golden files remain intact.
+- Failed/open: independent exact-source/original-evidence Product review pending; no R4/R5, sponsor integration or LIVE claim. Initial local Hedera check used incorrect fixture environment names and failed; rerun with exact CI HEDERA_GUEST_A_ID/HEDERA_TREASURY_ID passed.
+- Claim impact: R3 repair candidate only. Added requested FINISH_PHASES.md working checklist; phases remain partial/pending until evidence and independent gates close.
+- Exact next action: consume exact hosted artifact and independent #34 review; repair findings or advance R4 only after REVIEWABLE.

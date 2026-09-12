@@ -1,10 +1,12 @@
 "use client";
 
+import { usePublishedSession } from "./ProviderRuntimeBoundary";
+
 import Link from "next/link";
 import { fulfilmentOf } from "./holder-fixture-state";
 import { useBookingJourney } from "./useBookingJourney";
 
-const booking = {
+const bookingDefaults = {
   title: "Friday Yoga",
   time: "18:00",
   date: "Friday, 11 September",
@@ -26,6 +28,8 @@ function Frame({ eyebrow, title, intro, children }: { eyebrow: string; title: st
   return <section className="mx-auto w-full max-w-4xl py-4 sm:py-8"><p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{eyebrow}</p><h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">{title}</h1>{intro ? <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">{intro}</p> : null}<div className="mt-7">{children}</div></section>;
 }
 function BookingCard({ status, tone = "slate", children }: { status: string; tone?: "slate" | "green" | "amber" | "rose" | "blue"; children?: React.ReactNode }) {
+  const published = usePublishedSession();
+  const booking = { ...bookingDefaults, ...published, transferCutoff: published.transferCutoffLabel };
   return <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-7"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{booking.date}</p><h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">{booking.title} · {booking.time}</h2><p className="mt-1 text-sm text-slate-600">{booking.venue} · {booking.location}</p></div><StatusPill tone={tone}>{status}</StatusPill></div>{children}</div>;
 }
 function ProofDrawer({ title, body }: { title: string; body: string }) {
@@ -39,6 +43,8 @@ function Timeline({ items }: { items: Array<{ title: string; body: string; state
 }
 
 export default function CompletionClient() {
+  const published = usePublishedSession();
+  const booking = { ...bookingDefaults, ...published, transferCutoff: published.transferCutoffLabel };
   const { ready, error, retryState, view, go, act, state, facts } = useBookingJourney();
   const checkIn = () => act({ type: "check-in" }, "xc2-bob-checked-in");
   const reconcile = () => act({ type: "reconcile" }, "xc2-provider-reconciled");
@@ -51,7 +57,7 @@ export default function CompletionClient() {
 
   return <div className="pb-16">
     <p className="mx-auto max-w-4xl text-xs leading-5 text-slate-500">Product preview · FIXTURE · No LIVE sponsor execution</p>
-    {view === "xc2-bob-not-open" && <Frame eyebrow="My bookings" title={facts.checkinWindow === "closed" ? "Check-in for Friday Yoga is closed." : "Friday Yoga is ready for later."} intro={facts.checkinWindow === "closed" ? "Your booking remains recorded. The attendance window has ended; no check-in can be recorded now." : "You own this booking. Check-in opens 30 minutes before Friday Yoga."}><BookingCard status="Confirmed" tone="green"><FactGrid items={[["Booked for", "Bob"], ["Check-in", facts.checkinWindow === "closed" ? "Closed" : "Opens at 17:30"], ["Handoff", recoveryValue], ["Provider", booking.venue]]} /><div className="mt-6 flex flex-wrap items-center gap-3"><button type="button" disabled className={`${primaryButton} cursor-not-allowed opacity-40`}>Check in</button><span className="text-sm text-slate-500">{facts.checkinWindow === "closed" ? "Check-in is closed" : "Available from 17:30"}</span></div></BookingCard></Frame>}
+    {view === "xc2-bob-not-open" && <Frame eyebrow="My bookings" title={facts.checkinWindow === "closed" ? "Check-in for Friday Yoga is closed." : "Friday Yoga is ready for later."} intro={facts.checkinWindow === "closed" ? "Your booking remains recorded. The attendance window has ended; no check-in can be recorded now." : "You own this booking. Check-in opens 30 minutes before Friday Yoga."}><BookingCard status="Confirmed" tone="green"><FactGrid items={[["Booked for", "Bob"], ["Check-in", facts.checkinWindow === "closed" ? "Closed" : `Opens at ${published.checkinOpens}`], ["Handoff", recoveryValue], ["Provider", booking.venue]]} /><div className="mt-6 flex flex-wrap items-center gap-3"><button type="button" disabled className={`${primaryButton} cursor-not-allowed opacity-40`}>Check in</button><span className="text-sm text-slate-500">{facts.checkinWindow === "closed" ? "Check-in is closed" : "Available from 17:30"}</span></div></BookingCard></Frame>}
 
     {view === "xc2-bob-ready" && <Frame eyebrow="My bookings" title="Check in for Friday Yoga." intro="Studio A recognizes you as the current holder. Check in when you arrive."><BookingCard status="Check-in open" tone="blue"><FactGrid items={[["Booked for", "Bob"], ["Check-in", "Open now"], ["Session", "18:00"], ["Provider", booking.venue]]} /><button type="button" onClick={checkIn} className={`${primaryButton} mt-6`}>Check in</button></BookingCard><ProofDrawer title="Fulfilment eligibility seam" body="This check-in state is product evidence. Integration must confirm Bob is still the authoritative current holder and that Studio A's fulfilment window is open before attendance is recorded." /></Frame>}
 
@@ -63,7 +69,7 @@ export default function CompletionClient() {
 
     {view === "xc2-provider-pending" && <Frame eyebrow="Studio A · Today" title={facts.attendanceCount === 1 ? "Bob is checked in for Friday Yoga." : "Bob is the expected guest for Friday Yoga."} intro={facts.attendanceCount === 1 ? "Attendance is recorded. Service fulfilment is a separate provider action and has not been confirmed." : "The recovered booking is valid and Bob is the current holder. Attendance has not been recorded yet."}><BookingCard status={facts.attendanceCount === 1 ? "Checked in" : "Expected"} tone="blue"><FactGrid items={[["Current holder", "Bob"], ["Previous holder", "Maya Keller"], ["Attendance", facts.attendanceCount === 1 ? "Checked in" : "Not checked in"], ["Recovery", "Completed handoff"]]} /><button type="button" onClick={facts.attendanceCount === 1 ? fulfil : () => go("xc2-provider-attendance")} className={`${primaryButton} mt-6`}>{facts.attendanceCount === 1 ? "Fulfil booking" : "Record attendance"}</button><p className="mt-3 text-sm leading-6 text-slate-600">Record service fulfilment only after the session has been delivered. Recovery is already complete.</p></BookingCard></Frame>}
 
-    {view === "xc2-provider-attendance" && <Frame eyebrow="Studio A · Today" title="Record Bob’s attendance." intro="Confirm arrival for the same Friday Yoga booking. Attendance does not confirm service fulfilment."><BookingCard status={facts.checkinWindow === "open" ? "Check-in open" : facts.checkinWindow === "closed" ? "Check-in closed" : "Check-in pending"} tone="blue"><FactGrid items={[["Current holder", "Bob"], ["Attendance", "Not checked in"], ["Check-in", facts.checkinWindow === "open" ? "Open now" : facts.checkinWindow === "closed" ? "Closed" : "Opens at 17:30"], ["Recovery", "Completed handoff"]]} /><button type="button" disabled={facts.checkinWindow !== "open"} onClick={() => act({ type: "check-in" }, "xc2-provider-pending")} className={`${primaryButton} mt-6 disabled:cursor-not-allowed disabled:opacity-40`}>Record Bob’s arrival</button><p className="mt-3 text-sm text-slate-600">{facts.checkinWindow === "closed" ? "The attendance window has closed. No attendance can be recorded." : facts.checkinWindow === "before" ? "Attendance can be recorded from 17:30." : "Record arrival only when Bob is present."}</p></BookingCard></Frame>}
+    {view === "xc2-provider-attendance" && <Frame eyebrow="Studio A · Today" title="Record Bob’s attendance." intro="Confirm arrival for the same Friday Yoga booking. Attendance does not confirm service fulfilment."><BookingCard status={facts.checkinWindow === "open" ? "Check-in open" : facts.checkinWindow === "closed" ? "Check-in closed" : "Check-in pending"} tone="blue"><FactGrid items={[["Current holder", "Bob"], ["Attendance", "Not checked in"], ["Check-in", facts.checkinWindow === "open" ? "Open now" : facts.checkinWindow === "closed" ? "Closed" : `Opens at ${published.checkinOpens}`], ["Recovery", "Completed handoff"]]} /><button type="button" disabled={facts.checkinWindow !== "open"} onClick={() => act({ type: "check-in" }, "xc2-provider-pending")} className={`${primaryButton} mt-6 disabled:cursor-not-allowed disabled:opacity-40`}>Record Bob’s arrival</button><p className="mt-3 text-sm text-slate-600">{facts.checkinWindow === "closed" ? "The attendance window has closed. No attendance can be recorded." : facts.checkinWindow === "before" ? `Attendance can be recorded from ${published.checkinOpens}.` : "Record arrival only when Bob is present."}</p></BookingCard></Frame>}
 
     {view === "xc2-provider-fulfilment-pending" && <Frame eyebrow="Studio A · Today" title="Recording Friday Yoga fulfilment." intro="Your request is pending. Attendance and the completed recovery are unchanged."><BookingCard status="Fulfilment pending" tone="blue"><FactGrid items={[["Current holder", "Bob"], ["Attendance", "Checked in"], ["Service fulfilment", "Awaiting result"], ["Recovery", "Completed handoff"]]} /><p role="status" className="mt-5 text-sm leading-6 text-slate-600">The service result has not been confirmed. Refresh checks this same request; it does not submit another fulfilment.</p><button type="button" onClick={refreshFulfilment} className={`${primaryButton} mt-6`}>Refresh fulfilment</button></BookingCard></Frame>}
 

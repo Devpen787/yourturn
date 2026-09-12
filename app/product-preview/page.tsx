@@ -1,6 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import ProviderRuntimeBoundary from "./ProviderRuntimeBoundary";
 import GoldenRecoveryClient from "./GoldenRecoveryClient";
 import Xc01Client from "./Xc01Client";
 import CompletionClient from "./CompletionClient";
@@ -8,7 +9,7 @@ import ProviderLifecycleClient from "./ProviderLifecycleClient";
 import ProviderR3Client from "./ProviderR3Client";
 import BobBookingsR3Client from "./BobBookingsR3Client";
 
-export default function ProductPreviewPage() {
+function ProductPreviewContent() {
   const searchParams = useSearchParams();
   const view = searchParams.get("view");
 
@@ -33,4 +34,8 @@ export default function ProductPreviewPage() {
   }
 
   return <GoldenRecoveryClient />;
+}
+
+export default function ProductPreviewPage() {
+  return <ProviderRuntimeBoundary><ProductPreviewContent /></ProviderRuntimeBoundary>;
 }

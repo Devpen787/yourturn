@@ -6,6 +6,7 @@ on:
       - ux/yourturn-product-workbench
       - feature/ethonline-ux-r2-qual
       - feature/ethonline-ux-r3-qual
+      - feature/ethonline-ux-r3-runtime-qual
     paths:
       - app/product-preview/**
       - components/SiteHeader.tsx
@@ -58,7 +59,9 @@ jobs:
         run: node --experimental-strip-types scripts/product-workbench-r2-state-check.mjs
 
       - name: Check R3 provider draft/published invariants
-        run: node --experimental-strip-types scripts/product-workbench-r3-state-check.mjs
+        run: |
+          node --experimental-strip-types scripts/product-workbench-r3-state-check.mjs
+          node --experimental-strip-types scripts/product-workbench-r3-runtime-check.mjs
 
       - name: Production build
         run: npm run build

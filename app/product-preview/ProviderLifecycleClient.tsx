@@ -1,8 +1,13 @@
 "use client";
 
+import { usePublishedSession } from "./ProviderRuntimeBoundary";
+
+import { usePreparedBooking } from "./usePreparedBooking";
+import { continuationOf } from "./holder-fixture-state";
+import { clockLabel, scenarioMinute, providerRecoveryAllowed } from "./provider-runtime";
 import { useRouter, useSearchParams } from "next/navigation";
 
-const booking = {
+const bookingDefaults = {
   title: "Friday Yoga",
   date: "Friday, 11 September",
   time: "18:00",
@@ -57,6 +62,8 @@ function FactGrid({ items }: { items: Array<[string, string]> }) {
 }
 
 function RulesCard() {
+  const published = usePublishedSession();
+  const booking = { ...bookingDefaults, ...published, transferCutoff: published.transferCutoffLabel };
   return (
     <Panel>
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -88,10 +95,17 @@ function ProofDrawer({ title, body }: { title: string; body: string }) {
 }
 
 export default function ProviderLifecycleClient() {
+  const published = usePublishedSession();
+  const booking = { ...bookingDefaults, ...published, transferCutoff: published.transferCutoffLabel };
   const router = useRouter();
+  const shared = usePreparedBooking();
   const view = useSearchParams().get("view") ?? "xc3-provider-join";
-  const go = (next: string) => router.replace(`/product-preview?view=${next}`);
+  const go = (next: string) => router.push(`/product-preview?view=${next}`);
 
+  if (shared.error) return <Frame eyebrow="Studio A" title="Booking needs confirmation." intro={shared.error}><p role="alert">Holder-sensitive actions are unavailable.</p></Frame>;
+  if (!shared.state) return <p role="status">Loading the shared booking…</p>;
+  const facts = continuationOf(shared.state);
+  const holder = facts.holderRead === "current" ? shared.state.holder === "bob" ? "Bob" : "Maya Keller" : "Needs confirmation";
   return (
     <div className="pb-16">
       {view === "xc3-provider-join" && (
@@ -150,7 +164,7 @@ export default function ProviderLifecycleClient() {
       {view === "xc3-provider-session-draft" && (
         <Frame eyebrow="Studio A · Inventory" title="Review Friday Yoga before publishing." intro="The session stays a draft until its customer-facing details and reusable booking rules are ready.">
           <div className="grid gap-5 lg:grid-cols-2">
-            <Panel><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{booking.date}</p><h2 className="mt-2 text-xl font-semibold text-slate-950">{booking.title} · {booking.time}</h2><p className="mt-1 text-sm text-slate-600">{booking.venue} · {booking.location}</p></div><StatusPill>Draft</StatusPill></div><div className="mt-5"><FactGrid items={[["Customer price", booking.price], ["Capacity", "12 places"], ["Bookings", "Not open yet"], ["Recovery", "Configured before publish"]]} /></div></Panel>
+            <Panel><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{booking.date}</p><h2 className="mt-2 text-xl font-semibold text-slate-950">{booking.title} · {booking.time}</h2><p className="mt-1 text-sm text-slate-600">{booking.venue} · {booking.location}</p></div><StatusPill>Draft</StatusPill></div><div className="mt-5"><FactGrid items={[["Customer price", booking.price], ["Capacity", `${published.capacity} places`], ["Bookings", "Not open yet"], ["Recovery", "Configured before publish"]]} /></div></Panel>
             <RulesCard />
           </div>
           <button type="button" onClick={() => go("xc3-provider-session-published")} className={`${primaryButton} mt-6`}>Publish session</button>
@@ -159,7 +173,7 @@ export default function ProviderLifecycleClient() {
 
       {view === "xc3-provider-session-published" && (
         <Frame eyebrow="Studio A · Inventory" title="Friday Yoga is open for bookings." intro="Customers can receive a normal Studio A booking. The reusable recovery rules are already attached before any individual recovery occurs.">
-          <div className="grid gap-5 lg:grid-cols-2"><Panel><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{booking.date}</p><h2 className="mt-2 text-xl font-semibold text-slate-950">{booking.title} · {booking.time}</h2><p className="mt-1 text-sm text-slate-600">12 places · {booking.price}</p></div><StatusPill tone="green">Published</StatusPill></div></Panel><RulesCard /></div>
+          <div className="grid gap-5 lg:grid-cols-2"><Panel><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{booking.date}</p><h2 className="mt-2 text-xl font-semibold text-slate-950">{booking.title} · {booking.time}</h2><p className="mt-1 text-sm text-slate-600">{published.capacity} places · {booking.price}</p></div><StatusPill tone="green">Published</StatusPill></div></Panel><RulesCard /></div>
           <button type="button" onClick={() => go("xc3-provider-sale-pending")} className={`${primaryButton} mt-6`}>Open booking activity</button>
         </Frame>
       )}
@@ -190,7 +204,9 @@ export default function ProviderLifecycleClient() {
 
       {view === "xc3-provider-today" && (
         <Frame eyebrow="Studio A · Today" title="Friday Yoga is ready to operate." intro="Staff see the service and current holder first. Recovery mechanics stay in the background unless an exception matters.">
-          <Panel><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{booking.date}</p><h2 className="mt-2 text-xl font-semibold text-slate-950">{booking.title} · {booking.time}</h2><p className="mt-1 text-sm text-slate-600">12 places · Studio A</p></div><StatusPill tone="green">On schedule</StatusPill></div><div className="mt-5"><FactGrid items={[["Current holder", "Maya Keller"], ["Attendance", "Not checked in"], ["Booking", "Confirmed"], ["Recovery", "Allowed under published rules"]]} /></div></Panel>
+          <Panel><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{booking.date}</p><h2 className="mt-2 text-xl font-semibold text-slate-950">{booking.title} · {booking.time}</h2><p className="mt-1 text-sm text-slate-600">{published.capacity} places · Studio A</p></div><StatusPill tone="green">On schedule</StatusPill></div><div className="mt-5"><FactGrid items={[["Current holder", holder], ["Attendance", facts.holderRead !== "current" ? "Needs confirmation" : facts.attendanceCount === 1 ? "Checked in" : "Not checked in"], ["Booking", "Confirmed"], ["Recovery", providerRecoveryAllowed(shared.state, published) ? "Allowed under published rules" : "Blocked under published rules"], ["Transfer cutoff", published.transferCutoffLabel], ["Eligibility", published.eligibilityRule]]} /></div></Panel>
+          <p className="mt-5 text-sm text-slate-600">Prepared booking · Friday fixture clock {clockLabel(scenarioMinute(shared.state))}. Maya held this booking before the scenario; no initial purchase or payment is demonstrated.</p>
+          <div className="mt-5 flex flex-wrap gap-3"><button type="button" className={secondaryButton} onClick={() => go("xc3-provider-session-edit")}>Edit session &amp; rules</button><button type="button" className={secondaryButton} onClick={() => go("xc-provider-policy")}>View current recovery rules</button>{shared.state.holder === "bob" && facts.holderRead === "current" ? <button type="button" className={primaryButton} onClick={() => go("xc2-provider-pending")}>Open booking fulfilment</button> : null}</div>
           <ProofDrawer title="Provider operations seam" body="This Today view is fixture product evidence. Real implementation must derive holder, booking status, availability, and attendance from authoritative provider/booking reads and fail closed on stale holder state." />
         </Frame>
       )}

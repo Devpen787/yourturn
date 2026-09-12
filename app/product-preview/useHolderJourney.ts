@@ -1,5 +1,7 @@
 "use client";
 
+import { R3_PROVIDER_KEY } from "./r3-provider-state";
+import { assertPublishedProviderAction } from "./provider-runtime";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import {
@@ -73,6 +75,7 @@ export function useHolderJourney() {
       // Read immediately before every action so stale callbacks/double clicks cannot
       // overwrite the last committed result. Save BEFORE showing the next state.
       const current = readHolderFixture(window.localStorage.getItem(HOLDER_FIXTURE_KEY));
+      assertPublishedProviderAction(current, window.localStorage.getItem(R3_PROVIDER_KEY), action);
       const next = reduceHolderFixture(current, action);
       window.localStorage.setItem(HOLDER_FIXTURE_KEY, JSON.stringify(next));
       if (destination) navigate(destination, next);

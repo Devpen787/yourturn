@@ -57,7 +57,9 @@ export function validateProviderDraft(draft: ProviderDraft): string[] {
   const capacity = Number(draft.capacity);
   if (!Number.isInteger(capacity) || capacity < 1 || capacity > 99) errors.push("Capacity must be a whole number from 1 to 99.");
   if (!timePattern.test(draft.transferCutoff)) errors.push("Transfer cutoff must use HH:MM.");
-  if (clean(draft.eligibilityRule).length < 8) errors.push("Eligibility rule is too short.");
+  if (!["Eligible Studio A customer · no duplicate session", "Recovery paused"].includes(clean(draft.eligibilityRule))) errors.push("Choose the supported customer rule or Recovery paused; other rules cannot yet be enforced by this fixture.");
+  if (timePattern.test(draft.startTime) && draft.startTime < "00:30") errors.push("Start time must be at least 00:30 for the check-in window.");
+  if (timePattern.test(draft.startTime) && timePattern.test(draft.transferCutoff) && draft.transferCutoff > draft.startTime) errors.push("Transfer cutoff must not be after the session starts.");
   return errors;
 }
 
@@ -81,7 +83,7 @@ export function isR3ProviderState(value: unknown): value is R3ProviderState {
   if (![draft.sessionTitle, draft.startTime, draft.capacity, draft.transferCutoff, draft.eligibilityRule].every(v => typeof v === "string")) return false;
   if (![published.sessionTitle, published.startTime, published.transferCutoff, published.eligibilityRule].every(v => typeof v === "string")) return false;
   if (!Number.isInteger(published.capacity) || published.capacity < 1 || published.capacity > 99) return false;
-  return published.sessionTitle === "Friday Yoga" && timePattern.test(published.startTime) && timePattern.test(published.transferCutoff);
+  return validateProviderDraft({ ...published, capacity: String(published.capacity) }).length === 0;
 }
 
 export function readR3ProviderState(raw: string | null): R3ProviderState {

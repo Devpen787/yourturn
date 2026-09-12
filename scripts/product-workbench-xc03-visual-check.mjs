@@ -100,25 +100,20 @@ async function run(viewport, prefix) {
     await snap(page, prefix, "62-xc3-session-published", "Inventory", "Studio A");
 
     await page.getByRole("button", { name: "Open booking activity" }).click();
-    await page.waitForURL(/view=xc3-provider-sale-pending/);
-    await visible(page, "booking is being confirmed");
-    await visible(page, "Pending");
-    await snap(page, prefix, "63-xc3-booking-pending", "Bookings", "Studio A");
-
-    await page.getByRole("button", { name: "Check booking status" }).click();
-    await page.waitForURL(/view=xc3-provider-sale-success/);
-    await visible(page, "Maya has a confirmed Friday Yoga booking.");
-    await visible(page, "Current holder");
-    await visible(page, "Maya Keller");
-    await snap(page, prefix, "64-xc3-booking-success", "Bookings", "Studio A");
-
-    await page.getByRole("button", { name: /Open today/ }).click();
+    // R3-02 explicitly replaces the old primary sale-pending/success path.
+    // Original exploratory screen assertions remain isolated below.
     await page.waitForURL(/view=xc3-provider-today/);
+    await visible(page, "Prepared booking");
+    await visible(page, "no initial purchase or payment is demonstrated");
+    await visible(page, "Maya Keller");
     await visible(page, "Friday Yoga is ready to operate.");
     await visible(page, "Recovery");
     await snap(page, prefix, "65-xc3-provider-today", "Today", "Studio A");
     await page.close();
 
+    // Isolated historical exploratory captures. Not connected-flow or purchase proof.
+    await direct(context, prefix, "xc3-provider-sale-pending", "63-xc3-booking-pending", ["booking is being confirmed", "Pending"], "Bookings");
+    await direct(context, prefix, "xc3-provider-sale-success", "64-xc3-booking-success", ["Maya has a confirmed Friday Yoga booking.", "Current holder", "Maya Keller"], "Bookings");
     await direct(context, prefix, "xc3-provider-inventory-error", "66-xc3-inventory-error", ["could not connect the schedule", "No customer inventory was created", "Try again"], "Inventory");
     await direct(context, prefix, "xc3-provider-sale-error", "67-xc3-booking-error", ["booking did not complete", "Maya is not shown as the holder", "place available again"], "Bookings");
     await direct(context, prefix, "xc3-provider-today-empty", "68-xc3-today-empty", ["No bookings need attention right now", "Nothing due now"], "Today");

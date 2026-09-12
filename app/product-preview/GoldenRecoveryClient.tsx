@@ -1,11 +1,13 @@
 "use client";
 
+import { usePublishedSession } from "./ProviderRuntimeBoundary";
+
 import Link from "next/link";
 import { useHolderJourney } from "./useHolderJourney";
 
 type ProofStage = "ledger" | "agent" | "blocked" | "success";
 
-const booking = {
+const bookingDefaults = {
   title: "Friday Yoga",
   time: "18:00",
   date: "Friday, 11 September",
@@ -89,6 +91,8 @@ function StatusPill({
 }
 
 function BookingIdentity({ compact = false }: { compact?: boolean }) {
+  const published = usePublishedSession();
+  const booking = { ...bookingDefaults, ...published, transferCutoff: published.transferCutoffLabel };
   return (
     <div className={compact ? "space-y-1" : "space-y-2"}>
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
@@ -241,6 +245,8 @@ function AgentCard({ minimum }: { minimum: number }) {
 }
 
 export default function ProductPreviewPage() {
+  const published = usePublishedSession();
+  const booking = { ...bookingDefaults, ...published, transferCutoff: published.transferCutoffLabel };
   const {
     ready, error, retryState, step, setStep, confirmedScope, setConfirmedScope,
     notice, setNotice, activeMinimum, approvalMinimum, setApprovalMinimum,
@@ -294,7 +300,7 @@ export default function ProductPreviewPage() {
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">
                   This Friday
                 </p>
-                <p className="mt-3 text-2xl font-semibold">Friday Yoga · 18:00</p>
+                <p className="mt-3 text-2xl font-semibold">Friday Yoga · {booking.time}</p>
                 <p className="mt-2 text-sm text-slate-300">Studio A · Zürich</p>
                 <div className="mt-5 inline-flex rounded-full bg-emerald-300/15 px-3 py-1.5 text-xs font-semibold text-emerald-100 ring-1 ring-emerald-200/20">
                   Confirmed

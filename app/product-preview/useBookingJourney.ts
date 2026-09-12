@@ -1,5 +1,8 @@
 "use client";
 
+import { R3_PROVIDER_KEY } from "./r3-provider-state";
+import { assertPublishedProviderAction, providerCheckinWindow } from "./provider-runtime";
+import { usePublishedSession } from "./ProviderRuntimeBoundary";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import {
@@ -42,6 +45,7 @@ type PendingView = {
  */
 export function useBookingJourney() {
   const router = useRouter();
+  const published = usePublishedSession();
   const requested = useSearchParams().get("view") ?? "xc-find";
   const raw = useSyncExternalStore(subscribe, snapshot, SERVER_SNAPSHOT);
   // Tracks an in-flight push and gives it one short grace window to land. If
@@ -57,7 +61,9 @@ export function useBookingJourney() {
     catch { return { state: null, error: "Your booking state could not be restored. No new action has been completed." }; }
   }, [raw]);
   const state = loaded.state ?? INITIAL_HOLDER_FIXTURE;
-  const view = resolved(requested, state);
+  const resolveRuntime = (target: string, current: HolderFixture) => resolved(target, { ...current, continuation: { ...continuationOf(current), checkinWindow: providerCheckinWindow(current, published) } });
+  const displayState = { ...state, continuation: { ...continuationOf(state), checkinWindow: providerCheckinWindow(state, published) } };
+  const view = resolved(requested, displayState);
   const error = loaded.error ?? writeError;
 
   useEffect(() => {
@@ -82,7 +88,7 @@ export function useBookingJourney() {
         // converges and a stale target can never manufacture authority.
         pendingView.current = null;
         if (!loaded.state || error) return;
-        const fallbackDestination = resolved(pending.destination, loaded.state);
+        const fallbackDestination = resolveRuntime(pending.destination, loaded.state);
         if (fallbackDestination !== requested) {
           router.replace(`/product-preview?view=${fallbackDestination}`, { scroll: false });
         }
@@ -101,7 +107,7 @@ export function useBookingJourney() {
   }, [requested, view, loaded.state, error, router, convergeTick]);
 
   function navigate(next: string, current: HolderFixture) {
-    const destination = resolved(next, current);
+    const destination = resolveRuntime(next, current);
     if (destination === requested) return;
     pendingView.current = { destination, from: requested, fallbackArmed: false };
     router.push(`/product-preview?view=${destination}`, { scroll: true });
@@ -118,7 +124,12 @@ export function useBookingJourney() {
     let next: HolderFixture;
     try {
       const current = readHolderFixture(window.localStorage.getItem(HOLDER_FIXTURE_KEY));
-      next = reduceBookingFixture(current, action);
+      const p = assertPublishedProviderAction(current, window.localStorage.getItem(R3_PROVIDER_KEY), action);
+      if (action.type === "check-in") {
+        const original = continuationOf(current);
+        next = reduceBookingFixture({ ...current, continuation: { ...original, checkinWindow: providerCheckinWindow(current, p) } }, action);
+        next = { ...next, continuation: { ...continuationOf(next), checkinWindow: original.checkinWindow } };
+      } else next = reduceBookingFixture(current, action);
     } catch {
       setWriteError("This action is not available for the current booking state. No new action has been completed. Reload the latest booking state before trying again.");
       return;
@@ -147,7 +158,7 @@ export function useBookingJourney() {
   }
 
   return {
-    state, facts: continuationOf(state), view, step: resolveXcStep(requested, state),
+    state, facts: continuationOf(displayState), view, step: resolveXcStep(requested, state),
     ready: raw !== undefined && loaded.state !== null, error, notice, setNotice, go, act, setStep,
     retryState: () => { setWriteError(null); announce(); },
   };

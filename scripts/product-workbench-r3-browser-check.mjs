@@ -30,7 +30,7 @@ try {
     page.on("pageerror", (e) => errors.push(e.message));
     page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
     await goto(page, "xc3-provider-session-draft"); await header(page, "Studio A", "Inventory");
-    await page.getByLabel("Capacity").fill("14"); await page.getByLabel("Transfer cutoff").fill("17:20");
+    await page.getByLabel("Start time").fill("19:00"); await page.getByLabel("Capacity").fill("14"); await page.getByLabel("Transfer cutoff").fill("18:30");
     await visible(page, "Unsaved draft"); assert.equal((await providerState(page)).published.capacity, 12);
     await shot(page, viewport.name, "provider-draft");
     await page.reload({ waitUntil: "networkidle" }); assert.equal(await page.getByLabel("Capacity").inputValue(), "14"); assert.equal((await providerState(page)).published.capacity, 12);
@@ -39,22 +39,58 @@ try {
     await page.getByLabel("Capacity").fill("0"); await page.getByRole("button", { name: "Publish session", exact: true }).click();
     await visible(page, "Capacity must be a whole number"); assert.equal((await providerState(page)).published.capacity, 12);
     await shot(page, viewport.name, "provider-invalid");
+    await page.getByRole("button", { name: "View published booking", exact: true }).click();
+    await page.waitForURL((u) => u.searchParams.get("view") === "xc3-provider-today");
+    await visible(page, "Friday Yoga · 18:00"); await visible(page, "12 places"); await visible(page, "Friday · 17:30");
+    await shot(page, viewport.name, "provider-invalid-runtime-unchanged");
+    await page.getByRole("button", { name: "Edit session & rules", exact: true }).click();
+    await page.waitForURL((u) => u.searchParams.get("view") === "xc3-provider-session-edit");
 
     await page.getByLabel("Capacity").fill("14");
     await page.evaluate((k) => { const s = JSON.parse(localStorage.getItem(k)); s.saveMode = "fail-once"; localStorage.setItem(k, JSON.stringify(s)); window.dispatchEvent(new Event("yourturn:r3-provider-config-changed")); }, providerKey);
     await page.getByRole("button", { name: "Publish session", exact: true }).click();
     await visible(page, "could not be saved"); assert.equal((await providerState(page)).published.capacity, 12);
     await shot(page, viewport.name, "provider-save-failure");
+    await page.getByRole("button", { name: "View published booking", exact: true }).click();
+    await page.waitForURL((u) => u.searchParams.get("view") === "xc3-provider-today");
+    await visible(page, "Friday Yoga · 18:00"); await visible(page, "12 places"); await visible(page, "Friday · 17:30");
+    await shot(page, viewport.name, "provider-failed-runtime-unchanged");
+    await page.getByRole("button", { name: "Edit session & rules", exact: true }).click();
+    await page.waitForURL((u) => u.searchParams.get("view") === "xc3-provider-session-edit");
 
     await page.getByRole("button", { name: "Publish session", exact: true }).click();
     await page.waitForURL((u) => u.searchParams.get("view") === "xc3-provider-session-published");
-    await visible(page, "14 places"); await visible(page, "Friday · 17:20");
+    await visible(page, "14 places"); await visible(page, "Friday · 18:30");
     await shot(page, viewport.name, "provider-published");
+    await page.getByRole("button", { name: "Open booking activity", exact: true }).click();
+    await page.waitForURL((u) => u.searchParams.get("view") === "xc3-provider-today");
+    await visible(page, "Friday Yoga · 19:00"); await visible(page, "14 places"); await visible(page, "Friday · 18:30");
+    await visible(page, "Maya Keller"); await visible(page, "no initial purchase or payment is demonstrated");
+    assert.equal(await page.getByRole("button", { name: "Check booking status", exact: true }).count(), 0);
+    await shot(page, viewport.name, "provider-runtime-today");
+    await page.getByRole("button", { name: "View current recovery rules", exact: true }).click();
+    await page.waitForURL((u) => u.searchParams.get("view") === "xc-provider-policy");
+    await visible(page, "Friday · 18:30"); await visible(page, "Friday Yoga · 19:00");
+    await shot(page, viewport.name, "provider-runtime-rules");
+    await page.goBack(); await page.waitForURL((u) => u.searchParams.get("view") === "xc3-provider-today");
     await page.reload({ waitUntil: "networkidle" }); await visible(page, "14 places");
-    await page.locator("header nav a").first().click(); await page.waitForURL((u) => u.searchParams.get("view") === "xc3-provider-inventory");
+    await page.getByRole("button", { name: "Edit session & rules", exact: true }).click();
+    await page.getByRole("button", { name: "Back to inventory", exact: true }).click(); await page.waitForURL((u) => u.searchParams.get("view") === "xc3-provider-inventory");
     await page.getByRole("button", { name: "Configure Friday Yoga", exact: true }).click(); await page.waitForURL((u) => u.searchParams.get("view") === "xc3-provider-session-draft");
     assert.equal(await page.getByLabel("Capacity").inputValue(), "14"); await visible(page, "14 places");
     await shot(page, viewport.name, "provider-navigation-return");
+    // Same context, actual publish and buyer control: a newly closed window
+    // must prevent commitment without manufacturing ownership or payment.
+    await page.getByLabel("Transfer cutoff").fill("16:59");
+    await page.getByRole("button", { name: "Publish session", exact: true }).click();
+    await page.waitForURL((u) => u.searchParams.get("view") === "xc3-provider-session-published");
+    await page.getByRole("button", { name: "Open booking activity", exact: true }).click();
+    await visible(page, "Blocked under published rules");
+    await goto(page, "xc-find"); // location only; existing shared state is not reset
+    await page.getByRole("button", { name: /View Friday Yoga/ }).click();
+    await visible(page, "No new action has been completed");
+    assert.equal(await page.evaluate(() => localStorage.getItem("yourturn:product-preview:holder:v1")), null);
+    await shot(page, viewport.name, "provider-cutoff-blocks-buyer");
     await context.close();
 
     const preContext = await seededContext(browser, size, bookingFixture());
@@ -83,7 +119,7 @@ try {
 
     const allErrors = [...errors, ...preErrors, ...bobErrors, ...mayaErrors];
     assert.equal(allErrors.length, 0, `Console/page errors: ${allErrors.join(" | ")}`);
-    results.push({ viewport: viewport.name, status: "PASS", evidenceClass: "FIXTURE", screenshots: 10, consoleErrors: 0 });
+    results.push({ viewport: viewport.name, status: "PASS", evidenceClass: "FIXTURE", screenshots: 15, consoleErrors: 0 });
     console.log(`PASS R3 ${viewport.name}`);
   }
 } finally { await browser.close(); }
