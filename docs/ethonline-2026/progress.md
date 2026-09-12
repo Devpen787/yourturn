@@ -142,3 +142,11 @@ Append one block per meaningful run:
 - Verification actually run: TypeScript locally PASS. Added disposable real Redis races, exact replay, policy/identity mismatch, revocation, immutable output/receipt, unknown lock retention, strict EVAL and actual lease-expiry fencing tests; hosted execution pending.
 - Limits: no production resolver/consumer, no raw envelope persistence or recovery of output lost after Hedera reservation. That case stays blocked and cannot regenerate bytes. No credentials/device/signing/transaction/funds.
 - Next: execute exact CI and independent Security attack; do not adopt or extend before review.
+
+## 2026-09-12 — Ledger owner current/revoke HTTP qualification
+
+- Branch/base: `feature/ethonline-ledger-owner-routes-qual` from independently cleared operation `4b4189a02c17bcb4fe37991914694742db0f7620`; claim#16 5647908157. Exact head follows in GitHub evidence handoff.
+- Mission/change: new testnet-only signed-owner + fresh explicit stored-user boundary, current pointer observation and same-origin exact revoke routes. Strict scope/body, no owner override, no demo fallback; existing current CAS remains unchanged. Pointer observation is not verified authority; revocation does not cancel started effects.
+- Verification: local model HTTP checks and TypeScript; dedicated exact CI runs locked install/build/TypeScript, same handlers with actual Redis, actual Next unauthenticated/cross-origin HTTP requests, inherited current/operation suites. No hosted pass inferred before execution.
+- Open/claim limit: cookie auth inherits app primitive; real authenticated session, device/lifecycle evidence, guarded canonical consumers and integration selection remain separate. No secret/env file, device, signing/funds, acceptance weakening or historical Golden change.
+- Next: inspect exact CI and original artifact; separate Security review before consumption. See `LEDGER_OWNER_HTTP.md`.

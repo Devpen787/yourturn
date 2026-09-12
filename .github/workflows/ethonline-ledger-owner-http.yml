@@ -1,0 +1,44 @@
+name: Ledger authenticated owner routes
+on:
+  push:
+    branches: [feature/ethonline-ledger-owner-routes-qual]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  owner-routes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      redis:
+        image: redis:7.4.2
+        ports: [6379:6379]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --legacy-peer-deps
+      - run: npm run build
+      - run: npx tsc --noEmit --incremental false
+      - name: Owner HTTP handlers against real disposable Redis
+        run: env -i PATH="$PATH" NODE_OPTIONS=--no-warnings LEDGER_OWNER_REAL_REDIS=1 YT_SOURCE_SHA="${{ github.sha }}" node --experimental-transform-types scripts/ledger-owner-http-check.mjs
+      - name: Real Next HTTP routes without credentials or mutations
+        run: env -i PATH="$PATH" node scripts/ledger-owner-http-wire-check.mjs
+      - name: Inherited Ledger authority and runtime
+        run: |
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-strip-types scripts/ledger-recovery-mandate-runtime-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-strip-types scripts/ledger-current-mandate-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-strip-types scripts/ledger-operation-mandate-check.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ledger-owner-http-${{ github.sha }}
+          path: ledger-owner-http-evidence.json
+          if-no-files-found: error
+          retention-days: 30
