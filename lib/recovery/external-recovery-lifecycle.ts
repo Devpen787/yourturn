@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { getRedis } from "../store/redis.ts";
 import type { RecoveryMandateAuthorityBoundaryStore } from "../ledger/recovery-mandate-authority-boundary.ts";
 import { readRecoveryOperation, completeRecoveryOperation, takeOverRecoveryOperation, type RecoveryOperation } from "../ledger/recovery-mandate-operation.ts";
@@ -7,7 +8,6 @@ import { readPaymentRecordForReconciliation } from "../hedera-agent-kit/current-
 import { readRecoverySettlementReceipt } from "../hedera-agent-kit/recovery-receipt-reader.ts";
 
 type Store = RecoveryMandateAuthorityBoundaryStore;
-type Validation = Awaited<ReturnType<typeof validateExternalRecoverySigning>>;
 type Receipt = Awaited<ReturnType<typeof readRecoverySettlementReceipt>>;
 
 export type ExternalRecoveryLifecycleDependencies = {
@@ -29,6 +29,12 @@ function selection(input:{ownerId:string;operationId:string;intentHash:string}){
   requireLifecycle(typeof input.intentHash==="string"&&/^[a-f0-9]{64}$/.test(input.intentHash),"INVALID_INTENT");
   return Object.freeze({...input});
 }
+function exactOutputDigest(bytesBase64:string){
+  requireLifecycle(typeof bytesBase64==="string"&&bytesBase64.length>0&&bytesBase64.length<=65536*4/3+8&&/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(bytesBase64),"SIGNING_OUTPUT_INVALID");
+  const bytes=Buffer.from(bytesBase64,"base64");
+  requireLifecycle(bytes.length>0&&bytes.length<=65536&&bytes.toString("base64")===bytesBase64,"SIGNING_OUTPUT_INVALID");
+  return createHash("sha256").update(bytes).digest("hex");
+}
 async function exactRetained(store:Store,s:ReturnType<typeof selection>){
   const retained=await readRetainedRecoveryOutput({store,...s});
   requireLifecycle(retained!==null,"RETAINED_OUTPUT_REQUIRED");
@@ -37,9 +43,11 @@ async function exactRetained(store:Store,s:ReturnType<typeof selection>){
   return retained;
 }
 
-/** Read-only external-signer handoff. The returned bytes are the exact immutable
- * retained proposal. This performs the independently-cleared BEFORE_SIGN check
- * but creates no signing/submission permission and does not expose a private key. */
+/** Read-only external-signer handoff. The retained proposal itself is immutable
+ * and unsigned. The independently-cleared BEFORE_SIGN validator must consume
+ * those exact retained bytes and may return the derived Bob-authorized bytes for
+ * the external executor signer. This module creates no signing/submission permit
+ * and exposes no private key. */
 export async function prepareExternalRecoverySigning(input:{
   ownerId:string;operationId:string;intentHash:string;paymentAuthorization:{signatureHex:string};
 },dependencies:ExternalRecoveryLifecycleDependencies){
@@ -49,7 +57,9 @@ export async function prepareExternalRecoverySigning(input:{
   const result=await validate({phase:"BEFORE_SIGN",operationId:s.operationId,transactionBytesBase64:retained.record.bytesBase64,
     paymentAuthorization:{signatureHex:input.paymentAuthorization.signatureHex},resolveCurrent:dependencies.resolveCurrentSigningState,now:dependencies.now});
   requireLifecycle(result.ok,"BEFORE_SIGN_VALIDATION_DENIED");
-  requireLifecycle(result.transactionId===retained.record.transactionId&&result.transactionBytesSha256===retained.record.envelopeDigest,"RETAINED_SIGNING_OUTPUT_MISMATCH");
+  requireLifecycle(result.phase==="BEFORE_SIGN"&&result.operationId===s.operationId&&result.transactionId===retained.record.transactionId&&
+    result.transactionBytesSha256===exactOutputDigest(result.transactionBytesBase64)&&result.executionPermit===false&&result.submitted===false&&result.signedByThisModule===false,
+    "SIGNING_HANDOFF_OUTPUT_MISMATCH");
   return Object.freeze({...result,retainedEnvelopeDigest:retained.record.envelopeDigest,executionPermit:false as const});
 }
 
@@ -65,7 +75,9 @@ export async function validateExternallySignedRecovery(input:{
   const result=await validate({phase:"BEFORE_SUBMIT",operationId:s.operationId,transactionBytesBase64:input.signedTransactionBytesBase64,
     paymentAuthorization:{signatureHex:input.paymentAuthorization.signatureHex},resolveCurrent:dependencies.resolveCurrentSigningState,now:dependencies.now});
   requireLifecycle(result.ok,"BEFORE_SUBMIT_VALIDATION_DENIED");
-  requireLifecycle(result.transactionId===retained.record.transactionId,"SIGNED_TRANSACTION_ID_MISMATCH");
+  requireLifecycle(result.phase==="BEFORE_SUBMIT"&&result.operationId===s.operationId&&result.transactionId===retained.record.transactionId&&
+    result.transactionBytesBase64===input.signedTransactionBytesBase64&&result.transactionBytesSha256===exactOutputDigest(result.transactionBytesBase64)&&
+    result.executionPermit===false&&result.submitted===false&&result.signedByThisModule===false,"SIGNED_TRANSACTION_OUTPUT_MISMATCH");
   return Object.freeze({...result,retainedEnvelopeDigest:retained.record.envelopeDigest,executionPermit:false as const,submitted:false as const});
 }
 
