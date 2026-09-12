@@ -1,0 +1,164 @@
+{
+  "baseSha": "4f7bb4930139b92fa2ee1e223b76c406af1bad79",
+  "protectedGraph": {
+    "package.json": "b4a1b1e4eaf1de2fcc54ad902094f0c6b04b1a1bd131ace12cd8077f3fb952b2",
+    "package-lock.json": "6d8ce20f70a19df1f3e124fa84d39940d148d434ce0201a815d47e3852aec525"
+  },
+  "exactImportedSources": [
+    {
+      "path": "lib/hedera-agent-kit/booking-right-delegation-policy.ts",
+      "sourceSha": "20323ca7a6d0fcb3ccfb2ee86e5413fdaedff229",
+      "sha256": "487417ab23fe716d53f068a6fb225dc7281c084bf5f4e3cd19921976cbdf991d"
+    },
+    {
+      "path": "lib/hedera-agent-kit/canonical-recovery-state.ts",
+      "sourceSha": "20323ca7a6d0fcb3ccfb2ee86e5413fdaedff229",
+      "sha256": "b1bd0de2e305138861472082251f91d8f3d20b1a1b64b8f28c44398aada29e3c"
+    },
+    {
+      "path": "lib/hedera-agent-kit/current-chain-reader.ts",
+      "sourceSha": "20323ca7a6d0fcb3ccfb2ee86e5413fdaedff229",
+      "sha256": "e48efc3f9d6883e4b798169dd0be78b2301f3bb6a0cc3eec4ac7db4e09756f3a"
+    },
+    {
+      "path": "lib/hedera-agent-kit/current-payment-record.ts",
+      "sourceSha": "dddb0a52e8950b46eeb1ded0b82ddfc796473f8a",
+      "sha256": "3138ca2d7b8854b53a92d6ca4ed75e932c92137991e5e9c3fe09381e95aa6d14"
+    },
+    {
+      "path": "lib/hedera-agent-kit/delegated-recovery-plugin.ts",
+      "sourceSha": "20323ca7a6d0fcb3ccfb2ee86e5413fdaedff229",
+      "sha256": "e2f4f91473739839f988e1a9ccbcaf798df329313c70db5347235a207f7ff8d5"
+    },
+    {
+      "path": "lib/hedera-agent-kit/exact-payment-authorization.ts",
+      "sourceSha": "20323ca7a6d0fcb3ccfb2ee86e5413fdaedff229",
+      "sha256": "9cd5ddd434d2f72e2e14596f1158699df1fde47ae8a1fceafac3349ba816e274"
+    },
+    {
+      "path": "lib/hedera-agent-kit/external-signing-validation.ts",
+      "sourceSha": "20323ca7a6d0fcb3ccfb2ee86e5413fdaedff229",
+      "sha256": "e7bafac4754179a4c942180cf5e9c805790aa884a27b27494c74e1e8ae24fb21"
+    },
+    {
+      "path": "lib/hedera-agent-kit/policy-authorized-delegated-recovery.ts",
+      "sourceSha": "20323ca7a6d0fcb3ccfb2ee86e5413fdaedff229",
+      "sha256": "542871178214c8513f79dfd070bf86aadcfaefde7de423a1c2775bf6adb7849e"
+    },
+    {
+      "path": "lib/hedera-agent-kit/policy-authorized-usdc-recovery.ts",
+      "sourceSha": "20323ca7a6d0fcb3ccfb2ee86e5413fdaedff229",
+      "sha256": "74805d998cc6835f58f58eee177d1c6b6688ce5649f8b0081e4d9b0d8cbec74e"
+    },
+    {
+      "path": "lib/hedera-agent-kit/recovery-royalty.ts",
+      "sourceSha": "20323ca7a6d0fcb3ccfb2ee86e5413fdaedff229",
+      "sha256": "06e9e02409a0c031aa6e1ea0ef9c9fe7be79382ff3e09c5d66924cea9cd4a862"
+    },
+    {
+      "path": "lib/hedera-agent-kit/usdc-recovery-semantics.ts",
+      "sourceSha": "20323ca7a6d0fcb3ccfb2ee86e5413fdaedff229",
+      "sha256": "fe410762ad794bd7718629250744eb6d5c62007a856bbc9647301f1404507a60"
+    },
+    {
+      "path": "lib/hedera/delegated-nft-authority.ts",
+      "sourceSha": "20323ca7a6d0fcb3ccfb2ee86e5413fdaedff229",
+      "sha256": "2521120e36780216d07ffd925ce6bd7acd207ff9034d99a88c086f3fea84756e"
+    },
+    {
+      "path": "lib/policy/public-enrollment-registry.ts",
+      "sourceSha": "20323ca7a6d0fcb3ccfb2ee86e5413fdaedff229",
+      "sha256": "6729cbc8f31296736ed61539a29d4cc8e6518dc2a873da8c1396e4b67be3589c"
+    },
+    {
+      "path": "lib/policy/published-provider-policy.ts",
+      "sourceSha": "20323ca7a6d0fcb3ccfb2ee86e5413fdaedff229",
+      "sha256": "283b972ceb6e4ba440ff2af5b507a969517cb212fb8a3d1b1ec7b1326fbdc543"
+    },
+    {
+      "path": "scripts/hedera-booking-right-policy-check.mjs",
+      "sourceSha": "20323ca7a6d0fcb3ccfb2ee86e5413fdaedff229",
+      "sha256": "ffedadfc8e03a3da59a7f17e82f9ae7fe8ec1ca938372ef5ccda3b1de054b4f6"
+    },
+    {
+      "path": "scripts/hedera-booking-right-provider-state-check.mjs",
+      "sourceSha": "20323ca7a6d0fcb3ccfb2ee86e5413fdaedff229",
+      "sha256": "7ac84f9dfb8127ba44e8ce4fbc33360e27a6b0ac5d94319d1adbc366661c6e17"
+    },
+    {
+      "path": "scripts/hedera-canonical-resolver-check.mjs",
+      "sourceSha": "20323ca7a6d0fcb3ccfb2ee86e5413fdaedff229",
+      "sha256": "e59637d9a6c79cea0c7c434ef487b44e10558b7c0c40f5540582d226c2beb12e"
+    },
+    {
+      "path": "scripts/hedera-current-chain-reader-check.mjs",
+      "sourceSha": "20323ca7a6d0fcb3ccfb2ee86e5413fdaedff229",
+      "sha256": "5f888a440ff289376c4c6db778730000a1b0a8a0b45bfae604279ab743619f7a"
+    },
+    {
+      "path": "scripts/hedera-current-payment-record-check.mjs",
+      "sourceSha": "dddb0a52e8950b46eeb1ded0b82ddfc796473f8a",
+      "sha256": "8c0806f4b9ce805a0dab8cd800320ff21b932ca6d9dcc668ae6b0e5811e2ba0b"
+    },
+    {
+      "path": "scripts/hedera-delegated-recovery-hak-check.mjs",
+      "sourceSha": "20323ca7a6d0fcb3ccfb2ee86e5413fdaedff229",
+      "sha256": "1bd7b97ff85fddf259f6f3ed216dd82e4ff2fbbf5aefe8decae267729af1775b"
+    },
+    {
+      "path": "scripts/hedera-external-signing-check.mjs",
+      "sourceSha": "20323ca7a6d0fcb3ccfb2ee86e5413fdaedff229",
+      "sha256": "0752806f1f6ad559a3e836ed260dc32175fa3d91872db7a0f5bfaa2301bd27be"
+    },
+    {
+      "path": "scripts/hedera-payment-redis-runtime-check.mjs",
+      "sourceSha": "20323ca7a6d0fcb3ccfb2ee86e5413fdaedff229",
+      "sha256": "a8526a650d3e2c2c45879a94bfa44ddf3b0e50ee6ef8726ce9c2ff78bc22b877"
+    },
+    {
+      "path": "scripts/hedera-policy-usdc-recovery-check.mjs",
+      "sourceSha": "20323ca7a6d0fcb3ccfb2ee86e5413fdaedff229",
+      "sha256": "3484e9c895586fc80d4dda5a508a0509bd3e2fe991064bf6fdb85ced758bf720"
+    },
+    {
+      "path": "scripts/hedera-policy-usdc-recovery-live.mjs",
+      "sourceSha": "20323ca7a6d0fcb3ccfb2ee86e5413fdaedff229",
+      "sha256": "f2bc9127558aea4cfaac4834ada6444ea7f1bf512b005a89641dc56365fb8799"
+    },
+    {
+      "path": "scripts/hedera-recovery-royalty-check.mjs",
+      "sourceSha": "20323ca7a6d0fcb3ccfb2ee86e5413fdaedff229",
+      "sha256": "d46ca498bb810037412cf0e84fffe6b04d4adbb8016499fd4b0d34f7aeda29c2"
+    },
+    {
+      "path": "scripts/hedera-return-bytes-external-signer.mjs",
+      "sourceSha": "20323ca7a6d0fcb3ccfb2ee86e5413fdaedff229",
+      "sha256": "606e33bb75387e801f20d221ac9eba6f37c3c6480856703681d791ddfb50fdb6"
+    },
+    {
+      "path": "scripts/hedera-return-bytes-status-guard.mjs",
+      "sourceSha": "20323ca7a6d0fcb3ccfb2ee86e5413fdaedff229",
+      "sha256": "22dcc3957faa173efc02d3fa1d9f4b371bb84ba0ecc30d1abae79a22b834de4e"
+    },
+    {
+      "path": "scripts/hedera-royalty-authorization-check.mjs",
+      "sourceSha": "20323ca7a6d0fcb3ccfb2ee86e5413fdaedff229",
+      "sha256": "a3579ce1526d9582e0a67b3d6b6f92034610027c63a609fc52ede48ec36b503e"
+    },
+    {
+      "path": "scripts/hedera-signing-redis-check.mjs",
+      "sourceSha": "20323ca7a6d0fcb3ccfb2ee86e5413fdaedff229",
+      "sha256": "182a7d5ff50bddc0d4655ef9dd91959e7f8d7b023ba38d2bd67005b4a55d1829"
+    },
+    {
+      "path": "scripts/public-enrollment-registry-check.mjs",
+      "sourceSha": "20323ca7a6d0fcb3ccfb2ee86e5413fdaedff229",
+      "sha256": "045adb29cfe6cd38b3dabdf7479918db34c203355f278c64454ff9323961344c"
+    },
+    {
+      "path": "scripts/published-provider-policy-check.mjs",
+      "sourceSha": "20323ca7a6d0fcb3ccfb2ee86e5413fdaedff229",
+      "sha256": "85d22f9ee97b234939f361b6761eccc71d92385511a341bbead309c1e271a261"
+    }
+  ]
+}

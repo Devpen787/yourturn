@@ -1,0 +1,69 @@
+name: Hedera prepare and retain qualification
+on:
+  push:
+    branches: [feature/ethonline-hedera-prepare-retain-qual]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  prepare-retain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      redis:
+        image: redis:7.4.2
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --legacy-peer-deps
+      - name: Exact source and unchanged patched Ledger graph
+        run: node scripts/hedera-prepare-retain-source-check.mjs
+      - name: Real helper with model and actual Redis begin/reservation/retention
+        run: |
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/hedera-prepare-retain-check.mjs --model
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings YT_PREPARE_RETAIN_REDIS_TEST=loopback-disposable YT_PREPARE_RETAIN_REDIS_PORT=6379 node --experimental-transform-types scripts/hedera-prepare-retain-check.mjs
+      - name: Current Hedera sources and durable payment records
+        run: |
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/hedera-canonical-resolver-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/hedera-current-chain-reader-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/public-enrollment-registry-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings YT_SOURCE_SHA="${{ github.sha }}" YT_PROVIDER_POLICY_REDIS_TEST=loopback-disposable YT_PROVIDER_POLICY_REDIS_PORT=6379 node --experimental-transform-types scripts/published-provider-policy-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings YT_PAYMENT_RECORD_REDIS_TEST=loopback-disposable YT_PAYMENT_RECORD_REDIS_PORT=6379 node --experimental-transform-types scripts/hedera-current-payment-record-check.mjs
+      - name: All inherited Hedera deterministic boundaries on patched graph
+        run: |
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/hedera-booking-right-policy-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/hedera-booking-right-provider-state-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/hedera-delegated-recovery-hak-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/hedera-policy-usdc-recovery-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/hedera-recovery-royalty-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/hedera-royalty-authorization-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/hedera-external-signing-check.mjs
+      - name: Actual Redis Hedera payment and signing boundaries
+        run: |
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings YT_SOURCE_SHA="${{ github.sha }}" YT_TEST_REDIS_PORT=6379 node --experimental-transform-types scripts/hedera-payment-redis-runtime-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings YT_SOURCE_SHA="${{ github.sha }}" YT_TEST_REDIS_PORT=6379 node --experimental-transform-types scripts/hedera-signing-redis-check.mjs
+      - name: Ledger authority, owned read, canonical and retained-output regressions
+        run: |
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/ledger-recovery-mandate-runtime-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/canonical-recovery-projection-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/ledger-owned-authority-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/ledger-current-mandate-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/ledger-operation-mandate-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/ledger-owned-authority-redis-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings YT_SOURCE_SHA="${{ github.sha }}" node --experimental-transform-types scripts/ledger-retained-output-check.mjs --redis
+      - run: npm run build
+      - run: npx tsc --noEmit --incremental false
+      - name: Baseline Agent Kit fixture
+        run: npm run hedera:agent-check
+        env:
+          HEDERA_GUEST_A_ID: '0.0.9001'
+          HEDERA_TREASURY_ID: '0.0.9002'
