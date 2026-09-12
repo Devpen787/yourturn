@@ -172,7 +172,15 @@ export function SiteHeader({ sessionUser = null }: { sessionUser?: SessionUser }
           ) : null}
           <div className={cn("flex flex-nowrap items-center gap-x-1 sm:flex-wrap sm:gap-x-2", sessionUser && "border-l border-slate-200/90 pl-2 sm:ml-0.5 sm:pl-3")}>
             {navItems.map((item) => {
-              const href = pathname === "/" && item.href === "/my-bookings" ? "/product-preview" : item.href;
+              const href = pathname === "/"
+                ? item.href === "/my-bookings"
+                  ? "/product-preview"
+                  : item.href === "/slots"
+                    ? "/product-preview?view=xc-find"
+                    : item.href === "/issuer"
+                      ? "/product-preview?view=xc3-provider-join"
+                      : item.href
+                : item.href;
               const landingVisibility = compactCustomerLanding
                 ? item.href === "/slots"
                   ? "hidden sm:inline-flex"
