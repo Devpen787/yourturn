@@ -22,6 +22,8 @@ jobs:
         run: node --experimental-transform-types scripts/current-business-eligibility-check.mjs
       - name: Public enrollment provisioning checks
         run: node --experimental-transform-types scripts/public-enrollment-provisioning-check.mjs
+      - name: Durable payment authorization checks
+        run: node --experimental-transform-types scripts/current-payment-authorization-check.mjs
       - name: Existing prepare-retain model regression
         run: node --experimental-transform-types scripts/hedera-prepare-retain-check.mjs --model
       - run: npx tsc --noEmit --incremental false
