@@ -1,162 +1,160 @@
-# YourTurn Concierge
+# YourTurn — ETHOnline 2026 Continuity
 
-YourTurn Concierge is a Hedera Policy Agent for booked service recovery. When a customer cannot attend a booked service slot, the agent can help recover value only if holder state, provider rules, budget policy, and explicit approval all pass.
+YourTurn is a bounded booking-recovery system. A holder can delegate a narrowly scoped recovery mandate; a human-backed agent can request the action; provider policy and live booking/economic state are checked; and the recovery can be prepared for Hedera testnet settlement without giving the agent broad wallet authority.
 
-Live demo: [https://yourturn-sage.vercel.app](https://yourturn-sage.vercel.app)
+This branch is the finish-line integration lane for **exactly three Continuity tracks**:
 
-Week 5 proof page: [https://yourturn-sage.vercel.app/week5-proof](https://yourturn-sage.vercel.app/week5-proof)
+- **Hedera** — serial-scoped delegated booking authority and USDC recovery economics.
+- **World AgentKit** — proves the exact requesting agent is human-backed; it does not prove booking ownership or permission.
+- **Ledger** — protects the human mandate that grants the agent authority; it does not sign the Hedera settlement transaction.
 
-## Hedera AI Bounty Week 5
+## Judge entry
 
-This repository's active submission lane is:
+The human-approved Product R5 journey is available at:
 
-**Week 5: Hedera Policy Agent**
+```text
+/product-preview
+```
 
-The Week 5 claim is narrow:
+The canonical delegated-agent boundary is:
 
-> A provider sets recovery rules for a booked service slot. Person A cannot attend. YourTurn Concierge previews the allowed recovery action, blocks invalid actions, requires scoped approval or a bounded allowance budget, and returns Hedera proof for the action.
+```text
+GET  /api/agent/confirm   # read-only challenge built from current server facts
+POST /api/agent/confirm   # fresh AgentKit-signed confirmation/status
+```
 
-The implementation uses:
+The public confirmation path currently ends at a durable `effect-started` operation with exact retained **unsigned** Hedera transaction bytes. External signing validation and indexed-receipt reconciliation are implemented as server-side lifecycle primitives. No automatic signing, retrying, or network submission is claimed.
 
-- `@hashgraph/hedera-agent-kit` v4
-- Agent Kit `MaxRecipientsPolicy(1)`
-- Agent Kit `RejectToolPolicy`
-- Agent Kit `HcsAuditTrailHook`
-- Hedera Token Service booking-right NFTs
-- Hedera Consensus Service audit events
-- Hedera Schedule Service payment proof
-- Mirror Node and HashScan verification
-- Hedera x402 exact payment requirements for HBAR and HTS/USDC
-- Optional WalletConnect/Reown path for user-signed bounded USDC allowance
-- Agent Lab and NFT Studio proof artifacts for reviewer inspection
+For current exact evidence and remaining gates, use:
 
-## Screenshots
+- [`docs/ethonline-2026/FINAL_EVIDENCE.json`](docs/ethonline-2026/FINAL_EVIDENCE.json)
+- [`docs/ethonline-2026/HUMAN_CEREMONY.md`](docs/ethonline-2026/HUMAN_CEREMONY.md)
+- [`docs/ethonline-2026/COLD_JUDGE_RUNBOOK.md`](docs/ethonline-2026/COLD_JUDGE_RUNBOOK.md)
+- GitHub issue **#18** for the durable finish-line ledger
+- GitHub issue **#16** for independent Security dispositions
+- GitHub issue **#5** for exact integration selection
 
-### Policy Agent Proof
+## Product truth
 
-![Week 5 policy proof](docs/week5-assets/week5-proof.png)
+The Product fixture is frozen at human-approved R5:
 
-### Concierge Recovery Receipt
+```text
+342f46ee6e0c4d0f332287d8433735c5ac015528
+```
 
-![Recovery receipt](docs/week5-assets/recovery-receipt.png)
+The finish-line execution branch deliberately composes those exact Product blobs with the newer sponsor/runtime lineage. Product bytes are not rewritten during integration.
 
-### Machine-Readable Proof
+The journey covers Maya as holder/seller, Bob as buyer/economic source, and Studio A as provider. R5 includes the required bridge states for provider-floor changes, listing/booking coherence, expiry, retry after first payment failure, and cancellation propagation while preserving the prior receipt.
 
-![Week 5 JSON proof](docs/week5-assets/week5-proof-json.png)
+## Authorization model
 
-## Reviewer Proof Links
+The load-bearing path is:
 
-Use these links for bounty review:
+```text
+current booking + active Ledger Recovery Mandate
+    ↓
+canonical server-owned authority projection
+    ↓
+World verifies the exact requester against that projection
+    ↓
+current provider policy + eligibility + payment record + public enrollment + Hedera chain facts
+    ↓
+Bob's exact durable payment authorization
+    ↓
+one atomic claimed → effect-started transition
+    ↓
+exact Hedera transaction retained before any external signing
+    ↓
+BEFORE_SIGN validation → external executor signer → BEFORE_SUBMIT validation
+    ↓
+(one human-authorized testnet submission; not automated here)
+    ↓
+Mirror indexed-receipt reconciliation → completed operation
+```
 
-| Surface | URL |
-| --- | --- |
-| App demo | [https://yourturn-sage.vercel.app](https://yourturn-sage.vercel.app) |
-| Week 5 proof page | [https://yourturn-sage.vercel.app/week5-proof](https://yourturn-sage.vercel.app/week5-proof) |
-| Machine-readable proof | [https://yourturn-sage.vercel.app/api/agent/week5-proof](https://yourturn-sage.vercel.app/api/agent/week5-proof) |
-| x402 HBAR/USDC policy endpoint | [https://yourturn-sage.vercel.app/api/x402/recovery-policy](https://yourturn-sage.vercel.app/api/x402/recovery-policy) |
-| Wallet budget proof | [https://yourturn-sage.vercel.app/api/wallet-budget/config](https://yourturn-sage.vercel.app/api/wallet-budget/config) |
-| NFT Studio metadata/risk proof | [https://yourturn-sage.vercel.app/api/nft-studio/proof](https://yourturn-sage.vercel.app/api/nft-studio/proof) |
-| Agent card | [https://yourturn-sage.vercel.app/.well-known/agent.json](https://yourturn-sage.vercel.app/.well-known/agent.json) |
-| Capabilities | [https://yourturn-sage.vercel.app/api/agent/capabilities](https://yourturn-sage.vercel.app/api/agent/capabilities) |
+Important boundaries:
 
-Required feedback issue:
-
-- [hashgraph/hedera-agent-kit-js#940](https://github.com/hashgraph/hedera-agent-kit-js/issues/940)
-
-## Demo Path
-
-Fastest browser-only demo:
-
-1. Open [https://yourturn-sage.vercel.app/login](https://yourturn-sage.vercel.app/login).
-2. Sign in as **Demo user A**.
-3. Open [https://yourturn-sage.vercel.app/resale/193?mode=recovery](https://yourturn-sage.vercel.app/resale/193?mode=recovery).
-4. Show the Concierge recovery receipt and policy fields.
-5. Open [https://yourturn-sage.vercel.app/week5-proof](https://yourturn-sage.vercel.app/week5-proof).
-6. Open [https://yourturn-sage.vercel.app/api/agent/week5-proof](https://yourturn-sage.vercel.app/api/agent/week5-proof).
-
-Recording script:
-
-- [docs/HEDERA-WEEK5-DEMO-SCRIPT.md](docs/HEDERA-WEEK5-DEMO-SCRIPT.md)
-
-Submission runbook:
-
-- [docs/HEDERA-WEEK5-FINAL-STEPS.md](docs/HEDERA-WEEK5-FINAL-STEPS.md)
-
-Submission copy and implementation details:
-
-- [docs/HEDERA-AI-BOUNTY-WEEK5-POLICY-AGENT.md](docs/HEDERA-AI-BOUNTY-WEEK5-POLICY-AGENT.md)
+- World identity is never holder authority.
+- Ledger approval never bypasses provider policy, current ownership, expiry, replay, economics, or Hedera allowance checks.
+- Bob funds the purchase. Maya receives **seller net proceeds** after any owner-approved royalty; minimum-recovery checks apply to net proceeds.
+- The server does not hold Maya's Ledger key or use Ledger to sign Hedera HTS transactions.
+- Current integration code does not automatically submit transactions to Hedera.
 
 ## Verification
 
-```bash
-npm install
-npm run hedera:agent-check
-npm run build
-npm run hedera:agent-lab-proof
-npm run hedera:nft-studio-proof
-npm run hedera:usdc-allowance-proof -- --status
-npm run hedera:x402-settlement-proof -- --status
+The integration lane has a dedicated workflow:
+
+```text
+.github/workflows/finishline-execution.yml
 ```
 
-What this verifies:
+It independently proves on the same exact tree that:
 
-- Agent Kit v4 runtime is present.
-- `MaxRecipientsPolicy`, `RejectToolPolicy`, and `HcsAuditTrailHook` are configured.
-- Multi-recipient transfers and destructive tools are blocked.
-- YourTurn domain policies block invalid recovery actions.
-- HBAR and USDC x402 requirements are exposed.
-- Wallet-funded USDC allowance proof is configured.
-- Agent Lab and NFT Studio packets are generated and valid.
+- runtime/security-sensitive files remain byte-identical to the frozen runtime checkpoint;
+- Product files remain byte-identical to approved R5;
+- single-begin operation ownership still holds;
+- business eligibility, public provisioning and durable Bob authorization fail closed;
+- external-signing validation and indexed receipt verification remain green;
+- TypeScript and the production build pass;
+- Product R5 state, navigation, failure, Back/Forward/reload and rendered desktop/mobile journeys remain green.
 
-To regenerate public screenshots:
+## Continuity — what is new
+
+The pre-event product already had booking NFTs, recovery UI, policy-agent work, HCS/Mirror proof surfaces, Schedule Service proof, x402 experiments and earlier Hedera payment paths.
+
+ETHOnline adds the new cross-sponsor authority plane:
+
+- a replay-safe Ledger Recovery Mandate and guarded owned-operation authority;
+- canonical mapping from that mandate to World requester and Hedera executor identities;
+- official AgentKit request verification with replay/resource/request-age boundaries;
+- operation-scoped current provider/payment/eligibility records;
+- configurable D-010 royalty/net-proceeds economics;
+- exact Bob-funded Hedera payment authorization;
+- one authoritative begin-effect boundary and durable retained transaction output;
+- external-signing validation before signing and before submission;
+- exact indexed-receipt reconciliation.
+
+## Claim boundaries
+
+### Supported by current software/CI
+
+- Product R5 fixture and journey behavior.
+- Canonical World → Ledger → Hedera preparation path at SOURCE/CI/LOCAL scope.
+- Current provider/payment/eligibility/public-enrollment fail-closed checks.
+- Bob-funded payment semantics and owner-approved royalty calculation.
+- External-signing validation and exact indexed-receipt validation primitives.
+- No server-side private signing or automatic Hedera submission in the canonical path.
+
+### Requires final human/live evidence before it may be claimed
+
+- Ledger physical-device provenance for the exact Recovery Mandate.
+- Ledger approve **and reject** evidence on the final integrated candidate.
+- A credential-bearing canonical World signed recovery request and required negative evidence.
+- The final public AgentBook/Sandbox evidence attached to that canonical route.
+- A fresh Bob-funded Hedera testnet settlement produced by the final integrated path.
+- A final whole-candidate independent Security clearance.
+- A cold-judge end-to-end PASS from this README.
+
+Do not upgrade those statements from pending merely because CI is green.
+
+## Sponsor feedback
+
+Integration-grounded feedback is tracked in:
+
+- [`docs/ethonline-2026/LEDGER_FEEDBACK.md`](docs/ethonline-2026/LEDGER_FEEDBACK.md)
+- [`docs/ethonline-2026/WORLD_FEEDBACK.md`](docs/ethonline-2026/WORLD_FEEDBACK.md)
+- [`docs/ethonline-2026/HEDERA_FEEDBACK.md`](docs/ethonline-2026/HEDERA_FEEDBACK.md)
+
+## Local setup
 
 ```bash
-npm run hedera:week5-capture -- --base-url=https://yourturn-sage.vercel.app --serial=193 --role=guestA --out=output/week5-proof-assets
-```
-
-The committed screenshots in `docs/week5-assets/` are selected from that output.
-
-## Run Locally
-
-```bash
-npm install
+npm ci --legacy-peer-deps
 cp .env.example .env.local
 npm run dev
 ```
 
-Open:
+The exact non-secret World/public-enrollment configuration inputs are documented in `.env.example`. Real addresses/accounts must come from reviewed live configuration; there are deliberately no production defaults.
 
-- `http://localhost:3000/login`
-- Demo issuer: prepares provider slots.
-- Demo user A: books and recovers a pass.
-- Demo user B: buys a listed pass.
+## Historical material
 
-Required environment values are listed in [.env.example](.env.example). The live deployment uses Hedera testnet accounts, Upstash Redis, and optional Telegram bot settings.
-
-## Claim Boundaries
-
-Live and claimed:
-
-- HTS booking-right NFTs
-- HCS audit events
-- Hedera Schedule Service recovery payment proof
-- Real testnet HBAR refund/release proof
-- Hedera x402 HBAR and HTS/USDC settlement proof
-- Optional user-signed WalletConnect/Reown USDC allowance path
-- Mirror Node and HashScan verification
-- Agent Kit runtime/policy proof
-- Agent Lab companion packet
-- NFT Studio metadata/risk proof
-
-Not claimed:
-
-- Raw autonomous private-key custody
-- Production fiat refunds
-- Stablecoin onramp
-- OpenClaw ACP gateway runtime
-- Fully autonomous LLM negotiation
-- Every app route as an Agent Kit BaseTool
-
-## Historical Materials
-
-The folder `docs/ethglobal-nyc-2026/` contains historical ETHGlobal continuity materials. For this bounty, use the Week 5 proof links and Week 5 docs above as the source of truth.
+Historical Week-5 and ETHGlobal NYC proof material remains in the repository for Continuity provenance. It is not the entry point for the ETHOnline 2026 submission.
