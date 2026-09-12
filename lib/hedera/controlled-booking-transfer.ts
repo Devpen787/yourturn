@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { proto } from "@hiero-ledger/proto";
 import {
   AccountId,
   BatchTransaction,
@@ -163,22 +164,51 @@ function assertNoSignatures(transaction: Transaction, code: string): void {
   requireExact(!signatures.some((entry) => entry.size !== 0), code);
 }
 
+type SignedTransactionStore = {
+  get(index: number): { bodyBytes?: Uint8Array | null } | null | undefined;
+};
+
 /**
- * Hiero JS 2.81's BatchTransaction decoder reconstructs inner transactions
- * from their SignedTransaction body but intentionally passes an empty SDK
- * transaction-id list to each inner object. Therefore payer IDs are asserted
- * on the pre-serialization object whenever exposed; the decoded byte gate still
- * validates every movement/type/account/batch-key/signature invariant.
+ * Hiero JS 2.81's BatchTransaction decoder intentionally leaves the public
+ * inner transaction-id list empty, but it preserves each raw SignedTransaction.
+ * Qualification therefore binds payer identity to the transactionID encoded in
+ * that SignedTransaction body instead of treating a missing decoded SDK ID as
+ * acceptable. Missing/unparseable raw bodies fail closed.
  */
-function assertPayerWhenDecoded(
+function assertSerializedPayer(
   transaction: Transaction,
   expectedPayer: string,
   code: string,
 ): void {
-  const payer = transaction.transactionId?.accountId?.toString();
-  if (payer !== undefined && payer !== null) {
-    requireExact(payer === canonicalAccount(expectedPayer), code);
+  const signedTransactions = (
+    transaction as unknown as { _signedTransactions?: SignedTransactionStore }
+  )._signedTransactions;
+  requireExact(
+    signedTransactions !== undefined && typeof signedTransactions.get === "function",
+    `${code}_SIGNED_BODY_MISSING`,
+  );
+  const signed = signedTransactions.get(0);
+  const bodyBytes = signed?.bodyBytes;
+  requireExact(
+    bodyBytes instanceof Uint8Array && bodyBytes.length > 0,
+    `${code}_SIGNED_BODY_MISSING`,
+  );
+
+  let body: ReturnType<typeof proto.TransactionBody.decode>;
+  try {
+    body = proto.TransactionBody.decode(bodyBytes);
+  } catch {
+    throw new ControlledBookingTransferDenied(`${code}_SIGNED_BODY_INVALID`);
   }
+
+  const rawAccountId = body.transactionID?.accountID;
+  requireExact(rawAccountId !== null && rawAccountId !== undefined, `${code}_TRANSACTION_ID_MISSING`);
+  const payer = (
+    AccountId as unknown as {
+      _fromProtobuf(id: object): AccountId;
+    }
+  )._fromProtobuf(rawAccountId as object);
+  requireExact(payer.toString() === canonicalAccount(expectedPayer), code);
 }
 
 function assertFreezeOperation(
@@ -205,7 +235,7 @@ function assertFreezeOperation(
     typed.accountId?.toString() === canonicalAccount(expectedAccountId),
     `CONTROLLED_${expectedType.toUpperCase()}_ACCOUNT_MISMATCH`,
   );
-  assertPayerWhenDecoded(
+  assertSerializedPayer(
     typed,
     expectedPayer,
     `CONTROLLED_${expectedType.toUpperCase()}_PAYER_MISMATCH`,
@@ -220,7 +250,7 @@ function assertExactSettlementTransfer(
   requireExact(transaction instanceof TransferTransaction, "CONTROLLED_TRANSFER_TYPE_MISMATCH");
   assertNoSignatures(transaction, "CONTROLLED_TRANSFER_UNEXPECTED_SIGNATURE");
   requireExact(transaction.hbarTransfers.size === 0, "CONTROLLED_TRANSFER_HBAR_SCOPE_WIDENED");
-  assertPayerWhenDecoded(
+  assertSerializedPayer(
     transaction,
     intent.delegatedAgentAccountId,
     "CONTROLLED_TRANSFER_ALLOWANCE_PAYER_MISMATCH",
