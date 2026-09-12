@@ -100,10 +100,6 @@ jobs:
             scripts/product-workbench-xc02-visual-check.mjs \
             scripts/product-workbench-xc03-visual-check.mjs
       - run: npm ci --legacy-peer-deps
-      - name: Install Playwright
-        run: |
-          npm install --no-save --package-lock=false --legacy-peer-deps playwright@1.55.0
-          npx playwright install --with-deps chromium
       - name: R5 model and state checks
         run: |
           node --experimental-strip-types scripts/product-workbench-holder-state-check.mjs
@@ -112,10 +108,14 @@ jobs:
           node --experimental-strip-types scripts/product-workbench-r3-state-check.mjs
           node --experimental-strip-types scripts/product-workbench-r3-runtime-check.mjs
           node --experimental-strip-types scripts/product-workbench-r5-state-check.mjs
-      - name: TypeScript
+      - name: TypeScript on locked repository graph
         run: npx tsc --noEmit --incremental false
-      - name: Production build
+      - name: Production build on locked repository graph
         run: npm run build
+      - name: Install Playwright only after compile/build gates
+        run: |
+          npm install --no-save --package-lock=false --legacy-peer-deps playwright@1.55.0
+          npx playwright install --with-deps chromium
       - name: Start exact combined candidate
         id: start
         run: |
