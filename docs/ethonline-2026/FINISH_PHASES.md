@@ -7,8 +7,8 @@ Last updated: 12 September 2026. This is the execution task's working view; exac
 | Phase | Work | Status | Remaining completion condition |
 |---|---|---|---|
 | A | Finish Product R3 | **COMPLETE — fixture scope** | Exact `6125cbb9` independently REVIEWABLE in #34 5647312535; sponsor integration remains separate. |
-| B | R4 connected and adversarial product journey | **IN PROGRESS** | One scenario across Maya → Bob → Studio A, with retries, stale state and failures; independent review. |
-| C | R5 final Product candidate | **PENDING — after B** | Full Product review, exact candidate evidence, then Devinson's approval of those bytes. |
+| B | R4 connected and adversarial product journey | **COMPLETE — fixture scope** | `f44fc106` independently REVIEWABLE; one-seed desktop/mobile evidence verified in #34 5647445679. |
+| C | R5 final Product candidate | **IN PROGRESS — final review findings** | Repairs implemented and local desktop/mobile checks pass; exact full CI and independent review, then exact human approval. |
 | D | Ledger authority and device evidence | **PARTIAL** | Software lifecycle replacement/revocation/claim-resume; fresh valid preparation; human device reject/cancel/approve; downstream evidence and independent review. |
 | E | World canonical signed route | **PARTIAL** | Replace legacy holder-authority consumer with guarded Ledger projection; credential-free negative tests and runbook; human signed-route execution. |
 | F | Hedera runtime and Bob-funded settlement | **PARTIAL** | Owner-configurable royalty alignment, authoritative resolver and signer recheck; exact settlement preparation; human-authorized testnet proof. |
@@ -31,9 +31,16 @@ Last updated: 12 September 2026. This is the execution task's working view; exac
 
 ## Current execution
 
-1. **Active:** R4 one-seed connected qualification on `feature/ethonline-ux-r4-qual`, based on independently reviewed R3 `6125cbb9`.
-2. **Ledger software:** unique-current/replace/revoke implemented; independent expiry-race repair `024e0cc5` CLEARED at CI/LOCAL (#16 5647334017). Operation claim/resume remains open. Use the physical Ledger; emulator work was declined and is dropped.
+1. **Product:** R3/R4 independently complete at fixture scope; R5 final review repairs implemented: truthful settled minimum, actor home links, Maya booking details and fixed-time clarification. Local 12 model checks and four desktop/mobile scenarios pass; exact full CI/review pending.
+2. **Ledger software:** unique-current/replace/revoke implemented; independent expiry-race repair `024e0cc5` CLEARED at CI/LOCAL (#16 5647334017). Operation claim/resume primitive `4b4189a0` independently CLEARED (#16 5647413237). Canonical consumers and device evidence remain open. Use the physical Ledger; emulator work was declined and is dropped.
 3. **Requirement clarified:** the business owner sets royalty; 10% is only recommended. No automatic choice of a zero-fee canonical asset, signing, minting or changed buyer payment is inferred.
+
+## Latest software increments
+
+- Hedera current-state recheck `e4e67d91`: 87 semantic + 12 real Redis checks PASS; independent review requested in #16 5647432038.
+- Canonical Ledger mapping contract `1201ae6`: 24 contract checks plus inherited Ledger Redis suites PASS in exact CI 34708245872; independent review requested in #5 5647553888, not cleared. No production mapping inferred.
+- Separate reviewer task is blocked by an automated cybersecurity filter; affected work is not independently cleared.
+- Emulator work is dropped per Devinson. The remaining Ledger ceremony uses the physical device.
 
 ## Human gates — prepared later, not requested prematurely
 

@@ -95,6 +95,7 @@ export function useHolderJourney() {
 
   const activeMinimum: Minimum = state.activeMinimum ?? 40;
   return {
+    fixtureState: state,
     ready: raw !== undefined && loaded.state !== null,
     error,
     retryState: () => { setWriteError(null); announce(); },

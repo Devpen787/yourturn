@@ -10,7 +10,7 @@ export const HOLDER_FIXTURE_EVENT = "yourturn:holder-fixture-changed";
 export type Minimum = 30 | 40;
 export type Offer = 32 | 45;
 export type ApprovalStatus = "idle" | "waiting" | "approved" | "rejected" | "cancelled";
-export type Step = "enter" | "bookings" | "detail" | "plans" | "setup" | "approval" |
+export type Step = "enter" | "bookings" | "detail" | "useBooking" | "plans" | "setup" | "approval" |
   "ledgerNotReady" | "ledgerWaiting" | "ledgerRejected" | "ledgerCancelled" |
   "ledgerApproved" | "recoveryActive" | "offerBlocked" | "reauthorize" |
   "offerAllowed" | "recoverySuccess";
@@ -58,6 +58,8 @@ export type HolderFixture = {
   settlementCount: 0 | 1;
   revoked: boolean;
   continuation?: BookingContinuation;
+  /** Effective approved minimum captured before settlement clears active authority. */
+  settledMinimum?: Minimum;
 };
 
 export const INITIAL_HOLDER_FIXTURE: Readonly<HolderFixture> = Object.freeze({
@@ -79,6 +81,19 @@ export function continuationOf(state: HolderFixture): BookingContinuation {
   return state.holder === "bob"
     ? { ...INITIAL_CONTINUATION, eligibility: "eligible", payment: "committed", handoff: "complete" }
     : { ...INITIAL_CONTINUATION };
+}
+
+// Fixed preview time, independent of wall clock, navigation and provider edits.
+export const FIXTURE_TIME_ORIGIN_MS = Date.parse("2026-09-11T00:00:00+02:00");
+export const FIXTURE_MANDATE_EXPIRES_AT_MS = Date.parse("2026-09-12T17:00:00+02:00");
+export function fixtureScenarioMinute(state: HolderFixture): number {
+  return { before: 17 * 60, open: 17 * 60 + 45, closed: 18 * 60 + 31 }[continuationOf(state).checkinWindow];
+}
+export function fixtureScenarioTimeMs(state: HolderFixture): number {
+  return FIXTURE_TIME_ORIGIN_MS + fixtureScenarioMinute(state) * 60_000;
+}
+export function assertFixtureMandateTime(scenarioTimeMs: number): void {
+  if (!Number.isSafeInteger(scenarioTimeMs) || scenarioTimeMs < FIXTURE_TIME_ORIGIN_MS || scenarioTimeMs >= FIXTURE_MANDATE_EXPIRES_AT_MS) throw new Error("The fixed preview mandate has expired or its scenario time is invalid");
 }
 
 export type HolderAction =
@@ -139,9 +154,9 @@ function isContinuation(value: unknown, state: HolderFixture): value is BookingC
 export function isHolderFixture(value: unknown): value is HolderFixture {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const s = value as HolderFixture;
-  const allowedKeys = [...Object.keys(INITIAL_HOLDER_FIXTURE), "continuation"];
+  const allowedKeys = [...Object.keys(INITIAL_HOLDER_FIXTURE), "continuation", "settledMinimum"];
   if (Object.keys(s).some((key) => !allowedKeys.includes(key))) return false;
-  if (Object.keys(s).length !== Object.keys(INITIAL_HOLDER_FIXTURE).length + ("continuation" in s ? 1 : 0)) return false;
+  if (Object.keys(s).length !== Object.keys(INITIAL_HOLDER_FIXTURE).length + ("continuation" in s ? 1 : 0) + ("settledMinimum" in s ? 1 : 0)) return false;
   if (s.schemaVersion !== 1 || s.evidenceClass !== "FIXTURE" || s.booking !== "friday-yoga" ||
       !Number.isSafeInteger(s.revision) || s.revision < 0 ||
       !["maya", "bob"].includes(s.holder) || typeof s.confirmedScope !== "boolean" ||
@@ -151,6 +166,7 @@ export function isHolderFixture(value: unknown): value is HolderFixture {
       !(s.recoveredAmount === 0 || isOffer(s.recoveredAmount)) ||
       !(s.settlementCount === 0 || s.settlementCount === 1) || typeof s.revoked !== "boolean") return false;
   if ("continuation" in s && !isContinuation(s.continuation, s)) return false;
+  if ("settledMinimum" in s && (s.holder !== "bob" || !isMinimum(s.settledMinimum) || s.recoveredAmount < s.settledMinimum)) return false;
   if (s.holder === "bob") {
     return s.settlementCount === 1 && s.recoveredAmount > 0 &&
       s.activeMinimum === null && ["approved", "rejected", "cancelled"].includes(s.approvalStatus) && !s.revoked;
@@ -171,6 +187,7 @@ export function readHolderFixture(raw: string | null): HolderFixture {
 
 export function reduceHolderFixture(state: HolderFixture, action: HolderAction): HolderFixture {
   if (!isHolderFixture(state)) throw new Error("Invalid preview booking state");
+  if (["begin-approval", "offer", "recover"].includes(action.type) || action.type === "approval-result" && action.result === "approved") assertFixtureMandateTime(fixtureScenarioTimeMs(state));
   let change: Partial<HolderFixture> = {};
   switch (action.type) {
     case "acknowledge":
@@ -207,7 +224,7 @@ export function reduceHolderFixture(state: HolderFixture, action: HolderAction):
         throw new Error("Recovery is outside the current preview mandate");
       }
       change = { holder: "bob", activeMinimum: null, recoveredAmount: state.offerAmount,
-        settlementCount: 1, approvalStatus: state.approvalStatus === "waiting" ? "cancelled" : state.approvalStatus };
+        settlementCount: 1, settledMinimum: state.activeMinimum, approvalStatus: state.approvalStatus === "waiting" ? "cancelled" : state.approvalStatus };
       if (state.continuation) {
         const c = state.continuation;
         if (c.payment !== "committed" || c.eligibility !== "eligible" ||
@@ -307,7 +324,7 @@ export function reduceBookingFixture(state: HolderFixture, action: BookingAction
 }
 
 const STEP_VIEWS: Record<Step, string> = {
-  enter: "", bookings: "bookings", detail: "booking-detail", plans: "change-plans",
+  enter: "", bookings: "bookings", detail: "booking-detail", useBooking: "use-booking", plans: "change-plans",
   setup: "recovery-setup", approval: "approval", ledgerNotReady: "ledger-not-ready",
   ledgerWaiting: "ledger-waiting", ledgerRejected: "ledger-rejected", ledgerCancelled: "ledger-cancelled",
   ledgerApproved: "ledger-approved", recoveryActive: "recovery-active", offerBlocked: "offer-blocked",

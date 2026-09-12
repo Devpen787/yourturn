@@ -1,4 +1,4 @@
-import { continuationOf } from "./holder-fixture-state";
+import { continuationOf, fixtureScenarioMinute, fixtureScenarioTimeMs, assertFixtureMandateTime } from "./holder-fixture-state";
 import type { BookingAction, HolderFixture } from "./holder-fixture-state";
 import { readR3ProviderState } from "./r3-provider-state";
 import type { ProviderPublished } from "./r3-provider-state";
@@ -10,7 +10,7 @@ export const clockLabel = (minute: number) => `${String(Math.floor(minute / 60))
 // Existing reviewer fixture phases anchor one fixed Friday clock. Publishing a
 // different session time does not move that clock or rewrite the holder mandate.
 export function scenarioMinute(state: HolderFixture): number {
-  return { before: 17 * 60, open: 17 * 60 + 45, closed: 18 * 60 + 31 }[continuationOf(state).checkinWindow];
+  return fixtureScenarioMinute(state);
 }
 export function providerCheckinWindow(state: HolderFixture, p: ProviderPublished) {
   const now = scenarioMinute(state), start = minutes(p.startTime);
@@ -22,6 +22,7 @@ export function providerRecoveryAllowed(state: HolderFixture, p: ProviderPublish
 }
 export function assertPublishedProviderAction(state: HolderFixture, raw: string | null, action: BookingAction) {
   const p = readR3ProviderState(raw).published;
+  if (["check-eligibility", "begin-payment", "payment-result", "begin-handoff", "complete-handoff", "recover"].includes(action.type)) assertFixtureMandateTime(fixtureScenarioTimeMs(state));
   if (state.settlementCount === 0 && ["check-eligibility", "begin-payment", "payment-result", "begin-handoff", "complete-handoff", "recover"].includes(action.type) &&
       !providerRecoveryAllowed(state, p)) throw new Error("Published Studio A rules do not permit recovery at the current scenario time.");
   if (action.type === "check-in" && providerCheckinWindow(state, p) !== "open") throw new Error("The published session check-in window is not open.");

@@ -88,12 +88,13 @@ function ProductPreviewHeader({ mode }: { mode: ProductPreviewHeaderMode }) {
     "provider-bookings": { href: "/product-preview?view=xc3-provider-sale-success", label: "Bookings", ariaLabel: "Provider", identity: "Studio A" },
   };
   const nav = config[mode];
+  const previewHome = mode.startsWith("provider") ? "/product-preview?view=xc3-provider-today" : mode.startsWith("bob") ? "/product-preview?view=xc2-bob-list" : "/product-preview?view=bookings";
 
   return (
     <header className="border-b border-slate-200/90 bg-white/90 shadow-sm shadow-slate-900/[0.03] backdrop-blur-md">
       <div className="mx-auto flex min-h-[3.25rem] max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-2.5 sm:flex-nowrap sm:py-3">
         <Link
-          href="/"
+          href={previewHome}
           className="shrink-0 rounded-xl px-1 py-0.5 text-slate-800 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus focus-visible:ring-offset-2"
           aria-label="YourTurn home"
         >

@@ -8,6 +8,7 @@ on:
       - feature/ethonline-ux-r3-qual
       - feature/ethonline-ux-r3-runtime-qual
       - feature/ethonline-ux-r4-qual
+      - feature/ethonline-ux-r5-qual
     paths:
       - app/product-preview/**
       - components/SiteHeader.tsx
@@ -23,6 +24,7 @@ on:
       - scripts/product-workbench-r2-*.mjs
       - scripts/product-workbench-r3-*.mjs
       - scripts/product-workbench-r4-*.mjs
+      - scripts/product-workbench-r5-*.mjs
       - .github/workflows/product-workbench-visual.yml
   workflow_dispatch:
 
@@ -64,6 +66,9 @@ jobs:
         run: |
           node --experimental-strip-types scripts/product-workbench-r3-state-check.mjs
           node --experimental-strip-types scripts/product-workbench-r3-runtime-check.mjs
+
+      - name: Check R5 receipt and mandate-time invariants
+        run: node --experimental-strip-types scripts/product-workbench-r5-state-check.mjs
 
       - name: Production build
         run: npm run build
@@ -129,6 +134,12 @@ jobs:
           PRODUCT_WORKBENCH_BASE_URL: http://127.0.0.1:3000
         run: node scripts/product-workbench-r4-connected-check.mjs
 
+      - name: Check R5 receipt, home and Maya booking repairs
+        if: ${{ !cancelled() && steps.start.outcome == 'success' }}
+        env:
+          PRODUCT_WORKBENCH_BASE_URL: http://127.0.0.1:3000
+        run: node scripts/product-workbench-r5-browser-check.mjs
+
       - name: Upload desktop and mobile evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -142,4 +153,5 @@ jobs:
             artifacts/product-workbench/r2-bridges/
             artifacts/product-workbench/r3/
             artifacts/product-workbench/r4/
+            artifacts/product-workbench/r5/
           if-no-files-found: error

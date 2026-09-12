@@ -4,6 +4,7 @@ import { usePublishedSession } from "./ProviderRuntimeBoundary";
 
 import Link from "next/link";
 import { useHolderJourney } from "./useHolderJourney";
+import { providerCheckinWindow } from "./provider-runtime";
 
 type ProofStage = "ledger" | "agent" | "blocked" | "success";
 
@@ -150,7 +151,7 @@ function MandateFacts({ minimum }: { minimum: number }) {
       </div>
       <div>
         <dt className="text-xs uppercase tracking-[0.14em] text-slate-400">Expires</dt>
-        <dd className="mt-1 font-semibold text-slate-950">Tomorrow · 17:00</dd>
+        <dd className="mt-1 font-semibold text-slate-950">Tomorrow · 17:00 (Saturday, 12 September)</dd>
       </div>
       <div>
         <dt className="text-xs uppercase tracking-[0.14em] text-slate-400">Cancellation</dt>
@@ -229,7 +230,7 @@ function AgentCard({ minimum }: { minimum: number }) {
         </div>
         <div className="rounded-2xl bg-slate-50 p-4">
           <p className="text-xs uppercase tracking-[0.14em] text-slate-400">Expires</p>
-          <p className="mt-1 text-sm font-semibold text-slate-950">Tomorrow · 17:00</p>
+          <p className="mt-1 text-sm font-semibold text-slate-950">Tomorrow · 17:00 (Saturday, 12 September)</p>
         </div>
         <div className="rounded-2xl bg-slate-50 p-4">
           <p className="text-xs uppercase tracking-[0.14em] text-slate-400">May touch</p>
@@ -248,7 +249,7 @@ export default function ProductPreviewPage() {
   const published = usePublishedSession();
   const booking = { ...bookingDefaults, ...published, transferCutoff: published.transferCutoffLabel };
   const {
-    ready, error, retryState, step, setStep, confirmedScope, setConfirmedScope,
+    fixtureState, ready, error, retryState, step, setStep, confirmedScope, setConfirmedScope,
     notice, setNotice, activeMinimum, approvalMinimum, setApprovalMinimum,
     offerAmount, setOfferAmount, recovered, recoveredAmount, isReplacementApproval,
     recoveryIsActive, approvalPending, recoveryStopped, startApproval, cancelApproval,
@@ -275,10 +276,11 @@ export default function ProductPreviewPage() {
 
   return (
     <div className="pb-16">
+      <p className="mx-auto mb-4 max-w-4xl text-xs leading-5 text-slate-500">Prepared preview · Friday, 11 September 2026. “Tomorrow” means Saturday, 12 September; the approval deadline stays fixed when session rules change.</p>
       {(step === "bookings" || step === "detail") && !recovered && (recoveryIsActive || approvalPending || recoveryStopped) && (
         <div className="mx-auto mb-3 max-w-4xl rounded-2xl border border-sky-100 bg-sky-50 p-5">
           <p role="status" className="text-sm font-semibold text-slate-950">
-            {recoveryIsActive ? `Recovery active · ${activeMinimum} USDC minimum · Tomorrow · 17:00` : approvalPending ? "Approval pending" : "Recovery stopped"}
+            {recoveryIsActive ? `Recovery active · ${activeMinimum} USDC minimum · Tomorrow · 17:00 (Saturday, 12 September)` : approvalPending ? "Approval pending" : "Recovery stopped"}
           </p>
           {approvalPending ? <p className="mt-2 text-sm text-slate-700">Your approval is still pending. Leaving this screen does not approve or cancel it.</p> : null}
           <div className="mt-3 flex flex-wrap gap-3">
@@ -469,9 +471,7 @@ export default function ProductPreviewPage() {
                 <div className="mt-8 space-y-3">
                   <button
                     type="button"
-                    onClick={() =>
-                      setNotice("Your booking stays confirmed and ready for check-in.")
-                    }
+                    onClick={() => setStep("useBooking")}
                     className={`${secondaryButton} w-full`}
                   >
                     Use booking
@@ -495,6 +495,15 @@ export default function ProductPreviewPage() {
           ) : null}
         </StepFrame>
       )}
+
+      {step === "useBooking" && <StepFrame eyebrow="My bookings" title="Use your Friday Yoga booking." intro="Your booking is still held by Maya. Check the session details before you arrive.">
+        <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+          <BookingIdentity />
+          <dl className="mt-6 grid gap-5 sm:grid-cols-2"><div><dt className="text-sm text-slate-500">Booked for</dt><dd className="font-semibold">Maya Keller</dd></div><div><dt className="text-sm text-slate-500">Check-in</dt><dd className="font-semibold">{providerCheckinWindow(fixtureState, published) === "before" ? `Opens at ${published.checkinOpens}` : providerCheckinWindow(fixtureState, published) === "closed" ? "Check-in is closed" : "Check-in window is open"}</dd></div></dl>
+          <p className="mt-6 rounded-2xl bg-slate-50 p-5 text-sm leading-6 text-slate-700">Show this booking at Studio A when you arrive. Online check-in is unavailable for this prepared Maya booking. No attendance has been recorded.</p>
+          <button type="button" className={`${secondaryButton} mt-6`} onClick={() => setStep("detail")}>Back to booking</button>
+        </div>
+      </StepFrame>}
 
       {step === "plans" && (
         <StepFrame
@@ -605,7 +614,7 @@ export default function ProductPreviewPage() {
                 <div>
                   <p className="text-sm font-semibold text-slate-900">Expires</p>
                   <div className="mt-2 flex min-h-[52px] items-center rounded-xl border border-slate-200 bg-slate-50 px-4 text-base font-semibold text-slate-950">
-                    Tomorrow · 17:00
+                    Tomorrow · 17:00 (Saturday, 12 September)
                   </div>
                   <p className="mt-2 text-xs leading-5 text-slate-500">
                     After that, YourTurn must ask you again.
@@ -851,7 +860,7 @@ export default function ProductPreviewPage() {
               <div className="mt-6">
                 <MandateFacts minimum={activeMinimum} />
                 <div className="mt-5 rounded-2xl bg-emerald-50 p-4 text-sm leading-6 text-emerald-900 ring-1 ring-emerald-100">
-                  The replacement mandate was not signed. Your current {activeMinimum} USDC minimum, Tomorrow · 17:00 expiry, Friday-Yoga-only scope, and no-cancel rule remain exactly as before.
+                  The replacement mandate was not signed. Your current {activeMinimum} USDC minimum, Tomorrow · 17:00 (Saturday, 12 September) expiry, Friday-Yoga-only scope, and no-cancel rule remain exactly as before.
                 </div>
               </div>
             ) : (
