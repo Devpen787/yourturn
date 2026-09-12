@@ -86,6 +86,9 @@ try {
     await page.waitForURL((u) => u.searchParams.get("view") === "xc3-provider-session-published");
     await page.getByRole("button", { name: "Open booking activity", exact: true }).click();
     await visible(page, "Blocked under published rules");
+    await page.getByRole("button", { name: "View current recovery rules", exact: true }).click();
+    await visible(page, "Recovery blocked"); await visible(page, "Not allowed");
+    await shot(page, viewport.name, "provider-cutoff-rules-blocked");
     await goto(page, "xc-find"); // location only; existing shared state is not reset
     await page.getByRole("button", { name: /View Friday Yoga/ }).click();
     await visible(page, "No new action has been completed");
@@ -119,7 +122,7 @@ try {
 
     const allErrors = [...errors, ...preErrors, ...bobErrors, ...mayaErrors];
     assert.equal(allErrors.length, 0, `Console/page errors: ${allErrors.join(" | ")}`);
-    results.push({ viewport: viewport.name, status: "PASS", evidenceClass: "FIXTURE", screenshots: 15, consoleErrors: 0 });
+    results.push({ viewport: viewport.name, status: "PASS", evidenceClass: "FIXTURE", screenshots: 16, consoleErrors: 0 });
     console.log(`PASS R3 ${viewport.name}`);
   }
 } finally { await browser.close(); }
