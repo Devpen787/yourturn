@@ -6,6 +6,10 @@ on:
       - feature/finishline-execution
   workflow_dispatch:
 
+concurrency:
+  group: finishline-execution
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
