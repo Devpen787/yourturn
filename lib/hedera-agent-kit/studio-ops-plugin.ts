@@ -43,6 +43,7 @@ export type StudioOpsSources = {
   statusUrl?: string;
   fetchJson?: FetchJson;
   loadProviderPolicy?: (providerId: string, version?: string) => Promise<StudioOpsPolicy | null>;
+  loadConnectedHederaAccountId?: () => Promise<string | null>;
   nowMs?: () => number;
 };
 
@@ -62,7 +63,10 @@ function mirrorTransactionId(value: string): string {
 }
 
 function tokenRelationship(body: any, tokenId: string): any | null {
-  const matches = (body?.tokens ?? []).filter((item: any) => item?.token_id === tokenId);
+  if (!body || !Array.isArray(body.tokens)) {
+    throw new Error(`studio_ops_token_relationship_list_missing:${tokenId}`);
+  }
+  const matches = body.tokens.filter((item: any) => item?.token_id === tokenId);
   if (matches.length > 1) throw new Error(`studio_ops_ambiguous_token_relationship:${tokenId}`);
   return matches[0] ?? null;
 }
@@ -104,7 +108,7 @@ type HolderParams = z.infer<typeof holderParameters>;
 const readinessParameters = z
   .object({
     receiverAccountId: accountIdSchema,
-    connectedAccountId: accountIdSchema,
+    connectedAccountId: accountIdSchema.optional(),
     bookingTokenId: tokenIdSchema,
     settlementTokenId: tokenIdSchema,
   })
@@ -220,9 +224,14 @@ class StudioBookingHolderTool extends BaseTool<unknown, HolderParams> {
   async coreAction(params: HolderParams) {
     const url = `${this.mirrorBase}/tokens/${params.bookingTokenId}/nfts/${params.serial}`;
     const nft = await this.fetchJson(url);
-    if (!nft?.account_id) throw new Error("studio_booking_holder_missing");
-    if (nft?.token_id && nft.token_id !== params.bookingTokenId) {
+    if (!nft || !accountIdSchema.safeParse(nft.account_id).success) {
+      throw new Error("studio_booking_holder_missing");
+    }
+    if (nft.token_id !== params.bookingTokenId) {
       throw new Error("studio_booking_holder_token_mismatch");
+    }
+    if (Number(nft.serial_number) !== params.serial) {
+      throw new Error("studio_booking_holder_serial_mismatch");
     }
     if (params.expectedHolderAccountId && nft.account_id !== params.expectedHolderAccountId) {
       throw new Error("studio_booking_holder_mismatch");
@@ -252,19 +261,39 @@ class StudioReceiveReadinessTool extends BaseTool<unknown, ReadinessParams> {
   parameters: any = readinessParameters;
   outputParser = untypedQueryOutputParser;
 
-  constructor(private readonly mirrorBase: string, private readonly fetchJson: FetchJson) {
+  constructor(
+    private readonly mirrorBase: string,
+    private readonly fetchJson: FetchJson,
+    private readonly loadConnectedHederaAccountId?: StudioOpsSources["loadConnectedHederaAccountId"]
+  ) {
     super();
   }
 
   async normalizeParams(params: unknown): Promise<ReadinessParams> {
-    const parsed = readinessParameters.parse(params);
-    if (parsed.connectedAccountId !== parsed.receiverAccountId) {
-      throw new Error("studio_receive_account_switch_identity_mismatch");
-    }
-    return parsed;
+    return readinessParameters.parse(params);
   }
 
   async coreAction(params: ReadinessParams) {
+    if (!this.loadConnectedHederaAccountId) {
+      throw new Error("studio_receive_trusted_identity_source_unavailable");
+    }
+
+    let trustedConnectedAccountId: string | null = null;
+    try {
+      trustedConnectedAccountId = await this.loadConnectedHederaAccountId();
+    } catch {
+      throw new Error("studio_receive_trusted_identity_unavailable");
+    }
+    if (!accountIdSchema.safeParse(trustedConnectedAccountId).success) {
+      throw new Error("studio_receive_trusted_identity_missing_or_invalid");
+    }
+    if (trustedConnectedAccountId !== params.receiverAccountId) {
+      throw new Error("studio_receive_account_switch_identity_mismatch");
+    }
+    if (params.connectedAccountId && params.connectedAccountId !== trustedConnectedAccountId) {
+      throw new Error("studio_receive_client_identity_disagrees_with_trusted");
+    }
+
     const accountUrl = `${this.mirrorBase}/accounts/${params.receiverAccountId}`;
     const bookingRelationshipUrl = `${this.mirrorBase}/accounts/${params.receiverAccountId}/tokens?token.id=${params.bookingTokenId}`;
     const settlementRelationshipUrl = `${this.mirrorBase}/accounts/${params.receiverAccountId}/tokens?token.id=${params.settlementTokenId}`;
@@ -285,6 +314,7 @@ class StudioReceiveReadinessTool extends BaseTool<unknown, ReadinessParams> {
       return makeReadOnlyEnvelope(
         {
           receiverAccountId: params.receiverAccountId,
+          trustedConnectedAccountId,
           readyForPaidDelivery: false,
           blockers: ["mirror_read_failed"],
           error: error instanceof Error ? error.message : String(error),
@@ -298,7 +328,11 @@ class StudioReceiveReadinessTool extends BaseTool<unknown, ReadinessParams> {
     if (!account?.account || account.account !== params.receiverAccountId) {
       blockers.push("account_missing_or_ambiguous");
     }
-    if (account?.receiver_sig_required === true) blockers.push("receiver_signature_required");
+    if (account?.receiver_sig_required === true) {
+      blockers.push("receiver_signature_required");
+    } else if (account?.receiver_sig_required !== false) {
+      blockers.push("receiver_signature_state_missing_or_invalid");
+    }
 
     let bookingRelationship: any | null = null;
     let settlementRelationship: any | null = null;
@@ -312,8 +346,10 @@ class StudioReceiveReadinessTool extends BaseTool<unknown, ReadinessParams> {
     if (!bookingRelationship) {
       blockers.push("booking_token_not_associated");
     } else {
-      if (bookingRelationship.freeze_status !== "FROZEN") {
+      if (bookingRelationship.freeze_status === "UNFROZEN") {
         blockers.push("booking_not_frozen_at_rest");
+      } else if (bookingRelationship.freeze_status !== "FROZEN") {
+        blockers.push("booking_freeze_state_missing_or_invalid");
       }
       if (!kycOkay(bookingRelationship.kyc_status)) blockers.push("booking_kyc_not_granted");
     }
@@ -321,15 +357,24 @@ class StudioReceiveReadinessTool extends BaseTool<unknown, ReadinessParams> {
     if (!settlementRelationship) {
       blockers.push("settlement_token_not_associated");
     } else {
-      if (settlementRelationship.freeze_status === "FROZEN") blockers.push("settlement_token_frozen");
+      if (settlementRelationship.freeze_status === "FROZEN") {
+        blockers.push("settlement_token_frozen");
+      } else if (
+        settlementRelationship.freeze_status !== "UNFROZEN" &&
+        settlementRelationship.freeze_status !== "NOT_APPLICABLE"
+      ) {
+        blockers.push("settlement_freeze_state_missing_or_invalid");
+      }
       if (!kycOkay(settlementRelationship.kyc_status)) blockers.push("settlement_kyc_not_granted");
     }
 
-    const pending = pendingBody?.airdrops ?? pendingBody?.pending_airdrops ?? [];
-    if (!Array.isArray(pending)) {
-      blockers.push("pending_airdrop_state_missing");
-    } else if (
-      pending.some((item: any) => {
+    let pending: any[] | null = null;
+    if (Array.isArray(pendingBody?.airdrops)) pending = pendingBody.airdrops;
+    else if (Array.isArray(pendingBody?.pending_airdrops)) pending = pendingBody.pending_airdrops;
+    else blockers.push("pending_airdrop_state_missing");
+
+    if (
+      pending?.some((item: any) => {
         const tokenId = item?.token_id ?? item?.token?.token_id;
         return tokenId === params.bookingTokenId || tokenId === params.settlementTokenId;
       })
@@ -341,6 +386,8 @@ class StudioReceiveReadinessTool extends BaseTool<unknown, ReadinessParams> {
     return makeReadOnlyEnvelope(
       {
         receiverAccountId: params.receiverAccountId,
+        trustedConnectedAccountId,
+        clientConnectedAccountId: params.connectedAccountId ?? null,
         bookingTokenId: params.bookingTokenId,
         settlementTokenId: params.settlementTokenId,
         receiverSigRequired: account?.receiver_sig_required ?? null,
@@ -401,7 +448,7 @@ class StudioResaleReceiptTool extends BaseTool<unknown, ReceiptParams> {
   method = YOURTURN_STUDIO_RESALE_RECEIPT_TOOL;
   name = "Verify exact resale settlement receipt";
   description =
-    "Read one successful Mirror transaction and verify the exact approved booking movement plus exact Bob-funded stable-value movement. This does not by itself prove HIP-551 outer-batch containment.";
+    "Read one successful root Mirror transaction and verify the exact approved booking movement plus exact Bob-funded stable-value movement. This does not by itself prove HIP-551 outer-batch containment.";
   parameters: any = receiptParameters;
   outputParser = untypedQueryOutputParser;
 
@@ -415,10 +462,18 @@ class StudioResaleReceiptTool extends BaseTool<unknown, ReceiptParams> {
 
   async coreAction(params: ReceiptParams) {
     const mirrorId = mirrorTransactionId(params.transactionId);
-    const url = `${this.mirrorBase}/transactions/${mirrorId}`;
+    const url = `${this.mirrorBase}/transactions/${mirrorId}?nonce=0&scheduled=false`;
     const body = await this.fetchJson(url);
-    const matches = (body?.transactions ?? []).filter((item: any) => item?.transaction_id === mirrorId);
-    if (matches.length !== 1) throw new Error("studio_receipt_exact_transaction_missing_or_ambiguous");
+    if (!body || !Array.isArray(body.transactions)) {
+      throw new Error("studio_receipt_transaction_list_missing");
+    }
+    const matches = body.transactions.filter(
+      (item: any) =>
+        item?.transaction_id === mirrorId &&
+        item?.nonce === 0 &&
+        item?.scheduled === false
+    );
+    if (matches.length !== 1) throw new Error("studio_receipt_exact_root_transaction_missing_or_ambiguous");
     const transaction = matches[0];
     if (transaction.result !== "SUCCESS") throw new Error(`studio_receipt_not_success:${transaction.result}`);
 
@@ -451,13 +506,15 @@ class StudioResaleReceiptTool extends BaseTool<unknown, ReceiptParams> {
       {
         transactionId: params.transactionId,
         mirror: url,
+        rootNonce: transaction.nonce,
+        scheduled: transaction.scheduled,
         bookingTransfer: nft,
         settlementTransfers: tokenTransfers,
         exactBookingAndSettlementVerified: true,
         hip551BatchContainmentVerified: false,
-        evidenceBoundary: "single successful settlement transaction only",
+        evidenceBoundary: "single successful root settlement transaction only",
       },
-      `Verified exact booking + stable-value settlement semantics for ${params.transactionId}; outer HIP-551 batch containment remains a separate evidence boundary.`
+      `Verified exact root booking + stable-value settlement semantics for ${params.transactionId}; outer HIP-551 batch containment remains a separate evidence boundary.`
     );
   }
 
@@ -489,37 +546,59 @@ class StudioNetworkHealthTool extends BaseTool<unknown, HealthParams> {
     const blockers: string[] = [];
     let status: any = null;
     let mirror: any = null;
+    let statusReadSucceeded = false;
+    let mirrorReadSucceeded = false;
+
     try {
       status = await this.fetchJson(this.statusUrl);
+      statusReadSucceeded = true;
     } catch {
       blockers.push("hedera_status_unavailable");
     }
+
     const indicator = status?.status?.indicator;
-    if (status && indicator !== "none") blockers.push(`hedera_status_${indicator ?? "unknown"}`);
+    if (statusReadSucceeded) {
+      if (typeof indicator !== "string") blockers.push("hedera_status_missing_or_invalid");
+      else if (indicator !== "none") blockers.push(`hedera_status_${indicator}`);
+    }
 
     const mirrorUrl = `${this.mirrorBase}/transactions?limit=1&order=desc`;
     try {
       mirror = await this.fetchJson(mirrorUrl);
+      mirrorReadSucceeded = true;
     } catch {
       blockers.push("mirror_unavailable");
     }
 
-    const latest = mirror?.transactions?.[0]?.consensus_timestamp;
+    let latest: unknown = null;
+    if (mirrorReadSucceeded) {
+      if (!mirror || !Array.isArray(mirror.transactions) || mirror.transactions.length < 1) {
+        blockers.push("mirror_freshness_missing");
+      } else {
+        latest = mirror.transactions[0]?.consensus_timestamp;
+      }
+    }
+
     const latestMs = parseConsensusTimestampMs(latest);
     let mirrorLagSeconds: number | null = null;
-    if (mirror && latestMs === null) {
-      blockers.push("mirror_freshness_missing");
-    } else if (latestMs !== null) {
-      mirrorLagSeconds = (this.nowMs() - latestMs) / 1000;
-      if (mirrorLagSeconds < -1) blockers.push("mirror_timestamp_in_future");
-      if (mirrorLagSeconds > params.maxMirrorLagSeconds) blockers.push("mirror_stale");
+    if (mirrorReadSucceeded && !blockers.includes("mirror_freshness_missing")) {
+      if (latestMs === null) {
+        blockers.push("mirror_freshness_missing");
+      } else {
+        mirrorLagSeconds = (this.nowMs() - latestMs) / 1000;
+        if (!Number.isFinite(mirrorLagSeconds)) blockers.push("mirror_freshness_invalid");
+        else {
+          if (mirrorLagSeconds < -1) blockers.push("mirror_timestamp_in_future");
+          if (mirrorLagSeconds > params.maxMirrorLagSeconds) blockers.push("mirror_stale");
+        }
+      }
     }
 
     const safe = blockers.length === 0;
     return makeReadOnlyEnvelope(
       {
-        hederaStatusIndicator: indicator ?? null,
-        mirrorLatestConsensusTimestamp: latest ?? null,
+        hederaStatusIndicator: typeof indicator === "string" ? indicator : null,
+        mirrorLatestConsensusTimestamp: typeof latest === "string" ? latest : null,
         mirrorLagSeconds,
         maxMirrorLagSeconds: params.maxMirrorLagSeconds,
         safeToStartWritePreparation: safe,
@@ -543,13 +622,13 @@ export function createYourTurnStudioOpsPlugin(sources: StudioOpsSources = {}): P
 
   return {
     name: "yourturn-studio-ops-readonly-plugin",
-    version: "2026.09.12",
+    version: "2026.09.13",
     description:
       "Read-only Studio-Tomorrow Hedera HAK tools for provider inventory, holder truth, paid-delivery readiness, authoritative policy, settlement receipts and network health.",
     tools: () => [
       new StudioInventoryTool(mirrorBase, fetchJson),
       new StudioBookingHolderTool(mirrorBase, fetchJson),
-      new StudioReceiveReadinessTool(mirrorBase, fetchJson),
+      new StudioReceiveReadinessTool(mirrorBase, fetchJson, sources.loadConnectedHederaAccountId),
       new StudioPolicyTool(sources.loadProviderPolicy),
       new StudioResaleReceiptTool(mirrorBase, fetchJson),
       new StudioNetworkHealthTool(mirrorBase, statusUrl, fetchJson, nowMs),
