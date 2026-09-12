@@ -110,9 +110,14 @@ await check("changed intent at effect boundary and unexpected Redis results fail
  await op.abandonUnstartedRecoveryOperation(store,record);
 });
 await check("actual lease expiry fences stale worker; takeover cannot repeat started effect",async()=>{
+ const revoked=await active();const unstarted=(await claim(revoked)).record;
+ const pointer=await readCurrentMandate(store,revoked.bookingTokenId,revoked.bookingSerial);await revoke(revoked,pointer.digest);
  const m=await active();const {record}=await claim(m);const started=await op.beginRecoveryOperationEffect(store,record,async()=>intentHash);
  await assert.rejects(op.takeOverRecoveryOperation(store,started));
  await new Promise(resolve=>setTimeout(resolve,Math.max(0,started.leaseUntil*1000-Date.now()+100)));
+ const ended=await op.abandonUnstartedRecoveryOperation(store,unstarted);assert.equal(ended.phase,'no-effect');
+ assert.equal(await store.get(`bookedrights:ledger:authority-version:${revoked.bookingSerial}`),String(unstarted.ownedVersion+1));
+ await assert.rejects(op.beginRecoveryOperationEffect(store,unstarted,async()=>intentHash));
  await assert.rejects(op.recordRecoveryOperationEnvelope(store,started,'stale-tx','bb'.repeat(32)));
  const resumed=await op.takeOverRecoveryOperation(store,started);assert.notEqual(resumed.fence,started.fence);
  await assert.rejects(op.beginRecoveryOperationEffect(store,resumed,async()=>intentHash));

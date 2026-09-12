@@ -61,7 +61,7 @@ local now = tonumber(redis.call("TIME")[1])
 if (redis.call("GET",KEYS[2]) or "") ~= ARGV[1] or (redis.call("GET",KEYS[1]) or "") ~= ARGV[2] then return -1 end
 if ARGV[3] == "takeover" then
   if tonumber(ARGV[4]) > now or tonumber(ARGV[5]) <= now or tonumber(ARGV[5]) > now + 30 then return -1 end
-else
+elseif ARGV[3] ~= "abandon" then
   if tonumber(ARGV[4]) <= now then return -1 end
 end
 if ARGV[6] == "authority" then
@@ -105,10 +105,10 @@ export async function claimRecoveryOperation(input: {
   if (result !== 1) throw new Error("Operation claim lost current authority or expired");
   return {claimed:true,record:r};
 }
-async function transition(store: Store, current: RecoveryOperation, next: RecoveryOperation, options: {takeover?: boolean; authority?: boolean; release?: boolean} = {}) {
+async function transition(store: Store, current: RecoveryOperation, next: RecoveryOperation, options: {takeover?: boolean; authority?: boolean; release?: boolean; abandon?: boolean} = {}) {
   parse(current);parse(next);
   if (next.revision !== current.revision+1) throw new Error("Invalid operation revision");
-  const result = await store.eval(TRANSITION,keys(current),[encode(current),current.ownedVersion,options.takeover?"takeover":"owned",current.leaseUntil,next.leaseUntil,
+  const result = await store.eval(TRANSITION,keys(current),[encode(current),current.ownedVersion,options.takeover?"takeover":options.abandon?"abandon":"owned",current.leaseUntil,next.leaseUntil,
     options.authority?"authority":"receipt-only",current.expiresAt,current.pointer,encode(next),options.release?current.ownedVersion+1:""]);
   if (result !== 1) throw new Error("Operation transition lost fence, lease or authority");
   return next;
@@ -145,5 +145,5 @@ export async function completeRecoveryOperation(store: Store, current: RecoveryO
  * started effects retain the owned odd version until evidenced reconciliation. */
 export async function abandonUnstartedRecoveryOperation(store: Store, current: RecoveryOperation) {
   if (current.phase !== "claimed") throw new Error("Started operation requires reconciliation");
-  return transition(store,current,{...current,revision:current.revision+1,phase:"no-effect"},{release:true});
+  return transition(store,current,{...current,revision:current.revision+1,phase:"no-effect"},{release:true,abandon:true});
 }
