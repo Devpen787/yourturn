@@ -76,7 +76,7 @@ function ProductPreviewHeader({ mode }: { mode: ProductPreviewHeaderMode }) {
   const config: Record<ProductPreviewHeaderMode, { href: string; label: string; ariaLabel: string; identity: string }> = {
     maya: { href: "/product-preview?view=bookings", label: "My bookings", ariaLabel: "Customer", identity: "Maya Keller" },
     bob: { href: "/product-preview?view=xc-find", label: "Find a spot", ariaLabel: "Customer", identity: "Bob" },
-    "bob-bookings": { href: "/product-preview?view=xc-bob-success", label: "My bookings", ariaLabel: "Customer", identity: "Bob" },
+    "bob-bookings": { href: "/product-preview?view=xc2-bob-list", label: "My bookings", ariaLabel: "Customer", identity: "Bob" },
     provider: { href: "/product-preview?view=xc-provider-policy", label: "Friday Yoga", ariaLabel: "Provider", identity: "Studio A" },
     "bob-activity": { href: "/product-preview?view=xc2-bob-history", label: "Activity", ariaLabel: "Customer", identity: "Bob" },
     "provider-today": { href: "/product-preview?view=xc2-provider-pending", label: "Today", ariaLabel: "Provider", identity: "Studio A" },
