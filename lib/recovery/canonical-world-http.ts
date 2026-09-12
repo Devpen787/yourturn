@@ -1,8 +1,13 @@
-import { confirmCanonicalWorldRecovery, type CanonicalWorldConsumerDependencies } from './canonical-world-consumer.ts';
+import { confirmCanonicalWorldRecovery, prepareCanonicalWorldRequest, type CanonicalWorldConsumerDependencies } from './canonical-world-consumer.ts';
 
-/** Qualified HTTP factory; deliberately not wired into the published route.
- * Authentication must return a freshly verified server owner, never body data.
- * Runtime must provision the actual public registry and effect adapter first. */
+/**
+ * Canonical HTTP boundary for the final World-backed recovery route.
+ *
+ * GET is a read-only challenge preparation step. It never touches the World
+ * nonce store or operation state. POST consumes a fresh signed AgentKit request
+ * and may cross into the guarded operation path. Both methods require the same
+ * authenticated server owner and exact configured resource.
+ */
 export function createCanonicalWorldConfirmHandler(input: {
   dependencies: CanonicalWorldConsumerDependencies;
   authenticateOwner(request: Request): Promise<{ ownerId: string } | null>;
@@ -16,12 +21,30 @@ export function createCanonicalWorldConfirmHandler(input: {
   const authenticateOwner = input.authenticateOwner;
   const reply = (body: unknown, status: number) => Response.json(body,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
   return async (request: Request) => {
-    if (request.method !== 'POST') return reply({error:'method_not_allowed'},405);
+    if (request.method !== 'GET' && request.method !== 'POST') return reply({error:'method_not_allowed'},405);
+    let requestUrl:URL;
+    try { requestUrl=new URL(request.url); } catch { return reply({error:'wrong_resource'},403); }
     const origin = request.headers.get('origin'), site = request.headers.get('sec-fetch-site');
-    if (request.url !== resource.href || origin !== null && origin !== resource.origin || site === 'cross-site') return reply({error:'wrong_resource'},403);
+    if (requestUrl.origin !== resource.origin || requestUrl.pathname !== resource.pathname || origin !== null && origin !== resource.origin || site === 'cross-site') return reply({error:'wrong_resource'},403);
     let owner;
     try { owner = await authenticateOwner(request); } catch { return reply({error:'authentication_unavailable'},503); }
     if (!owner) return reply({error:'authentication_required'},401);
+
+    if (request.method === 'GET') {
+      const keys=[...requestUrl.searchParams.keys()].sort();
+      if(keys.join(',')!=='mandateId,operationId' || requestUrl.searchParams.getAll('mandateId').length!==1 || requestUrl.searchParams.getAll('operationId').length!==1)
+        return reply({error:'invalid_challenge_request'},400);
+      const mandateId=requestUrl.searchParams.get('mandateId'),operationId=requestUrl.searchParams.get('operationId');
+      if(!mandateId||!operationId||mandateId.length>200||operationId.length>128) return reply({error:'invalid_challenge_request'},400);
+      try {
+        const challenge=await prepareCanonicalWorldRequest({ownerId:owner.ownerId,mandateId,operationId},dependencies);
+        return reply({operationId,intentHash:challenge.intentHash,statement:challenge.statement,resourceUri:resource.href,executionPermit:false},200);
+      } catch { return reply({error:'canonical_challenge_unavailable'},503); }
+    }
+
+    // Signed mutation/status requests never accept a query string. AgentKit is
+    // bound to the exact base resource, not a caller-controlled alternate URI.
+    if(requestUrl.href!==resource.href) return reply({error:'wrong_resource'},403);
     if (request.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== 'application/json') return reply({error:'json_required'},415);
     const announced = request.headers.get('content-length');
     if (announced !== null && (!/^\d+$/.test(announced) || Number(announced)>4096)) return reply({error:'body_too_large'},413);
