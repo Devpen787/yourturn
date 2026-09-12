@@ -1,4 +1,4 @@
-name: Single-begin composition qualification
+name: Finish-line software qualification
 on:
   push:
     branches:
@@ -18,6 +18,8 @@ jobs:
       - run: npm ci --legacy-peer-deps
       - name: Single-begin seam checks
         run: node --experimental-transform-types scripts/single-begin-composition-check.mjs
+      - name: Business eligibility source checks
+        run: node --experimental-transform-types scripts/current-business-eligibility-check.mjs
       - name: Existing prepare-retain model regression
         run: node --experimental-transform-types scripts/hedera-prepare-retain-check.mjs --model
       - run: npx tsc --noEmit --incremental false
