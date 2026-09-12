@@ -1,0 +1,50 @@
+name: Canonical World Ledger consumer
+on:
+  push:
+    branches: [feature/ethonline-canonical-world-consumer-qual]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  consumer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      redis:
+        image: redis:7.4.2
+        ports: [6379:6379]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --legacy-peer-deps
+      - name: World to operation HTTP and concurrency model
+        run: env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/canonical-world-consumer-check.mjs
+      - name: Actual disposable Redis claim and World nonce boundaries
+        run: env -i PATH="$PATH" NODE_OPTIONS=--no-warnings YT_SOURCE_SHA="${{ github.sha }}" node --experimental-transform-types scripts/canonical-world-consumer-check.mjs --redis
+      - name: Inherited World Ledger and projection contracts
+        run: |
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-strip-types scripts/world-agent-contract-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-strip-types scripts/world-verifier-foundation-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-strip-types scripts/ledger-recovery-mandate-runtime-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-strip-types scripts/ledger-current-mandate-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-strip-types scripts/ledger-operation-mandate-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-strip-types scripts/canonical-recovery-projection-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-strip-types scripts/ledger-owned-authority-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings YT_SOURCE_SHA="${{ github.sha }}" node --experimental-strip-types scripts/ledger-owned-authority-redis-check.mjs
+      - run: npm run build
+      - run: npx tsc --noEmit --incremental false
+      - run: npm run hedera:agent-check
+      - uses: actions/upload-artifact@v4
+        with:
+          name: canonical-world-consumer-${{ github.sha }}
+          path: canonical-world-consumer-evidence.json
+          if-no-files-found: error
+          retention-days: 30
