@@ -127,3 +127,11 @@ Append one block per meaningful run:
 - Evidence scope: SOURCE plus inherited LOCAL qualification only so far. Synthetic public test keys only. No hardware, app routes, enrollment credentials, World request or chain action executed.
 - Open: explicit revoke HTTP consumer, operation claim/resume, World mapping/consumer, independent exact-source Security review and actual device evidence remain separate. This is not full canonical lifecycle completion or an integration selection.
 - Exact next action: execute hosted disposable Redis races/replacement/revocation checks and Continuity; route exact source and logs to independent Security; repair findings before claim/resume work.
+
+### 2026-09-12 — independent current-mandate expiry repair
+- Branch: `feature/ethonline-ledger-current-qual`, successor to `d3a9bffed1ae7f74f6014e4b890828f09818c899`.
+- Mission/change: consume independent #16 expiry-at-commit finding. Redis now checks its own TIME before either write and stores signed authority with EXAT. An expired replacement leaves the prior pointer/authority unchanged.
+- Verification actually run: inherited runtime checks and TypeScript PASS locally with an empty inherited environment. Added real-Redis delayed-dispatch regression; hosted run pending for this successor.
+- Evidence: reviewer finding #16 5647312617; predecessor Redis run 34706243947 passed but did not cover this race.
+- Open/claim: source repair awaiting exact CI and independent retest; no device or sponsor-LIVE claim.
+- Next: run real-Redis check in CI and return exact successor to independent Security.

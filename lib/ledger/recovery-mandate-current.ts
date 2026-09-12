@@ -36,12 +36,15 @@ export async function readCurrentMandate(store: Pick<RecoveryMandateAuthorityBou
 // The current pointer intentionally has no TTL: expired authority must not
 // resurrect a formerly prepared predecessor. The signed active record expires.
 export const SWAP_CURRENT_MANDATE_SCRIPT = `
+local expiry = tonumber(ARGV[3])
+local now = tonumber(redis.call("TIME")[1])
+if not expiry or expiry <= now then return -4 end
 local version = tonumber(redis.call("GET", KEYS[1]) or "0")
 if not version or version ~= tonumber(ARGV[1]) or version % 2 ~= 0 then return -1 end
 local predecessor = redis.call("GET", KEYS[3]) or ""
 if predecessor ~= ARGV[4] then return -3 end
 if redis.call("EXISTS", KEYS[2]) ~= 0 then return 0 end
-redis.call("SET", KEYS[2], ARGV[2], "EX", ARGV[3])
+redis.call("SET", KEYS[2], ARGV[2], "EXAT", ARGV[3])
 redis.call("SET", KEYS[3], ARGV[5])
 return 1
 `;
@@ -49,16 +52,17 @@ export async function swapCurrentMandate(input: {
   store: RecoveryMandateAuthorityBoundaryStore;
   token: string; serial: bigint; expectedVersion: number;
   predecessor: CurrentMandate | null; next: CurrentMandate;
-  activeKey: string; activeValue: string; ttlSeconds: number;
+  activeKey: string; activeValue: string; expiresAtUnixSeconds: number;
 }) {
   parseCurrentMandate(input.next);
   if (input.predecessor !== null) parseCurrentMandate(input.predecessor);
   if (input.next.state !== "active" || input.next.generation !== (input.predecessor?.generation ?? 0) + 1 ||
       !Number.isSafeInteger(input.expectedVersion) || input.expectedVersion < 0 || input.expectedVersion > MAX_GENERATION || input.expectedVersion % 2 !== 0 ||
-      !Number.isSafeInteger(input.ttlSeconds) || input.ttlSeconds <= 0) throw new Error("Invalid current mandate swap");
+      !Number.isSafeInteger(input.expiresAtUnixSeconds) || input.expiresAtUnixSeconds <= 0) throw new Error("Invalid current mandate swap");
   const result = await input.store.eval(SWAP_CURRENT_MANDATE_SCRIPT,
     [recoveryMandateAuthorityVersionKey(input.serial), input.activeKey, currentMandateKey(input.token, input.serial)],
-    [input.expectedVersion, input.activeValue, input.ttlSeconds, serializeCurrentMandate(input.predecessor), serializeCurrentMandate(input.next)]);
+    [input.expectedVersion, input.activeValue, input.expiresAtUnixSeconds, serializeCurrentMandate(input.predecessor), serializeCurrentMandate(input.next)]);
+  if (result === -4) throw new Error("Recovery mandate expired before atomic activation");
   if (result === -1) throw new Error("Booking authority state changed after final validation; active mandate was not created");
   if (result === 0) throw new Error("Recovery mandate activation state already exists or could not be stored");
   if (result !== 1) throw new Error("Current mandate changed or atomic replacement failed");

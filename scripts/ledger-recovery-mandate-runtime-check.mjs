@@ -110,6 +110,7 @@ function createRedisFixture(options = {}) {
       }
       // Atomic current-pointer successor; same booking-version race injection.
       if (keys.length === 3 && args.length === 5) {
+        if (Number(args[2]) <= Number(NOW)) return -4;
         if (beforeConditionalAuthorityWrite) {
           const hook = beforeConditionalAuthorityWrite;
           beforeConditionalAuthorityWrite = null;
@@ -119,7 +120,7 @@ function createRedisFixture(options = {}) {
         if (current !== Number(args[0]) || current % 2 !== 0) return -1;
         if ((records.get(keys[2])?.value ?? "") !== args[3]) return -3;
         if (records.has(keys[1])) return 0;
-        records.set(keys[1], { value: String(args[1]), options: { nx: true, ex: Number(args[2]) } });
+        records.set(keys[1], { value: String(args[1]), options: { nx: true, exat: Number(args[2]) } });
         records.set(keys[2], { value: String(args[4]), options: {} });
         return 1;
       }

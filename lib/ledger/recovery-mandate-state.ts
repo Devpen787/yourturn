@@ -246,7 +246,7 @@ export async function activatePreparedRecoveryMandate(input: {
   // leave an active authority record based on the stale state.
   await input.revalidateMutableAuthority(verified.mandate);
 
-  const ttlSeconds = assertSafeTtl(mandate.expiresAt, input.nowUnixSeconds ?? BigInt(Math.floor(Date.now() / 1000)));
+  assertSafeTtl(mandate.expiresAt, input.nowUnixSeconds ?? BigInt(Math.floor(Date.now() / 1000)));
   const active: ActiveRecoveryMandateRecord = {
     state: "active",
     ownerId: input.ownerId,
@@ -270,7 +270,7 @@ export async function activatePreparedRecoveryMandate(input: {
     next: { schemaVersion: 1, generation: active.currentGeneration, state: "active", ownerId: input.ownerId, mandateId: mandate.mandateId, digest: verified.digest },
     activeKey: activeRecoveryMandateKey(mandate.mandateId),
     activeValue: JSON.stringify(active),
-    ttlSeconds,
+    expiresAtUnixSeconds: Number(mandate.expiresAt),
   });
 
   return { verified, active };

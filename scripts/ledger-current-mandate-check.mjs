@@ -73,6 +73,18 @@ await check("preparation and rejected signature preserve active 40",async()=>{
   assert.equal(await store.get(currentMandateKey(first.bookingTokenId,serial)),before);
   assert.equal((await load(first)).mandate.minimumRecoveryAtomicUnits,BigInt(40_000_000));
 });
+await check("replacement expiring during Redis dispatch preserves active 40",async()=>{
+  const expiring=make({minimumRecoveryAtomicUnits:BigInt(30_000_000),expiresAt:BigInt(Math.floor(Date.now()/1000))+BigInt(2)});
+  await prepare(expiring);
+  const before=await store.get(currentMandateKey(first.bookingTokenId,serial));
+  const delayed={...store,eval:async(script,keys,args)=>{
+    if(keys.length===3) await new Promise(resolve=>setTimeout(resolve,Math.max(0,Number(expiring.expiresAt)*1000-Date.now()+100)));
+    return store.eval(script,keys,args);
+  }};
+  await assert.rejects(activate(expiring,{authorityBoundaryStore:delayed}),/expired before atomic activation/);
+  assert.equal(await store.get(currentMandateKey(first.bookingTokenId,serial)),before);
+  assert.equal((await load(first)).mandate.minimumRecoveryAtomicUnits,BigInt(40_000_000));
+});
 await check("approved replacement makes only exact 30 current",async()=>{
   activeSecond=await activate(second); assert.equal((await load(second)).mandate.minimumRecoveryAtomicUnits,BigInt(30_000_000));
   await assert.rejects(load(first),/unique current/);assert.equal(activeSecond.active.currentGeneration,2);
@@ -103,6 +115,6 @@ await check("current tombstone is persistent; malformed pointers fail closed",as
   const m=make({bookingTokenId:"0.0.700003"});await store.set(currentMandateKey(m.bookingTokenId,serial),"{}");await assert.rejects(prepare(m),/Invalid current/);
 });
 await check("unexpected EVAL results never report activation success",async()=>{
-  for (const bad of [null,undefined,"1",[1],{},false]) await assert.rejects(swapCurrentMandate({store:{...store,eval:async()=>bad},token:"0.0.700004",serial,expectedVersion:0,predecessor:null,next:{schemaVersion:1,generation:1,state:"active",ownerId:owner,mandateId:"fake",digest:"0x"+"22".repeat(32)},activeKey:"unused",activeValue:"unused",ttlSeconds:60}));
+  for (const bad of [null,undefined,"1",[1],{},false]) await assert.rejects(swapCurrentMandate({store:{...store,eval:async()=>bad},token:"0.0.700004",serial,expectedVersion:0,predecessor:null,next:{schemaVersion:1,generation:1,state:"active",ownerId:owner,mandateId:"fake",digest:"0x"+"22".repeat(32)},activeKey:"unused",activeValue:"unused",expiresAtUnixSeconds:Number(now)+60}));
 });
 console.log(JSON.stringify({schemaVersion:1,evidenceClass:"CI_LOCAL_REAL_REDIS",redisVersion,checks:checks.length,evalCount,device:false,appRoute:false,chainTransaction:false}));
