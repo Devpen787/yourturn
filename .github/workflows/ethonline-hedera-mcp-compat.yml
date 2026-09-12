@@ -1,0 +1,171 @@
+name: ETHOnline Hedera MCP Compatibility Qualification
+
+on:
+  push:
+    branches:
+      - feature/ethonline-hedera-mcp-compat-qual
+    paths:
+      - .github/workflows/ethonline-hedera-mcp-compat.yml
+      - scripts/hedera-mcp-compatibility-probe.mjs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mcp-compatibility-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact qualification head
+        uses: actions/checkout@v4
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install exact qualified root and record baseline graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum package.json package-lock.json > mcp-root-before.sha256
+          npm ci --legacy-peer-deps
+          node <<'NODE' > mcp-root-graph-before.json
+          const fs = require('node:fs');
+          const read = (path) => JSON.parse(fs.readFileSync(path, 'utf8')).version;
+          console.log(JSON.stringify({
+            hak: read('node_modules/@hashgraph/hedera-agent-kit/package.json'),
+            hieroSdk: read('node_modules/@hiero-ledger/sdk/package.json'),
+            hashgraphSdk: read('node_modules/@hashgraph/sdk/package.json'),
+          }, null, 2));
+          NODE
+          npm view @hashgraph/hedera-agent-kit-mcp@1.1.0 version peerDependencies dependencies --json > mcp-package-metadata.json
+
+      - name: Attempt official MCP install without changing root manifests
+        id: install
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          npm install --no-save --package-lock=false @hashgraph/hedera-agent-kit-mcp@1.1.0 > mcp-install.log 2>&1
+          code=$?
+          set -e
+          echo "exit_code=${code}" >> "$GITHUB_OUTPUT"
+          sha256sum package.json package-lock.json > mcp-root-after.sha256
+          cmp mcp-root-before.sha256 mcp-root-after.sha256
+          node <<'NODE' > mcp-root-graph-after.json
+          const fs = require('node:fs');
+          const read = (path) => {
+            try { return JSON.parse(fs.readFileSync(path, 'utf8')).version; }
+            catch { return null; }
+          };
+          console.log(JSON.stringify({
+            mcp: read('node_modules/@hashgraph/hedera-agent-kit-mcp/package.json'),
+            hak: read('node_modules/@hashgraph/hedera-agent-kit/package.json'),
+            hieroSdk: read('node_modules/@hiero-ledger/sdk/package.json'),
+            hashgraphSdk: read('node_modules/@hashgraph/sdk/package.json'),
+          }, null, 2));
+          NODE
+
+      - name: Classify exact-root compatibility
+        id: classify
+        shell: bash
+        env:
+          MCP_INSTALL_EXIT: ${{ steps.install.outputs.exit_code }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const crypto = require('node:crypto');
+          const before = JSON.parse(fs.readFileSync('mcp-root-graph-before.json', 'utf8'));
+          const after = JSON.parse(fs.readFileSync('mcp-root-graph-after.json', 'utf8'));
+          const metadata = JSON.parse(fs.readFileSync('mcp-package-metadata.json', 'utf8'));
+          const exitCode = Number(process.env.MCP_INSTALL_EXIT);
+          const peer = metadata.peerDependencies?.['@hiero-ledger/sdk'] ?? null;
+          const rootFilesBefore = fs.readFileSync('mcp-root-before.sha256', 'utf8').trim();
+          const rootFilesAfter = fs.readFileSync('mcp-root-after.sha256', 'utf8').trim();
+          const manifestsUnchanged = rootFilesBefore === rootFilesAfter;
+          const existingGraphUnchanged = before.hak === after.hak && before.hieroSdk === after.hieroSdk && before.hashgraphSdk === after.hashgraphSdk;
+          const unsupportedExactRoot = peer === '^2.86.2' && before.hieroSdk === '2.81.0';
+          let classification;
+          let runtimeProbe;
+          if (!manifestsUnchanged) {
+            classification = 'INVALID_PROBE_ROOT_MANIFEST_CHANGED';
+            runtimeProbe = false;
+          } else if (unsupportedExactRoot) {
+            classification = 'INCOMPATIBLE_OFFICIAL_PEER_REQUIRES_HIERO_2_86_2';
+            runtimeProbe = false;
+          } else if (exitCode !== 0) {
+            classification = 'INCOMPATIBLE_EPHEMERAL_INSTALL_FAILED';
+            runtimeProbe = false;
+          } else if (!existingGraphUnchanged) {
+            classification = 'INCOMPATIBLE_EXISTING_GRAPH_DRIFT';
+            runtimeProbe = false;
+          } else {
+            classification = 'SUPPORTED_GRAPH_RUNTIME_PROBE_REQUIRED';
+            runtimeProbe = true;
+          }
+          const evidence = {
+            ok: classification !== 'INVALID_PROBE_ROOT_MANIFEST_CHANGED',
+            evidenceClass: 'CI/LOCAL',
+            classification,
+            requestedMcpVersion: '1.1.0',
+            officialMcpMetadata: metadata,
+            installCommand: 'npm install --no-save --package-lock=false @hashgraph/hedera-agent-kit-mcp@1.1.0',
+            installExitCode: exitCode,
+            rootManifestsUnchanged: manifestsUnchanged,
+            existingGraphUnchanged,
+            before,
+            after,
+            runtimeProbeExecuted: false,
+            runtimeProbeRequired: runtimeProbe,
+            signingKeyLoaded: false,
+            transactionSigned: false,
+            transactionSubmitted: false,
+            note: runtimeProbe
+              ? 'Official peer contract is compatible with the exact installed root; continue to constructor/tool-registration proof.'
+              : 'Stop before runtime activation: do not bypass the official peer contract or upgrade the qualified shared root in this qualification spike.',
+          };
+          fs.writeFileSync('mcp-compatibility-evidence.json', JSON.stringify(evidence, null, 2) + '\n');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `classification=${classification}\nruntime_probe=${runtimeProbe}\n`);
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Hedera MCP exact-root qualification\n\n- Classification: **${classification}**\n- Current HAK: \`${before.hak}\`\n- Current Hiero SDK: \`${before.hieroSdk}\`\n- Official MCP peer: \`${peer}\`\n- Ephemeral install exit: \`${exitCode}\`\n- package.json/package-lock.json unchanged: **${manifestsUnchanged}**\n- Existing HAK/Hiero graph unchanged: **${existingGraphUnchanged}**\n`);
+          if (classification === 'INVALID_PROBE_ROOT_MANIFEST_CHANGED') process.exit(1);
+          NODE
+
+      - name: Prove official MCP constructor and YourTurn tool registration
+        if: steps.classify.outputs.runtime_probe == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          env -u HEDERA_OPERATOR_ID -u HEDERA_OPERATOR_KEY NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/hedera-mcp-compatibility-probe.mjs | tee mcp-runtime-probe.json
+          node -e "const fs=require('node:fs');const e=JSON.parse(fs.readFileSync('mcp-compatibility-evidence.json','utf8'));e.runtimeProbeExecuted=true;e.runtimeProbe=JSON.parse(fs.readFileSync('mcp-runtime-probe.json','utf8'));e.classification='MCP_COMPATIBLE_ON_CURRENT_ROOT';fs.writeFileSync('mcp-compatibility-evidence.json',JSON.stringify(e,null,2)+'\\n')"
+
+      - name: Re-run qualified Hedera checks after compatible ephemeral install
+        if: steps.classify.outputs.runtime_probe == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build
+          npx tsc --noEmit --incremental false
+          npm run hedera:agent-check
+          npm run hedera:delegated-recovery-hak-check
+          npm run hedera:booking-policy-check
+
+      - name: Upload compatibility evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hedera-mcp-compatibility-${{ github.run_id }}
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            mcp-compatibility-evidence.json
+            mcp-package-metadata.json
+            mcp-root-before.sha256
+            mcp-root-after.sha256
+            mcp-root-graph-before.json
+            mcp-root-graph-after.json
+            mcp-install.log
+            mcp-runtime-probe.json
