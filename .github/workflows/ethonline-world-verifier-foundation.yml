@@ -1,0 +1,46 @@
+name: World verifier foundation qualification
+on:
+  push:
+    branches: [feature/ethonline-foundation-world-verifier-qual]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verifier-foundation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      redis:
+        image: redis:7.4.2
+        ports: [6379:6379]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --legacy-peer-deps
+      - name: Unchanged official World contract
+        run: node --experimental-strip-types scripts/world-agent-contract-check.mjs
+      - name: Exact source, lock graph and synthetic World compatibility
+        run: node --experimental-strip-types scripts/world-verifier-foundation-check.mjs
+      - name: Existing Ledger runtime authority
+        run: node --experimental-strip-types scripts/ledger-recovery-mandate-runtime-check.mjs
+      - name: Real Redis current Ledger authority
+        run: node --experimental-strip-types scripts/ledger-current-mandate-check.mjs
+      - name: Real Redis Ledger operation races
+        run: node --experimental-strip-types scripts/ledger-operation-mandate-check.mjs
+      - name: Canonical Ledger projection
+        run: node --experimental-strip-types scripts/canonical-recovery-projection-check.mjs
+      - run: npm run build
+      - run: npx tsc --noEmit
+      - name: Baseline Hedera Agent Kit public fixture
+        run: npm run hedera:agent-check
+        env:
+          HEDERA_GUEST_A_ID: '0.0.9001'
+          HEDERA_TREASURY_ID: '0.0.9002'
