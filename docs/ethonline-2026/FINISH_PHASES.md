@@ -6,8 +6,8 @@ Last updated: 12 September 2026. This is the execution task's working view; exac
 
 | Phase | Work | Status | Remaining completion condition |
 |---|---|---|---|
-| A | Finish Product R3 | **IN PROGRESS** | Repair published-provider runtime settings and truthful prepared-booking continuation; execute regressions; independent Product review. |
-| B | R4 connected and adversarial product journey | **PENDING — after A** | One scenario across Maya → Bob → Studio A, with retries, stale state and failures; independent review. |
+| A | Finish Product R3 | **COMPLETE — fixture scope** | Exact `6125cbb9` independently REVIEWABLE in #34 5647312535; sponsor integration remains separate. |
+| B | R4 connected and adversarial product journey | **IN PROGRESS** | One scenario across Maya → Bob → Studio A, with retries, stale state and failures; independent review. |
 | C | R5 final Product candidate | **PENDING — after B** | Full Product review, exact candidate evidence, then Devinson's approval of those bytes. |
 | D | Ledger authority and device evidence | **PARTIAL** | Software lifecycle replacement/revocation/claim-resume; fresh valid preparation; human device reject/cancel/approve; downstream evidence and independent review. |
 | E | World canonical signed route | **PARTIAL** | Replace legacy holder-authority consumer with guarded Ledger projection; credential-free negative tests and runbook; human signed-route execution. |
@@ -31,8 +31,8 @@ Last updated: 12 September 2026. This is the execution task's working view; exac
 
 ## Current execution
 
-1. **Active:** R3 repair on `feature/ethonline-ux-r3-runtime-qual`, based on reviewed-and-rejected `b9dec6f8`.
-2. **Independent prerequisite review complete:** Ledger lacks a unique-current mandate pointer, atomic replacement/revocation and operation-bound claim/resume. These are software work, not yet human-only blockers.
+1. **Active:** R4 one-seed connected qualification on `feature/ethonline-ux-r4-qual`, based on independently reviewed R3 `6125cbb9`.
+2. **Ledger software:** unique-current/replace/revoke implemented; independent expiry-race repair `024e0cc5` CLEARED at CI/LOCAL (#16 5647334017). Operation claim/resume remains open. Use the physical Ledger; emulator work was declined and is dropped.
 3. **Requirement clarified:** the business owner sets royalty; 10% is only recommended. No automatic choice of a zero-fee canonical asset, signing, minting or changed buyer payment is inferred.
 
 ## Human gates — prepared later, not requested prematurely

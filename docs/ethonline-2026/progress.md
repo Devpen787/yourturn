@@ -101,3 +101,11 @@ Append one block per meaningful run:
 - Failed/open: independent exact-source/original-evidence Product review pending; no R4/R5, sponsor integration or LIVE claim. Initial local Hedera check used incorrect fixture environment names and failed; rerun with exact CI HEDERA_GUEST_A_ID/HEDERA_TREASURY_ID passed.
 - Claim impact: R3 repair candidate only. Added requested FINISH_PHASES.md working checklist; phases remain partial/pending until evidence and independent gates close.
 - Exact next action: consume exact hosted artifact and independent #34 review; repair findings or advance R4 only after REVIEWABLE.
+
+### 2026-09-12 — R4 connected fixture execution
+- Branch/base: `feature/ethonline-ux-r4-qual` from independently REVIEWABLE R3 `6125cbb912a202f5bd6033cdbc43edfe403fc351` (#34 5647312535); claim #44 5647317086.
+- Changed: one-seed Maya→Bob→Studio A browser acceptance plus exact CI wiring; working phase list advances A complete/B active. No product runtime, dependency or Golden record changes.
+- Verification actually run: local production build PASS. Desktop1440×1000/mobile390×844 connected journeys PASS using actual approval/payment/handoff/attendance/fulfilment controls, duplicate actions, payment storage failure, stale tabs, invalid/published provider policy, interrupted reload/Back/Forward, unknown holder/service result, retry and final receipt. Original local PNGs retained under r4; local evidence is development at base SHA with uncommitted tests, not exact committed CI proof.
+- Environment: regular repo Playwright; Browser plugin unavailable. External/non-read requests blocked. One explicit unapproved Maya seed; clock/read/service-response patches only, recorded and validated with all business facts preserved. No destination reseeds, success URL entry or user actor switch.
+- Identity/limits: one Friday Yoga booking, payment and fulfilment attempt counters; no claim of a general runtime operation ID or real sponsor execution. Ledger/World/Hedera remain separate.
+- Next: exact hosted full inherited+R4 matrix and independent #34 original-evidence review; R5 waits for REVIEWABLE.

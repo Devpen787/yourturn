@@ -7,6 +7,7 @@ on:
       - feature/ethonline-ux-r2-qual
       - feature/ethonline-ux-r3-qual
       - feature/ethonline-ux-r3-runtime-qual
+      - feature/ethonline-ux-r4-qual
     paths:
       - app/product-preview/**
       - components/SiteHeader.tsx
@@ -21,6 +22,7 @@ on:
       - scripts/product-workbench-booking-*.mjs
       - scripts/product-workbench-r2-*.mjs
       - scripts/product-workbench-r3-*.mjs
+      - scripts/product-workbench-r4-*.mjs
       - .github/workflows/product-workbench-visual.yml
   workflow_dispatch:
 
@@ -121,6 +123,12 @@ jobs:
           PRODUCT_WORKBENCH_BASE_URL: http://127.0.0.1:3000
         run: node scripts/product-workbench-r3-browser-check.mjs
 
+      - name: Check R4 one-seed connected adversarial journey
+        if: ${{ !cancelled() && steps.start.outcome == 'success' }}
+        env:
+          PRODUCT_WORKBENCH_BASE_URL: http://127.0.0.1:3000
+        run: node scripts/product-workbench-r4-connected-check.mjs
+
       - name: Upload desktop and mobile evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -133,4 +141,5 @@ jobs:
             artifacts/product-workbench/booking-navigation/
             artifacts/product-workbench/r2-bridges/
             artifacts/product-workbench/r3/
+            artifacts/product-workbench/r4/
           if-no-files-found: error
