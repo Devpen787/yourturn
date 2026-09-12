@@ -149,3 +149,10 @@ Append one block per meaningful run:
 - Exact next action: commit/push dedicated qualification ref, inspect exact CI/artifact, then independent Security review before any consumption. See `HEDERA_EXTERNAL_SIGNING_VALIDATION.md`.
 
 - Hosted follow-up: first exact run `34711369822` reached actual Redis then failed on a missing `paymentCommitmentMemo` test-harness import. Fixed the import without changing runtime source or assertions. That failed run is retained; successor requires a fresh full hosted run. Exact prior Continuity `34711369758` passed.
+
+### 2026-09-12 — bounded canonical Hedera recovery-state resolver
+- Branch/base: `feature/ethonline-hedera-canonical-resolver-qual` from cleared signing `f78e2f2608fa081d448a4e82b592ceb903f1e72a`; claim #5 5648087720.
+- Change: actual published-provider-policy + public-enrollment + indexed-chain reads compose strict v2 payment state and full stable intent. Mandatory trusted current Ledger/payment/eligibility callbacks, no defaults. Reader now requires executor native key using its existing bounded fixed-origin account GET and two-pass check. Exact additive source manifest is in `HEDERA_CANONICAL_RESOLVER_CONTRACT.md`.
+- Verification actually run locally: 59 focused resolver checks, 58 inherited reader checks, 67 registry checks, 45 provider model checks, 87 semantic/75 royalty/43 payment authorization/60 signing checks, production build, standalone TypeScript and baseline Agent Kit PASS. Existing identical locked dependencies reused; hosted fresh locked install and actual Redis remain pending at commit. Dependency graph unchanged.
+- Limits: public mock GETs, model provider reads and public synthetic fixtures locally; hosted Redis is disposable. No real accounts selected, no credentials/device/signing/submission/funds. Mandatory production quote/payment/lifecycle and guarded Ledger callback wiring remains integration work; explicit point-in-time indexed observation is not atomic chain authority.
+- Next: exact-head hosted qualification and separate Security review before adoption; root's World/Ledger consumer stays independently scoped. No acceptance flag or sponsor-green claim.

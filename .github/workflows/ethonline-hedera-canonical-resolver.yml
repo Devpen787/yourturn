@@ -1,0 +1,51 @@
+name: Hedera canonical resolver qualification
+on:
+  push:
+    branches: [feature/ethonline-hedera-canonical-resolver-qual]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  canonical-resolver:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      redis:
+        image: redis:7.4.2
+        ports: ['16379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --legacy-peer-deps
+      - name: Current public sources and canonical resolver
+        run: |
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/hedera-current-chain-reader-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/hedera-canonical-resolver-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/public-enrollment-registry-check.mjs
+      - name: Actual Redis provider store
+        run: env -i PATH="$PATH" NODE_OPTIONS=--no-warnings YT_PROVIDER_POLICY_REDIS_TEST=loopback-disposable YT_PROVIDER_POLICY_REDIS_PORT=16379 node --experimental-transform-types scripts/published-provider-policy-check.mjs
+      - name: Existing semantic, royalty and signing boundaries
+        run: |
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/hedera-policy-usdc-recovery-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/hedera-recovery-royalty-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/hedera-royalty-authorization-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/hedera-external-signing-check.mjs
+      - name: Actual Redis payment and signing boundaries
+        run: |
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings YT_SOURCE_SHA="${{ github.sha }}" YT_TEST_REDIS_PORT=16379 node --experimental-transform-types scripts/hedera-payment-redis-runtime-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings YT_SOURCE_SHA="${{ github.sha }}" YT_TEST_REDIS_PORT=16379 node --experimental-transform-types scripts/hedera-signing-redis-check.mjs
+      - run: npm run build
+      - run: npx tsc --noEmit --incremental false
+      - name: Baseline Agent Kit fixture
+        run: npm run hedera:agent-check
+        env:
+          HEDERA_GUEST_A_ID: '0.0.9001'
+          HEDERA_TREASURY_ID: '0.0.9002'
