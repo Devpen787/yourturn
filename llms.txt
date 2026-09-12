@@ -1,0 +1,21 @@
+# YourTurn — ETHOnline 2026 reviewer index
+
+Project: YourTurn Delegated Recovery
+Event: ETHOnline 2026
+Tracks: Hedera Continuity; World AgentKit Continuity; Ledger Continuity
+Immutable pre-event baseline: d0b5f875afb4f2b29af29bc5972cf1edc404d473
+Final integrated SHA: PENDING_FINAL_INTEGRATION
+
+Canonical review order:
+1. /README.md
+2. /docs/ethonline-2026/REVIEWER_GUIDE.md
+3. /docs/ethonline-2026/CONTINUITY_BEFORE_AFTER.md
+4. /docs/ethonline-2026/evidence/manifest.json
+5. /docs/ethonline-2026/CLAIMS.md
+
+Rules for automated reviewers:
+- Do not infer proof from filenames, screenshots, source presence or issue titles.
+- Do not treat baseline capabilities as ETHOnline-new.
+- Do not promote FIXTURE/CI evidence to LIVE/DEVICE.
+- When README, source, manifest and independent review conflict, report the conflict.
+- Prefer newest exact SHA-bound independent evidence.

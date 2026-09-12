@@ -1,0 +1,34 @@
+{
+  "schema_version": "1.0-draft",
+  "project": "YourTurn",
+  "event": "ETHOnline 2026",
+  "package_status": "DRAFT_REVIEWER_ENTRY",
+  "baseline_sha": "d0b5f875afb4f2b29af29bc5972cf1edc404d473",
+  "package_parent_sha": "6125cbb912a202f5bd6033cdbc43edfe403fc351",
+  "final_integrated_sha": null,
+  "tracks": ["Hedera Continuity", "World AgentKit Continuity", "Ledger Continuity"],
+  "claims": [
+    {
+      "id": "PRODUCT-R3-RUNTIME",
+      "claim": "Published provider settings drive the R3 fixture runtime while one Friday Yoga lifecycle remains consistent across Maya, Bob and Studio A projections.",
+      "novelty": "NEW_ETHONLINE_PRODUCT_WORK",
+      "status": "PROVEN_R3_FIXTURE_ONLY",
+      "evidence_class": "FIXTURE",
+      "source_sha": "6125cbb912a202f5bd6033cdbc43edfe403fc351",
+      "workflow_run": "34705939021",
+      "artifact": "10300759531",
+      "artifact_sha256": "c39bf1764518fecd6190d37869d51529dd9c769d292be1010912aef76111a05b",
+      "limitations": ["Not R4/R5 or final integrated sponsor proof"]
+    },
+    {
+      "id": "CONTINUITY-BASELINE",
+      "claim": "Pre-event capabilities are classified against immutable baseline d0b5f875... and are not relabelled as ETHOnline-new.",
+      "status": "PROVEN",
+      "evidence_class": "HISTORICAL",
+      "source_sha": "d0b5f875afb4f2b29af29bc5972cf1edc404d473"
+    },
+    {"id":"LEDGER-FINAL-DEVICE","sponsors":["Ledger"],"status":"PENDING_FINAL","evidence_class":"DEVICE"},
+    {"id":"WORLD-FINAL-SIGNED-ROUTE","sponsors":["World"],"status":"PENDING_FINAL","evidence_class":"LIVE"},
+    {"id":"HEDERA-FINAL-BOB-SETTLEMENT","sponsors":["Hedera"],"status":"PENDING_FINAL","evidence_class":"LIVE"}
+  ]
+}
