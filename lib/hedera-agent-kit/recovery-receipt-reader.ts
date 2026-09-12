@@ -16,9 +16,22 @@ function stamp(v:unknown):bigint{requireReceipt(typeof v==='string'&&/^(0|[1-9][
 function array(v:unknown,min:number,max:number):unknown[]{requireReceipt(Array.isArray(v)&&v.length>=min&&v.length<=max,'INCOMPLETE_RECEIPT_TRANSFERS');return v;}
 function base64(v:unknown,expectedLength?:number):Buffer{requireReceipt(typeof v==='string'&&v.length>0&&v.length<=4096&&/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(v),'INVALID_RECEIPT_BASE64');const b=Buffer.from(v,'base64');requireReceipt(b.toString('base64')===v&&(expectedLength===undefined||b.length===expectedLength),'INVALID_RECEIPT_BASE64');return b;}
 function freeze<T>(v:T):T{if(v&&typeof v==='object'){for(const x of Object.values(v))freeze(x);Object.freeze(v);}return v;}
-// Preserve every JSON number token as its exact lexical string. Used financial
-// integers never pass through IEEE754 and exponent/fraction forms fail closed.
-function exactJson(text:string){return JSON.parse(text.replace(/"(?:\\.|[^"\\])*"|-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?/g,token=>token.startsWith('"')?token:JSON.stringify(token)));}
+// Parse JSON without IEEE754 conversion and reject duplicate object keys. The
+// platform JSON parser's last-value semantics would otherwise hide ambiguity.
+function exactJson(text:string):unknown{
+ let i=0;
+ const fail=(code='MALFORMED_RECEIPT_JSON'):never=>{throw new RecoveryReceiptReadDenied(code);};
+ const ws=()=>{while(i<text.length&&/[\u0009\u000a\u000d\u0020]/.test(text[i]))i++;};
+ const string=()=>{const start=i++;requireReceipt(text[start]==='"','MALFORMED_RECEIPT_JSON');let escaped=false;
+  while(i<text.length){const ch=text[i++];if(escaped){escaped=false;continue;}if(ch==='\\'){escaped=true;continue;}if(ch==='"'){try{return JSON.parse(text.slice(start,i)) as string;}catch{return fail();}}if(ch<' ')fail();}return fail();};
+ const value=():unknown=>{ws();const ch=text[i];
+  if(ch==='"')return string();
+  if(ch==='{'){i++;const out=Object.create(null) as Record<string,unknown>,keys=new Set<string>();ws();if(text[i]==='}'){i++;return out;}while(true){ws();if(text[i]!=='"')fail();const key=string();requireReceipt(!keys.has(key),'DUPLICATE_RECEIPT_FIELD');keys.add(key);ws();if(text[i++]!==':')fail();out[key]=value();ws();const next=text[i++];if(next==='}')return out;if(next!==',')fail();}}
+  if(ch==='['){i++;const out:unknown[]=[];ws();if(text[i]===']'){i++;return out;}while(true){out.push(value());ws();const next=text[i++];if(next===']')return out;if(next!==',')fail();}}
+  for(const literal of ['true','false','null'] as const)if(text.startsWith(literal,i)){i+=literal.length;return literal==='true'?true:literal==='false'?false:null;}
+  const number=/^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?/.exec(text.slice(i));if(number){i+=number[0].length;return number[0];}return fail();};
+ const parsed=value();ws();if(i!==text.length)fail();return parsed;
+}
 
 /** Expected commitment MUST come from immutable authenticated server records.
  * This reader verifies indexed settlement facts, never current spend authority.

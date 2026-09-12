@@ -6,7 +6,9 @@
 
 The bounded contract requires the exact successful `CRYPTOTRANSFER`, transaction body fields, memo commitment, one delegated NFT movement, the complete two-or-three-row USDC movement, and a fee-only HBAR ledger. Bob's debit is the buyer gross, Maya's credit is seller net, and the configured collector receives the committed royalty. The business owner selects the royalty policy; 10% is only a recommendation.
 
-The reader fails closed for pagination, duplicate transaction matches, redirects, alternate URLs, oversized or non-JSON bodies, integer precision loss, unsupported batch/high-volume/custom-fee terms, staking-reward netting, transfer ambiguity, receipt drift between reads, or a five-second observation window breach. It accepts completed receipts after proposal expiry because receipt reconciliation does not create new spending authority.
+The reader fails closed for pagination, duplicate transaction matches, duplicate JSON object keys, redirects, alternate URLs, oversized or non-JSON bodies, integer precision loss, unsupported batch/high-volume/custom-fee terms, staking-reward netting, transfer ambiguity, receipt drift between reads, or a five-second observation window breach. It accepts completed receipts after proposal expiry because receipt reconciliation does not create new spending authority.
+
+The HBAR check proves the signed fee payer's exact debit, the charged-fee cap, unique nonzero rows, positive counterparty credits and a balanced complete response ledger. It records those credit recipients but does not claim that their identities independently authenticate Hedera's internal network fee distribution.
 
 ## Evidence boundary
 
