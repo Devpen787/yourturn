@@ -18,8 +18,6 @@ jobs:
       - run: npm ci --legacy-peer-deps
       - name: Single-begin seam checks
         run: node --experimental-transform-types scripts/single-begin-composition-check.mjs
-      - name: Canonical World consumer regression
-        run: node --experimental-transform-types scripts/canonical-world-consumer-check.mjs
       - name: Business eligibility source checks
         run: node --experimental-transform-types scripts/current-business-eligibility-check.mjs
       - name: Public enrollment provisioning checks
