@@ -28,13 +28,14 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: Preserve frozen runtime bytes
+      - name: Preserve frozen runtime bytes except exact HAK compatibility line
         run: |
           git diff --exit-code 25bc842b2c92772e17350ac6dffc021d144cbe32 HEAD -- \
             app/api/agent/confirm \
             lib/recovery \
             lib/ledger \
             lib/hedera-agent-kit \
+            ':(exclude)lib/hedera-agent-kit/external-signing-validation.ts' \
             lib/policy \
             scripts/single-begin-composition-check.mjs \
             scripts/current-business-eligibility-check.mjs \
@@ -45,6 +46,22 @@ jobs:
             scripts/hedera-receipt-reader-check.mjs \
             scripts/final-canonical-route-check.mjs \
             scripts/hedera-prepare-retain-check.mjs
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess
+          base_sha = "25bc842b2c92772e17350ac6dffc021d144cbe32"
+          path = "lib/hedera-agent-kit/external-signing-validation.ts"
+          before = subprocess.check_output(["git", "show", f"{base_sha}:{path}"], text=True)
+          old = 'rawParams: params }, YOURTURN_DELEGATED_RECOVERY_SETTLE_USDC_TOOL);'
+          new = 'rawParams: params, toolType: "transaction" }, YOURTURN_DELEGATED_RECOVERY_SETTLE_USDC_TOOL);'
+          if before.count(old) != 1:
+              raise SystemExit("Frozen signing validator shape changed unexpectedly")
+          expected = before.replace(old, new)
+          actual = Path(path).read_text()
+          if actual != expected:
+              raise SystemExit("Signing validator differs from frozen checkpoint beyond exact toolType compatibility fix")
+          print("Exact HAK toolType compatibility successor verified")
+          PY
       - run: npm ci --legacy-peer-deps
       - name: Single-begin seam checks
         run: node --experimental-transform-types scripts/single-begin-composition-check.mjs
