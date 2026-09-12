@@ -33,6 +33,8 @@ import {
   validatePreparedEnvelope,
 } from "./ceremony.mjs";
 
+import { assertUnexpiredPrepared, assertUnusedEvidencePath, preserveFailedCeremony } from "./failure-evidence.mjs";
+
 const DEFAULT_DISCOVERY_TIMEOUT_MS = 30_000;
 const RECOVERY_MANDATE_DOMAIN_SALT = keccak256(
   toUtf8Bytes("yourturn:ethonline-2026:recovery-mandate:v1")
@@ -159,7 +161,13 @@ async function executeAction(action, { expectation, onEvent }) {
         resolve();
       },
       error(error) {
-        reject(error);
+        // Preserve observations even when the Observable errors instead of
+        // completing. Never attach raw SDK output or error text to evidence.
+        const failure = new Error("Ledger signing observable failed");
+        failure.ledgerObservedAction = {
+          events, outputObserved: Boolean(output), cancelRequested, observableFailed: true,
+        };
+        reject(failure);
       },
     });
   });
@@ -207,6 +215,8 @@ async function main() {
 
   const preparedRaw = JSON.parse(await fs.readFile(args.prepared, "utf8"));
   const prepared = validatePreparedEnvelope(preparedRaw);
+  assertUnexpiredPrepared(prepared);
+  await assertUnusedEvidencePath(args.out);
   if (
     String(prepared.typedData.domain.salt).toLowerCase() !==
     RECOVERY_MANDATE_DOMAIN_SALT.toLowerCase()
@@ -232,6 +242,8 @@ async function main() {
     .build();
   let sessionId = null;
   let activeAction = null;
+  let signing = null;
+  let signingStarted = false;
 
   const cleanup = async () => {
     try {
@@ -273,12 +285,15 @@ async function main() {
       console.log("Do not approve: this runner will invoke DMK cancel() when the typed-data prompt is observable.");
     }
 
+    // Discovery/address confirmation may have outlived the prepared mandate.
+    assertUnexpiredPrepared(prepared);
+    signingStarted = true;
     activeAction = signer.signTypedData(
       prepared.derivationPath,
       prepared.typedData,
       { skipOpenApp: false }
     );
-    const signing = await executeAction(activeAction, {
+    signing = await executeAction(activeAction, {
       expectation: args.expectation,
       onEvent: (event) => printEvent("typed-data", event),
     });
@@ -300,6 +315,7 @@ async function main() {
       }
     }
 
+    assertUnexpiredPrepared(prepared);
     const result = assertExpectedCeremonyResult({
       expectation: args.expectation,
       events: signing.events,
@@ -334,7 +350,7 @@ async function main() {
     };
 
     await fs.mkdir(path.dirname(args.out), { recursive: true });
-    await fs.writeFile(args.out, `${JSON.stringify(proof, null, 2)}\n`, "utf8");
+    await fs.writeFile(args.out, `${JSON.stringify(proof, null, 2)}\n`, {encoding:"utf8", flag:"wx", mode:0o600});
     console.log(`Proof written: ${args.out}`);
     console.log(`Result: ${result}`);
     if (result === "approved") {
@@ -342,6 +358,17 @@ async function main() {
     } else {
       console.log("No signature was persisted and no authority activation was attempted.");
     }
+  } catch (error) {
+    const observed = signingStarted ? signing ?? error?.ledgerObservedAction : null;
+    if (observed) {
+      try {
+        const file = await preserveFailedCeremony({out:args.out, expectation:args.expectation, mandateDigest, signing:observed});
+        console.error(`Unqualified, signature-free failure observations preserved: ${file}`);
+      } catch {
+        console.error("Failure observations could not be saved; prior evidence was not overwritten.");
+      }
+    }
+    throw error;
   } finally {
     process.removeListener("SIGINT", interrupt);
     await cleanup();

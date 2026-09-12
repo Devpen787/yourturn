@@ -34,7 +34,7 @@ No Clear Signing, Security Key/FIDO2, Key Ring, or Hedera transaction-signing cl
 | --- | --- | --- |
 | Identical server-controlled Recovery Mandate | `capture-prepared.mjs`, `ceremony.mjs`, `qualification.mjs` | one prepared JSON; one digest shared by reject/cancel/approve |
 | Current DMK Ethereum EIP-712 signing | `device-proof.mjs` | observable `signer.eth.steps.signTypedData` + `requiredUserInteraction` |
-| Device rejection is load-bearing | `device-proof.mjs`, `qualification.mjs`, `downstream-check.mjs` | `6982`, no signature, no device-proof activation; only later approved signature activates |
+| Device rejection is load-bearing | `device-proof.mjs`, `qualification.mjs`, `downstream-check.mjs` | contextual `6982` or `6985`, no signature, no device-proof activation; only later approved signature activates |
 | Host cancellation is observable | `device-proof.mjs`, `ceremony.mjs` | `cancelRequested=true` + DMK `Stopped`, no signature |
 | Approval is hardware-bound | `device-proof.mjs`, `qualification.mjs` | DMK `Completed`, signature verifies to server-enrolled address |
 | One-shot/no replay | existing Recovery Mandate Redis path + `downstream-check.mjs` | wrong signature rejected; approved signature accepted once; identical replay rejected |
@@ -106,14 +106,14 @@ In the Ledger-tool terminal:
 ```bash
 cd scripts/ledger-device-proof
 SERIAL=193
-rm -rf ../../output/ledger-qualification
 mkdir -p ../../output/ledger-qualification
+QUAL_DIR=$(mktemp -d ../../output/ledger-qualification/session.XXXXXX)
 npm run capture -- \
   --actor guestA \
   --serial "$SERIAL" \
   --minimum-atomic 40000000 \
   --expires-in 7200 \
-  --out ../../output/ledger-qualification/prepared.json
+  --out "$QUAL_DIR/prepared.json"
 ```
 
 Expected safe output includes:
@@ -136,11 +136,13 @@ Use the exact same prepared file for all three device actions:
 ```bash
 npm run qualify -- \
   --actor guestA \
-  --prepared ../../output/ledger-qualification/prepared.json \
-  --out-dir ../../output/ledger-qualification/session-1
+  --prepared "$QUAL_DIR/prepared.json" \
+  --out-dir "$QUAL_DIR/device"
 ```
 
-The runner fixes the order and file paths so three different mandates cannot be accidentally mixed.
+The runner fixes the order and file paths so three different mandates cannot be accidentally mixed. Keep `QUAL_DIR` in this terminal and preserve every earlier output directory. Never delete or overwrite prior failed or successful evidence to restart a ceremony. The prepared actor/serial above are examples: revalidate the actual intended holder, booking, mandate and server state before any continuation. If expired or state-drifted, stop and prepare a fresh mandate through the guarded route; do not edit the JSON.
+
+The proof command now rejects an expired prepared mandate before device discovery and again immediately before signing, and before accepting a successful ceremony result. Existing success or failure output paths are refused. If signing observations exist but validation fails, `<out>.failure.json` preserves only allowlisted state markers, mandate digest, output-presence and cancellation facts. It excludes signature/output bytes and free-form diagnostics and is explicitly **UNQUALIFIED**, not canonical device proof. It cannot retroactively recover any old missing events. Individual successful proof writes are exclusive and private to the local user (mode 0600). A failed evidence write never replaces existing bytes.
 
 #### Phase A — reject on device
 
@@ -150,12 +152,12 @@ Required evidence:
 
 ```text
 typed-data: pending | signer.eth.steps.signTypedData | interaction=...
-typed-data: error | ... | errorCode=6982
+typed-data: error | ... | errorCode=6985
 Result: rejected
 No signature was persisted and no authority activation was attempted.
 ```
 
-Any signature, `Completed`, `Stopped`, missing typed-data interaction, or error other than the supported user-rejection code fails the phase.
+Any signature, `Completed`, `Stopped`, missing typed-data interaction, or error other than contextual `EthAppCommandError` code `6982` or `6985` fails the phase.
 
 #### Phase B — host cancel
 

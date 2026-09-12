@@ -57,6 +57,7 @@ jobs:
         # pinned DMK/Signer/Node-HID stack in scripts/ledger-device-proof/.
         run: |
           node scripts/ledger-device-proof/ceremony-check.mjs
+          node scripts/ledger-device-proof/failure-evidence-check.mjs
           node scripts/ledger-device-proof/qualification-contract-check.mjs
           node scripts/ledger-device-proof/loopback-boundary-check.mjs
 

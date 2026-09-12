@@ -108,3 +108,13 @@ Append one block per meaningful run:
 - Failed/open: Security must independently retest SEC-LEDGER-001 and SEC-LEDGER-003. The active mandate is not yet load-bearing for the Hedera recovery execution path. A real DMK device approve plus reject/cancel run on the identical prepared payload is still mandatory, and reject-on-device has not been observed. Branch topology still requires supervisor review before integration.
 - Claim impact: the previous unsafe plan to translate Ledger authority into a reusable ApprovalGrant is removed from the Ledger design, and a narrow durable authority representation now exists and is CI-green. Ledger sponsor qualification remains RED until independent security acceptance, downstream recovery enforcement, and LIVE/DEVICE evidence.
 - Exact next action: independent Security retest of SEC-LEDGER-001/003 at `986dd0fb...`; if accepted, make this active mandate a required input to a new narrow delegated-recovery execution seam that preserves Hedera/provider policy and never falls back to ApprovalGrant, then prepare the physical DMK approve/reject step for the identical payload.
+
+### 2026-09-12 — preserve failed Ledger observations and prior evidence
+- Branch/base: `feature/ethonline-ledger-failure-capture-qual` from cleared checker `cf5186ece7c470d7f6385c9195bf775ae188be95`.
+- Mission: prevent the observed failure-summary evidence gap recurring on a later human-operated attempt.
+- Changed: write signature-free, non-qualifying allowlisted failure observations; capture Observable error states; refuse existing output paths; exclusive mode-0600 proof writes; expiry checks before discovery/signing/acceptance; runbook keeps prior output directories and documents contextual 6982/6985.
+- Verification actually run: locked local install, 10 focused failure-capture checks, inherited ceremony and qualification contracts, generic loopback transport denial (exercised), syntax/diff checks. No hardware or app credentials used; generic transport is not a Next/browser-origin result.
+- Evidence: exact-head Continuity workflow runs focused/inherited tests, build and pinned helper import smoke after publication. Hosted result and independent review belong in #16.
+- Failed/open: original session-2 states remain absent; no device qualification promotion. The new failure schema cannot qualify or activate a mandate. Full canonical Ledger lifecycle/World integration remains separate.
+- Claim impact: source/CI/local safety/evidence candidate only; no device/signer provenance or authority change.
+- Exact next action: consume exact hosted result and separate Security review before any human hardware continuation; preserve old evidence and revalidate current prepared/server state.
