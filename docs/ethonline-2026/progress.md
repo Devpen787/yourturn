@@ -135,3 +135,10 @@ Append one block per meaningful run:
 - Evidence: reviewer finding #16 5647312617; predecessor Redis run 34706243947 passed but did not cover this race.
 - Open/claim: source repair awaiting exact CI and independent retest; no device or sponsor-LIVE claim.
 - Next: run real-Redis check in CI and return exact successor to independent Security.
+
+### 2026-09-12 — bounded Ledger operation claim/resume
+- Branch/base: `feature/ethonline-ledger-operation-qual`, independently cleared `024e0cc57c7309533f3646cc9b4917ea00bf9b4c`; claim #16 5647350059.
+- Change: server-only injected-store operation primitive. Guarded canonical load + resolved intent -> atomic pointer/version/expiry claim -> owned odd version; one effect permit; immutable envelope/transaction references; receipt-only resume, lease takeover and evidenced completion. Unknown effects retain lock; never-started termination alone can release without receipt. No new route or World/ApprovalGrant authority.
+- Verification actually run: TypeScript locally PASS. Added disposable real Redis races, exact replay, policy/identity mismatch, revocation, immutable output/receipt, unknown lock retention, strict EVAL and actual lease-expiry fencing tests; hosted execution pending.
+- Limits: no production resolver/consumer, no raw envelope persistence or recovery of output lost after Hedera reservation. That case stays blocked and cannot regenerate bytes. No credentials/device/signing/transaction/funds.
+- Next: execute exact CI and independent Security attack; do not adopt or extend before review.
