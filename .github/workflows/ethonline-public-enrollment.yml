@@ -1,0 +1,27 @@
+name: ETHOnline Public Enrollment Registry Qualification
+on:
+  push:
+    branches: ['feature/ethonline-foundation-public-enrollment-qual']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  registry-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Locked install
+        run: npm ci --legacy-peer-deps
+      - name: Production build
+        run: env -i PATH="$PATH" npm run build
+      - name: TypeScript
+        run: env -i PATH="$PATH" node node_modules/typescript/bin/tsc --noEmit --incremental false
+      - name: Existing Agent Kit check with public fixture accounts
+        run: env -i PATH="$PATH" HEDERA_GUEST_A_ID=0.0.9001 HEDERA_TREASURY_ID=0.0.9002 npm run hedera:agent-check
+      - name: Synthetic registry and actual provider-module consumption
+        run: env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/public-enrollment-registry-check.mjs
