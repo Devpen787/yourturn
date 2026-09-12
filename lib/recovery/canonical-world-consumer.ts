@@ -12,6 +12,8 @@ import type { WorldAgentNonceStore } from "../world-agentkit/nonce-store.ts";
 type Authority = Parameters<typeof loadActiveRecoveryMandate>[0];
 export type CanonicalRecoverySelection = { ownerId: string; mandateId: string; operationId: string };
 export type CanonicalWorldConsumerDependencies = {
+  /** Fixed trusted endpoint, also bound by the HTTP factory to request.url. */
+  resourceUri: string;
   /** Owner is supplied by verified server authentication, not request JSON. */
   authority(selection: CanonicalRecoverySelection): Authority;
   resolveAgentBinding(ownerId: string, internalAgentId: string): Promise<RecoveryAgentBinding | null>;
@@ -66,28 +68,36 @@ export function canonicalWorldStatement(operationId: string, intentHash: string)
 }
 /** Read-only challenge preparation. No nonce, operation or payment reservation. */
 export async function prepareCanonicalWorldRequest(selection: CanonicalRecoverySelection, d: CanonicalWorldConsumerDependencies) {
-  const started = Date.now(), s = select(selection), authority = authorityFor(s,d);
+  const started = Date.now(), resourceUri = d.resourceUri, s = select(selection), authority = authorityFor(s,d);
   const p = await resolveCanonicalRecoveryProjection({ authority,operationId:s.operationId,resolveAgentBinding:d.resolveAgentBinding });
+  requireValid(p.resourceUri === resourceUri, 'Canonical binding differs from configured endpoint');
   const intentHash = await intent(p,null,d);
   const final = await resolveCanonicalRecoveryProjection({ authority,operationId:s.operationId,resolveAgentBinding:d.resolveAgentBinding });
   requireValid(isDeepStrictEqual(p,final) && await intent(final,null,d) === intentHash && Date.now() >= started && Date.now()-started < 5000, 'Canonical facts changed during challenge');
   return Object.freeze({ projection:p,intentHash,statement:canonicalWorldStatement(s.operationId,intentHash),executionPermit:false as const });
 }
-function freshWorld(v: WorldAgentVerification, b: RecoveryAgentBinding) {
+type VerifiedWorldProof = { verification: WorldAgentVerification; issuedAtMs: number; signedExpiresAtMs: number; startedAtMs: number };
+function freshWorld(proof: VerifiedWorldProof, b: RecoveryAgentBinding) {
+  const v = proof.verification;
   const now = Date.now();
-  requireValid(now >= Date.parse(v.verifiedAt) && evaluateWorldAgentGate(v,b.resourceUri,b.worldRequester,now).status === 'allowed', 'World verification expired or changed');
+  requireValid(now >= proof.startedAtMs && now >= proof.issuedAtMs && now-proof.issuedAtMs < 60_000 && now < proof.signedExpiresAtMs && now >= Date.parse(v.verifiedAt) && evaluateWorldAgentGate(v,b.resourceUri,b.worldRequester,now).status === 'allowed', 'World verification expired or changed');
 }
 async function verifyHeader(header: string, b: RecoveryAgentBinding, operationId: string, intentHash: string, d: CanonicalWorldConsumerDependencies) {
+  const startedAtMs = Date.now();
   requireValid(typeof header === 'string' && Buffer.byteLength(header,'utf8') <= 16384, 'Invalid World header');
   let payload;
   try { payload = parseAgentkitHeader(header); } catch { throw new Error('Invalid World header'); }
   requireValid(payload.statement === canonicalWorldStatement(operationId,intentHash), 'World signature is not bound to exact operation intent');
+  const issuedAtMs = Date.parse(payload.issuedAt), signedExpiresAtMs = payload.expirationTime ? Date.parse(payload.expirationTime) : issuedAtMs+60_000;
+  requireValid(Number.isSafeInteger(issuedAtMs) && Number.isSafeInteger(signedExpiresAtMs), 'Invalid signed World timestamps');
   const r = await verifyWorldAgentRequest({ agentkitHeader:header,expectedResourceUri:b.resourceUri,expectedAgentAddress:b.worldRequester,
     nonceStore:d.nonceStore,agentBook:d.agentBook,maxAgeMs:60_000 });
   // Do not return raw verifier details or anonymous human identifiers.
   requireValid(r.status === 'allowed', 'World requester verification denied');
-  freshWorld(r.verification,b);
-  return r.verification;
+  const proof = Object.freeze({verification:Object.freeze({...r.verification}),issuedAtMs,signedExpiresAtMs,startedAtMs});
+  requireValid(Date.now()-startedAtMs < 5000, 'World verification window expired');
+  freshWorld(proof,b);
+  return proof;
 }
 const result = (r: RecoveryOperation, effectInvoked: boolean) => Object.freeze({ operationId:r.operationId,phase:r.phase,
   transactionId:r.transactionId,envelopeDigest:r.envelopeDigest,receiptDigest:r.receiptDigest,effectInvoked,executionPermit:false as const });
@@ -97,11 +107,12 @@ const result = (r: RecoveryOperation, effectInvoked: boolean) => Object.freeze({
 export async function confirmCanonicalWorldRecovery(input: CanonicalRecoverySelection & { intentHash: string; agentkitHeader: string }, d: CanonicalWorldConsumerDependencies) {
   requireValid(input && Object.keys(input).sort().join(',') === 'agentkitHeader,intentHash,mandateId,operationId,ownerId' && digest(input.intentHash), 'Invalid canonical request');
   const s = select({ownerId:input.ownerId,mandateId:input.mandateId,operationId:input.operationId});
-  const intentHash = input.intentHash, header = input.agentkitHeader, authority = authorityFor(s,d), store = authority.authorityBoundaryStore;
+  const resourceUri = d.resourceUri, intentHash = input.intentHash, header = input.agentkitHeader, authority = authorityFor(s,d), store = authority.authorityBoundaryStore;
   const existing = await readRecoveryOperation({store,operationId:s.operationId,ownerId:s.ownerId,intentHash});
   if (existing) {
     requireValid(existing.mandateId === s.mandateId, 'Operation mandate mismatch');
     const binding = validateBinding(await d.resolveAgentBinding(s.ownerId,existing.agentId),s.ownerId,existing.agentId);
+    requireValid(binding.resourceUri === resourceUri, 'Status binding differs from configured endpoint');
     const v = await verifyHeader(header,binding,s.operationId,intentHash,d);
     const latestBinding = validateBinding(await d.resolveAgentBinding(s.ownerId,existing.agentId),s.ownerId,existing.agentId);
     requireValid(isDeepStrictEqual(binding,latestBinding), 'Requester binding changed'); freshWorld(v,latestBinding);
@@ -110,7 +121,7 @@ export async function confirmCanonicalWorldRecovery(input: CanonicalRecoverySele
     return result(latest,false);
   }
   const prepared = await prepareCanonicalWorldRequest(s,d), p = prepared.projection;
-  requireValid(prepared.intentHash === intentHash, 'Current canonical intent differs');
+  requireValid(prepared.intentHash === intentHash && p.resourceUri === resourceUri, 'Current canonical intent or endpoint differs');
   const binding = projectionBinding(p), world = await verifyHeader(header,binding,s.operationId,intentHash,d);
   const claimed = await claimRecoveryOperation({ authority,operationId:s.operationId,intentHash,resolveIntent:async () => {
     freshWorld(world,binding);

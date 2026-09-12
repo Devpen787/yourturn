@@ -165,3 +165,9 @@ Append one block per meaningful run:
 - Verification: local synthetic official-signature/operation/HTTP matrix and TypeScript; hosted workflow adds actual Redis Lua/World SET-NX concurrency plus all inherited World/Ledger contracts, build and baseline. Initial local HTTP fixture hostname/port mismatch fixed against pinned AgentKit source, failure retained; no runtime criterion relaxed.
 - Open/claim limits: full economic resolver and effect-output retention are mandatory trusted dependencies, not implemented here; no real provisioning, credentials/device/economic action, LIVE evidence or final integration selection. Real receipt authority remains separate.
 - Next: exact CI/artifact and independent review before downstream resolver/effect composition.
+
+### Canonical consumer independent REVISE repaired
+
+- Initial a6bb2f74 review#16 5648171468 reproduced HTTP-configured endpoint versus signed binding mismatch and delayed World lookup renewing apparent issue age. Added fixed trusted resource binding on new/status/HTTP paths and preserved original signed issue/expiry at all World gates, with a five-second verification window. Verifier/core primitives unchanged.
+- Local31 signature/HTTP/concurrency/regression cases and TypeScript PASS. Initial hosted34714018435 failure retained: baseline Agent Kit fixture lacked public IDs; workflow now uses same explicit synthetic IDs as cleared foundation. No earlier failed run/artifact is relabeled successful.
+- Next: exact successor hosted checks and independent re-review; no downstream consumption before clearance.

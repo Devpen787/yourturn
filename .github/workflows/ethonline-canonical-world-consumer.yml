@@ -42,6 +42,9 @@ jobs:
       - run: npm run build
       - run: npx tsc --noEmit --incremental false
       - run: npm run hedera:agent-check
+        env:
+          HEDERA_GUEST_A_ID: '0.0.9001'
+          HEDERA_TREASURY_ID: '0.0.9002'
       - uses: actions/upload-artifact@v4
         with:
           name: canonical-world-consumer-${{ github.sha }}
