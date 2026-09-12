@@ -3,6 +3,7 @@ const mirrorTransactionId = "0.0.8504405-1789139309-785362819";
 export const ETHONLINE_HEDERA_RECOVERY_PROOF = Object.freeze({
   title: "YourTurn Delegated Recovery — Hedera reviewer cockpit",
   evidenceLevel: "LIVE/TESTNET + INDEPENDENT_SECURITY" as const,
+  additiveSurfaceEvidenceLevel: "CI/LOCAL — PENDING INDEPENDENT SECURITY" as const,
   network: "Hedera Testnet",
   sponsorHead: "411f703e164cac82b5498c1f25a2cf21af7bc4be",
   security: {
@@ -112,6 +113,7 @@ export const ETHONLINE_HEDERA_RECOVERY_PROOF = Object.freeze({
       "durable Redis replay was exercised in the same LIVE settlement run",
       "the final Ledger -> World -> Hedera adversarial E2E is complete",
       "the official HAK MCP runtime is already installed or live",
+      "the new reviewer/MCP surface is independently security-cleared before #16 reviews its exact head",
       "FeeEstimateQuery is active on the current qualified SDK line",
     ],
   },
@@ -134,7 +136,7 @@ export const ETHONLINE_HEDERA_RECOVERY_PROOF = Object.freeze({
     },
     {
       criterion: "Execution",
-      evidence: "green production/continuity checks, independent adversarial review, public proof receipt and reviewer cockpit",
+      evidence: "green production/continuity checks, independent adversarial review of the canonical settlement, public proof receipt and reviewer cockpit",
     },
     {
       criterion: "Integration",
@@ -142,7 +144,7 @@ export const ETHONLINE_HEDERA_RECOVERY_PROOF = Object.freeze({
     },
     {
       criterion: "Validation",
-      evidence: "independent Security attack plus exact public testnet transaction and final-state verification; no user traction is implied",
+      evidence: "independent Security attack plus exact public testnet transaction and final-state verification; no user traction or security inheritance for new reviewer/MCP code is implied",
     },
     {
       criterion: "Success",

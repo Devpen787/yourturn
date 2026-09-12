@@ -37,7 +37,8 @@ export default function EthOnlineRecoveryProofPage() {
 
       <header className="mt-4 rounded-[1.75rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge>{proof.evidenceLevel}</Badge>
+          <Badge>Canonical proof: {proof.evidenceLevel}</Badge>
+          <Badge tone="amber">New surface: {proof.additiveSurfaceEvidenceLevel}</Badge>
           <Badge tone="blue">Hedera Testnet</Badge>
           <Badge tone="amber">Continuity: ETHOnline-new</Badge>
         </div>
