@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { PrivateKey, Transaction } from "@hiero-ledger/sdk";
 import { preparePolicyAuthorizedUsdcRecovery } from "../lib/hedera-agent-kit/policy-authorized-usdc-recovery.ts";
-import { buildExactPaymentProposal, RedisPaymentOperationStore, PAYMENT_RESERVATION_LUA } from "../lib/hedera-agent-kit/exact-payment-authorization.ts";
+import { buildExactPaymentProposal, paymentCommitmentMemo, RedisPaymentOperationStore, PAYMENT_RESERVATION_LUA } from "../lib/hedera-agent-kit/exact-payment-authorization.ts";
 
 import { validateExternalRecoverySigning, RedisPaymentTombstoneReader, PAYMENT_TOMBSTONES_MATCH_LUA } from "../lib/hedera-agent-kit/external-signing-validation.ts";
 

@@ -147,3 +147,5 @@ Append one block per meaningful run:
 - Evidence/verification: 60 focused local synthetic checks and TypeScript PASS; exact hosted workflow adds locked install, inherited 87 semantics/75 royalty/43 authorization and actual Redis. Hosted execution must pass before any CI claim.
 - Open/claim limits: validation only; canonical resolver, operation effect fence consumer, actual signing, authenticated full receipt, integration selection and LIVE settlement remain open. Indexed state cannot lock consensus. No credentials/device/funds/production action.
 - Exact next action: commit/push dedicated qualification ref, inspect exact CI/artifact, then independent Security review before any consumption. See `HEDERA_EXTERNAL_SIGNING_VALIDATION.md`.
+
+- Hosted follow-up: first exact run `34711369822` reached actual Redis then failed on a missing `paymentCommitmentMemo` test-harness import. Fixed the import without changing runtime source or assertions. That failed run is retained; successor requires a fresh full hosted run. Exact prior Continuity `34711369758` passed.
