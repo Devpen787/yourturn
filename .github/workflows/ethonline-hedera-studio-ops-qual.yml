@@ -61,7 +61,7 @@ jobs:
           node --no-warnings --experimental-transform-types scripts/hedera-studio-ops-check.mjs | tee hedera-studio-ops-proof.json
 
       - name: Preserve Phase A controlled-transfer checks
-        run: node --no-warnings scripts/hedera-controlled-transfer-check.mjs
+        run: node --no-warnings --experimental-transform-types scripts/hedera-controlled-transfer-check.mjs
 
       - name: Preserve inherited Hedera HAK checks
         run: npm run hedera:delegated-recovery-hak-check
