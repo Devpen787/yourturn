@@ -1,0 +1,157 @@
+name: Product Workbench Visual Check
+
+on:
+  push:
+    branches:
+      - ux/yourturn-product-workbench
+      - feature/ethonline-ux-r2-qual
+      - feature/ethonline-ux-r3-qual
+      - feature/ethonline-ux-r3-runtime-qual
+      - feature/ethonline-ux-r4-qual
+      - feature/ethonline-ux-r5-qual
+    paths:
+      - app/product-preview/**
+      - components/SiteHeader.tsx
+      - components/home/**
+      - lib/product-workbench/**
+      - scripts/product-workbench-visual-check.mjs
+      - scripts/product-workbench-xc01-visual-check.mjs
+      - scripts/product-workbench-xc02-visual-check.mjs
+      - scripts/product-workbench-xc03-visual-check.mjs
+      - scripts/product-workbench-integrity-check.mjs
+      - scripts/product-workbench-holder-*.mjs
+      - scripts/product-workbench-booking-*.mjs
+      - scripts/product-workbench-r2-*.mjs
+      - scripts/product-workbench-r3-*.mjs
+      - scripts/product-workbench-r4-*.mjs
+      - scripts/product-workbench-r5-*.mjs
+      - .github/workflows/product-workbench-visual.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  product-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install app dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Install Playwright for this verification run
+        run: |
+          npm install --no-save --package-lock=false --legacy-peer-deps playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Check holder fixture invariants (#44 R1a)
+        run: node --experimental-strip-types scripts/product-workbench-holder-state-check.mjs
+
+      - name: Check shared booking fixture invariants (#44 R1b)
+        run: node --experimental-strip-types scripts/product-workbench-booking-state-check.mjs
+
+      - name: Check R2 lifecycle invariants
+        run: node --experimental-strip-types scripts/product-workbench-r2-state-check.mjs
+
+      - name: Check R3 provider draft/published invariants
+        run: |
+          node --experimental-strip-types scripts/product-workbench-r3-state-check.mjs
+          node --experimental-strip-types scripts/product-workbench-r3-runtime-check.mjs
+
+      - name: Check R5 receipt and mandate-time invariants
+        run: node --experimental-strip-types scripts/product-workbench-r5-state-check.mjs
+
+      - name: Production build
+        run: npm run build
+
+      - name: Explicit TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Start product candidate
+        id: start
+        run: |
+          npm run start -- -p 3000 > /tmp/yourturn-product-preview.log 2>&1 &
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:3000/product-preview > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/yourturn-product-preview.log
+          exit 1
+
+      - name: Run rendered Golden, XC-01, XC-02 and XC-03 journey checks
+        env:
+          PRODUCT_WORKBENCH_BASE_URL: http://127.0.0.1:3000
+        run: |
+          node scripts/product-workbench-visual-check.mjs
+          node scripts/product-workbench-xc01-visual-check.mjs
+          node scripts/product-workbench-xc02-visual-check.mjs
+          node scripts/product-workbench-xc03-visual-check.mjs
+
+      - name: Check holder navigation and storage failures (#44 R1a)
+        if: ${{ !cancelled() && steps.start.outcome == 'success' }}
+        env:
+          PRODUCT_WORKBENCH_BASE_URL: http://127.0.0.1:3000
+        run: node scripts/product-workbench-holder-navigation-check.mjs
+
+      - name: Check Bob/provider booking navigation and storage failures (#44 R1b)
+        if: ${{ !cancelled() && steps.start.outcome == 'success' }}
+        env:
+          PRODUCT_WORKBENCH_BASE_URL: http://127.0.0.1:3000
+        run: node scripts/product-workbench-booking-navigation-check.mjs
+
+      - name: Check navigation integrity and missing bridges (#44 regression acceptance)
+        if: ${{ !cancelled() && steps.start.outcome == 'success' }}
+        env:
+          PRODUCT_WORKBENCH_BASE_URL: http://127.0.0.1:3000
+        run: node scripts/product-workbench-integrity-check.mjs
+
+      - name: Check actual R2 bridges and fulfilment outcomes
+        if: ${{ !cancelled() && steps.start.outcome == 'success' }}
+        env:
+          PRODUCT_WORKBENCH_BASE_URL: http://127.0.0.1:3000
+        run: node scripts/product-workbench-r2-bridge-check.mjs
+
+      - name: Check R3 functional provider and Bob booking surfaces
+        if: ${{ !cancelled() && steps.start.outcome == 'success' }}
+        env:
+          PRODUCT_WORKBENCH_BASE_URL: http://127.0.0.1:3000
+        run: node scripts/product-workbench-r3-browser-check.mjs
+
+      - name: Check R4 one-seed connected adversarial journey
+        if: ${{ !cancelled() && steps.start.outcome == 'success' }}
+        env:
+          PRODUCT_WORKBENCH_BASE_URL: http://127.0.0.1:3000
+        run: node scripts/product-workbench-r4-connected-check.mjs
+
+      - name: Check R5 receipt, home and Maya booking repairs
+        if: ${{ !cancelled() && steps.start.outcome == 'success' }}
+        env:
+          PRODUCT_WORKBENCH_BASE_URL: http://127.0.0.1:3000
+        run: node scripts/product-workbench-r5-browser-check.mjs
+
+      - name: Upload desktop and mobile evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: product-workbench-rendered-evidence
+          path: |
+            artifacts/product-workbench/*.png
+            artifacts/product-workbench/integrity/
+            artifacts/product-workbench/holder-navigation/
+            artifacts/product-workbench/booking-navigation/
+            artifacts/product-workbench/r2-bridges/
+            artifacts/product-workbench/r3/
+            artifacts/product-workbench/r4/
+            artifacts/product-workbench/r5/
+          if-no-files-found: error
