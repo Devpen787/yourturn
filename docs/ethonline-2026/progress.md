@@ -70,3 +70,13 @@ Append one block per meaningful run:
 - Failed/open: no Hedera ETHOnline sponsor acceptance item is green yet; no serial-scoped allowance, revoke, transfer, USDC recovery, or testnet claim was executed in this increment.
 - Claim impact: foundation gate only. This is CI evidence, not LIVE/TESTNET Hedera evidence.
 - Exact next action: create `feature/ethonline-hedera` from the latest reviewed foundation head and implement PRD 01 serial-scoped NFT allowance/revocation with real Hedera testnet evidence.
+
+### 2026-09-12 — R2 B1–B4 implementation owner
+- Branch/SHA: `feature/ethonline-ux-r2-qual`, successor of independently REVIEWABLE R1d `9ebd7a3a41f39b72410281de9e73d637dc0a4b00`; see the containing commit for exact candidate identity.
+- Mission: #44 R2 only, authorized by #34 independent review 5644748597; exclusive claim 5644776955.
+- Changed: same-booking use/check-in, both Maya receipt entries/return, Studio A Today/attendance, deliberate fulfilment pending/error/retry/result and returns; continuation v2 migrates v1 in place on the first fulfilment action. Historical states remain readable.
+- Verification actually run at source preparation: GitHub source/contract/CI inspection only. New model/Chromium suites and explicit tsc gate are wired into the dedicated qualification workflow; results are pending.
+- Evidence: exact R2 execution results, original PNG artifact and source identity will be recorded under #44 and routed to #34, never inferred from R1 results.
+- Failed/open: R2 qualification not yet executed at this commit; R3/R4 and independent R2 review remain open.
+- Claim impact: FIXTURE UX only; no sponsor/backend, historical Golden, default/submission or LIVE claim.
+- Exact next action: run hosted qualification on this exact source, repair any new failures within R2, then hand exact source/evidence to #34 and stop.

@@ -31,6 +31,18 @@ export type Continuation = {
   checkinWindow: "before" | "open" | "closed";
 };
 
+/** R2 migrates the continuation in place on its first fulfilment action.
+ * Historical v1 fixtures remain readable without inventing a completed action.
+ */
+export type FulfilmentContinuation = Omit<Continuation, "version" | "fulfilment"> & {
+  version: 2;
+  fulfilment: "none" | "pending" | "error" | "fulfilled";
+  fulfilmentAttempts: number;
+  fulfilmentCount: 0 | 1;
+  fulfilmentResponse: "confirmed" | "fail-once" | "unknown";
+};
+export type BookingContinuation = Continuation | FulfilmentContinuation;
+
 export type HolderFixture = {
   schemaVersion: 1;
   evidenceClass: "FIXTURE";
@@ -45,7 +57,7 @@ export type HolderFixture = {
   recoveredAmount: 0 | Offer;
   settlementCount: 0 | 1;
   revoked: boolean;
-  continuation?: Continuation;
+  continuation?: BookingContinuation;
 };
 
 export const INITIAL_HOLDER_FIXTURE: Readonly<HolderFixture> = Object.freeze({
@@ -62,7 +74,7 @@ const INITIAL_CONTINUATION: Readonly<Continuation> = Object.freeze({
   checkinWindow: "before",
 });
 
-export function continuationOf(state: HolderFixture): Continuation {
+export function continuationOf(state: HolderFixture): BookingContinuation {
   if (state.continuation) return state.continuation;
   return state.holder === "bob"
     ? { ...INITIAL_CONTINUATION, eligibility: "eligible", payment: "committed", handoff: "complete" }
@@ -85,30 +97,41 @@ export type BookingAction = HolderAction |
   { type: "begin-handoff" } |
   { type: "complete-handoff" } |
   { type: "check-in" } |
+  { type: "begin-fulfilment" } |
+  { type: "resolve-fulfilment"; attempt: number } |
   { type: "reconcile" };
 
 const isMinimum = (n: unknown): n is Minimum => n === 30 || n === 40;
 const isOffer = (n: unknown): n is Offer => n === 32 || n === 45;
 const oneOf = (value: unknown, values: readonly unknown[]) => values.includes(value);
 
-function isContinuation(value: unknown, state: HolderFixture): value is Continuation {
+function isContinuation(value: unknown, state: HolderFixture): value is BookingContinuation {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
-  const c = value as Continuation;
-  if (Object.keys(c).length !== Object.keys(INITIAL_CONTINUATION).length ||
-      c.version !== 1 || !oneOf(c.eligibility, ["unchecked", "eligible", "ineligible"]) ||
+  const c = value as BookingContinuation;
+  const keys = [...Object.keys(INITIAL_CONTINUATION),
+    ...(c.version === 2 ? ["fulfilmentAttempts", "fulfilmentCount", "fulfilmentResponse"] : [])];
+  if (Object.keys(c).length !== keys.length || Object.keys(c).some(key => !keys.includes(key)) ||
+      !oneOf(c.version, [1, 2]) || !oneOf(c.eligibility, ["unchecked", "eligible", "ineligible"]) ||
       !oneOf(c.availability, ["available", "taken"]) || !oneOf(c.payment, ["idle", "pending", "committed", "error"]) ||
       !Number.isSafeInteger(c.paymentAttempts) || c.paymentAttempts < 0 ||
       !oneOf(c.handoff, ["idle", "checking", "unknown", "complete"]) ||
       !oneOf(c.providerPolicy, ["allowed", "blocked"]) || !oneOf(c.holderRead, ["current", "stale"]) ||
       !oneOf(c.attendance, ["none", "checked-in", "error"]) || !oneOf(c.attendanceCount, [0, 1]) ||
-      !oneOf(c.fulfilment, ["none", "fulfilled"]) || !oneOf(c.reconciliation, ["pending", "issue", "complete"]) ||
+      !oneOf(c.fulfilment, c.version === 2 ? ["none", "pending", "error", "fulfilled"] : ["none", "fulfilled"]) || !oneOf(c.reconciliation, ["pending", "issue", "complete"]) ||
       !oneOf(c.checkinWindow, ["before", "open", "closed"])) return false;
   if ((c.attendance === "checked-in") !== (c.attendanceCount === 1)) return false;
   if (c.payment === "pending" && (c.paymentAttempts < 1 || c.eligibility !== "eligible")) return false;
   if ((c.handoff === "checking" || c.handoff === "unknown") && c.payment !== "committed") return false;
   if (state.holder === "bob" && (c.payment !== "committed" || c.handoff !== "complete")) return false;
   if (state.holder === "maya" && (c.handoff === "complete" || c.attendanceCount !== 0 || c.fulfilment !== "none")) return false;
-  if (c.fulfilment === "fulfilled" && c.attendanceCount !== 1) return false;
+  if (c.fulfilment !== "none" && c.attendanceCount !== 1) return false;
+  if (c.version === 2) {
+    if (!Number.isSafeInteger(c.fulfilmentAttempts) || c.fulfilmentAttempts < 0 ||
+        !oneOf(c.fulfilmentCount, [0, 1]) ||
+        !oneOf(c.fulfilmentResponse, ["confirmed", "fail-once", "unknown"])) return false;
+    if ((c.fulfilment === "fulfilled") !== (c.fulfilmentCount === 1)) return false;
+    if ((c.fulfilment === "none") !== (c.fulfilmentAttempts === 0)) return false;
+  }
   if (c.reconciliation === "complete" && (state.settlementCount !== 1 || c.fulfilment !== "fulfilled")) return false;
   return true;
 }
@@ -209,12 +232,19 @@ export function reduceHolderFixture(state: HolderFixture, action: HolderAction):
   return next;
 }
 
-function updateContinuation(state: HolderFixture, change: Partial<Continuation>): HolderFixture {
+function updateContinuation(state: HolderFixture, change: Partial<BookingContinuation>): HolderFixture {
   const c = continuationOf(state);
-  if (Object.entries(change).every(([key, value]) => c[key as keyof Continuation] === value)) return state;
+  if (Object.entries(change).every(([key, value]) => c[key as keyof BookingContinuation] === value)) return state;
   const next = { ...state, continuation: { ...c, ...change }, revision: state.revision + 1 };
   if (!isHolderFixture(next)) throw new Error("Invalid booking continuation");
   return next;
+}
+
+export function fulfilmentOf(state: HolderFixture): FulfilmentContinuation {
+  const c = continuationOf(state);
+  if (c.version === 2) return c;
+  return { ...c, version: 2, fulfilmentAttempts: c.fulfilment === "fulfilled" ? 1 : 0,
+    fulfilmentCount: c.fulfilment === "fulfilled" ? 1 : 0, fulfilmentResponse: "confirmed" };
 }
 
 export function reduceBookingFixture(state: HolderFixture, action: BookingAction): HolderFixture {
@@ -248,6 +278,24 @@ export function reduceBookingFixture(state: HolderFixture, action: BookingAction
       }
       if (c.attendanceCount === 1) return state;
       return updateContinuation(state, { attendance: "checked-in", attendanceCount: 1 });
+    case "begin-fulfilment": {
+      if (c.fulfilment === "fulfilled" || c.fulfilment === "pending") return state;
+      if (state.holder !== "bob" || state.settlementCount !== 1 || c.handoff !== "complete" ||
+          c.holderRead !== "current" || c.attendanceCount !== 1) {
+        throw new Error("Confirm the current holder and attendance before recording service fulfilment");
+      }
+      const f = fulfilmentOf(state);
+      return updateContinuation(state, { ...f, fulfilment: "pending", fulfilmentAttempts: f.fulfilmentAttempts + 1 });
+    }
+    case "resolve-fulfilment": {
+      const f = fulfilmentOf(state);
+      // Match the persisted attempt. Refresh/replay cannot resolve another attempt.
+      if (f.fulfilment !== "pending" || action.attempt !== f.fulfilmentAttempts) return state;
+      if (c.holderRead !== "current" || f.fulfilmentResponse === "unknown") return state;
+      const failed = f.fulfilmentResponse === "fail-once" && f.fulfilmentAttempts === 1;
+      return updateContinuation(state, { ...f, fulfilment: failed ? "error" : "fulfilled",
+        fulfilmentCount: failed ? 0 : 1 });
+    }
     case "reconcile":
       if (state.settlementCount !== 1 || c.holderRead !== "current" || c.attendanceCount !== 1 || c.fulfilment !== "fulfilled") {
         throw new Error("Fulfilment and recovery are not both confirmed");
@@ -335,6 +383,9 @@ export function resolveCompletionView(view: string | null, state: HolderFixture)
   if (view?.startsWith("xc2-provider")) {
     if (state.holder !== "bob") return "xc2-provider-unavailable";
     if (c.holderRead === "stale") return "xc2-provider-reconcile-issue";
+    if (c.fulfilment === "pending") return "xc2-provider-fulfilment-pending";
+    if (c.fulfilment === "error") return "xc2-provider-fulfilment-error";
+    if (view === "xc2-provider-attendance" && c.attendanceCount === 0) return view;
     if (view === "xc2-provider-history" && c.reconciliation === "complete") return view;
     if (view?.startsWith("xc2-provider-reconcile")) {
       if (c.reconciliation === "complete") return "xc2-provider-reconciled";

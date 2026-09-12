@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useHolderJourney } from "./useHolderJourney";
 
 type ProofStage = "ledger" | "agent" | "blocked" | "success";
@@ -379,6 +380,7 @@ export default function ProductPreviewPage() {
                   </div>
                   <StatusPill tone="green">Recovered {recoveredAmount || 45} USDC</StatusPill>
                 </div>
+                <Link href="/product-preview?view=xc2-maya-history" className={`${secondaryButton} mt-5`}>View recovery receipt</Link>
               </div>
               <aside className="rounded-[1.75rem] bg-slate-950 p-6 text-white">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
@@ -1192,6 +1194,7 @@ export default function ProductPreviewPage() {
           <button type="button" onClick={() => setStep("bookings")} className={`${primaryButton} mt-5`}>
             Back to my bookings
           </button>
+          <Link href="/product-preview?view=xc2-maya-history" className={`${secondaryButton} mt-5 ml-3`}>View recovery receipt</Link>
           <ProofDrawer stage="success" />
         </StepFrame>
       )}

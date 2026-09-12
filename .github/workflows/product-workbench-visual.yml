@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - ux/yourturn-product-workbench
+      - feature/ethonline-ux-r2-qual
     paths:
       - app/product-preview/**
       - components/SiteHeader.tsx
@@ -16,6 +17,7 @@ on:
       - scripts/product-workbench-integrity-check.mjs
       - scripts/product-workbench-holder-*.mjs
       - scripts/product-workbench-booking-*.mjs
+      - scripts/product-workbench-r2-*.mjs
       - .github/workflows/product-workbench-visual.yml
   workflow_dispatch:
 
@@ -50,8 +52,14 @@ jobs:
       - name: Check shared booking fixture invariants (#44 R1b)
         run: node --experimental-strip-types scripts/product-workbench-booking-state-check.mjs
 
+      - name: Check R2 lifecycle invariants
+        run: node --experimental-strip-types scripts/product-workbench-r2-state-check.mjs
+
       - name: Production build
         run: npm run build
+
+      - name: Explicit TypeScript check
+        run: npx tsc --noEmit
 
       - name: Start product candidate
         id: start
@@ -93,6 +101,12 @@ jobs:
           PRODUCT_WORKBENCH_BASE_URL: http://127.0.0.1:3000
         run: node scripts/product-workbench-integrity-check.mjs
 
+      - name: Check actual R2 bridges and fulfilment outcomes
+        if: ${{ !cancelled() && steps.start.outcome == 'success' }}
+        env:
+          PRODUCT_WORKBENCH_BASE_URL: http://127.0.0.1:3000
+        run: node scripts/product-workbench-r2-bridge-check.mjs
+
       - name: Upload desktop and mobile evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -103,4 +117,5 @@ jobs:
             artifacts/product-workbench/integrity/
             artifacts/product-workbench/holder-navigation/
             artifacts/product-workbench/booking-navigation/
+            artifacts/product-workbench/r2-bridges/
           if-no-files-found: error
