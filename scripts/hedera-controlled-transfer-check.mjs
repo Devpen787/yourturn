@@ -7,7 +7,9 @@ import {
   BatchTransaction,
   NftId,
   PublicKey,
+  TokenFreezeTransaction,
   TokenId,
+  TokenUnfreezeTransaction,
   Transaction,
   TransactionId,
   TransferTransaction,
@@ -144,6 +146,16 @@ function buildTransfer(overrides = {}) {
   return freezeInner(transaction, payer);
 }
 
+function buildFreezeOperation(type, accountId, payer) {
+  const bookingTokenId = TokenId.fromString(fixture.bookingTokenId);
+  const account = AccountId.fromString(accountId);
+  const transaction =
+    type === "freeze"
+      ? new TokenFreezeTransaction({ tokenId: bookingTokenId, accountId: account })
+      : new TokenUnfreezeTransaction({ tokenId: bookingTokenId, accountId: account });
+  return freezeInner(transaction, payer);
+}
+
 function replaceTransfer(goodInner, transfer) {
   const next = [...goodInner];
   next[2] = transfer;
@@ -210,6 +222,47 @@ for (const overrides of [
   deny(() => validateControlledBookingTransferBatch(replaceTransfer(goodInner, buildTransfer(overrides)), fixture));
 }
 
+// SEC-HEDERA-009 reproducer class: payer substitution must remain denied after
+// construct -> serialize -> decode, where Hiero 2.81 drops public inner tx IDs.
+const wrongTransferPayer = replaceTransfer(
+  goodInner,
+  buildTransfer({ payerAccountId: "0.0.7014" }),
+);
+deny(
+  () => decodeAndValidateControlledBookingTransferBatch(wrongTransferPayer.toBytes(), fixture),
+  "CONTROLLED_TRANSFER_ALLOWANCE_PAYER_MISMATCH",
+);
+
+const wrongUnfreezePayerInner = [...goodInner];
+wrongUnfreezePayerInner[0] = buildFreezeOperation(
+  "unfreeze",
+  fixture.sellerAccountId,
+  "0.0.7015",
+);
+deny(
+  () =>
+    decodeAndValidateControlledBookingTransferBatch(
+      wrapInner(wrongUnfreezePayerInner).toBytes(),
+      fixture,
+    ),
+  "CONTROLLED_UNFREEZE_PAYER_MISMATCH",
+);
+
+const wrongRefreezePayerInner = [...goodInner];
+wrongRefreezePayerInner[4] = buildFreezeOperation(
+  "freeze",
+  fixture.receiverAccountId,
+  "0.0.7015",
+);
+deny(
+  () =>
+    decodeAndValidateControlledBookingTransferBatch(
+      wrapInner(wrongRefreezePayerInner).toBytes(),
+      fixture,
+    ),
+  "CONTROLLED_FREEZE_PAYER_MISMATCH",
+);
+
 // Missing final receiver refreeze and an unfreeze-only escape are both denied.
 deny(() => validateControlledBookingTransferBatch(wrapInner(goodInner.slice(0, -1)), fixture));
 deny(() => validateControlledBookingTransferBatch(wrapInner(goodInner.slice(0, 2)), fixture));
@@ -267,7 +320,7 @@ for (const mutate of [
   deny(() => buildControlledBookingTransferBatch(changed));
 }
 
-assert.ok(negativeCases >= 40, `expected a broad fail-closed matrix, got ${negativeCases}`);
+assert.ok(negativeCases >= 43, `expected a broad fail-closed matrix, got ${negativeCases}`);
 
 const packageJson = readFileSync("package.json");
 const packageLock = readFileSync("package-lock.json");
@@ -281,6 +334,7 @@ const evidence = {
     batchifyInvoked: false,
     reason: "batchify signs with a client operator; qualification uses setBatchKey + freeze without any signer",
     decodedAtomicBatch: true,
+    serializedInnerPayerBinding: true,
   },
   selectedProductionAssumptions: {
     providerScopedCollection: true,
