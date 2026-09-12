@@ -165,8 +165,8 @@ const CANCEL_STEPS = [
 // BOOKED's immutable token schedule is defined in lib/hedera/token.ts as 1/10.
 // Hedera's CustomRoyaltyFeeAssessor uses integer fraction multiplication for
 // positive exchanged HBAR, so the assessed amount is floor(gross * 1 / 10).
-const BOOKED_ROYALTY_NUMERATOR = 1n;
-const BOOKED_ROYALTY_DENOMINATOR = 10n;
+const BOOKED_ROYALTY_NUMERATOR = BigInt(1);
+const BOOKED_ROYALTY_DENOMINATOR = BigInt(10);
 
 function parseValidatedPreview(previewId: string): ProtectedPayload {
   // Re-run the canonical preview verification here so this module cannot be
@@ -274,7 +274,7 @@ function sumHbarTransfers(
   accountId: string
 ): bigint | null {
   let found = false;
-  let total = 0n;
+  let total = BigInt(0);
   for (const transfer of transfers ?? []) {
     if (!transfer.account || !accountsEqual(transfer.account, accountId)) continue;
     const amount = mirrorAmount(transfer.amount);
@@ -372,7 +372,7 @@ function verifyRecoveryHbarEconomics(input: {
   // Mirror's charged_tx_fee is the exact network/service fee charged to the
   // transaction payer. Any non-principal negative HBAR leg would therefore be
   // an unrelated user-funded effect, not a network-fee distribution row.
-  let networkFeeCredits = 0n;
+  let networkFeeCredits = BigInt(0);
   for (const transfer of input.transfers) {
     if (!transfer.account) {
       return "Exact recovery transaction contains an HBAR row without an account";
@@ -388,7 +388,7 @@ function verifyRecoveryHbarEconomics(input: {
     ) {
       continue;
     }
-    if (amount < 0n) {
+    if (amount < BigInt(0)) {
       return "Exact recovery transaction contains an unrelated negative HBAR effect";
     }
     networkFeeCredits += amount;
@@ -465,7 +465,7 @@ async function verifyCancelTransferTransaction(input: {
       reason: "Exact recovery transaction does not prove the expected HBAR royalty assessment",
     };
   }
-  if (chargedTxFee === null || chargedTxFee < 0n || !payerAccountId) {
+  if (chargedTxFee === null || chargedTxFee < BigInt(0) || !payerAccountId) {
     return {
       status: "mismatch",
       reason: "Exact recovery transaction does not expose a valid charged transaction fee and payer",
