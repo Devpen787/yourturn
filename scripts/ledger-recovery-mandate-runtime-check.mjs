@@ -108,6 +108,21 @@ function createRedisFixture(options = {}) {
         records.set(keys[0], { value: String(next), options: {} });
         return next;
       }
+      // Atomic current-pointer successor; same booking-version race injection.
+      if (keys.length === 3 && args.length === 5) {
+        if (beforeConditionalAuthorityWrite) {
+          const hook = beforeConditionalAuthorityWrite;
+          beforeConditionalAuthorityWrite = null;
+          await hook();
+        }
+        const current = Number(records.get(keys[0])?.value ?? 0);
+        if (current !== Number(args[0]) || current % 2 !== 0) return -1;
+        if ((records.get(keys[2])?.value ?? "") !== args[3]) return -3;
+        if (records.has(keys[1])) return 0;
+        records.set(keys[1], { value: String(args[1]), options: { nx: true, ex: Number(args[2]) } });
+        records.set(keys[2], { value: String(args[4]), options: {} });
+        return 1;
+      }
       // STORE_ACTIVE_IF_VERSION_UNCHANGED_SCRIPT.
       if (keys.length === 2 && args.length === 3) {
         if (beforeConditionalAuthorityWrite) {
@@ -728,7 +743,8 @@ assert.match(activateRoute, /expectedHolderAccountId/);
 assert.match(activationStateSource, /await input\.revalidateMutableAuthority\(mandate\)/);
 assert.match(activationStateSource, /await input\.revalidateMutableAuthority\(verified\.mandate\)/);
 assert.match(activationStateSource, /readStableRecoveryMandateAuthorityVersion/);
-assert.match(activationStateSource, /storeActiveRecoveryMandateIfAuthorityVersionUnchanged/);
+assert.match(activationStateSource, /swapCurrentMandate/);
+assert.match(activationStateSource, /predecessor: prepared.expectedCurrentMandate/);
 assert.doesNotMatch(
   activationStateSource,
   /input\.store\.set\(\s*activeRecoveryMandateKey/,

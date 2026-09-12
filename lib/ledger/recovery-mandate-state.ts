@@ -1,3 +1,4 @@
+import { readCurrentMandate, parseCurrentMandate, serializeCurrentMandate, swapCurrentMandate, type CurrentMandate } from "./recovery-mandate-current.ts";
 import type {
   RecoveryMandate,
   RecoveryMandateAuthorizationExpectation,
@@ -10,7 +11,6 @@ import {
 } from "./recovery-mandate.ts";
 import {
   readStableRecoveryMandateAuthorityVersion,
-  storeActiveRecoveryMandateIfAuthorityVersionUnchanged,
   type RecoveryMandateAuthorityBoundaryStore,
 } from "./recovery-mandate-authority-boundary.ts";
 
@@ -40,6 +40,7 @@ export type PreparedRecoveryMandateRecord = {
   state: "prepared";
   ownerId: string;
   preparedAt: string;
+  expectedCurrentMandate: CurrentMandate | null;
   mandate: SerializedRecoveryMandate;
 };
 
@@ -51,6 +52,7 @@ export type ActiveRecoveryMandateRecord = {
   digest: string;
   recoveredSignerAddress: string;
   authorityStateVersion: number;
+  currentGeneration: number;
 };
 
 export type RecoveryMandateActivationRevalidator = (
@@ -147,6 +149,7 @@ export async function storePreparedRecoveryMandate(input: {
     state: "prepared",
     ownerId: input.ownerId,
     preparedAt: new Date(Number(nowUnixSeconds) * 1000).toISOString(),
+    expectedCurrentMandate: await readCurrentMandate(input.store, mandate.bookingTokenId, mandate.bookingSerial),
     mandate: serializeMandate(mandate),
   };
   const stored = await input.store.set(
@@ -178,6 +181,8 @@ export async function loadPreparedRecoveryMandate(input: {
   if (mandate.ownerId !== input.ownerId || mandate.mandateId !== input.mandateId) {
     throw new Error("Prepared recovery mandate record failed owner/id integrity check");
   }
+  if (!("expectedCurrentMandate" in record)) throw new Error("Prepared mandate lacks current-predecessor metadata; prepare a fresh mandate");
+  parseCurrentMandate(record.expectedCurrentMandate);
   return { record, mandate };
 }
 
@@ -196,7 +201,7 @@ export async function activatePreparedRecoveryMandate(input: {
 }> {
   const nowUnixSeconds =
     input.nowUnixSeconds ?? BigInt(Math.floor(Date.now() / 1000));
-  const { mandate } = await loadPreparedRecoveryMandate({
+  const { mandate, record: prepared } = await loadPreparedRecoveryMandate({
     store: input.store,
     mandateId: input.mandateId,
     ownerId: input.ownerId,
@@ -207,6 +212,9 @@ export async function activatePreparedRecoveryMandate(input: {
       "Recovery mandate activation requires live booking authority revalidation"
     );
   }
+
+  const current = await readCurrentMandate(input.store, mandate.bookingTokenId, mandate.bookingSerial);
+  if (current?.mandateId !== mandate.mandateId && serializeCurrentMandate(current) !== serializeCurrentMandate(prepared.expectedCurrentMandate)) throw new Error("Current mandate changed since preparation");
 
   // Do not burn a valid one-shot signature if the booking is already stale at
   // the start of activation. The caller must re-read holder/status/policy/listing
@@ -238,7 +246,7 @@ export async function activatePreparedRecoveryMandate(input: {
   // leave an active authority record based on the stale state.
   await input.revalidateMutableAuthority(verified.mandate);
 
-  const ttlSeconds = assertSafeTtl(mandate.expiresAt, nowUnixSeconds);
+  const ttlSeconds = assertSafeTtl(mandate.expiresAt, input.nowUnixSeconds ?? BigInt(Math.floor(Date.now() / 1000)));
   const active: ActiveRecoveryMandateRecord = {
     state: "active",
     ownerId: input.ownerId,
@@ -247,16 +255,19 @@ export async function activatePreparedRecoveryMandate(input: {
     digest: verified.digest,
     recoveredSignerAddress: verified.recoveredSignerAddress,
     authorityStateVersion,
+    currentGeneration: (prepared.expectedCurrentMandate?.generation ?? 0) + 1,
   };
 
   // This Lua-backed compare-and-set is the final SEC-LEDGER-005 boundary. It
   // checks the exact stable version observed around final validation and writes
   // active authority in the same Redis atomic operation. Any relevant mutation
   // that starts after validation changes the version before this SET NX can run.
-  await storeActiveRecoveryMandateIfAuthorityVersionUnchanged({
+  await swapCurrentMandate({
     store: input.authorityBoundaryStore,
-    bookingSerial: mandate.bookingSerial,
-    expectedStableVersion: authorityStateVersion,
+    token: mandate.bookingTokenId, serial: mandate.bookingSerial,
+    expectedVersion: authorityStateVersion,
+    predecessor: prepared.expectedCurrentMandate,
+    next: { schemaVersion: 1, generation: active.currentGeneration, state: "active", ownerId: input.ownerId, mandateId: mandate.mandateId, digest: verified.digest },
     activeKey: activeRecoveryMandateKey(mandate.mandateId),
     activeValue: JSON.stringify(active),
     ttlSeconds,
@@ -307,6 +318,12 @@ export async function loadActiveRecoveryMandate(input: {
     );
   }
 
+  const assertCurrent = async () => {
+    const current = await readCurrentMandate(input.store, mandate.bookingTokenId, mandate.bookingSerial);
+    if (!current || current.state !== "active" || current.ownerId !== input.ownerId || current.mandateId !== mandate.mandateId || current.digest !== record.digest || current.generation !== record.currentGeneration) throw new Error("Mandate is not the unique current authority");
+    if (mandate.minimumRecoveryAtomicUnits <= BIGINT_ZERO || mandate.expiresAt <= BigInt(Math.floor(Date.now() / 1000))) throw new Error("Current mandate is expired or has no positive minimum");
+  };
+  await assertCurrent();
   assertRecordedAuthorityStateVersion(record.authorityStateVersion);
 
   const authorityStateVersionBefore =
@@ -336,5 +353,6 @@ export async function loadActiveRecoveryMandate(input: {
     );
   }
 
+  await assertCurrent();
   return { record, mandate };
 }

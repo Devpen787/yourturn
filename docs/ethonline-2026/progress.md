@@ -118,3 +118,12 @@ Append one block per meaningful run:
 - Failed/open: original session-2 states remain absent; no device qualification promotion. The new failure schema cannot qualify or activate a mandate. Full canonical Ledger lifecycle/World integration remains separate.
 - Claim impact: source/CI/local safety/evidence candidate only; no device/signer provenance or authority change.
 - Exact next action: consume exact hosted result and separate Security review before any human hardware continuation; preserve old evidence and revalidate current prepared/server state.
+
+### 2026-09-12 — unique-current Ledger source prerequisite
+- Branch/base: `feature/ethonline-ledger-current-qual` from `f4508e1b596b2ec7961a278748a38e7b3d6860d2`.
+- Mission: prevent distinct mandate IDs from simultaneously authorizing the same token/serial; keep old authority until a valid replacement activates.
+- Changed: server preparation captures current predecessor; atomic booking-version/predecessor CAS stores active record plus persistent current pointer; guarded loading checks exact current ID/digest/generation and expiry before/after live validation; owner-bound exact revocation primitive retains a tombstone. Old prepared records without predecessor metadata require fresh preparation. EIP-712/checker/enrollment unchanged.
+- Verification actually run: local TypeScript PASS using existing identical dependencies; inherited Ledger runtime/replay/stale-version checks PASS with the fixture extended to model the successor CAS. New real Redis workflow/test supplied but not yet executed at commit time; hosted proof required.
+- Evidence scope: SOURCE plus inherited LOCAL qualification only so far. Synthetic public test keys only. No hardware, app routes, enrollment credentials, World request or chain action executed.
+- Open: explicit revoke HTTP consumer, operation claim/resume, World mapping/consumer, independent exact-source Security review and actual device evidence remain separate. This is not full canonical lifecycle completion or an integration selection.
+- Exact next action: execute hosted disposable Redis races/replacement/revocation checks and Continuity; route exact source and logs to independent Security; repair findings before claim/resume work.
