@@ -1,0 +1,55 @@
+name: Hedera indexed settlement receipt qualification
+on:
+  push:
+    branches: [feature/ethonline-hedera-receipt-reader-qual]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  receipt-reader:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      redis:
+        image: redis:7.4.2
+        ports: ['16379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --legacy-peer-deps
+      - name: Exact indexed receipt boundary
+        run: env -i PATH="$PATH" NODE_OPTIONS=--no-warnings YT_SOURCE_SHA="${{ github.sha }}" node --experimental-transform-types scripts/hedera-receipt-reader-check.mjs
+      - name: Inherited canonical resolver and payment boundaries
+        run: |
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/hedera-canonical-resolver-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/hedera-current-chain-reader-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/hedera-policy-usdc-recovery-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/hedera-recovery-royalty-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/hedera-royalty-authorization-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/hedera-external-signing-check.mjs
+      - name: Actual Redis inherited boundaries
+        run: |
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings YT_PROVIDER_POLICY_REDIS_TEST=loopback-disposable YT_PROVIDER_POLICY_REDIS_PORT=16379 node --experimental-transform-types scripts/published-provider-policy-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings YT_SOURCE_SHA="${{ github.sha }}" YT_TEST_REDIS_PORT=16379 node --experimental-transform-types scripts/hedera-payment-redis-runtime-check.mjs
+          env -i PATH="$PATH" NODE_OPTIONS=--no-warnings YT_SOURCE_SHA="${{ github.sha }}" YT_TEST_REDIS_PORT=16379 node --experimental-transform-types scripts/hedera-signing-redis-check.mjs
+      - run: npm run build
+      - run: npx tsc --noEmit --incremental false
+      - name: Baseline Agent Kit fixture
+        run: npm run hedera:agent-check
+        env:
+          HEDERA_GUEST_A_ID: '0.0.9001'
+          HEDERA_TREASURY_ID: '0.0.9002'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hedera-indexed-receipt-${{ github.sha }}
+          path: hedera-receipt-reader-evidence.json
+          if-no-files-found: error
+          retention-days: 30
