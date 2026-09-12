@@ -31,7 +31,7 @@ export function createCanonicalWorldConfirmHandler(input: {
     if (!owner) return reply({error:'authentication_required'},401);
 
     if (request.method === 'GET') {
-      const keys=[...requestUrl.searchParams.keys()].sort();
+      const keys=Array.from(requestUrl.searchParams.keys()).sort();
       if(keys.join(',')!=='mandateId,operationId' || requestUrl.searchParams.getAll('mandateId').length!==1 || requestUrl.searchParams.getAll('operationId').length!==1)
         return reply({error:'invalid_challenge_request'},400);
       const mandateId=requestUrl.searchParams.get('mandateId'),operationId=requestUrl.searchParams.get('operationId');
