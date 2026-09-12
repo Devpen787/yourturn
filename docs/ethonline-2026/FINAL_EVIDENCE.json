@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "status": "PRE_FINAL_LOCK",
+  "submission": {
+    "event": "ETHOnline 2026",
+    "tracks": [
+      "Hedera Continuity",
+      "World AgentKit Continuity",
+      "Ledger Continuity"
+    ],
+    "primaryPartnerCount": 3
+  },
+  "exactSources": {
+    "approvedProductSha": "342f46ee6e0c4d0f332287d8433735c5ac015528",
+    "frozenRuntimeSecurityTargetSha": "25bc842b2c92772e17350ac6dffc021d144cbe32",
+    "productRuntimeCompositionSha": "0b0ee3df1e88690ec80e9aeb54ac6283281f0f37",
+    "currentIntegratedCiCandidateSha": "75f9723c4b6e3a26c7b90f2fb2271af1eb37c6aa",
+    "frozenRuntimeQualificationRun": 34723265366,
+    "integratedQualificationRun": 34725099284
+  },
+  "provenance": {
+    "product": {
+      "status": "APPROVED_GOLDEN_READY_FIXTURE",
+      "byteIdentityGuard": "PASS_ON_INTEGRATED_CANDIDATE",
+      "humanApprovalRecorded": true
+    },
+    "runtime": {
+      "status": "BUILD_PROOF",
+      "byteIdentityGuard": "PASS_ON_INTEGRATED_CANDIDATE",
+      "independentSecurityDisposition": "PENDING"
+    }
+  },
+  "softwareGates": {
+    "canonicalWorldLedgerHederaPrepareRetain": "PASS_CI_LOCAL",
+    "singleBeginOwnership": "PASS_CI_LOCAL",
+    "businessEligibility": "PASS_CI_LOCAL",
+    "publicEnrollmentProvisioning": "PASS_CI_LOCAL",
+    "durableBobPaymentAuthorization": "PASS_CI_LOCAL",
+    "externalSigningValidation": "PASS_CI_LOCAL",
+    "indexedReceiptValidation": "PASS_CI_LOCAL",
+    "runtimeTypeScript": "PASS",
+    "runtimeProductionBuild": "PASS",
+    "productR5StateAndTypeScript": "PASS",
+    "productR5ProductionBuild": "PASS",
+    "productR5RenderedBrowserSuite": "IN_PROGRESS",
+    "coldJudgeSoftwareRehearsal": "PENDING"
+  },
+  "remainingCodeGate": {
+    "status": "BLOCKED_TOOLING_AND_REVIEW",
+    "name": "human-authorized one-shot Hedera submitter",
+    "requiredContract": [
+      "consume only exact BEFORE_SUBMIT-validated fully signed bytes",
+      "never sign or regenerate transaction bytes",
+      "submit at most once under an explicit human authorization boundary",
+      "never automatically retry an unknown network outcome",
+      "preserve exact transaction ID for reconciliation",
+      "hand off only to the existing indexed receipt reconciler"
+    ],
+    "notes": "Existing historical/live scripts are not semantically equivalent to the final Bob-funded D-010 canonical transaction. Privileged source authoring is blocked in the current connector and must not be bypassed."
+  },
+  "humanExternalGates": {
+    "ledgerPhysicalApprove": "PENDING",
+    "ledgerPhysicalReject": "PENDING",
+    "ledgerReplayStaleNegative": "PENDING",
+    "worldCredentialBearingCanonicalRequest": "PENDING",
+    "worldTamperedNegative": "PENDING",
+    "worldUnresolvedRequesterNegative": "PENDING",
+    "worldReplayNegative": "PENDING",
+    "hederaFreshBobFundedTestnetSettlement": "PENDING",
+    "hederaMirrorHashScanEvidence": "PENDING",
+    "finalIndexedReceiptCompletion": "PENDING"
+  },
+  "security": {
+    "frozenRuntimeTarget": "25bc842b2c92772e17350ac6dffc021d144cbe32",
+    "attackRequestIssue": 16,
+    "attackRequestComment": 5649168044,
+    "disposition": "PENDING",
+    "wholeIntegratedCandidateDisposition": "PENDING"
+  },
+  "integration": {
+    "issue": 5,
+    "exactCandidateSelection": "PENDING",
+    "oldIntegrationBranchMayNotBeUsedAsFinalSource": true
+  },
+  "submissionPackage": {
+    "ethonlineReadme": "PRESENT_ON_EXECUTION_BRANCH",
+    "humanCeremonyRunbook": "PRESENT",
+    "coldJudgeRunbook": "PRESENT",
+    "ledgerFeedback": "PRESENT",
+    "worldFeedback": "PRESENT",
+    "hederaFeedback": "PRESENT",
+    "finalVideo": "PENDING",
+    "finalScreenshots": "PENDING_FINAL_CANDIDATE",
+    "finalSubmissionFields": "PENDING",
+    "finalHumanLock": "PENDING"
+  },
+  "claimLimits": [
+    "Do not claim Ledger DEVICE provenance until physical approve/reject evidence exists on the final integrated candidate.",
+    "Do not claim World LIVE/SIGNED-ROUTE qualification until a credential-bearing canonical request and required negatives are captured on the final integrated candidate.",
+    "Do not claim the new canonical Hedera settlement LIVE/TESTNET until a fresh Bob-funded transaction from the final integrated path is submitted and reconciled.",
+    "Do not claim Maya receives gross purchase amount when an owner-approved royalty applies; seller minimums apply to seller net proceeds.",
+    "Do not claim the canonical path automatically signs or submits Hedera transactions.",
+    "Do not claim final integration or final lock until issue #5 names one exact SHA and issue #16 clears that exact whole candidate."
+  ]
+}
