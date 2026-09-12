@@ -1,163 +1,67 @@
 import { NextResponse } from "next/server";
+import { bookingPort } from "@/lib/adapters/booking-port";
+import { requireGuestAppUser } from "@/lib/auth/guest-api-auth";
+import { getActorCredentials } from "@/lib/hedera/client";
 import {
-  bookingPort,
-  BookingPortError,
-  inspectBookingPortPreview,
-} from "@/lib/adapters/booking-port";
-import { accountsEqual, getActorCredentials } from "@/lib/hedera/client";
-import {
-  RecoveryMandateAuthorityBoundaryError,
-  withRecoveryMandateAuthorityMutation,
-  type RecoveryMandateAuthorityBoundaryStore,
-} from "@/lib/ledger/recovery-mandate-authority-boundary";
-import { verifyApprovalGrant } from "@/lib/server/approval-grants";
-import { getRedis } from "@/lib/store/redis";
-import { agentConfirmBodySchema } from "@/lib/validation/agent";
+  RecoveryMandateBookingStateError,
+  assertRecoveryMandateLiveBookingState,
+} from "@/lib/ledger/recovery-mandate-booking-guard";
+import type { RecoveryMandate } from "@/lib/ledger/recovery-mandate";
+import { loadProvisionedPublicEnrollmentFromEnvironment } from "@/lib/policy/public-enrollment-server-config";
+import { createCanonicalWorldConfirmHandler } from "@/lib/recovery/canonical-world-http";
+import { createCanonicalWorldRuntime } from "@/lib/recovery/canonical-world-runtime";
 import { fail } from "@/lib/validation/api";
-import type { BookingActorRef } from "@/lib/types/booking-port";
 
 export const runtime = "nodejs";
+const RESOURCE_ENV = "YOURTURN_WORLD_RESOURCE_URI";
 
-function actorsMatch(a: BookingActorRef, b: BookingActorRef): boolean {
-  if (a.kind === "demoActor" && b.kind === "demoActor") {
-    return a.id === b.id;
-  }
-  const aAccountId =
-    a.kind === "demoActor"
-      ? getActorCredentials(a.id).accountId.toString()
-      : a.accountId;
-  const bAccountId =
-    b.kind === "demoActor"
-      ? getActorCredentials(b.id).accountId.toString()
-      : b.accountId;
-  return accountsEqual(aAccountId, bAccountId);
-}
-
-export async function POST(req: Request) {
+async function handle(req: Request) {
   try {
-    const parsed = agentConfirmBodySchema.safeParse(await req.json());
-    if (!parsed.success) {
-      return NextResponse.json(
-        fail(parsed.error.message, "VALIDATION_ERROR"),
-        { status: 400 }
-      );
+    if ((process.env.HEDERA_NETWORK ?? "testnet") !== "testnet") {
+      return NextResponse.json(fail("Canonical delegated recovery is locked to Hedera testnet for ETHOnline evidence.", "NOT_CONFIGURED"), { status: 503 });
     }
-
-    const preview = inspectBookingPortPreview(parsed.data.previewId);
-    const grant = verifyApprovalGrant(parsed.data.approvalGrant);
-
-    if (grant.action !== "any" && grant.action !== preview.action) {
-      return NextResponse.json(
-        fail("Approval grant action does not match preview action", "CONFLICT"),
-        { status: 409 }
-      );
+    const appUser = await requireGuestAppUser();
+    if (appUser instanceof NextResponse) return appUser;
+    if (!appUser.hederaPersona) {
+      return NextResponse.json(fail("This account has no verified guest Hedera persona for the holder-authority check.", "NOT_CONFIGURED"), { status: 503 });
     }
-    if (grant.serial != null && grant.serial !== preview.serial) {
-      return NextResponse.json(
-        fail("Approval grant serial does not match preview serial", "CONFLICT"),
-        { status: 409 }
-      );
+    const resourceUri = process.env[RESOURCE_ENV];
+    if (!resourceUri) return NextResponse.json(fail(`Missing ${RESOURCE_ENV}.`, "NOT_CONFIGURED"), { status: 503 });
+    const provisioned = loadProvisionedPublicEnrollmentFromEnvironment();
+    const expectedHolderAccountId = getActorCredentials(appUser.hederaPersona).accountId.toString();
+    const revalidateMutableAuthority = async (mandate: RecoveryMandate) => {
+      if (mandate.ownerId !== appUser.id) throw new RecoveryMandateBookingStateError("Recovery mandate owner no longer matches the authenticated owner");
+      if (mandate.bookingSerial > BigInt(Number.MAX_SAFE_INTEGER)) throw new RecoveryMandateBookingStateError("Recovery mandate booking serial is outside the supported live-state range");
+      const serial = Number(mandate.bookingSerial);
+      const [slot, listing] = await Promise.all([bookingPort.getSlot(serial), bookingPort.getListing(serial)]);
+      assertRecoveryMandateLiveBookingState({ mandate, live: { slot, listing, expectedHolderAccountId } });
+    };
+    const dependencies = createCanonicalWorldRuntime({
+      authenticatedOwnerId: appUser.id,
+      expectedHolderAccountId,
+      resourceUri,
+      publicEnrollmentManifest: provisioned.manifest,
+      revalidateMutableAuthority,
+    });
+    const handler = createCanonicalWorldConfirmHandler({
+      dependencies,
+      resourceUri,
+      // Authentication was already performed above from the signed application
+      // session. AgentKit proves the exact delegated requester; it never chooses
+      // Maya's owner id from request JSON or the World signature.
+      authenticateOwner: async () => ({ ownerId: appUser.id }),
+    });
+    return handler(req);
+  } catch (error) {
+    if (error instanceof RecoveryMandateBookingStateError) {
+      return NextResponse.json(fail(error.message, "CONFLICT"), { status: 409 });
     }
-    if (grant.actor && !actorsMatch(grant.actor, preview.actor)) {
-      return NextResponse.json(
-        fail("Approval grant actor does not match preview actor", "CONFLICT"),
-        { status: 409 }
-      );
-    }
-
-    const approval = {
-      approvedBy: grant.approvedBy,
-      approvedAt: grant.approvedAt,
-      source: grant.source,
-    } as const;
-    const boundaryStore = getRedis() as unknown as RecoveryMandateAuthorityBoundaryStore;
-    const mutateBooking = <T>(mutate: () => Promise<T>) =>
-      withRecoveryMandateAuthorityMutation({
-        store: boundaryStore,
-        bookingSerial: preview.serial,
-        mutate,
-      });
-
-    switch (preview.action) {
-      case "book":
-        return NextResponse.json({
-          ok: true as const,
-          result: await mutateBooking(() =>
-            bookingPort.confirmBook({
-              previewId: parsed.data.previewId,
-              approval,
-            })
-          ),
-        });
-      case "create_listing":
-        return NextResponse.json({
-          ok: true as const,
-          result: await mutateBooking(() =>
-            bookingPort.confirmCreateListing({
-              previewId: parsed.data.previewId,
-              approval,
-            })
-          ),
-        });
-      case "buy_listing":
-        return NextResponse.json({
-          ok: true as const,
-          result: await mutateBooking(() =>
-            bookingPort.confirmBuyListing({
-              previewId: parsed.data.previewId,
-              approval,
-            })
-          ),
-        });
-      case "freeze":
-        return NextResponse.json({
-          ok: true as const,
-          result: await mutateBooking(() =>
-            bookingPort.confirmFreeze({
-              previewId: parsed.data.previewId,
-              approval,
-            })
-          ),
-        });
-      case "unfreeze":
-        return NextResponse.json({
-          ok: true as const,
-          result: await mutateBooking(() =>
-            bookingPort.confirmUnfreeze({
-              previewId: parsed.data.previewId,
-              approval,
-            })
-          ),
-        });
-      case "mark_used":
-        return NextResponse.json({
-          ok: true as const,
-          result: await mutateBooking(() =>
-            bookingPort.confirmMarkUsed({
-              previewId: parsed.data.previewId,
-              approval,
-            })
-          ),
-        });
-      case "cancel_release":
-        return NextResponse.json({
-          ok: true as const,
-          result: await mutateBooking(() =>
-            bookingPort.confirmCancelRelease({
-              previewId: parsed.data.previewId,
-              approval,
-            })
-          ),
-        });
-    }
-  } catch (e) {
-    if (e instanceof RecoveryMandateAuthorityBoundaryError) {
-      return NextResponse.json(fail(e.message, "CONFLICT"), { status: 409 });
-    }
-    if (e instanceof BookingPortError) {
-      return NextResponse.json(fail(e.message, e.code), { status: e.status });
-    }
-    const msg = e instanceof Error ? e.message : String(e);
-    return NextResponse.json(fail(msg, "INTERNAL_ERROR"), { status: 500 });
+    const message = error instanceof Error ? error.message : String(error);
+    return NextResponse.json(fail(message, "NOT_CONFIGURED"), { status: 503 });
   }
 }
+
+/** Read-only canonical challenge; no World nonce or operation is consumed. */
+export async function GET(req: Request) { return handle(req); }
+/** Fresh AgentKit-signed confirmation/status path. No legacy ApprovalGrant exists. */
+export async function POST(req: Request) { return handle(req); }
