@@ -1,0 +1,51 @@
+name: ETHOnline Hedera Judge-Wow / Interop Gate
+
+on:
+  push:
+    branches:
+      - 'feature/ethonline-hedera'
+    paths:
+      - 'lib/hedera-agent-kit/delegated-recovery-review-plugin.ts'
+      - 'lib/hedera-agent-kit/delegated-recovery-mcp-adapter.ts'
+      - 'lib/hedera-agent-kit/delegated-recovery-public.ts'
+      - 'lib/hedera-agent-kit/ethonline-recovery-proof.ts'
+      - 'app/api/agent/ethonline-recovery-proof/route.ts'
+      - 'app/ethonline-recovery-proof/page.tsx'
+      - 'scripts/hedera-judge-wow-check.mjs'
+      - '.github/workflows/ethonline-hedera-judge-wow.yml'
+  pull_request:
+    paths:
+      - 'lib/hedera-agent-kit/delegated-recovery-review-plugin.ts'
+      - 'lib/hedera-agent-kit/delegated-recovery-mcp-adapter.ts'
+      - 'lib/hedera-agent-kit/delegated-recovery-public.ts'
+      - 'lib/hedera-agent-kit/ethonline-recovery-proof.ts'
+      - 'app/api/agent/ethonline-recovery-proof/route.ts'
+      - 'app/ethonline-recovery-proof/page.tsx'
+      - 'scripts/hedera-judge-wow-check.mjs'
+      - '.github/workflows/ethonline-hedera-judge-wow.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  judge-wow-interop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install exact shared lock
+        run: npm ci --legacy-peer-deps
+
+      - name: Production build
+        run: npm run build
+
+      - name: Validate judge-visible Hedera proof and safe interoperability surface
+        run: NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/hedera-judge-wow-check.mjs
