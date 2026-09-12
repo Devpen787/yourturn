@@ -4,7 +4,7 @@ import { parseAgentkitHeader } from "@worldcoin/agentkit";
 import { resolveCanonicalRecoveryProjection, canonicalProjectionDigest, type CanonicalRecoveryProjection, type RecoveryAgentBinding } from "../ledger/canonical-recovery-projection.ts";
 import { loadActiveRecoveryMandate } from "../ledger/recovery-mandate-state.ts";
 import { loadRecoveryOperationAuthority } from "../ledger/recovery-operation-authority.ts";
-import { readRecoveryOperation, claimRecoveryOperation, beginRecoveryOperationEffect, recordRecoveryOperationEnvelope, type RecoveryOperation } from "../ledger/recovery-mandate-operation.ts";
+import { readRecoveryOperation, claimRecoveryOperation, type RecoveryOperation } from "../ledger/recovery-mandate-operation.ts";
 import { verifyWorldAgentRequest, type WorldAgentBookLookup } from "../world-agentkit/server-verifier.ts";
 import { evaluateWorldAgentGate, type WorldAgentVerification } from "../world-agentkit/trust-boundary.ts";
 import type { WorldAgentNonceStore } from "../world-agentkit/nonce-store.ts";
@@ -23,10 +23,16 @@ export type CanonicalWorldConsumerDependencies = {
   resolveExecutionFacts(projection: CanonicalRecoveryProjection, operation: RecoveryOperation | null): Promise<string>;
   nonceStore: WorldAgentNonceStore;
   agentBook: WorldAgentBookLookup;
-  /** Server-only effect adapter. It must revalidate at its own reservation /
-   * signing boundary and durably retain exact output BEFORE returning refs.
-   * Never retry unknown output or clear payment replay tombstones. */
-  performEffect(input: { projection: CanonicalRecoveryProjection; operation: RecoveryOperation; intentHash: string; revalidate(): Promise<void> }): Promise<{ transactionId: string; envelopeDigest: string }>;
+  /** Server-only economic adapter. This adapter is the ONE owner of the
+   * claimed -> effect-started transition. It must revalidate at its own atomic
+   * begin/reservation boundary and durably retain exact output before return.
+   * World never begins or records the effect itself. */
+  performEffect(input: {
+    projection: CanonicalRecoveryProjection;
+    operation: RecoveryOperation;
+    intentHash: string;
+    revalidate(operation: RecoveryOperation): Promise<void>;
+  }): Promise<{ operation: RecoveryOperation; transactionId: string; envelopeDigest: string }>;
 };
 const hash = (s: string) => createHash('sha256').update(s).digest('hex');
 const digest = (s: unknown): s is string => typeof s === 'string' && /^[a-f0-9]{64}$/.test(s);
@@ -92,7 +98,6 @@ async function verifyHeader(header: string, b: RecoveryAgentBinding, operationId
   requireValid(Number.isSafeInteger(issuedAtMs) && Number.isSafeInteger(signedExpiresAtMs), 'Invalid signed World timestamps');
   const r = await verifyWorldAgentRequest({ agentkitHeader:header,expectedResourceUri:b.resourceUri,expectedAgentAddress:b.worldRequester,
     nonceStore:d.nonceStore,agentBook:d.agentBook,maxAgeMs:60_000 });
-  // Do not return raw verifier details or anonymous human identifiers.
   requireValid(r.status === 'allowed', 'World requester verification denied');
   const proof = Object.freeze({verification:Object.freeze({...r.verification}),issuedAtMs,signedExpiresAtMs,startedAtMs});
   requireValid(Date.now()-startedAtMs < 5000, 'World verification window expired');
@@ -101,9 +106,9 @@ async function verifyHeader(header: string, b: RecoveryAgentBinding, operationId
 }
 const result = (r: RecoveryOperation, effectInvoked: boolean) => Object.freeze({ operationId:r.operationId,phase:r.phase,
   transactionId:r.transactionId,envelopeDigest:r.envelopeDigest,receiptDigest:r.receiptDigest,effectInvoked,executionPermit:false as const });
-/** Actual World -> guarded Ledger claim -> owned recheck -> one effect call.
- * Existing operations are STATUS ONLY, even if claimed, expired or revoked.
- * Fresh World nonce can read the same intent; it never regenerates an effect. */
+/** Actual World -> guarded Ledger claim -> owned recheck -> one downstream
+ * economic adapter. Existing operations are STATUS ONLY. The downstream
+ * adapter alone owns claimed -> effect-started and retained output. */
 export async function confirmCanonicalWorldRecovery(input: CanonicalRecoverySelection & { intentHash: string; agentkitHeader: string }, d: CanonicalWorldConsumerDependencies) {
   requireValid(input && Object.keys(input).sort().join(',') === 'agentkitHeader,intentHash,mandateId,operationId,ownerId' && digest(input.intentHash), 'Invalid canonical request');
   const s = select({ownerId:input.ownerId,mandateId:input.mandateId,operationId:input.operationId});
@@ -133,6 +138,8 @@ export async function confirmCanonicalWorldRecovery(input: CanonicalRecoverySele
   if (!claimed.claimed) return result(claimed.record,false);
   const revalidate = async (operation: RecoveryOperation) => {
     const startedAt = Date.now();
+    requireValid(operation.operationId === claimed.record.operationId && operation.intentHash === intentHash && operation.ownerId === s.ownerId && operation.mandateId === s.mandateId,
+      'Downstream operation identity changed');
     freshWorld(world,binding);
     const loaded = await loadRecoveryOperationAuthority({store,operation,revalidateMutableAuthority:authority.revalidateMutableAuthority});
     const m = loaded.mandate,r = loaded.record;
@@ -148,11 +155,18 @@ export async function confirmCanonicalWorldRecovery(input: CanonicalRecoverySele
     requireValid(isDeepStrictEqual(finalBinding,binding) && await intent(p,operation,d) === intentHash && Date.now() >= startedAt && Date.now()-startedAt < 5000, 'Owned requester or execution facts changed');
     freshWorld(world,binding);
   };
-  const started = await beginRecoveryOperationEffect(store,claimed.record,async op => { await revalidate(op); return intentHash; });
-  await revalidate(started);
-  // This invocation cannot be replayed. Unknown output leaves effect-started.
-  const output = await d.performEffect({projection:p,operation:Object.freeze({...started}),intentHash,revalidate:()=>revalidate(started)});
-  requireValid(output && Object.keys(output).sort().join(',') === 'envelopeDigest,transactionId', 'Invalid retained effect references');
-  const retained = await recordRecoveryOperationEnvelope(store,started,output.transactionId,output.envelopeDigest);
-  return result(retained,true);
+  await revalidate(claimed.record);
+  // No World-owned begin call exists here. The downstream economic adapter must
+  // atomically begin exactly once, revalidate at that boundary, and retain refs.
+  const output = await d.performEffect({projection:p,operation:Object.freeze({...claimed.record}),intentHash,revalidate});
+  requireValid(output && Object.keys(output).sort().join(',') === 'envelopeDigest,operation,transactionId' &&
+    output.operation.phase === 'effect-started' && output.operation.operationId === claimed.record.operationId &&
+    output.operation.ownerId === claimed.record.ownerId && output.operation.mandateId === claimed.record.mandateId &&
+    output.operation.intentHash === claimed.record.intentHash && output.operation.fence === claimed.record.fence &&
+    output.operation.ownedVersion === claimed.record.ownedVersion && output.operation.transactionId === output.transactionId &&
+    output.operation.envelopeDigest === output.envelopeDigest && typeof output.transactionId === 'string' && output.transactionId.length > 0 &&
+    digest(output.envelopeDigest), 'Invalid retained effect result');
+  const latest = await readRecoveryOperation({store,operationId:s.operationId,ownerId:s.ownerId,intentHash});
+  requireValid(latest !== null && isDeepStrictEqual(latest,output.operation), 'Retained effect result is not authoritative operation state');
+  return result(latest,true);
 }
