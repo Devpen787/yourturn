@@ -112,6 +112,20 @@ try {
     const owned = await storedFixture(bob); assert.equal(owned.holder, "bob"); assert.equal(owned.recoveredAmount, 45); assert.equal(owned.settlementCount, 1);
     await shot(bob, viewport.name, "bob-list-after-handoff");
     await bob.getByRole("button", { name: "Use booking", exact: true }).click(); await bob.waitForURL((u) => u.searchParams.get("view") === "xc2-bob-ready"); await visible(bob, "Check in for Friday Yoga");
+    // Retain this same acquired booking while the provider reschedules it.
+    await goto(bob, "xc3-provider-session-edit");
+    await bob.getByLabel("Start time").fill("19:00");
+    await bob.getByLabel("Transfer cutoff").fill("18:30");
+    await bob.getByRole("button", { name: "Publish session", exact: true }).click();
+    await bob.waitForURL((u) => u.searchParams.get("view") === "xc3-provider-session-published");
+    await goto(bob, "xc2-bob-list");
+    await visible(bob, "Friday Yoga · 19:00");
+    await bob.getByRole("button", { name: "Use booking", exact: true }).click();
+    await bob.waitForURL((u) => u.searchParams.get("view") === "xc2-bob-not-open");
+    await visible(bob, "18:30");
+    assert.equal((await bob.locator("main").innerText()).includes("17:30"), false);
+    const retained = await storedFixture(bob); assert.equal(retained.holder, "bob"); assert.equal(retained.settlementCount, 1);
+    await shot(bob, viewport.name, "bob-rescheduled-checkin-before");
     await bobContext.close();
 
     const mayaContext = await seededContext(browser, size, bookingFixture({ confirmedScope: false, activeMinimum: null, approvalStatus: "idle" }));
@@ -122,7 +136,7 @@ try {
 
     const allErrors = [...errors, ...preErrors, ...bobErrors, ...mayaErrors];
     assert.equal(allErrors.length, 0, `Console/page errors: ${allErrors.join(" | ")}`);
-    results.push({ viewport: viewport.name, status: "PASS", evidenceClass: "FIXTURE", screenshots: 16, consoleErrors: 0 });
+    results.push({ viewport: viewport.name, status: "PASS", evidenceClass: "FIXTURE", screenshots: 17, consoleErrors: 0 });
     console.log(`PASS R3 ${viewport.name}`);
   }
 } finally { await browser.close(); }
