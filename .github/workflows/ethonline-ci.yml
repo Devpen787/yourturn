@@ -75,6 +75,23 @@ jobs:
           npm run bundle -- --help
           npm run downstream -- --help
           npm run qualify -- --help
+      - name: Hedera serial-scoped NFT delegation check
+        # Deterministic transaction-shape proof only. It must stay clearly below
+        # LIVE/TESTNET evidence until the same lifecycle executes on Hedera.
+        run: npm run hedera:nft-delegation-proof
+
+      - name: Hedera Agent Kit delegated recovery RETURN_BYTES check
+        # ETHOnline-new HAK surface. It proves HAK v4 prepares the exact
+        # serial-only approve/revoke/approved-transfer transactions without
+        # loading a private key or submitting them. This remains CI/LOCAL; the
+        # external wallet signature/broadcast step is intentionally out-of-band.
+        run: npm run hedera:delegated-recovery-hak-check
+
+      - name: Hedera BookingRight delegation policy + replay check
+        # ETHOnline-new HAK v4 AbstractPolicy behavior. This stays CI/LOCAL: it
+        # proves policy gating and durable nonce semantics before transaction
+        # preparation, but does not claim a network-side policy primitive.
+        run: npm run hedera:booking-policy-check
 
       - name: Continuity baseline must remain documented
         run: |
