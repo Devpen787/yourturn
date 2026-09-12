@@ -66,8 +66,8 @@ export const ETHONLINE_HEDERA_RECOVERY_PROOF = Object.freeze({
       "yourturn_delegated_recovery_settle_nft_usdc",
     ],
     additiveReviewerTools: [
-      "yourturn_delegated_recovery_inspect_booking",
-      "yourturn_delegated_recovery_verify_settlement",
+      "yourturn_delegated_recovery_inspect_booking_tool",
+      "yourturn_delegated_recovery_verify_settlement_tool",
     ],
     mcp: {
       status: "MCP_READY_ADAPTER / RUNTIME_DEPENDENCY_HELD",

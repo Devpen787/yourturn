@@ -1,13 +1,18 @@
-import { BaseTool, type Context, type Plugin } from "@hashgraph/hedera-agent-kit";
+import {
+  BaseTool,
+  untypedQueryOutputParser,
+  type Context,
+  type Plugin,
+} from "@hashgraph/hedera-agent-kit";
 import { z } from "zod";
 import { yourTurnDelegatedRecoveryPlugin } from "./delegated-recovery-plugin.ts";
 
 const MIRROR = "https://testnet.mirrornode.hedera.com/api/v1";
 
 export const YOURTURN_DELEGATED_RECOVERY_INSPECT_TOOL =
-  "yourturn_delegated_recovery_inspect_booking";
+  "yourturn_delegated_recovery_inspect_booking_tool";
 export const YOURTURN_DELEGATED_RECOVERY_VERIFY_TOOL =
-  "yourturn_delegated_recovery_verify_settlement";
+  "yourturn_delegated_recovery_verify_settlement_tool";
 
 const inspectParameters = z
   .object({
@@ -40,7 +45,10 @@ function mirrorTransactionId(value: string): string {
 }
 
 async function mirrorJson(url: string): Promise<any> {
-  const response = await fetch(url, { headers: { accept: "application/json" } });
+  const response = await fetch(url, {
+    headers: { accept: "application/json" },
+    cache: "no-store",
+  });
   if (!response.ok) throw new Error(`mirror_http_${response.status}:${url}`);
   return response.json();
 }
@@ -51,6 +59,7 @@ class InspectDelegatedBookingTool extends BaseTool<unknown, InspectParams> {
   description =
     "Read the public Hedera Mirror state for one exact booking-right token serial. This tool is read-only and never signs or submits a transaction.";
   parameters: any = inspectParameters;
+  outputParser = untypedQueryOutputParser;
 
   async normalizeParams(params: unknown): Promise<InspectParams> {
     return inspectParameters.parse(params);
@@ -83,14 +92,19 @@ class InspectDelegatedBookingTool extends BaseTool<unknown, InspectParams> {
   async shouldSecondaryAction() {
     return false;
   }
+
+  async secondaryAction() {
+    return null;
+  }
 }
 
 class VerifyDelegatedRecoverySettlementTool extends BaseTool<unknown, VerifyParams> {
   method = YOURTURN_DELEGATED_RECOVERY_VERIFY_TOOL;
   name = "Verify a delegated recovery settlement";
   description =
-    "Read one public Hedera transaction and fail closed unless it contains exactly the expected single booking NFT movement and exact two-leg fungible settlement.";
+    "Read one public Hedera transaction and fail closed unless the exact requested transaction contains exactly the expected single booking NFT movement and exact two-leg fungible settlement.";
   parameters: any = verifyParameters;
+  outputParser = untypedQueryOutputParser;
 
   async normalizeParams(params: unknown): Promise<VerifyParams> {
     return verifyParameters.parse(params);
@@ -100,10 +114,10 @@ class VerifyDelegatedRecoverySettlementTool extends BaseTool<unknown, VerifyPara
     const mirrorId = mirrorTransactionId(params.transactionId);
     const mirror = `${MIRROR}/transactions/${mirrorId}`;
     const body = await mirrorJson(mirror);
-    const transaction =
-      (body.transactions ?? []).find((item: any) => item.transaction_id === mirrorId) ??
-      body.transactions?.[0];
-    if (!transaction) throw new Error("delegated_recovery_transaction_missing");
+    const transaction = (body.transactions ?? []).find(
+      (item: any) => item.transaction_id === mirrorId
+    );
+    if (!transaction) throw new Error("delegated_recovery_exact_transaction_missing");
     if (transaction.result !== "SUCCESS") {
       throw new Error(`delegated_recovery_transaction_not_success:${transaction.result}`);
     }
@@ -170,6 +184,10 @@ class VerifyDelegatedRecoverySettlementTool extends BaseTool<unknown, VerifyPara
   async shouldSecondaryAction() {
     return false;
   }
+
+  async secondaryAction() {
+    return null;
+  }
 }
 
 /**
@@ -181,7 +199,7 @@ class VerifyDelegatedRecoverySettlementTool extends BaseTool<unknown, VerifyPara
  */
 export const yourTurnDelegatedRecoveryReviewerPlugin: Plugin = {
   name: "yourturn-delegated-recovery-reviewer-plugin",
-  version: "2026.09.12",
+  version: "1.0.0",
   description:
     "Read-only Hedera reviewer tools for exact booking ownership and transaction-boundary recovery verification.",
   tools: () => [new InspectDelegatedBookingTool(), new VerifyDelegatedRecoverySettlementTool()],
@@ -189,7 +207,7 @@ export const yourTurnDelegatedRecoveryReviewerPlugin: Plugin = {
 
 export const yourTurnDelegatedRecoveryCompletePlugin: Plugin = {
   name: "yourturn-delegated-recovery-complete-plugin",
-  version: "2026.09.12",
+  version: "1.0.0",
   description:
     "YourTurn delegated-recovery HAK surface: existing non-custodial serial authority/settlement tools plus read-only public-proof tools.",
   tools: (context: Context) => [
