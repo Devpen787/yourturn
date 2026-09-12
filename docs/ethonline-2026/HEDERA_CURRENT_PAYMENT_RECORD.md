@@ -1,0 +1,27 @@
+# Durable current payment record
+
+Claim #16 5648175305. Branch `feature/ethonline-hedera-payment-record-qual` from independently cleared canonical resolver `20323ca7a6d0fcb3ccfb2ee86e5413fdaedff229` (#16 5648164813). This increment adds one store module, focused checks and qualification workflow. It changes no reviewed resolver, provider policy, enrollment, chain reader, Ledger, World, signing or existing payment-reservation code.
+
+The existing listing store cannot provide this contract: it stores a whole array, selects by serial and has no immutable signed commitment, version CAS or persistent revocation. Existing exact-payment Redis tombstones protect reservation only. The new store reuses `getRedis` and a dedicated permanent key per operation, without a provisioning API or generic store framework.
+
+## Contract
+
+`publishCurrentPaymentRecord` requires an authenticated server publisher `{publisherId, ownerId}`, explicit expected version `"0"`, a strict `CurrentRecoveryPaymentRecord` candidate at version `"1"` with null revocation, and a mandatory `validateCurrentCandidate` callback. Publisher identity is trusted server auth context, never fields copied from a request. Candidate owner must match that context. The callback gets a deeply frozen candidate and its computed digest and must independently authorize this publisher and validate current Ledger authority, exact provider/quote/economic roles, payment terms and eligibility. It returns a stable authority fingerprint and validity deadline. The callback must throw on uncertainty; an always-true/default validator is not supplied.
+
+The validator cannot simply call the runtime canonical resolver, because runtime resolution requires an already-published payment record. The publisher needs an independently implemented candidate validation boundary. This store does not create a quote/transaction ID, derive owner permission, fabricate eligibility, sign anything or turn persisted facts into execution authority.
+
+Candidate schema copies exactly the resolver's current record fields, with additional fail-closed store restrictions: v2 only, Bob self-funding, distinct holder/Bob/executor, exact operation/provider/quote binding and native transaction validity/payer alignment. Successful NX creation is permanent. The operation's owner, provider, quote and entire v2 commitment cannot be updated. A new quote or transaction needs a new operation ID and new authorization; publishing over any existing, expired, revoked or corrupt record is prohibited.
+
+Publication repeats mandatory candidate validation around storage reads and after commit. Redis TIME checks expiry immediately before SET. A private wrapper retains authenticated publisher and validation provenance; current consumers receive only the exact resolver record. Candidate snapshots and returned records are frozen. No TTL/delete/reset method exists.
+
+`revokeCurrentPaymentRecord` authenticates the recorded owner and atomically compares the exact persisted predecessor plus expected version. The only same-operation transition is `1 -> 2`, with a Redis-TIME revocation timestamp and all signed facts/provenance retained. Repeat/stale revocation fails; version 2 cannot be published or resurrected. Revocation remains available after payment or Ledger expiry and requires no still-live mandate. Lua changes only the one revocation timestamp in the original serialized JSON, avoiding cjson number re-encoding and preserving safe integer serials.
+
+`loadCurrentPaymentRecord` requires exact operation/owner identity, performs two strict reads, and refuses expired, revoked, corrupt, missing, future-valid or changing records. Wire it as the resolver's `readCurrentPayment` callback only after authenticating/resolving that operation's owner. `readPaymentRecordForReconciliation` returns the same strictly scoped stored facts even after expiry/revocation, with `currentAuthority:false`; it must never substitute for the current loader.
+
+All operations have a five-second bounded window, wall-clock timeout and clock-regression guard. Late validator completion after timeout cannot start a write. Once EVAL has been dispatched, a timeout, lost response or failed postcommit check produces an explicit `PUBLISH_OUTCOME_UNKNOWN_RELOAD_REQUIRED` or `REVOKE_OUTCOME_UNKNOWN_RELOAD_REQUIRED`; it never claims rollback. Re-read before deciding what happened. Redis and the external validator are not one atomic transaction: current authority must still be revalidated by the resolver and actual execution boundary. Unknown write state never permits replaying an effect.
+
+## Verification and limits
+
+Focused synthetic tests run in model mode locally and against disposable Redis in CI: NX and revoke races, immutable intent/provenance, wrong owner/scope, stale versions, no resurrection, expiry at EVAL, postcommit uncertainty, corrupt/unavailable state, frozen snapshots, safe-integer preservation, and timeout followed by late callback completion. Inherited canonical/source/provider/royalty/payment/signing tests, production build, TypeScript and Agent Kit checks run in the dedicated workflow.
+
+This is durable record software qualification, not evidence of production provisioning, an implemented candidate validator, current booking eligibility, real authority, a signed World route, hardware or a Hedera transaction. No real credentials, private keys, user signatures, network identity records or funds are used. Independent review is required before adoption.
