@@ -1,0 +1,74 @@
+name: ETHOnline Hedera Studio Transfer Control Qualification
+
+on:
+  push:
+    branches: ['feature/ethonline-hedera-transfer-control-qual']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  transfer-control:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Snapshot dependency manifests before install
+        run: sha256sum package.json package-lock.json | tee /tmp/hedera-transfer-control-package-before.sha256
+
+      - name: Locked install
+        run: npm ci --legacy-peer-deps
+
+      - name: Prove dependency manifests unchanged after install
+        run: |
+          sha256sum package.json package-lock.json | tee /tmp/hedera-transfer-control-package-after-install.sha256
+          diff -u /tmp/hedera-transfer-control-package-before.sha256 /tmp/hedera-transfer-control-package-after-install.sha256
+          git diff --exit-code -- package.json package-lock.json
+
+      - name: HIP-551 controlled transfer qualification
+        run: env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/hedera-controlled-transfer-check.mjs
+
+      - name: Existing Hedera Agent Kit fixture
+        run: npm run hedera:agent-check
+        env:
+          HEDERA_GUEST_A_ID: '0.0.9001'
+          HEDERA_TREASURY_ID: '0.0.9002'
+
+      - name: Existing delegated recovery HAK contract
+        run: npm run hedera:delegated-recovery-hak-check
+
+      - name: Existing booking policy and payment semantics
+        run: npm run hedera:booking-policy-check
+
+      - name: Explicit TypeScript check
+        run: npx tsc --noEmit --incremental false
+
+      - name: Production build
+        run: npm run build
+
+      - name: Final dependency-manifest integrity and source identity
+        run: |
+          sha256sum package.json package-lock.json | tee hedera-controlled-transfer-package.sha256
+          diff -u /tmp/hedera-transfer-control-package-before.sha256 hedera-controlled-transfer-package.sha256
+          git diff --exit-code -- package.json package-lock.json
+          printf '%s\n' "${GITHUB_SHA}" > hedera-controlled-transfer-source-sha.txt
+          printf '%s\n' "feature/ethonline-hedera-transfer-control-qual" > hedera-controlled-transfer-source-ref.txt
+
+      - name: Upload exact-head qualification evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: hedera-controlled-transfer-qualification
+          path: |
+            hedera-controlled-transfer-evidence.json
+            hedera-controlled-transfer-package.sha256
+            hedera-controlled-transfer-source-sha.txt
+            hedera-controlled-transfer-source-ref.txt
+          if-no-files-found: error
+          retention-days: 30
