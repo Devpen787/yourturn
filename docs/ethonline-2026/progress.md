@@ -149,3 +149,11 @@ Append one block per meaningful run:
 - Verification: 24 focused local checks and TypeScript PASS. Includes wrong/missing mappings, time overflow/expiry, zero/negative amount, resource/action/currency mismatch, revoke/version races and field binding. Real registry, World verification and chain resolver are not exercised.
 - Limits: input registry remains a mandatory trusted server dependency with no inferred production mapping. No World/Hedera source imported or selected, no HTTP/signed route, credentials/device/signature/transaction. Actual operation claim must revalidate and atomically consume the current mandate; this pre-claim projection never bypasses an odd version.
 - Next: exact CI and independent contract review before any consumer composition.
+
+## 2026-09-12 — explicit operation-owned authority read
+
+- Branch/base: `feature/ethonline-ledger-owned-loader-qual` from independently cleared canonical projection1201ae68; claim#5 5648009027, mapping clearance#16 5647912153. Previous mapping review blocker is resolved through normal independent GitHub review.
+- Change: separate read-only loader for the exact durable operation's owned odd version; full current/active/digest/scope and mandatory mutable-state checks. Ordinary stable loader and existing operation transitions stay unchanged; no fake even versions or effect permits.
+- Verification: local synthetic boundary matrix and TypeScript; exact hosted workflow adds existing current/operation/projection tests plus actual Redis synthetic claim→owned read→one effect transition→revoked receipt-only completion. Hosted results remain pending until execution.
+- Open/claim limits: external authoritative resolver, requester validation, World consumer, real account provisioning, signing/device/transactions and final integration remain separate. No credential, hardware, real economic or production action performed.
+- Next: exact CI/artifact and independent Security before composing the canonical consumer.
