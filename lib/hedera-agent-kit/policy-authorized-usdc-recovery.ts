@@ -1,4 +1,5 @@
 import { isDeepStrictEqual } from "node:util";
+import type { RecoveryRoyaltyEconomics } from "./recovery-royalty.ts";
 import { AgentMode, BaseTool, type Context } from "@hashgraph/hedera-agent-kit";
 import { Client, PublicKey, Transaction, type TransferTransaction } from "@hiero-ledger/sdk";
 import { z } from "zod";
@@ -44,6 +45,7 @@ export type PolicyAuthorizedUsdcRecoveryResult =
       paymentAuthorization: { signatureHex: string; publicKey: string; accountId: string };
       settlement: {
         tokenId: string; atomicUnits: string; decimals: number;
+        economics?: RecoveryRoyaltyEconomics & { buyerGrossAtomicUnits: string };
         delegatedAgentAccountId: string;
         settlementSourceAccountId: string;
         receiverAccountId: string;
@@ -126,7 +128,10 @@ export async function preparePolicyAuthorizedUsdcRecovery(
       spenderAccountId: c.transactionFeePayerAccountId,
       receiverAccountId: c.receiverAccountId,
       settlementTokenId: c.settlementTokenId,
-      settlementAmountAtomicUnits: c.settlementAmountAtomicUnits,
+      // HAK evaluates the net recovery approved by the holder. This private
+      // tool returns the independently verified frozen nominal-gross proposal;
+      // chain fee assessment, never a second explicit fee transfer, yields net.
+      settlementAmountAtomicUnits: verified.sellerNetAtomicUnits,
       settlementRecipientAccountId: c.settlementRecipientAccountId,
       settlementDecimals: c.settlementDecimals,
     };
@@ -198,7 +203,8 @@ export async function preparePolicyAuthorizedUsdcRecovery(
       },
       paymentAuthorization: { signatureHex, publicKey: verified.publicKey, accountId: c.settlementSourceAccountId },
       settlement: {
-        tokenId: c.settlementTokenId, atomicUnits: c.settlementAmountAtomicUnits, decimals: c.settlementDecimals,
+        tokenId: c.settlementTokenId, atomicUnits: verified.sellerNetAtomicUnits, decimals: c.settlementDecimals,
+        ...(verified.economics ? { economics: { ...verified.economics, buyerGrossAtomicUnits: c.settlementAmountAtomicUnits } } : {}),
         delegatedAgentAccountId: c.delegatedAgentAccountId, settlementSourceAccountId: c.settlementSourceAccountId,
         receiverAccountId: c.receiverAccountId, settlementRecipientAccountId: c.settlementRecipientAccountId,
         transactionFeePayerAccountId: c.transactionFeePayerAccountId,

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { resolveRecoveryRoyalty } from "../lib/hedera-agent-kit/recovery-royalty.ts";
 import { createServer } from "node:http";
 import { createConnection } from "node:net";
 import { randomUUID } from "node:crypto";
@@ -181,6 +182,33 @@ try {
     const s=fresh(),a=await authorize(s);let now=NOW;afterEval=()=>{now=NOW+5001;};
     try {denied(await run(s,a,()=>now),"EXECUTION_STATE_STALE");}finally{afterEval=()=>{};}
     denied(await run(s,a),"IDEMPOTENT_REPLAY");
+  });
+  function royaltyV2(s) {
+    s.commitment.domain="yourturn:hedera:testnet:exact-payment:v2";
+    s.providerPolicy.royalty={numerator:"1",denominator:"10",collectorAccountId:ids.other};
+    s.tokens.booking.customFeeCount=1;
+    s.tokens.booking.feeMetadata={tokenId:s.commitment.bookingTokenId,treasuryAccountId:"0.0.7006",feeScheduleKey:null,fixedFees:[],fractionalFees:[],royaltyFees:[{numerator:"1",denominator:"10",collectorAccountId:ids.other,allCollectorsAreExempt:false,fallbackFee:null}]};
+    s.commitment.economics=resolveRecoveryRoyalty({grossAtomicUnits:s.commitment.settlementAmountAtomicUnits,holderAccountId:ids.maya,buyerAccountId:ids.bob,bookingTokenId:s.commitment.bookingTokenId,policy:s.providerPolicy.royalty,metadata:s.tokens.booking.feeMetadata});
+    s.invocation.recovery.atomicUnits=s.commitment.economics.sellerNetAtomicUnits;
+    return s;
+  }
+  await test("v2 royalty 16 concurrent actual EVAL calls yield one gross45/net40.5 envelope",async()=>{
+    const s=royaltyV2(fresh()),a=await authorize(s);
+    const rs=await Promise.all(Array.from({length:16},()=>run(s,a)));
+    const allowed=rs.filter(r=>r.ok);assert.equal(allowed.length,1);
+    assert.equal(allowed[0].settlement.atomicUnits,"40500000");
+    assert.equal(allowed[0].settlement.economics.buyerGrossAtomicUnits,"45000000");
+    rs.filter(r=>!r.ok).forEach(r=>denied(r,"IDEMPOTENT_REPLAY"));
+    denied(await run(s,a),"IDEMPOTENT_REPLAY");
+  });
+  await test("v2 provider fee change during actual EVAL returns no bytes and keeps tombstone",async()=>{
+    const s=royaltyV2(fresh()),a=await authorize(s);afterEval=()=>{s.providerPolicy.royalty.numerator="2";};
+    try{denied(await run(s,a),"EXECUTION_STATE_CHANGED");}finally{afterEval=()=>{};s.providerPolicy.royalty.numerator="1";}
+    denied(await run(s,a),"IDEMPOTENT_REPLAY");
+  });
+  await test("v1 operation cannot be reopened through v2 royalty authorization",async()=>{
+    const s=fresh();assert.equal((await run(s)).ok,true);royaltyV2(s);
+    denied(await run(s),"NONCE_CONFLICT");
   });
   await test("all successful durable tombstones have no expiry",async()=>{
     let persistent=0;

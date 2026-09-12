@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
+import { bookingFeeMetadataSchema, resolveRecoveryRoyalty, royaltyEconomicsSchema, type RecoveryRoyaltyEconomics } from "./recovery-royalty.ts";
 import { AccountId, Hbar, PublicKey, TransactionId, TransferTransaction } from "@hiero-ledger/sdk";
 import { z } from "zod";
 import { getRedis } from "../store/redis.ts";
@@ -14,7 +16,7 @@ const positiveUnits = units.refine(v => BigInt(v) > BigInt(0));
 const timestamp = z.number().int().nonnegative().safe();
 
 /** Stable, exact wallet commitment; this version supports Bob funding himself. */
-export const paymentCommitmentSchema = z.object({
+const legacyPaymentCommitmentSchema = z.object({
   domain: z.literal("yourturn:hedera:testnet:exact-payment:v1"),
   commitmentId: identifier,
   operationId: identifier,
@@ -40,6 +42,15 @@ export const paymentCommitmentSchema = z.object({
   maxTransactionFeeTinybars: positiveUnits.refine(v => BigInt(v) <= BigInt("200000000")),
   expiresAtMs: timestamp,
 }).strict();
+/** v1 remains the separately qualified zero-fee protocol. v2 explicitly commits
+ * to provider/chain fee economics; it cannot widen v1 by adding unsigned terms. */
+export const paymentCommitmentSchema = z.discriminatedUnion("domain", [
+  legacyPaymentCommitmentSchema,
+  legacyPaymentCommitmentSchema.extend({
+    domain: z.literal("yourturn:hedera:testnet:exact-payment:v2"),
+    economics: royaltyEconomicsSchema,
+  }).strict(),
+]);
 export type ExactPaymentCommitment = z.infer<typeof paymentCommitmentSchema>;
 
 /** Supplied ONLY by an authenticated, current server-side resolver, never request JSON.
@@ -57,6 +68,8 @@ export type ResolvedUsdcRecoveryState = {
   providerPolicy: {
     id: string; version: string; state: "ALLOW" | "BLOCK" | "REVIEW";
     validUntilMs: number; minimumRecoveryAtomicUnits: string | null;
+    /** v2 only: independently published provider policy, never client override. */
+    royalty?: unknown;
   };
   fundingAccount: {
     accountId: string;
@@ -64,9 +77,10 @@ export type ResolvedUsdcRecoveryState = {
     publicKey: string;
     tokenId: string; decimals: number; availableAtomicUnits: string;
   };
-  /** Current chain metadata: exact-net candidate rejects mutable/custom-fee tokens. */
+  /** Current chain metadata. v2 requires the complete normalized immutable fee
+   * schedule; counts and caller-provided exemption flags cannot replace it. */
   tokens: {
-    booking: { tokenId: string; customFeeCount: number; feeScheduleKey: null };
+    booking: { tokenId: string; customFeeCount: number; feeScheduleKey: null; feeMetadata?: unknown };
     settlement: { tokenId: string; customFeeCount: number; feeScheduleKey: null };
   };
   bookingAllowance: {
@@ -87,7 +101,7 @@ function requireExact(condition: boolean, reason: string): asserts condition {
 export function paymentCommitmentMemo(input: ExactPaymentCommitment): string {
   const c = paymentCommitmentSchema.parse(input);
   const hash = createHash("sha256").update(JSON.stringify(c)).digest("hex");
-  return `yt:pay:v1:${hash}`;
+  return `yt:pay:${c.domain.endsWith(":v2") ? "v2" : "v1"}:${hash}`;
 }
 
 /** Wallet proposal primitive, NOT execution authorization. No keys/network access.
@@ -117,7 +131,7 @@ export function verifyExactPaymentAuthorization(
   operationId: string,
   signatureHex: unknown,
   nowMs: number,
-): { commitment: ExactPaymentCommitment; unsignedTransaction: TransferTransaction; publicKey: string } {
+): { commitment: ExactPaymentCommitment; unsignedTransaction: TransferTransaction; publicKey: string; sellerNetAtomicUnits: string; economics?: RecoveryRoyaltyEconomics } {
   const parsed = paymentCommitmentSchema.safeParse(state.commitment);
   requireExact(parsed.success, "PAYMENT_COMMITMENT_INVALID");
   const c = parsed.data;
@@ -141,7 +155,29 @@ export function verifyExactPaymentAuthorization(
     c.settlementSourceAccountId !== c.holderAccountId, "PAYMENT_ROLE_COLLISION");
   requireExact(c.settlementRecipientAccountId === c.holderAccountId, "PAYMENT_RECIPIENT_MISMATCH");
   requireExact(c.quoteId === state.quote.id && c.quoteHash === state.quote.hash, "PAYMENT_QUOTE_MISMATCH");
-  requireExact(state.invocation.recovery?.atomicUnits === c.settlementAmountAtomicUnits, "PAYMENT_AMOUNT_MISMATCH");
+  let economics: RecoveryRoyaltyEconomics | undefined;
+  if (c.domain === "yourturn:hedera:testnet:exact-payment:v2") {
+    try {
+      const metadata = bookingFeeMetadataSchema.parse(state.tokens?.booking?.feeMetadata);
+      requireExact(state.tokens.booking.customFeeCount === metadata.royaltyFees.length, "ROYALTY_METADATA_COUNT_MISMATCH");
+      economics = resolveRecoveryRoyalty({
+        grossAtomicUnits: c.settlementAmountAtomicUnits, holderAccountId: c.holderAccountId,
+        buyerAccountId: c.settlementSourceAccountId, bookingTokenId: c.bookingTokenId,
+        policy: state.providerPolicy?.royalty, metadata,
+      });
+      requireExact(isDeepStrictEqual(economics, c.economics), "ROYALTY_COMMITMENT_MISMATCH");
+    } catch (error) {
+      if (error instanceof ExactPaymentDenied) throw error;
+      throw new ExactPaymentDenied("ROYALTY_POLICY_OR_METADATA_INVALID");
+    }
+  } else {
+    // A legacy commitment may not silently ignore newly published fee policy,
+    // even on a fee-free asset. New resolver data requires explicit v2 consent.
+    requireExact(state.providerPolicy?.royalty === undefined && state.tokens?.booking?.feeMetadata === undefined,
+      "ROYALTY_COMMITMENT_REQUIRED");
+  }
+  const sellerNetAtomicUnits = economics?.sellerNetAtomicUnits ?? c.settlementAmountAtomicUnits;
+  requireExact(state.invocation.recovery?.atomicUnits === sellerNetAtomicUnits, "PAYMENT_AMOUNT_MISMATCH");
   requireExact(state.invocation.recovery?.asset.kind === "HTS" &&
     state.invocation.recovery.asset.tokenId === c.settlementTokenId &&
     state.delegation.minimumRecovery.asset.kind === "HTS" &&
@@ -150,7 +186,7 @@ export function verifyExactPaymentAuthorization(
     state.fundingAccount.decimals === c.settlementDecimals, "PAYMENT_ASSET_MISMATCH");
   requireExact(state.tokens?.booking?.tokenId === c.bookingTokenId &&
     state.tokens?.settlement?.tokenId === c.settlementTokenId &&
-    state.tokens.booking.customFeeCount === 0 && state.tokens.settlement.customFeeCount === 0 &&
+    (economics !== undefined || state.tokens.booking.customFeeCount === 0) && state.tokens.settlement.customFeeCount === 0 &&
     state.tokens.booking.feeScheduleKey === null && state.tokens.settlement.feeScheduleKey === null,
     "EXACT_NET_TOKEN_POLICY_REQUIRED");
   const allowance = state.bookingAllowance;
@@ -165,10 +201,12 @@ export function verifyExactPaymentAuthorization(
   requireExact(timestamp.safeParse(p.validUntilMs).success && nowMs < p.validUntilMs, "PROVIDER_POLICY_STALE");
   requireExact(p.state === "ALLOW", "PROVIDER_POLICY_DENIED");
   requireExact(p.minimumRecoveryAtomicUnits === null || units.safeParse(p.minimumRecoveryAtomicUnits).success, "PROVIDER_MINIMUM_INVALID");
-  requireExact(p.minimumRecoveryAtomicUnits === null || BigInt(c.settlementAmountAtomicUnits) >= BigInt(p.minimumRecoveryAtomicUnits), "BELOW_PROVIDER_MINIMUM");
+  requireExact(p.minimumRecoveryAtomicUnits === null || BigInt(sellerNetAtomicUnits) >= BigInt(p.minimumRecoveryAtomicUnits), "BELOW_PROVIDER_MINIMUM");
   requireExact(units.safeParse(state.delegation.minimumRecovery.atomicUnits).success, "HOLDER_MINIMUM_INVALID");
-  // No global 40-USDC floor: signed holder minimum and provider minimum intersect.
-  requireExact(BigInt(c.settlementAmountAtomicUnits) >= BigInt(state.delegation.minimumRecovery.atomicUnits), "BELOW_MINIMUM_RECOVERY");
+  if (economics) requireExact(positiveUnits.safeParse(state.delegation.minimumRecovery.atomicUnits).success,
+    "POSITIVE_CANONICAL_HOLDER_MINIMUM_REQUIRED");
+  // D-010: holder and provider minima protect seller NET, not buyer gross.
+  requireExact(BigInt(sellerNetAtomicUnits) >= BigInt(state.delegation.minimumRecovery.atomicUnits), "BELOW_MINIMUM_RECOVERY");
   requireExact(state.delegation.revokedAtMs == null, "DELEGATION_REVOKED");
   requireExact(timestamp.safeParse(state.delegation.expiresAtMs).success && nowMs < state.delegation.expiresAtMs, "DELEGATION_EXPIRED");
   requireExact(timestamp.safeParse(state.quote.expiresAtMs).success && nowMs < state.quote.expiresAtMs && nowMs < c.expiresAtMs, "PAYMENT_EXPIRED");
@@ -193,7 +231,7 @@ export function verifyExactPaymentAuthorization(
   const signatures = verificationTransaction.getSignatures().getFlatSignatureList();
   requireExact(signatures.length === 1 && signatures[0].size === 1 &&
     signatures[0].get(publicKey) != null && publicKey.verifyTransaction(verificationTransaction), "PAYMENT_SIGNATURE_INVALID");
-  return { commitment: c, unsignedTransaction: buildExactPaymentProposal(c), publicKey: publicKey.toString() };
+  return { commitment: c, unsignedTransaction: buildExactPaymentProposal(c), publicKey: publicKey.toString(), sellerNetAtomicUnits, ...(economics ? { economics } : {}) };
 }
 
 export interface PaymentOperationStore {

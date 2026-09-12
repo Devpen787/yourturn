@@ -2,7 +2,7 @@ name: ETHOnline Hedera Redis Runtime Qualification
 
 on:
   push:
-    branches: ['feature/ethonline-hedera-redis-runtime-qual', 'feature/ethonline-hedera-state-recheck-qual']
+    branches: ['feature/ethonline-hedera-redis-runtime-qual', 'feature/ethonline-hedera-state-recheck-qual', 'feature/ethonline-hedera-royalty-qual']
   workflow_dispatch:
 
 permissions:
@@ -31,6 +31,12 @@ jobs:
         run: npm ci --legacy-peer-deps
       - name: Existing exact semantic matrix
         run: env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/hedera-policy-usdc-recovery-check.mjs
+      - name: Provider royalty and exact receipt math
+        run: env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/hedera-recovery-royalty-check.mjs
+      - name: Native royalty authorization and net policy checks
+        run: env -i PATH="$PATH" NODE_OPTIONS=--no-warnings node --experimental-transform-types scripts/hedera-royalty-authorization-check.mjs
+      - name: Explicit TypeScript check
+        run: npx tsc --noEmit --incremental false
       - name: Exercise default adapter against real disposable Redis
         run: env -i PATH="$PATH" NODE_OPTIONS=--no-warnings YT_SOURCE_SHA="${{ github.sha }}" YT_TEST_REDIS_PORT=16379 node --experimental-transform-types scripts/hedera-payment-redis-runtime-check.mjs
       - name: Evidence digest
@@ -41,5 +47,6 @@ jobs:
           path: |
             hedera-payment-redis-runtime-evidence.json
             hedera-payment-redis-runtime-evidence.sha256
+            hedera-royalty-authorization-evidence.json
           if-no-files-found: error
           retention-days: 30
