@@ -1,0 +1,231 @@
+{
+  "evidenceClass": "CI/LOCAL",
+  "independentSecurityStatus": "PENDING",
+  "baseSha": "411f703e164cac82b5498c1f25a2cf21af7bc4be",
+  "candidateRef": "feature/ethonline-hedera-semantic-qual",
+  "runtime": {
+    "node": "v24.1.0",
+    "packages": {
+      "@hashgraph/hedera-agent-kit": "4.0.0",
+      "@hiero-ledger/sdk": "2.81.0",
+      "@hashgraph/sdk": "2.81.0",
+      "next": "14.2.18"
+    }
+  },
+  "install": {
+    "command": "npm ci --legacy-peer-deps --no-audit --no-fund",
+    "exitCode": 0,
+    "addedPackages": 838,
+    "note": "Executed in the isolated worktree before this battery; inherited peer-range workaround; lock unchanged."
+  },
+  "packageLockGitBlob": "f081d58c280485057e47cf6bcdc458157711786b",
+  "commands": [
+    {
+      "name": "build",
+      "argv": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "fixtureEnvironment": {},
+      "exitCode": 0,
+      "elapsedSeconds": 22.72,
+      "logSha256": "bbe6f71083e713d6402e581bd35cad8b6001f04757ece8d9d860968a2aa7200c"
+    },
+    {
+      "name": "types-after-build",
+      "argv": [
+        "./node_modules/.bin/tsc",
+        "--noEmit",
+        "--incremental",
+        "false"
+      ],
+      "fixtureEnvironment": {},
+      "exitCode": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "note": "Sequential rerun after completed build; no source change required."
+    },
+    {
+      "name": "agent",
+      "argv": [
+        "npm",
+        "run",
+        "hedera:agent-check"
+      ],
+      "fixtureEnvironment": {
+        "HEDERA_GUEST_A_ID": "0.0.9001",
+        "HEDERA_TREASURY_ID": "0.0.9002"
+      },
+      "exitCode": 0,
+      "elapsedSeconds": 0.74,
+      "logSha256": "6748cb5458247399eac671f5f7561428a76edf9339831f5f0ffb7b76f58be42e"
+    },
+    {
+      "name": "nft",
+      "argv": [
+        "npm",
+        "run",
+        "hedera:nft-delegation-proof"
+      ],
+      "fixtureEnvironment": {},
+      "exitCode": 0,
+      "elapsedSeconds": 0.56,
+      "logSha256": "39cbabb29c2f6393541a8d33d177100e955b6ae7458d775cadf438867d820358"
+    },
+    {
+      "name": "hak",
+      "argv": [
+        "npm",
+        "run",
+        "hedera:delegated-recovery-hak-check"
+      ],
+      "fixtureEnvironment": {},
+      "exitCode": 0,
+      "elapsedSeconds": 3.77,
+      "logSha256": "2249316ae974a507e7a648e079326374950d73efa408d34cf64a3ec5ad854bdc"
+    },
+    {
+      "name": "policy",
+      "argv": [
+        "npm",
+        "run",
+        "hedera:booking-policy-check"
+      ],
+      "fixtureEnvironment": {},
+      "exitCode": 0,
+      "elapsedSeconds": 4.42,
+      "logSha256": "ccfd83451123e054dfd938d0fcb1b084a87772177e42dacd6e2c7443215a9791"
+    },
+    {
+      "name": "diff",
+      "argv": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "fixtureEnvironment": {},
+      "exitCode": 0,
+      "elapsedSeconds": 0.07,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "focusedSemanticResult": {
+    "status": "PASS",
+    "evidenceClass": "CI/LOCAL",
+    "checks": 77,
+    "assertions": [
+      "hero 40/45: unsigned atomic Maya NFT -> Bob; Bob 45 USDC -> Maya; agent fees",
+      "32 blocked under active 40 before reservation",
+      "fresh active 30 replacement permits 32 when provider permits",
+      "provider floor 35 independently blocks 32 despite active 30",
+      "zero holder minimum is representable without weakening provider",
+      "wrong Bob",
+      "wrong payment source",
+      "receiver differs from payment commitment",
+      "wrong recipient",
+      "changed amount",
+      "changed quote ID",
+      "changed quote hash",
+      "wrong USDC token",
+      "wrong decimals",
+      "stale provider policy",
+      "changed provider version",
+      "provider BLOCK",
+      "provider REVIEW",
+      "provider unknown",
+      "invalid provider minimum",
+      "missing provider minimum decision",
+      "expired holder mandate",
+      "revoked holder mandate",
+      "missing token fee evidence",
+      "NFT custom fee would widen economics",
+      "USDC custom fee would widen economics",
+      "mutable fee schedule",
+      "missing serial allowance",
+      "wrong serial allowance",
+      "revoked or changed allowance spender",
+      "collection-wide allowance refused",
+      "payment revoked",
+      "missing payment revocation state",
+      "payment expired",
+      "insufficient funds",
+      "stale funding/authority resolution",
+      "future authority resolution",
+      "wrong current holder",
+      "wrong delegated agent",
+      "separate fee relayer without native spender authority",
+      "wrong native transaction payer",
+      "wrong booking serial",
+      "wrong operation",
+      "scope without RECOVER",
+      "malformed allowedActions",
+      "wrong action",
+      "unsupported threshold key",
+      "missing authorization",
+      "insufficient signature",
+      "forged signature",
+      "wrong Bob key cannot authorize exact payment",
+      "coherent amount/quote mutation cannot reuse Bob signature",
+      "coherent receiver and funding substitution cannot reuse Bob signature",
+      "native authorization binds commitmentId",
+      "native authorization binds operationId",
+      "native authorization binds quoteId",
+      "native authorization binds quoteHash",
+      "native authorization binds providerPolicyVersion",
+      "native authorization binds serial",
+      "native authorization binds maxTransactionFeeTinybars",
+      "duplicate operation and payment commitment return no second bytes",
+      "new payment authorization cannot reopen an existing durable operation",
+      "reused payment commitment cannot attach to a new operation",
+      "concurrent duplicate operation emits exactly one envelope",
+      "store fails closed (unavailable)",
+      "store fails closed (undefined)",
+      "store fails closed (unexpected)",
+      "store thrown error fails closed",
+      "expiry while waiting for durable reservation yields no bytes",
+      "absent authoritative resolver denies without fallback",
+      "raw legacy HAK settlement cannot bypass Bob authorization",
+      "unconfigured durable Redis fails closed without process-memory fallback",
+      "client-injected key cannot replace authoritative Bob key",
+      "ECDSA native account signature is supported without key custody",
+      "wrong commitment USDC or decimals cannot authorize preparation",
+      "denial before policy authorization never serializes transaction bytes",
+      "historical live runner stops before environment or signing"
+    ],
+    "liveTransactionsSigned": 0,
+    "liveTransactionsSubmitted": 0,
+    "historicalSource": "411f703e164cac82b5498c1f25a2cf21af7bc4be"
+  },
+  "testedSourceSha256": {
+    "lib/hedera-agent-kit/delegated-recovery-plugin.ts": "e2f4f91473739839f988e1a9ccbcaf798df329313c70db5347235a207f7ff8d5",
+    "lib/hedera-agent-kit/policy-authorized-usdc-recovery.ts": "c6b49b600709a2631c4181d07ed73f876c24ac5e547caa34427f5ecaa624a5bc",
+    "lib/hedera-agent-kit/usdc-recovery-semantics.ts": "fe410762ad794bd7718629250744eb6d5c62007a856bbc9647301f1404507a60",
+    "scripts/hedera-policy-usdc-recovery-check.mjs": "4b09f127d1596fe1c7064c922d9368ac8c277cd181ab6a6163d277d48e043eaf",
+    "scripts/hedera-policy-usdc-recovery-live.mjs": "f2bc9127558aea4cfaac4834ada6444ea7f1bf512b005a89641dc56365fb8799",
+    "lib/hedera-agent-kit/exact-payment-authorization.ts": "ca9a3b02e7acd568b9b8bb43ef7d5e3d75513ac5cb64eb754883aaa54838b32f"
+  },
+  "notPerformed": [
+    "live signing or submission",
+    "testnet funding",
+    "Redis-service Lua execution",
+    "independent Security evaluation",
+    "browser verification (no UI changes)",
+    "production deploy",
+    "World/Ledger/Product/Goldens integration"
+  ],
+  "initialVerificationFailure": {
+    "name": "types",
+    "argv": [
+      "./node_modules/.bin/tsc",
+      "--noEmit",
+      "--incremental",
+      "false"
+    ],
+    "fixtureEnvironment": {},
+    "exitCode": 2,
+    "elapsedSeconds": 6.01,
+    "logSha256": "716e680f4383ec43fb4c1649c5265ea04dee921d30e4c171f165b2fa5ff53ab2",
+    "cause": "Standalone tsc ran concurrently with next build deleting/regenerating .next/types. TS6053 generated-file-not-found errors; rerun sequentially after build."
+  },
+  "overallStatus": "PASS"
+}

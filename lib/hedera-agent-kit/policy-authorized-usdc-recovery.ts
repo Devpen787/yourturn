@@ -1,216 +1,199 @@
-import { AccountId, TokenId, Transaction } from "@hiero-ledger/sdk";
+import { AgentMode, BaseTool, type Context } from "@hashgraph/hedera-agent-kit";
+import { Client, PublicKey, Transaction, type TransferTransaction } from "@hiero-ledger/sdk";
+import { z } from "zod";
 import {
   BookingRightDelegationPolicy,
   BookingRightDelegationPolicyError,
-  type BookingRightDelegation,
-  type BookingRightDelegationInvocation,
-  type BookingRightNonceStore,
   type BookingRightPolicyDecision,
 } from "./booking-right-delegation-policy.ts";
 import {
   YOURTURN_DELEGATED_RECOVERY_SETTLE_USDC_TOOL,
-  createDelegatedRecoveryReturnBytesRuntime,
   type DelegatedRecoverySigningEnvelope,
   type SettledTransferParams,
 } from "./delegated-recovery-plugin.ts";
 import {
-  HEDERA_TESTNET_USDC_TOKEN_ID,
-  HEDERA_USDC_DECIMALS,
-  HEDERA_USDC_MIN_RECOVERY_ATOMIC_UNITS,
-  validateAtomicUsdcRecoveryTransaction,
-} from "./usdc-recovery-semantics.ts";
+  ExactPaymentDenied,
+  RedisPaymentOperationStore,
+  paymentCommitmentMemo,
+  verifyExactPaymentAuthorization,
+  type PaymentOperationStore,
+  type ResolvedUsdcRecoveryState,
+} from "./exact-payment-authorization.ts";
+import { validateSeparatedAtomicUsdcRecoveryTransaction } from "./usdc-recovery-semantics.ts";
 
 export type PolicyAuthorizedUsdcRecoveryArgs = {
-  /** Holder-approved, server-resolved delegation state. */
-  delegation: BookingRightDelegation;
-  /** Current server-resolved execution state for this exact recovery attempt. */
-  invocation: BookingRightDelegationInvocation;
-  /** Injectable only for deterministic verification; production defaults to Redis. */
-  nonceStore?: BookingRightNonceStore;
-  /** Injectable only for deterministic verification; production defaults to Date.now. */
+  operationId: string;
+  /** Detached NATIVE transaction-body signature produced externally by Bob. */
+  paymentAuthorization: { signatureHex: string };
+  /** Trusted server dependency, not a client-supplied delegation/key/quote blob. */
+  resolveState: (operationId: string) => Promise<ResolvedUsdcRecoveryState | null>;
+  /** Test seam only; production defaults to atomic durable Redis tombstones. */
+  operationStore?: PaymentOperationStore;
   now?: () => number;
 };
 
+type RecoveryDecision = Omit<BookingRightPolicyDecision, "reason"> & { reason: string };
 export type PolicyAuthorizedUsdcRecoveryResult =
   | {
       ok: true;
-      decision: BookingRightPolicyDecision;
+      decision: RecoveryDecision;
       envelope: DelegatedRecoverySigningEnvelope;
       transactionBytesProduced: true;
+      /** Existing Bob authorization to attach externally; this module never signs. */
+      paymentAuthorization: { signatureHex: string; publicKey: string; accountId: string };
       settlement: {
-        tokenId: string;
-        atomicUnits: string;
-        decimals: number;
-        payerAccountId: string;
-        recipientAccountId: string;
+        tokenId: string; atomicUnits: string; decimals: number;
+        delegatedAgentAccountId: string;
+        settlementSourceAccountId: string;
+        receiverAccountId: string;
+        settlementRecipientAccountId: string;
+        transactionFeePayerAccountId: string;
       };
     }
-  | {
-      ok: false;
-      decision: BookingRightPolicyDecision;
-      transactionBytesProduced: false;
-    };
+  | { ok: false; decision: RecoveryDecision; transactionBytesProduced: false };
 
-function account(value: string): string {
-  return AccountId.fromString(value).toString();
-}
-
-function token(value: string): string {
-  return TokenId.fromString(value).toString();
-}
-
-function atomicUnits(value: string): bigint {
-  if (!/^[1-9][0-9]*$/.test(value)) {
-    throw new Error("usdc_recovery_invalid_atomic_units");
+/** Private HAK tool receives only an already cryptographically verified proposal.
+ * HAK 4.0 handleTransaction ALWAYS generates a new transaction ID, invalidating
+ * Bob's exact-body signature. This bounded RETURN_BYTES adapter preserves the
+ * frozen ID/body and retains the same BaseTool / AbstractPolicy lifecycle.
+ * It has no EXECUTE strategy and is not registered in generic tool discovery.
+ */
+class ExactPaymentReturnBytesTool extends BaseTool<unknown, SettledTransferParams> {
+  method = YOURTURN_DELEGATED_RECOVERY_SETTLE_USDC_TOOL;
+  name = "Prepare Bob-authorized exact atomic USDC recovery";
+  description = "Preserve a pre-authorized frozen transfer after current holder policy and durable replay checks.";
+  parameters: any = z.unknown();
+  constructor(
+    private readonly transfer: TransferTransaction,
+    private readonly expectedParams: SettledTransferParams,
+    private readonly policy: BookingRightDelegationPolicy,
+    private readonly checkFresh: () => void,
+  ) { super(); }
+  async normalizeParams(raw: unknown, context: Context): Promise<SettledTransferParams> {
+    if (context.mode !== AgentMode.RETURN_BYTES || context.accountId !== this.expectedParams.spenderAccountId ||
+      JSON.stringify(raw) !== JSON.stringify(this.expectedParams)) throw new ExactPaymentDenied("PREPARATION_CONTEXT_MISMATCH");
+    return this.expectedParams;
   }
-  return BigInt(value);
+  async coreAction() {
+    if (this.policy.lastDecision?.outcome !== "ALLOW") throw new ExactPaymentDenied("POLICY_ALLOW_REQUIRED");
+    this.checkFresh();
+    return this.transfer;
+  }
+  async secondaryAction(transaction: TransferTransaction, _client: Client, context: Context) {
+    if (context.mode !== AgentMode.RETURN_BYTES || transaction !== this.transfer) throw new ExactPaymentDenied("RETURN_BYTES_REQUIRED");
+    this.checkFresh();
+    return { bytes: transaction.toBytes() };
+  }
 }
 
-/**
- * ETHOnline-new product boundary for customer-visible recovery.
- *
- * Security properties:
- * - only Hedera testnet USDC (0.0.429274, 6 decimals) is accepted;
- * - the holder-approved minimum cannot be below 40 USDC;
- * - payer, booking serial, receiver, settlement token, amount and recipient are
- *   derived from resolved delegation/invocation state rather than caller params;
- * - BookingRightDelegationPolicy runs in HAK context.hooks before transaction bytes;
- * - returned bytes are decoded and re-validated as exactly one NFT + one USDC
- *   movement before they can cross the external signing boundary.
+/** Isolated successor of 411f703, not a live-qualified settlement claim.
+ * Denials return no envelope/transaction bytes. Local native-body construction
+ * for signature verification is not a payment or a signing action.
  */
 export async function preparePolicyAuthorizedUsdcRecovery(
-  args: PolicyAuthorizedUsdcRecoveryArgs
+  args: PolicyAuthorizedUsdcRecoveryArgs,
 ): Promise<PolicyAuthorizedUsdcRecoveryResult> {
-  const { delegation, invocation } = args;
-  if (invocation.action !== "RECOVER") {
-    throw new Error("usdc_recovery_requires_recover_action");
-  }
-  if (
-    delegation.minimumRecovery.asset.kind !== "HTS" ||
-    token(delegation.minimumRecovery.asset.tokenId) !== HEDERA_TESTNET_USDC_TOKEN_ID
-  ) {
-    throw new Error("usdc_recovery_delegation_asset_mismatch");
-  }
-  if (
-    atomicUnits(delegation.minimumRecovery.atomicUnits) <
-    BigInt(HEDERA_USDC_MIN_RECOVERY_ATOMIC_UNITS)
-  ) {
-    throw new Error("usdc_recovery_minimum_below_40_usdc");
-  }
-  if (
-    !invocation.recovery ||
-    invocation.recovery.asset.kind !== "HTS" ||
-    token(invocation.recovery.asset.tokenId) !== HEDERA_TESTNET_USDC_TOKEN_ID
-  ) {
-    throw new Error("usdc_recovery_quote_asset_mismatch");
-  }
-
-  const payerAccountId = account(delegation.spenderAccountId);
-  const holderAccountId = account(delegation.holderAccountId);
-  const receiverAccountId = account(invocation.receiverAccountId ?? "");
-  const settlementAmountAtomicUnits = atomicUnits(
-    invocation.recovery.atomicUnits
-  ).toString();
-
-  const params: SettledTransferParams = {
-    tokenId: token(delegation.tokenId),
-    serial: delegation.serial,
-    ownerAccountId: holderAccountId,
-    spenderAccountId: payerAccountId,
-    receiverAccountId,
-    settlementTokenId: HEDERA_TESTNET_USDC_TOKEN_ID,
-    settlementAmountAtomicUnits,
-    settlementRecipientAccountId: holderAccountId,
-    settlementDecimals: HEDERA_USDC_DECIMALS,
-  };
-
-  const policy = new BookingRightDelegationPolicy(
-    delegation,
-    invocation,
-    args.nonceStore,
-    args.now
-  );
-  const runtime = createDelegatedRecoveryReturnBytesRuntime(payerAccountId);
-
+  let state: ResolvedUsdcRecoveryState | null = null;
+  let client: Client | undefined;
+  let policy: BookingRightDelegationPolicy | undefined;
+  const denied = (reason: string): PolicyAuthorizedUsdcRecoveryResult => ({
+    ok: false,
+    transactionBytesProduced: false,
+    decision: {
+      outcome: "BLOCK", reason,
+      delegationId: state?.delegation?.delegationId ?? "unresolved",
+      action: "RECOVER", tokenId: state?.delegation?.tokenId ?? "unresolved",
+      serial: state?.delegation?.serial ?? 0,
+      detail: "No transaction bytes returned. Resolve current authority and retry only with a new authorized operation where appropriate.",
+    },
+  });
   try {
-    runtime.context.hooks = [...(runtime.context.hooks ?? []), policy];
-    const tool = runtime.tools.find(
-      (candidate) => candidate.method === YOURTURN_DELEGATED_RECOVERY_SETTLE_USDC_TOOL
-    );
-    if (!tool) throw new Error("usdc_recovery_tool_missing");
-
-    let result: { bytes?: Uint8Array; raw?: { error?: string } };
-    try {
-      result = (await tool.execute(runtime.client, runtime.context, params)) as {
-        bytes?: Uint8Array;
-        raw?: { error?: string };
-      };
-    } catch (error) {
-      if (error instanceof BookingRightDelegationPolicyError) {
-        return {
-          ok: false,
-          decision: error.decision,
-          transactionBytesProduced: false,
-        };
-      }
-      throw error;
-    }
-
-    if (!(result.bytes instanceof Uint8Array)) {
-      const blockedDecision = policy.lastDecision;
-      if (blockedDecision && blockedDecision.outcome !== "ALLOW") {
-        return {
-          ok: false,
-          decision: blockedDecision,
-          transactionBytesProduced: false,
-        };
-      }
-      throw new Error(result.raw?.error ?? "usdc_recovery_return_bytes_failed");
-    }
-
-    const decision = policy.lastDecision;
-    if (!decision || decision.outcome !== "ALLOW") {
-      throw new Error("usdc_recovery_policy_allowance_invariant_failed");
-    }
-
-    const transaction = Transaction.fromBytes(result.bytes);
-    validateAtomicUsdcRecoveryTransaction(transaction, {
-      bookingTokenId: params.tokenId,
-      serial: params.serial,
-      holderAccountId,
-      spenderAccountId: payerAccountId,
-      receiverAccountId,
-      settlementTokenId: HEDERA_TESTNET_USDC_TOKEN_ID,
-      settlementAmountAtomicUnits,
-      settlementRecipientAccountId: holderAccountId,
-      settlementDecimals: HEDERA_USDC_DECIMALS,
-    });
-
-    const transactionId = transaction.transactionId?.toString();
-    if (!transactionId) throw new Error("usdc_recovery_missing_transaction_id");
-
-    return {
-      ok: true,
-      decision,
-      transactionBytesProduced: true,
-      envelope: {
-        bytesBase64: Buffer.from(result.bytes).toString("base64"),
-        transactionId,
-        payerAccountId,
-        transactionType: "TransferTransaction",
-        mode: "RETURN_BYTES",
-        signed: false,
-        submitted: false,
+    if (!args || typeof args.operationId !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(args.operationId) || typeof args.resolveState !== "function") return denied("EXECUTION_STATE_REQUIRED");
+    // Snapshot both untrusted signature and resolved state across asynchronous boundaries.
+    const operationId = args.operationId;
+    const signatureHex = args.paymentAuthorization?.signatureHex;
+    state = structuredClone(await args.resolveState(operationId));
+    if (!state) return denied("EXECUTION_STATE_REQUIRED");
+    const now = args.now ?? Date.now;
+    const verified = verifyExactPaymentAuthorization(state, operationId, signatureHex, now());
+    const c = verified.commitment;
+    const params: SettledTransferParams = {
+      tokenId: c.bookingTokenId, serial: c.serial,
+      ownerAccountId: c.holderAccountId,
+      // Legacy NFT authority field is solely the network allowance spender.
+      spenderAccountId: c.transactionFeePayerAccountId,
+      receiverAccountId: c.receiverAccountId,
+      settlementTokenId: c.settlementTokenId,
+      settlementAmountAtomicUnits: c.settlementAmountAtomicUnits,
+      settlementRecipientAccountId: c.settlementRecipientAccountId,
+      settlementDecimals: c.settlementDecimals,
+    };
+    const store = args.operationStore ?? new RedisPaymentOperationStore();
+    policy = new BookingRightDelegationPolicy(state.delegation, state.invocation, {
+      // This is invoked LAST by the existing HAK policy, after every holder check.
+      reserve: async ({ key }) => {
+        try {
+          const result = await store.reserve([
+            `ethonline:hedera:payment:v1:operation:${c.operationId}`,
+            `ethonline:hedera:payment:v1:commitment:${c.commitmentId}`,
+            key,
+          ], paymentCommitmentMemo(c));
+          return result === "claimed" || result === "duplicate" || result === "conflict" ? result : "unavailable";
+        } catch { return "unavailable"; }
       },
+    }, now);
+    const checkFresh = () => {
+      const time = now();
+      if (!Number.isSafeInteger(time) || time < state!.resolvedAtMs || time - state!.resolvedAtMs > 5000 ||
+        time >= c.expiresAtMs || time >= state!.delegation.expiresAtMs ||
+        time >= state!.providerPolicy.validUntilMs || time >= state!.quote.expiresAtMs) {
+        throw new ExactPaymentDenied("EXECUTION_STATE_STALE");
+      }
+    };
+    client = Client.forTestnet(); // No operator, key, query, signing, or submit.
+    const context: Context = { mode: AgentMode.RETURN_BYTES, accountId: c.transactionFeePayerAccountId, hooks: [policy] };
+    const tool = new ExactPaymentReturnBytesTool(verified.unsignedTransaction, params, policy, checkFresh);
+    const result = await tool.execute(client, context, params) as { bytes?: Uint8Array };
+    checkFresh();
+    if (!result.bytes || policy.lastDecision?.outcome !== "ALLOW") {
+      return denied(policy.lastDecision?.outcome !== "ALLOW" ? policy.lastDecision?.reason ?? "POLICY_ALLOW_REQUIRED" : "RETURN_BYTES_FAILED");
+    }
+    const decoded = validateSeparatedAtomicUsdcRecoveryTransaction(Transaction.fromBytes(result.bytes), {
+      bookingTokenId: c.bookingTokenId, serial: c.serial, holderAccountId: c.holderAccountId,
+      delegatedAgentAccountId: c.delegatedAgentAccountId,
+      settlementSourceAccountId: c.settlementSourceAccountId,
+      receiverAccountId: c.receiverAccountId,
+      settlementTokenId: c.settlementTokenId,
+      settlementAmountAtomicUnits: c.settlementAmountAtomicUnits,
+      settlementRecipientAccountId: c.settlementRecipientAccountId,
+      settlementDecimals: c.settlementDecimals,
+      transactionFeePayerAccountId: c.transactionFeePayerAccountId,
+    });
+    if (decoded.transactionId?.toString() !== c.transactionId || decoded.transactionMemo !== paymentCommitmentMemo(c) ||
+      decoded.getSignatures().getFlatSignatureList().some(map => map.size !== 0)) return denied("RETURN_BYTES_SEMANTICS_INVALID");
+    // Verify that serialization preserved the exact body Bob authorized.
+    decoded.addSignature(PublicKey.fromString(verified.publicKey), Buffer.from(signatureHex, "hex"));
+    if (!PublicKey.fromString(verified.publicKey).verifyTransaction(decoded)) return denied("RETURN_BYTES_SIGNATURE_INVALID");
+    checkFresh();
+    return {
+      ok: true, decision: policy.lastDecision, transactionBytesProduced: true,
+      envelope: {
+        bytesBase64: Buffer.from(result.bytes).toString("base64"), transactionId: c.transactionId,
+        payerAccountId: c.transactionFeePayerAccountId, transactionType: "TransferTransaction",
+        mode: "RETURN_BYTES", signed: false, submitted: false,
+      },
+      paymentAuthorization: { signatureHex, publicKey: verified.publicKey, accountId: c.settlementSourceAccountId },
       settlement: {
-        tokenId: HEDERA_TESTNET_USDC_TOKEN_ID,
-        atomicUnits: settlementAmountAtomicUnits,
-        decimals: HEDERA_USDC_DECIMALS,
-        payerAccountId,
-        recipientAccountId: holderAccountId,
+        tokenId: c.settlementTokenId, atomicUnits: c.settlementAmountAtomicUnits, decimals: c.settlementDecimals,
+        delegatedAgentAccountId: c.delegatedAgentAccountId, settlementSourceAccountId: c.settlementSourceAccountId,
+        receiverAccountId: c.receiverAccountId, settlementRecipientAccountId: c.settlementRecipientAccountId,
+        transactionFeePayerAccountId: c.transactionFeePayerAccountId,
       },
     };
-  } finally {
-    runtime.client.close();
-  }
+  } catch (error) {
+    if (error instanceof BookingRightDelegationPolicyError) return { ok: false, decision: error.decision, transactionBytesProduced: false };
+    if (error instanceof ExactPaymentDenied) return denied(error.reason);
+    if (policy?.lastDecision && policy.lastDecision.outcome !== "ALLOW") return { ok: false, decision: policy.lastDecision, transactionBytesProduced: false };
+    return denied("PAYMENT_PREPARATION_INVALID");
+  } finally { client?.close(); }
 }

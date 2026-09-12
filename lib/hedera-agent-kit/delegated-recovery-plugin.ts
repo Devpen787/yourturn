@@ -184,51 +184,25 @@ class TransferDelegatedSerialTool extends BaseTool<unknown, TransferParams> {
 }
 
 /**
- * ETHOnline-new customer recovery primitive.
- *
- * One Hedera TransferTransaction contains BOTH movements: the approved-spender
- * transfer of exactly one booking-right NFT serial and an exact fungible-token
- * payment from the delegated spender/payer to the current holder. HAK still
- * returns unsigned bytes; policy binding and external signing remain separate.
+ * Historical raw settlement entry point is retired. New payment authorization
+ * is mandatory through preparePolicyAuthorizedUsdcRecovery; callers cannot
+ * obtain agent-funded purchase bytes by using the old discovered HAK tool.
+ * The immutable 411f703 source remains the authority for historical live proof.
  */
 class SettleDelegatedSerialWithUsdcTool extends BaseTool<unknown, SettledTransferParams> {
   method = YOURTURN_DELEGATED_RECOVERY_SETTLE_USDC_TOOL;
-  name = "Prepare atomic booking-right + USDC recovery";
-  description =
-    "Prepare one HTS transfer containing the delegated booking-right serial and the policy-bound USDC settlement.";
+  name = "Retired raw USDC settlement entry point";
+  description = "Use the exact-payment-authorized semantic successor.";
   parameters: any = settledTransferParameters;
 
-  async normalizeParams(params: unknown, context: Context): Promise<SettledTransferParams> {
-    const parsed = settledTransferParameters.parse(params);
-    requireContextPayer(context, parsed.spenderAccountId);
-    return parsed;
+  async normalizeParams(_params: unknown, _context: Context): Promise<SettledTransferParams> {
+    throw new Error("usdc_recovery_payment_authorization_required");
   }
-
-  async coreAction(params: SettledTransferParams) {
-    const amount = BigInt(params.settlementAmountAtomicUnits);
-    return new TransferTransaction()
-      .addApprovedNftTransfer(
-        params.tokenId,
-        params.serial,
-        params.ownerAccountId,
-        params.receiverAccountId
-      )
-      .addTokenTransferWithDecimals(
-        params.settlementTokenId,
-        params.spenderAccountId,
-        -amount,
-        params.settlementDecimals
-      )
-      .addTokenTransferWithDecimals(
-        params.settlementTokenId,
-        params.settlementRecipientAccountId,
-        amount,
-        params.settlementDecimals
-      );
+  async coreAction(_params: SettledTransferParams): Promise<never> {
+    throw new Error("usdc_recovery_payment_authorization_required");
   }
-
-  async secondaryAction(transaction: any, client: Client, context: Context) {
-    return handleTransaction(transaction, client, context, settledTransferPostProcess);
+  async secondaryAction(): Promise<never> {
+    throw new Error("usdc_recovery_payment_authorization_required");
   }
 }
 

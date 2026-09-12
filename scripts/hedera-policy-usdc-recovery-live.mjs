@@ -17,6 +17,11 @@ import {
   validateAtomicUsdcRecoveryTransaction,
 } from "../lib/hedera-agent-kit/usdc-recovery-semantics.ts";
 
+// This successor has no live signer/runner. Historical LIVE/TESTNET proof and
+// its executable runner remain pinned to 411f703e164cac82b5498c1f25a2cf21af7bc4be.
+// Fail BEFORE environment/key access, Mirror requests, approval, or submission.
+throw new Error("historical_usdc_live_runner_retired_use_411f703_for_historical_evidence_only");
+
 const MIRROR = "https://testnet.mirrornode.hedera.com/api/v1";
 const CANONICAL_RECOVERY_ATOMIC_UNITS = "45000000";
 const BELOW_MINIMUM_RECOVERY_ATOMIC_UNITS = "32000000";
