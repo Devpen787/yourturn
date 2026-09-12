@@ -80,3 +80,13 @@ Append one block per meaningful run:
 - Failed/open: R2 qualification not yet executed at this commit; R3/R4 and independent R2 review remain open.
 - Claim impact: FIXTURE UX only; no sponsor/backend, historical Golden, default/submission or LIVE claim.
 - Exact next action: run hosted qualification on this exact source, repair any new failures within R2, then hand exact source/evidence to #34 and stop.
+
+### 2026-09-12 — R2 qualification repair
+- Branch/SHA: `feature/ethonline-ux-r2-qual`; first candidate `4b21d49faf450e657ce8c868b071094dcee19fe7`.
+- Mission: retain all existing assertions while qualifying B1–B4.
+- Changed: restored the existing XC-01 exact timing sentence on Bob's new check-in destination; new R2 visible-text helper accounts for CSS uppercase; closed provider attendance is labelled closed; reconciliation copy explicitly preserves completed recovery.
+- Verification actually run: Continuity 34684011552 SUCCESS; Visual 34684011521 FAILED. Build/tsc, 19 holder + 11 booking + 10 R2 model checks passed; holder/booking navigation passed; unchanged integrity 32/32; R2 24/26 (CSS-case comparison failed at both widths). YT-01–08 passed; XC-01 failed on its retained timing sentence, so later XC segment commands did not run in that step.
+- Evidence: first artifact 10294778511, SHA-256 `a0c10748109a9ae8bf1110895b3a479e5d6b1a8ca63573612991af46ad92533f`; original returned-bookings and fulfilment pending/error/result PNGs inspected by builder.
+- Failed/open: full qualification must rerun on this repair; first-candidate results are not promoted to exact repaired-source results.
+- Claim impact: FIXTURE UX only; no independent acceptance or Golden change.
+- Exact next action: run all hosted gates on the repaired source and hand exact source plus original evidence to #34.

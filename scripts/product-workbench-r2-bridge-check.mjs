@@ -15,7 +15,7 @@ const browser = await chromium.launch({ headless: true });
 
 async function visible(p, wanted) {
   await p.waitForFunction(w => document.querySelector("main")?.textContent?.includes(w), wanted, { timeout: 7000 });
-  assert((await p.locator("main").innerText()).includes(wanted), "Missing visible " + wanted);
+  assert((await p.locator("main").innerText()).toLowerCase().includes(wanted.toLowerCase()), "Missing visible " + wanted);
 }
 async function click(p, name, role = "button") {
   await p.locator("main").getByRole(role, { name, exact: true }).click();
