@@ -6,15 +6,19 @@ const sagaPath =
 const saga = await readFile(sagaPath, "utf8");
 
 // Source assertions: exact-economic reconciliation must bind the fee debit to
-// Mirror's exact charged_tx_fee + transaction payer and reject unrelated HBAR
-// effects. The prior open-ended "more negative treasury == fee" tolerance must
-// never return.
+// Mirror's exact charged_tx_fee + transaction payer, reject unrelated HBAR
+// effects, and require the immutable BOOKED 1/10 royalty amount.
 assert.match(saga, /charged_tx_fee\?: number \| string/);
 assert.match(saga, /function transactionPayerAccountId/);
 assert.match(saga, /function verifyRecoveryHbarEconomics/);
 assert.match(saga, /networkFeeCredits !== input\.chargedTxFee/);
 assert.match(saga, /if \(amount < 0n\)/);
 assert.match(saga, /transactionPayerAccountId: payerAccountId/);
+assert.match(saga, /const BOOKED_ROYALTY_NUMERATOR = 1n/);
+assert.match(saga, /const BOOKED_ROYALTY_DENOMINATOR = 10n/);
+assert.match(saga, /function expectedBookedRoyaltyTinybars/);
+assert.match(saga, /amount !== input\.expectedAmount/);
+assert.match(saga, /expectedAmount: expectedRoyalty/);
 assert.match(
   saga,
   /feeCollectorAccountId: getFeeCollectorAccountId\(\)\.toString\(\)/
@@ -24,6 +28,9 @@ assert.doesNotMatch(
   /treasuryNet\s*-\s*treasuryRoyaltyCredit\s*>\s*-expectedRefund/
 );
 assert.doesNotMatch(saga, /treasury_owner:/);
+
+const BOOKED_ROYALTY_NUMERATOR = 1n;
+const BOOKED_ROYALTY_DENOMINATOR = 10n;
 
 function accountsEqual(a, b) {
   return String(a).trim() === String(b).trim();
@@ -55,6 +62,12 @@ function mirrorAmount(value) {
   return null;
 }
 
+function expectedBookedRoyaltyTinybars(grossRefundTinybars) {
+  return (
+    grossRefundTinybars * BOOKED_ROYALTY_NUMERATOR
+  ) / BOOKED_ROYALTY_DENOMINATOR;
+}
+
 function sumHbarTransfers(transfers, accountId) {
   let found = false;
   let total = 0n;
@@ -70,7 +83,12 @@ function sumHbarTransfers(transfers, accountId) {
   return found ? total : null;
 }
 
-function assessedRoyaltyAmount({ fees, holderAccountId, feeCollectorAccountId }) {
+function assessedRoyaltyAmount({
+  fees,
+  holderAccountId,
+  feeCollectorAccountId,
+  expectedAmount,
+}) {
   if (!Array.isArray(fees) || fees.length !== 1) return null;
   const [fee] = fees;
   if (!fee || fee.token_id != null || !fee.collector_account_id) return null;
@@ -84,7 +102,7 @@ function assessedRoyaltyAmount({ fees, holderAccountId, feeCollectorAccountId })
     return null;
   }
   const amount = mirrorAmount(fee.amount);
-  if (amount === null || amount <= 0n) return null;
+  if (amount === null || amount !== expectedAmount) return null;
   return amount;
 }
 
@@ -150,12 +168,14 @@ function verifyMirrorTransaction(response, input) {
   }
 
   const expectedRefund = BigInt(input.expectedRefundTinybars);
+  const expectedRoyalty = expectedBookedRoyaltyTinybars(expectedRefund);
   const royaltyAmount = assessedRoyaltyAmount({
     fees: transaction.assessed_custom_fees,
     holderAccountId: input.holderAccountId,
     feeCollectorAccountId: input.feeCollectorAccountId,
+    expectedAmount: expectedRoyalty,
   });
-  if (royaltyAmount === null || royaltyAmount >= expectedRefund) {
+  if (royaltyAmount === null) {
     return { status: "mismatch", reason: "royalty" };
   }
 
@@ -255,6 +275,28 @@ assert.deepEqual(verifyMirrorTransaction(legitimate(), input), {
   status: "confirmed",
 });
 
+// Prove the explicit positive-integer rounding rule used by Hedera's royalty
+// assessor: floor(gross * 1 / 10). One extra tinybar does not round the royalty up.
+const roundingInput = {
+  ...input,
+  expectedRefundTinybars: 1_800_000_001n,
+};
+assert.equal(expectedBookedRoyaltyTinybars(roundingInput.expectedRefundTinybars), 180_000_000n);
+assert.deepEqual(
+  verifyMirrorTransaction(
+    legitimate({
+      transfers: [
+        { account: input.holderAccountId, amount: 1_620_000_001 },
+        { account: input.treasuryAccountId, amount: -1_621_000_001 },
+        { account: "0.0.3", amount: 600_000 },
+        { account: "0.0.98", amount: 400_000 },
+      ],
+    }),
+    roundingInput
+  ),
+  { status: "confirmed" }
+);
+
 // A different exact charged fee is valid only if the payer debit and explicit
 // network-fee credits change by exactly the same amount.
 const largerFee = 2_500_000;
@@ -305,6 +347,44 @@ assert.deepEqual(verifyMirrorTransaction({ transactions: [] }, input), {
 });
 
 const negativeCases = [
+  [
+    "wrong_positive_royalty_5_percent",
+    legitimate({
+      transfers: [
+        { account: input.holderAccountId, amount: 1_710_000_000 },
+        { account: input.treasuryAccountId, amount: -1_711_000_000 },
+        { account: "0.0.3", amount: 600_000 },
+        { account: "0.0.98", amount: 400_000 },
+      ],
+      assessed_custom_fees: [
+        {
+          amount: 90_000_000,
+          collector_account_id: input.feeCollectorAccountId,
+          effective_payer_account_ids: [input.holderAccountId],
+          token_id: null,
+        },
+      ],
+    }),
+  ],
+  [
+    "wrong_positive_royalty_one_tinybar",
+    legitimate({
+      transfers: [
+        { account: input.holderAccountId, amount: 1_799_999_999 },
+        { account: input.treasuryAccountId, amount: -1_800_999_999 },
+        { account: "0.0.3", amount: 600_000 },
+        { account: "0.0.98", amount: 400_000 },
+      ],
+      assessed_custom_fees: [
+        {
+          amount: 1,
+          collector_account_id: input.feeCollectorAccountId,
+          effective_payer_account_ids: [input.holderAccountId],
+          token_id: null,
+        },
+      ],
+    }),
+  ],
   [
     "security_substitution_a_to_holder_treasury_to_b",
     legitimate({
@@ -547,7 +627,8 @@ console.log(
     ok: true,
     fixture: "world-sec-world-006-royalty-regression",
     positives: [
-      "BOOKED 10% royalty + exact charged_tx_fee with treasury payer",
+      "BOOKED exact 10% royalty + exact charged_tx_fee with treasury payer",
+      "BOOKED floor rounding for gross tinybars not divisible by 10",
       "different exact charged fee with matching payer debit and fee credits",
       "non-treasury payer keeps treasury economics exact",
     ],

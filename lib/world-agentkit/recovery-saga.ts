@@ -162,6 +162,12 @@ const CANCEL_STEPS = [
   "cancel_audit",
 ] as const;
 
+// BOOKED's immutable token schedule is defined in lib/hedera/token.ts as 1/10.
+// Hedera's CustomRoyaltyFeeAssessor uses integer fraction multiplication for
+// positive exchanged HBAR, so the assessed amount is floor(gross * 1 / 10).
+const BOOKED_ROYALTY_NUMERATOR = 1n;
+const BOOKED_ROYALTY_DENOMINATOR = 10n;
+
 function parseValidatedPreview(previewId: string): ProtectedPayload {
   // Re-run the canonical preview verification here so this module cannot be
   // safely called with a merely decoded client payload. The payload is decoded
@@ -257,6 +263,12 @@ function refundTinybars(refundHbar: number): bigint {
   return BigInt(rounded);
 }
 
+function expectedBookedRoyaltyTinybars(grossRefundTinybars: bigint): bigint {
+  return (
+    grossRefundTinybars * BOOKED_ROYALTY_NUMERATOR
+  ) / BOOKED_ROYALTY_DENOMINATOR;
+}
+
 function sumHbarTransfers(
   transfers: MirrorHbarTransfer[] | undefined,
   accountId: string
@@ -277,6 +289,7 @@ function assessedRoyaltyAmount(input: {
   fees: MirrorAssessedCustomFee[] | undefined;
   holderAccountId: string;
   feeCollectorAccountId: string;
+  expectedAmount: bigint;
 }): bigint | null {
   if (!Array.isArray(input.fees) || input.fees.length !== 1) return null;
   const [fee] = input.fees;
@@ -293,7 +306,7 @@ function assessedRoyaltyAmount(input: {
     return null;
   }
   const amount = mirrorAmount(fee.amount);
-  if (amount === null || amount <= 0n) return null;
+  if (amount === null || amount !== input.expectedAmount) return null;
   return amount;
 }
 
@@ -425,10 +438,12 @@ async function verifyCancelTransferTransaction(input: {
   }
 
   const expectedRefund = refundTinybars(input.refundHbar);
+  const expectedRoyalty = expectedBookedRoyaltyTinybars(expectedRefund);
   const royaltyAmount = assessedRoyaltyAmount({
     fees: transaction.assessed_custom_fees,
     holderAccountId: input.holderAccountId,
     feeCollectorAccountId: input.feeCollectorAccountId,
+    expectedAmount: expectedRoyalty,
   });
   const chargedTxFee = mirrorAmount(transaction.charged_tx_fee);
   const payerAccountId = transaction.transaction_id
@@ -444,7 +459,7 @@ async function verifyCancelTransferTransaction(input: {
       accountsEqual(transfer.receiver_account_id, input.treasuryAccountId)
   );
 
-  if (royaltyAmount === null || royaltyAmount >= expectedRefund) {
+  if (royaltyAmount === null) {
     return {
       status: "mismatch",
       reason: "Exact recovery transaction does not prove the expected HBAR royalty assessment",
