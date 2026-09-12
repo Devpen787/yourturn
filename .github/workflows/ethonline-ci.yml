@@ -54,6 +54,26 @@ jobs:
       - name: World recovery write gate adversarial check
         run: npm run world:recovery-write-check
 
+      - name: World SEC-WORLD-006 royalty/saga regression
+        run: |
+          mkdir -p artifacts/world-sec-world-006
+          set +e
+          node scripts/world-sec-world-006-royalty-regression.mjs | tee artifacts/world-sec-world-006/royalty.json
+          royalty_status=${PIPESTATUS[0]}
+          node scripts/world-sec-world-006-regression.mjs | tee artifacts/world-sec-world-006/saga.json
+          saga_status=${PIPESTATUS[0]}
+          set -e
+          test "$royalty_status" -eq 0
+          test "$saga_status" -eq 0
+
+      - name: Upload SEC-WORLD-006 qualification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: world-sec-world-006-${{ github.sha }}
+          path: artifacts/world-sec-world-006
+          if-no-files-found: warn
+
       - name: World signed recovery live-proof runner self-test
         # Offline fixture only: validates exact-resource AgentKit signing and
         # verification without pretending to be LIVE/AGENTBOOK or a live write.

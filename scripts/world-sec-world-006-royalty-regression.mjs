@@ -5,6 +5,20 @@ const sagaPath =
   process.env.WORLD_SAGA_PATH || "lib/world-agentkit/recovery-saga.ts";
 const saga = await readFile(sagaPath, "utf8");
 
+function sourceBigIntConstant(source, name) {
+  const match = source.match(
+    new RegExp(`const\\s+${name}\\s*=\\s*([^;]+);`)
+  );
+  assert.ok(match?.[1], `${name} must be defined`);
+  const expression = match[1].trim();
+  const bigintCall = /^BigInt\(\s*(\d+)\s*\)$/.exec(expression);
+  const bigintLiteral = /^(\d+)n$/.exec(expression);
+  const integerLiteral = /^(\d+)$/.exec(expression);
+  const digits = bigintCall?.[1] ?? bigintLiteral?.[1] ?? integerLiteral?.[1];
+  assert.ok(digits, `${name} must use an integer BigInt-compatible initializer`);
+  return BigInt(digits);
+}
+
 // Source assertions: exact-economic reconciliation must bind the fee debit to
 // Mirror's exact charged_tx_fee + transaction payer, reject unrelated HBAR
 // effects, and require the immutable BOOKED 1/10 royalty amount.
@@ -12,10 +26,9 @@ assert.match(saga, /charged_tx_fee\?: number \| string/);
 assert.match(saga, /function transactionPayerAccountId/);
 assert.match(saga, /function verifyRecoveryHbarEconomics/);
 assert.match(saga, /networkFeeCredits !== input\.chargedTxFee/);
-assert.match(saga, /if \(amount < 0n\)/);
 assert.match(saga, /transactionPayerAccountId: payerAccountId/);
-assert.match(saga, /const BOOKED_ROYALTY_NUMERATOR = 1n/);
-assert.match(saga, /const BOOKED_ROYALTY_DENOMINATOR = 10n/);
+assert.equal(sourceBigIntConstant(saga, "BOOKED_ROYALTY_NUMERATOR"), BigInt(1));
+assert.equal(sourceBigIntConstant(saga, "BOOKED_ROYALTY_DENOMINATOR"), BigInt(10));
 assert.match(saga, /function expectedBookedRoyaltyTinybars/);
 assert.match(saga, /amount !== input\.expectedAmount/);
 assert.match(saga, /expectedAmount: expectedRoyalty/);

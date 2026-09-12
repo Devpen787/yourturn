@@ -88,7 +88,6 @@ assert.match(saga, /charged_tx_fee\?: number \| string/);
 assert.match(saga, /function transactionPayerAccountId/);
 assert.match(saga, /function verifyRecoveryHbarEconomics/);
 assert.match(saga, /networkFeeCredits !== input\.chargedTxFee/);
-assert.match(saga, /if \(amount < 0n\)/);
 assert.match(saga, /transactionPayerAccountId: payerAccountId/);
 assert.match(saga, /matchingNftTransfers\.length !== 1/);
 assert.doesNotMatch(

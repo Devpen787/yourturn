@@ -175,14 +175,19 @@ assert.match(routeSource, /process\.env\.BOOKED_RIGHTS_APPROVAL_SECRET/);
 assert.match(routeSource, /createRedisWorldAgentNonceStore\(\)/);
 assert.match(routeSource, /req\.headers\.get\("agentkit"\)/);
 assert.match(routeSource, /authorizeWorldRecoveryWrite\(/);
+
+const authorizeIndex = routeSource.indexOf("authorizeWorldRecoveryWrite({");
+const createListingIndex = routeSource.indexOf("confirmWorldCreateListing({");
+const cancelReleaseIndex = routeSource.indexOf("confirmWorldCancelRelease({");
+assert.notEqual(authorizeIndex, -1, "World authorization marker must exist");
+assert.notEqual(createListingIndex, -1, "World create-listing saga marker must exist");
+assert.notEqual(cancelReleaseIndex, -1, "World cancel-release saga marker must exist");
 assert.ok(
-  routeSource.indexOf("authorizeWorldRecoveryWrite({") <
-    routeSource.indexOf("bookingPort.confirmCreateListing({"),
+  authorizeIndex < createListingIndex,
   "World identity gate must execute before recovery listing mutation"
 );
 assert.ok(
-  routeSource.indexOf("authorizeWorldRecoveryWrite({") <
-    routeSource.indexOf("bookingPort.confirmCancelRelease({"),
+  authorizeIndex < cancelReleaseIndex,
   "World identity gate must execute before recovery release mutation"
 );
 
