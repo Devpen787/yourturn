@@ -177,9 +177,7 @@ export function SiteHeader({ sessionUser = null }: { sessionUser?: SessionUser }
                   ? "/product-preview"
                   : item.href === "/slots"
                     ? "/product-preview?view=xc-find"
-                    : item.href === "/issuer"
-                      ? "/product-preview?view=xc3-provider-join"
-                      : item.href
+                    : "/product-preview?view=xc3-provider-join"
                 : item.href;
               const landingVisibility = compactCustomerLanding
                 ? item.href === "/slots"
