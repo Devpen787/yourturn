@@ -84,9 +84,18 @@ assert.ok(cancelAudit > cancelBurnEffect);
 assert.match(saga, /if \(transferStep\.state === "running"\)/);
 assert.match(saga, /verifyCancelTransferTransaction/);
 assert.match(saga, /getTransactionById\(input\.transactionId\)/);
-assert.match(saga, /holderNet !== expectedRefund/);
-assert.match(saga, /treasuryNet === null \|\| treasuryNet > -expectedRefund/);
+assert.match(saga, /charged_tx_fee\?: number \| string/);
+assert.match(saga, /function transactionPayerAccountId/);
+assert.match(saga, /function verifyRecoveryHbarEconomics/);
+assert.match(saga, /networkFeeCredits !== input\.chargedTxFee/);
+assert.match(saga, /if \(amount < 0n\)/);
+assert.match(saga, /transactionPayerAccountId: payerAccountId/);
 assert.match(saga, /matchingNftTransfers\.length !== 1/);
+assert.doesNotMatch(
+  saga,
+  /treasuryNet\s*-\s*treasuryRoyaltyCredit\s*>\s*-expectedRefund/,
+  "treasury debit must not use open-ended fee tolerance"
+);
 assert.doesNotMatch(
   saga,
   /treasury_owner:/,
@@ -512,6 +521,8 @@ console.log(
         cancelStepReceipts: true,
         exactRefundTransactionBoundBeforeSubmission: true,
         exactRefundEconomicLegsRequired: true,
+        chargedTxFeeBoundToTransactionPayer: true,
+        unrelatedNegativeHbarEffectsRejected: true,
         treasuryOwnershipAloneRejected: true,
         nonceResetAbsent: true,
         goldenReleasePolicyPreserved: true,
