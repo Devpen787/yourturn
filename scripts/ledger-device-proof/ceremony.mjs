@@ -1,5 +1,6 @@
 const REQUIRED_METHOD = "@ledgerhq/device-signer-kit-ethereum signTypedData";
 const REQUIRED_PATH = "44'/60'/0'/0/0";
+const REQUIRED_REJECTION_CODES = Object.freeze(["6982", "6985"]);
 const REQUIRED_DOMAIN = Object.freeze({
   name: "YourTurn Recovery Mandate",
   version: "1",
@@ -193,7 +194,10 @@ export function sanitizeDeviceState(state) {
 
 export function isUserRejectedState(state) {
   const sanitized = sanitizeDeviceState(state);
-  return sanitized.errorCode === "6982";
+  return (
+    sanitized.errorTag === "EthAppCommandError" &&
+    REQUIRED_REJECTION_CODES.includes(sanitized.errorCode)
+  );
 }
 
 export function sawTypedDataInteraction(events) {
@@ -233,8 +237,15 @@ export function assertExpectedCeremonyResult({
     throw new Error("typed-data user interaction was never observed on device");
   }
 
-  const rejected = events.some(
-    (event) => String(event?.errorCode ?? "").toLowerCase() === "6982"
+  const rejected = events.some((event) =>
+    isUserRejectedState({
+      status: event?.status,
+      error: {
+        _tag: event?.errorTag,
+        errorCode: event?.errorCode,
+        message: event?.errorMessage,
+      },
+    })
   );
   const stopped = sawStoppedState(events);
   const completed = sawCompletedState(events);
@@ -255,7 +266,11 @@ export function assertExpectedCeremonyResult({
     throw new Error(`${expectation} ceremony produced a signature; fail closed`);
   }
   if (expectation === "reject") {
-    if (!rejected) throw new Error("reject ceremony did not return Ledger user-cancel code 6982");
+    if (!rejected) {
+      throw new Error(
+        "reject ceremony did not return an accepted Ledger device-rejection outcome (EthAppCommandError 6982/6985)"
+      );
+    }
     if (completed || stopped || cancelRequested) {
       throw new Error("reject ceremony also contained completed/host-cancel state");
     }
@@ -280,6 +295,6 @@ export const LEDGER_DEVICE_PROOF_CONTRACT = Object.freeze({
   method: REQUIRED_METHOD,
   derivationPath: REQUIRED_PATH,
   approveTerminalStatus: "Completed",
-  rejectErrorCode: "6982",
+  rejectErrorCodes: REQUIRED_REJECTION_CODES,
   cancelTerminalStatus: "Stopped",
 });
