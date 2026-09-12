@@ -12,14 +12,13 @@ for(const required of ['createCanonicalWorldRuntime','createCanonicalWorldConfir
   assert(route.includes(required),`missing canonical route dependency: ${required}`);
 assert(route.includes('export async function GET'), 'read-only challenge route missing');
 assert(route.includes('export async function POST'), 'signed confirmation route missing');
-assert(http.includes("prepareCanonicalWorldRequest"), 'HTTP boundary must create challenge from current canonical facts');
+assert(http.includes('prepareCanonicalWorldRequest'), 'HTTP boundary must create challenge from current canonical facts');
 assert(http.includes("request.method === 'GET'"), 'HTTP boundary must keep GET challenge distinct');
-assert(http.includes("requestUrl.href!==resource.href"), 'signed POST must remain exact-resource bound');
+assert(http.includes('requestUrl.href!==resource.href'), 'signed POST must remain exact-resource bound');
 assert(!consumer.includes('beginRecoveryOperationEffect'), 'World consumer must not own begin-effect');
 assert(!consumer.includes('recordRecoveryOperationEnvelope'), 'World consumer must not own retained-output recording');
 for(const required of ['loadCurrentPaymentRecord','loadCurrentBusinessEligibility','loadCurrentPaymentAuthorization','createSingleBeginComposition'])
   assert(runtime.includes(required),`runtime missing current dependency: ${required}`);
 for(const banned of ['PrivateKey','signTransaction(','execute(','Client.forTestnet','Client.forMainnet'])
   assert(!runtime.includes(banned),`runtime gained signing/submission capability: ${banned}`);
-assert(runtime.includes('execution')===false || true); // keep source-only guard deterministic; no claim promotion here.
 console.log('PASS final canonical route: no legacy ApprovalGrant, one begin owner, current facts required, no signing/submission capability');
