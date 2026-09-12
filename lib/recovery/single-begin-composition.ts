@@ -1,8 +1,12 @@
 import { createPrepareRetainedRecoveryAdapter } from "../hedera-agent-kit/prepare-retained-recovery.ts";
 import type { RecoveryOperation } from "../ledger/recovery-mandate-operation.ts";
 
+type PrepareFactory = typeof createPrepareRetainedRecoveryAdapter;
+
 export function createSingleBeginComposition(input: {
-  prepareDependencies: Parameters<typeof createPrepareRetainedRecoveryAdapter>[0];
+  prepareDependencies: Parameters<PrepareFactory>[0];
+  /** Test seam only; production omits this. */
+  prepareFactory?: PrepareFactory;
 }) {
   return Object.freeze({
     async run(args: {
@@ -11,8 +15,9 @@ export function createSingleBeginComposition(input: {
       revalidate(operation: Readonly<RecoveryOperation>): Promise<void>;
     }) {
       if (args.operation.phase !== "claimed") throw new Error("CLAIMED_OPERATION_REQUIRED");
+      if (typeof args.revalidate !== "function") throw new Error("REVALIDATION_REQUIRED");
       const base = input.prepareDependencies.resolveCanonicalState;
-      const adapter = createPrepareRetainedRecoveryAdapter({
+      const adapter = (input.prepareFactory ?? createPrepareRetainedRecoveryAdapter)({
         ...input.prepareDependencies,
         resolveCanonicalState: async operation => {
           await args.revalidate(Object.freeze({ ...operation }));
