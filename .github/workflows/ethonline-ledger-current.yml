@@ -1,7 +1,7 @@
 name: Ledger current mandate runtime
 on:
   push:
-    branches: [feature/ethonline-ledger-current-qual, feature/ethonline-ledger-operation-qual]
+    branches: [feature/ethonline-ledger-current-qual, feature/ethonline-ledger-operation-qual, feature/ethonline-canonical-projection-qual]
   workflow_dispatch:
 permissions:
   contents: read
@@ -31,3 +31,5 @@ jobs:
         run: node --experimental-strip-types scripts/ledger-current-mandate-check.mjs
       - name: Real Redis operation claim, resume and effect fencing
         run: node --experimental-strip-types scripts/ledger-operation-mandate-check.mjs
+      - name: Canonical time, units, action and agent mapping
+        run: node --experimental-strip-types scripts/canonical-recovery-projection-check.mjs

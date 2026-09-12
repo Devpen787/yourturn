@@ -142,3 +142,10 @@ Append one block per meaningful run:
 - Verification actually run: TypeScript locally PASS. Added disposable real Redis races, exact replay, policy/identity mismatch, revocation, immutable output/receipt, unknown lock retention, strict EVAL and actual lease-expiry fencing tests; hosted execution pending.
 - Limits: no production resolver/consumer, no raw envelope persistence or recovery of output lost after Hedera reservation. That case stays blocked and cannot regenerate bytes. No credentials/device/signing/transaction/funds.
 - Next: execute exact CI and independent Security attack; do not adopt or extend before review.
+
+### 2026-09-12 — canonical projection interface qualification
+- Branch/base: `feature/ethonline-canonical-projection-qual` from independently cleared4b4189a0; claim #5 5647440557.
+- Change: guarded Ledger source -> explicit seconds/milliseconds, positive USDC atomic amount, resale/RECOVER, token/serial and mandatory versioned owner/internal-agent/World-requester/Hedera-executor/resource mapping. Repeated guarded reads surround mapping resolution; immutable projection/digest is a snapshot, never independent permission.
+- Verification: 24 focused local checks and TypeScript PASS. Includes wrong/missing mappings, time overflow/expiry, zero/negative amount, resource/action/currency mismatch, revoke/version races and field binding. Real registry, World verification and chain resolver are not exercised.
+- Limits: input registry remains a mandatory trusted server dependency with no inferred production mapping. No World/Hedera source imported or selected, no HTTP/signed route, credentials/device/signature/transaction. Actual operation claim must revalidate and atomically consume the current mandate; this pre-claim projection never bypasses an odd version.
+- Next: exact CI and independent contract review before any consumer composition.
