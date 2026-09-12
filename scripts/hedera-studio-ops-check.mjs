@@ -1,0 +1,400 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { Client } from "@hiero-ledger/sdk";
+import {
+  YOURTURN_STUDIO_BOOKING_HOLDER_TOOL,
+  YOURTURN_STUDIO_INVENTORY_TOOL,
+  YOURTURN_STUDIO_NETWORK_HEALTH_TOOL,
+  YOURTURN_STUDIO_OPS_TOOL_METHODS,
+  YOURTURN_STUDIO_POLICY_TOOL,
+  YOURTURN_STUDIO_RECEIVE_READINESS_TOOL,
+  YOURTURN_STUDIO_RESALE_RECEIPT_TOOL,
+  createYourTurnStudioOpsPlugin,
+} from "../lib/hedera-agent-kit/studio-ops-plugin.ts";
+
+const pluginSource = readFileSync(
+  new URL("../lib/hedera-agent-kit/studio-ops-plugin.ts", import.meta.url),
+  "utf8"
+);
+for (const forbidden of [
+  "PrivateKey",
+  ".setOperator(",
+  "handleTransaction",
+  "TokenAirdropTransaction",
+  "BatchTransaction",
+  "@hashgraph/hedera-agent-kit-mcp",
+  "process.env",
+]) {
+  assert.equal(pluginSource.includes(forbidden), false, `read-only Studio Ops source must not contain ${forbidden}`);
+}
+assert.equal(YOURTURN_STUDIO_OPS_TOOL_METHODS.length, 6);
+assert.equal(new Set(YOURTURN_STUDIO_OPS_TOOL_METHODS).size, 6);
+
+const providerAccountId = "0.0.1900";
+const receiverAccountId = "0.0.2002";
+const bookingTokenId = "0.0.3001";
+const settlementTokenId = "0.0.429274";
+const transactionId = "0.0.2002@1789139309.785362819";
+const mirrorTransactionId = "0.0.2002-1789139309-785362819";
+
+let accountBody = { account: receiverAccountId, receiver_sig_required: false };
+let bookingRelationshipBody = {
+  tokens: [
+    {
+      token_id: bookingTokenId,
+      freeze_status: "FROZEN",
+      kyc_status: "GRANTED",
+      balance: 0,
+    },
+  ],
+};
+let settlementRelationshipBody = {
+  tokens: [
+    {
+      token_id: settlementTokenId,
+      freeze_status: "NOT_APPLICABLE",
+      kyc_status: "NOT_APPLICABLE",
+      balance: 90000000,
+    },
+  ],
+};
+let pendingBody = { airdrops: [] };
+let inventoryBody = {
+  nfts: [
+    { token_id: bookingTokenId, serial_number: 11, account_id: providerAccountId, spender: null },
+    { token_id: bookingTokenId, serial_number: 12, account_id: providerAccountId, spender: null },
+  ],
+};
+let holderBody = {
+  token_id: bookingTokenId,
+  serial_number: 11,
+  account_id: receiverAccountId,
+  spender: null,
+  delegating_spender: null,
+};
+let receiptBody = {
+  transactions: [
+    {
+      transaction_id: mirrorTransactionId,
+      result: "SUCCESS",
+      nft_transfers: [
+        {
+          token_id: bookingTokenId,
+          serial_number: 11,
+          sender_account_id: "0.0.2001",
+          receiver_account_id: receiverAccountId,
+          is_approval: true,
+        },
+      ],
+      token_transfers: [
+        { token_id: settlementTokenId, account: receiverAccountId, amount: -45000000 },
+        { token_id: settlementTokenId, account: "0.0.2001", amount: 45000000 },
+      ],
+    },
+  ],
+};
+let statusBody = { status: { indicator: "none", description: "All Systems Operational" } };
+let latestMirrorBody = { transactions: [{ consensus_timestamp: "1789139310.000000000" }] };
+const fetchFailures = new Set();
+
+async function fetchJson(url) {
+  for (const marker of fetchFailures) {
+    if (url.includes(marker)) throw new Error(`fixture_read_failed:${marker}`);
+  }
+  if (url === "https://status.fixture/api/v2/status.json") return statusBody;
+  if (url.includes(`/accounts/${providerAccountId}/nfts?`)) return inventoryBody;
+  if (url.includes(`/tokens/${bookingTokenId}/nfts/11`)) return holderBody;
+  if (url.endsWith(`/accounts/${receiverAccountId}`)) return accountBody;
+  if (url.includes(`/accounts/${receiverAccountId}/tokens?token.id=${bookingTokenId}`)) {
+    return bookingRelationshipBody;
+  }
+  if (url.includes(`/accounts/${receiverAccountId}/tokens?token.id=${settlementTokenId}`)) {
+    return settlementRelationshipBody;
+  }
+  if (url.includes(`/accounts/${receiverAccountId}/airdrops/pending?`)) return pendingBody;
+  if (url.includes(`/transactions/${mirrorTransactionId}`)) return receiptBody;
+  if (url.endsWith("/transactions?limit=1&order=desc")) return latestMirrorBody;
+  throw new Error(`unexpected_fixture_url:${url}`);
+}
+
+let policy = {
+  providerId: "studio-a",
+  version: "policy-v7",
+  active: true,
+  bookingTokenId,
+  settlementTokenId,
+  transferMode: "default_frozen_hip551",
+  royaltyBps: 750,
+};
+
+const plugin = createYourTurnStudioOpsPlugin({
+  mirrorBaseUrl: "https://mirror.fixture/api/v1",
+  statusUrl: "https://status.fixture/api/v2/status.json",
+  fetchJson,
+  loadProviderPolicy: async () => policy,
+  nowMs: () => 1789139320000,
+});
+const tools = plugin.tools({});
+assert.deepEqual(
+  tools.map((tool) => tool.method),
+  [...YOURTURN_STUDIO_OPS_TOOL_METHODS]
+);
+
+const tool = (method) => {
+  const found = tools.find((candidate) => candidate.method === method);
+  assert.ok(found, `missing Studio Ops tool ${method}`);
+  return found;
+};
+
+const client = Client.forTestnet();
+const context = {};
+const originalConsoleError = console.error;
+console.error = () => {};
+
+async function expectToolError(method, params, pattern) {
+  const result = await tool(method).execute(client, context, params);
+  assert.match(result?.raw?.error ?? "", pattern);
+}
+
+try {
+  const inventory = await tool(YOURTURN_STUDIO_INVENTORY_TOOL).execute(client, context, {
+    providerAccountId,
+    bookingTokenId,
+    limit: 25,
+  });
+  assert.equal(inventory.raw.nfts.length, 2);
+  assert.deepEqual(inventory.raw.nfts.map((nft) => nft.serial), [11, 12]);
+  assert.equal(inventory.raw.readOnly, true);
+  assert.equal(inventory.raw.signed, false);
+  assert.equal(inventory.raw.submitted, false);
+  assert.equal(inventory.raw.mutationAuthorized, false);
+
+  const holder = await tool(YOURTURN_STUDIO_BOOKING_HOLDER_TOOL).execute(client, context, {
+    bookingTokenId,
+    serial: 11,
+    expectedHolderAccountId: receiverAccountId,
+  });
+  assert.equal(holder.raw.holderAccountId, receiverAccountId);
+  await expectToolError(
+    YOURTURN_STUDIO_BOOKING_HOLDER_TOOL,
+    { bookingTokenId, serial: 11, expectedHolderAccountId: "0.0.2999" },
+    /studio_booking_holder_mismatch/
+  );
+
+  const readinessParams = {
+    receiverAccountId,
+    connectedAccountId: receiverAccountId,
+    bookingTokenId,
+    settlementTokenId,
+  };
+  let readiness = await tool(YOURTURN_STUDIO_RECEIVE_READINESS_TOOL).execute(
+    client,
+    context,
+    readinessParams
+  );
+  assert.equal(readiness.raw.readyForPaidDelivery, true);
+  assert.equal(readiness.raw.requiresControlledBookingUnfreeze, true);
+  assert.equal(readiness.raw.paidFlowMayUsePendingAirdrop, false);
+  assert.deepEqual(readiness.raw.blockers, []);
+
+  await expectToolError(
+    YOURTURN_STUDIO_RECEIVE_READINESS_TOOL,
+    { ...readinessParams, connectedAccountId: "0.0.2999" },
+    /studio_receive_account_switch_identity_mismatch/
+  );
+  await expectToolError(
+    YOURTURN_STUDIO_RECEIVE_READINESS_TOOL,
+    { ...readinessParams, extraClientPolicy: true },
+    /unrecognized|unknown/i
+  );
+
+  accountBody = { ...accountBody, receiver_sig_required: true };
+  readiness = await tool(YOURTURN_STUDIO_RECEIVE_READINESS_TOOL).execute(client, context, readinessParams);
+  assert.equal(readiness.raw.readyForPaidDelivery, false);
+  assert.ok(readiness.raw.blockers.includes("receiver_signature_required"));
+  accountBody = { account: receiverAccountId, receiver_sig_required: false };
+
+  bookingRelationshipBody = { tokens: [] };
+  readiness = await tool(YOURTURN_STUDIO_RECEIVE_READINESS_TOOL).execute(client, context, readinessParams);
+  assert.equal(readiness.raw.readyForPaidDelivery, false);
+  assert.ok(readiness.raw.blockers.includes("booking_token_not_associated"));
+  bookingRelationshipBody = {
+    tokens: [{ token_id: bookingTokenId, freeze_status: "UNFROZEN", kyc_status: "GRANTED" }],
+  };
+  readiness = await tool(YOURTURN_STUDIO_RECEIVE_READINESS_TOOL).execute(client, context, readinessParams);
+  assert.ok(readiness.raw.blockers.includes("booking_not_frozen_at_rest"));
+  bookingRelationshipBody = {
+    tokens: [{ token_id: bookingTokenId, freeze_status: "FROZEN", kyc_status: "REVOKED" }],
+  };
+  readiness = await tool(YOURTURN_STUDIO_RECEIVE_READINESS_TOOL).execute(client, context, readinessParams);
+  assert.ok(readiness.raw.blockers.includes("booking_kyc_not_granted"));
+  bookingRelationshipBody = {
+    tokens: [{ token_id: bookingTokenId, freeze_status: "FROZEN", kyc_status: "GRANTED" }],
+  };
+
+  settlementRelationshipBody = {
+    tokens: [{ token_id: settlementTokenId, freeze_status: "FROZEN", kyc_status: "NOT_APPLICABLE" }],
+  };
+  readiness = await tool(YOURTURN_STUDIO_RECEIVE_READINESS_TOOL).execute(client, context, readinessParams);
+  assert.ok(readiness.raw.blockers.includes("settlement_token_frozen"));
+  settlementRelationshipBody = {
+    tokens: [{ token_id: settlementTokenId, freeze_status: "NOT_APPLICABLE", kyc_status: "NOT_APPLICABLE" }],
+  };
+
+  pendingBody = { airdrops: [{ token_id: bookingTokenId, serial_number: 99 }] };
+  readiness = await tool(YOURTURN_STUDIO_RECEIVE_READINESS_TOOL).execute(client, context, readinessParams);
+  assert.equal(readiness.raw.readyForPaidDelivery, false);
+  assert.ok(readiness.raw.blockers.includes("relevant_pending_airdrop_exists"));
+  assert.equal(readiness.raw.paidFlowMayUsePendingAirdrop, false);
+  pendingBody = { airdrops: [] };
+
+  fetchFailures.add(`/accounts/${receiverAccountId}/tokens?token.id=${bookingTokenId}`);
+  readiness = await tool(YOURTURN_STUDIO_RECEIVE_READINESS_TOOL).execute(client, context, readinessParams);
+  assert.equal(readiness.raw.readyForPaidDelivery, false);
+  assert.deepEqual(readiness.raw.blockers, ["mirror_read_failed"]);
+  fetchFailures.clear();
+
+  accountBody = { receiver_sig_required: false };
+  readiness = await tool(YOURTURN_STUDIO_RECEIVE_READINESS_TOOL).execute(client, context, readinessParams);
+  assert.equal(readiness.raw.readyForPaidDelivery, false);
+  assert.ok(readiness.raw.blockers.includes("account_missing_or_ambiguous"));
+  accountBody = { account: receiverAccountId, receiver_sig_required: false };
+
+  const policyResult = await tool(YOURTURN_STUDIO_POLICY_TOOL).execute(client, context, {
+    providerId: "studio-a",
+    version: "policy-v7",
+  });
+  assert.equal(policyResult.raw.policy.royaltyBps, 750);
+  policy = { ...policy, providerId: "studio-b" };
+  await expectToolError(
+    YOURTURN_STUDIO_POLICY_TOOL,
+    { providerId: "studio-a", version: "policy-v7" },
+    /studio_policy_provider_mismatch/
+  );
+  policy = {
+    providerId: "studio-a",
+    version: "policy-v7",
+    active: true,
+    bookingTokenId,
+    settlementTokenId,
+    transferMode: "default_frozen_hip551",
+    royaltyBps: 750,
+  };
+
+  const receiptParams = {
+    transactionId,
+    bookingTokenId,
+    bookingSerial: 11,
+    sellerAccountId: "0.0.2001",
+    buyerAccountId: receiverAccountId,
+    settlementTokenId,
+    settlementSourceAccountId: receiverAccountId,
+    settlementRecipientAccountId: "0.0.2001",
+    settlementAmountAtomicUnits: "45000000",
+  };
+  let receipt = await tool(YOURTURN_STUDIO_RESALE_RECEIPT_TOOL).execute(client, context, receiptParams);
+  assert.equal(receipt.raw.exactBookingAndSettlementVerified, true);
+  assert.equal(receipt.raw.hip551BatchContainmentVerified, false);
+  assert.equal(receipt.raw.evidenceBoundary, "single successful settlement transaction only");
+
+  receiptBody = {
+    transactions: [
+      {
+        ...receiptBody.transactions[0],
+        token_transfers: [
+          ...receiptBody.transactions[0].token_transfers,
+          { token_id: settlementTokenId, account: "0.0.9999", amount: 1 },
+        ],
+      },
+    ],
+  };
+  await expectToolError(YOURTURN_STUDIO_RESALE_RECEIPT_TOOL, receiptParams, /studio_receipt_token_transfer_count:3/);
+  receiptBody = {
+    transactions: [
+      {
+        transaction_id: mirrorTransactionId,
+        result: "SUCCESS",
+        nft_transfers: [
+          {
+            token_id: bookingTokenId,
+            serial_number: 11,
+            sender_account_id: "0.0.2001",
+            receiver_account_id: receiverAccountId,
+            is_approval: true,
+          },
+        ],
+        token_transfers: [
+          { token_id: settlementTokenId, account: receiverAccountId, amount: -45000000 },
+          { token_id: settlementTokenId, account: "0.0.2001", amount: 45000000 },
+        ],
+      },
+    ],
+  };
+
+  const healthParams = { maxMirrorLagSeconds: 30 };
+  let health = await tool(YOURTURN_STUDIO_NETWORK_HEALTH_TOOL).execute(client, context, healthParams);
+  assert.equal(health.raw.safeToStartWritePreparation, true);
+  assert.equal(health.raw.mirrorLagSeconds, 10);
+
+  latestMirrorBody = { transactions: [{ consensus_timestamp: "1789139200.000000000" }] };
+  health = await tool(YOURTURN_STUDIO_NETWORK_HEALTH_TOOL).execute(client, context, healthParams);
+  assert.equal(health.raw.safeToStartWritePreparation, false);
+  assert.ok(health.raw.blockers.includes("mirror_stale"));
+
+  latestMirrorBody = { transactions: [] };
+  health = await tool(YOURTURN_STUDIO_NETWORK_HEALTH_TOOL).execute(client, context, healthParams);
+  assert.equal(health.raw.safeToStartWritePreparation, false);
+  assert.ok(health.raw.blockers.includes("mirror_freshness_missing"));
+
+  latestMirrorBody = { transactions: [{ consensus_timestamp: "1789139310.000000000" }] };
+  statusBody = { status: { indicator: "major", description: "Major Outage" } };
+  health = await tool(YOURTURN_STUDIO_NETWORK_HEALTH_TOOL).execute(client, context, healthParams);
+  assert.equal(health.raw.safeToStartWritePreparation, false);
+  assert.ok(health.raw.blockers.includes("hedera_status_major"));
+
+  statusBody = { status: { indicator: "none", description: "All Systems Operational" } };
+  fetchFailures.add("status.fixture");
+  health = await tool(YOURTURN_STUDIO_NETWORK_HEALTH_TOOL).execute(client, context, healthParams);
+  assert.equal(health.raw.safeToStartWritePreparation, false);
+  assert.ok(health.raw.blockers.includes("hedera_status_unavailable"));
+  fetchFailures.clear();
+
+  console.log(
+    JSON.stringify(
+      {
+        ok: true,
+        evidenceLevel: "CI/LOCAL",
+        phase: "Studio-Tomorrow Phase B",
+        base: "facd02f14ebd80e591bfe66fca47f165494229f4",
+        tools: [...YOURTURN_STUDIO_OPS_TOOL_METHODS],
+        assertions: {
+          strictSchemas: true,
+          noSigningOrMutationSurface: true,
+          noOfficialMcpDependency: true,
+          inventoryProviderScoped: true,
+          exactHolderCheck: true,
+          accountSwitchRejected: true,
+          receiverSigRequiredBlocks: true,
+          missingAssociationBlocks: true,
+          defaultFrozenAtRestRequired: true,
+          kycFailureBlocks: true,
+          pendingAirdropCannotSubstitutePaidDelivery: true,
+          mirrorReadFailureBlocks: true,
+          authoritativePolicyInjectedServerSide: true,
+          bobFundedSettlementReceiptChecked: true,
+          receiptDoesNotOverclaimHip551Containment: true,
+          staleOrMissingMirrorFreshnessBlocks: true,
+          degradedOrUnavailableStatusBlocks: true,
+        },
+        signed: false,
+        submitted: false,
+        networkMutation: false,
+      },
+      null,
+      2
+    )
+  );
+} finally {
+  console.error = originalConsoleError;
+  client.close();
+}
