@@ -1,108 +1,167 @@
 {
   "schemaVersion": 2,
-  "status": "FINAL_SOFTWARE_SELECTED_WHOLE_CANDIDATE_SECURITY_CLEARED_PACKAGE_PREPARED_NO_REF",
-  "submission": {
-    "event": "ETHOnline 2026",
-    "tracks": ["Hedera Continuity", "World AgentKit Continuity", "Ledger Continuity"],
-    "primaryPartnerCount": 3
+  "event": "ETHOnline 2026",
+  "project": "YourTurn",
+  "submissionType": "Continuity",
+  "summary": "A booking product that lets a holder delegate one narrowly bounded recovery to a verified human-backed agent, without surrendering wallet or account control.",
+  "tracks": [
+    "Hedera Continuity",
+    "World AgentKit Continuity",
+    "Ledger Continuity"
+  ],
+  "repository": {
+    "url": "https://github.com/Devpen787/yourturn",
+    "judgeBranch": "ethonline-2026-final",
+    "license": "MIT",
+    "public": true
   },
-  "exactSources": {
+  "video": "https://youtu.be/weiLDw20zss",
+  "continuity": {
+    "existedBeforeEvent": true,
     "baselineSha": "d0b5f875afb4f2b29af29bc5972cf1edc404d473",
-    "approvedProductSha": "342f46ee6e0c4d0f332287d8433735c5ac015528",
-    "approvedProductEvidenceClass": "FIXTURE",
-    "frozenRuntimeSecurityTargetSha": "25bc842b2c92772e17350ac6dffc021d144cbe32",
-    "authorityControlsQualifiedSha": "60a51fe09e735409a1c0b35593bc4413a49016e1",
-    "authorityControlsTree": "f60a892ce6ecdb7ebb22b49e0e23985f938b7205",
-    "authorityControlsQualificationRun": 34727782318,
-    "authorityControlsSecurityComment": 5649737536,
-    "currentExecutionBranchObservedHead": "00a9494866191628e243cc0301792d428039978a",
-    "currentExecutionBranchObservedTree": "e8ef21af6ab3f5ea6c9b113365ea7398f788e268",
-    "selectedFinalSoftwareSha": "60a51fe09e735409a1c0b35593bc4413a49016e1",
-    "selectedFinalSoftwareTree": "f60a892ce6ecdb7ebb22b49e0e23985f938b7205",
-    "selectionIssueComment": 5650011760,
-    "wholeCandidateSecurityComment": 5650032923
+    "summaryBefore": "Hedera-native booking product with tokenized booking rights on HTS, booking/resale/recovery flows, provider-controlled rules, and HCS, Mirror and Schedule Service proof surfaces. Recovery was performed by the customer; all writes ran through trusted backend code on server-managed accounts, with no delegation, replay protection, identity layer or hardware authorization.",
+    "summaryAddedDuringEvent": [
+      "Bounded Recovery Mandate binding owner, agent, booking, action, minimum recovery, settlement asset, expiry, cancellation policy and nonce",
+      "Current-authority projection re-resolved on every request, with expiry and authority-version enforcement",
+      "AgentKit signature verification bound to exact resource, statement, operation and intent",
+      "AgentBook agent resolution and nonce-backed replay rejection",
+      "Explicit boundary keeping requester identity separate from booking authority",
+      "Operation-scoped provider policy, buyer eligibility and payment records",
+      "Exact buyer-funded payment authorization bound to the operation",
+      "Seller-net minimum semantics rather than gross",
+      "Single begin-effect boundary with durable retained unsigned transaction bytes",
+      "External-signing validation, one-shot dispatch fencing and indexed receipt reconciliation"
+    ],
+    "eventDeltaFiles": 231,
+    "eventDeltaNetNewLines": 29500
   },
-  "product": {
-    "status": "HUMAN_APPROVED_R5_FIXTURE",
-    "exactSha": "342f46ee6e0c4d0f332287d8433735c5ac015528",
-    "byteIdentityMustRemainExact": true,
-    "wholeJourneyBrowserEvidence": "PASS_AT_PRODUCT_SCOPE"
-  },
-  "softwareGates": {
-    "canonicalWorldLedgerHederaPrepareRetain": "PASS_CI_LOCAL",
-    "singleBeginOwnership": "PASS_CI_LOCAL",
-    "businessEligibility": "PASS_CI_LOCAL",
-    "publicEnrollmentProvisioning": "PASS_CI_LOCAL",
-    "durableBobPaymentAuthorization": "PASS_CI_LOCAL",
-    "externalSigningValidation": "PASS_CI_LOCAL",
-    "indexedReceiptValidation": "PASS_CI_LOCAL",
-    "postConfirmCurrentAuthorityReconstruction": "CLEARED_SOURCE_HOSTED_CI_LOCAL_SHAPE_ON_60A51FE",
-    "oneShotTestnetSubmissionControl": "CLEARED_SOURCE_HOSTED_CI_LOCAL_SHAPE_ON_60A51FE",
-    "runtimeTypeScript": "PASS_ON_60A51FE",
-    "runtimeProductionBuild": "PASS_ON_60A51FE",
-    "productR5ByteIdentity": "PASS_ON_60A51FE_QUALIFICATION",
-    "wholeCandidateSecurity": "CLEARED_SOURCE_HOSTED_CI_LOCAL_ON_SELECTED_60A51FE"
-  },
-  "security": {
-    "frozenRuntimeComponent": "CLEARED_BOUNDED_SOURCE_CI_LOCAL",
-    "frozenRuntimeTarget": "25bc842b2c92772e17350ac6dffc021d144cbe32",
-    "authorityControlsComponent": "CLEARED_BOUNDED_SOURCE_HOSTED_CI_LOCAL_SHAPE",
-    "authorityControlsSecurityComment": 5649737536,
-    "wholeIntegratedCandidateDisposition": "CLEARED_SOURCE_HOSTED_CI_LOCAL",
-    "wholeIntegratedCandidateSecurityComment": 5650032923
-  },
-  "integration": {
-    "issue": 5,
-    "exactFinalCandidateSelection": "SELECTED_FROZEN",
-    "qualificationCandidateAvailable": "60a51fe09e735409a1c0b35593bc4413a49016e1",
-    "qualificationCandidateIsFinalSelection": true,
-    "oldIntegrationBranchMayNotBeUsedAsFinalSource": true,
-    "selectedFinalSoftwareSha": "60a51fe09e735409a1c0b35593bc4413a49016e1",
-    "selectedFinalSoftwareTree": "f60a892ce6ecdb7ebb22b49e0e23985f938b7205",
-    "selectionComment": 5650011760
-  },
-  "settledEvidence": {
-    "worldAgentBook": {"status": "LIVE_AGENTBOOK", "scope": "registered agent resolution only; not final signed recovery route"},
-    "worldSandbox": {"status": "REAL_NON_PRODUCTION_SANDBOX", "scope": "World ID Sandbox proof only; not production identity or signed recovery route"},
-    "ledgerPhysicalRejectAttempt": {"status": "REAL_PHYSICAL_ATTEMPT_PRESERVED_NOT_FINAL_DEVICE_QUALIFIED", "scope": "physical signTypedData rejection attempt exists; do not promote to final integrated DEVICE provenance without exact accepted artifact binding"},
-    "hederaHistoricalTransaction": {
-      "status": "LIVE_TESTNET_SECURITY_QUALIFIED_EXACT_TRANSACTION_BOUNDARY",
-      "checkpoint": "411f703e164cac82b5498c1f25a2cf21af7bc4be",
-      "transaction": "0.0.8504405@1789139309.785362819",
-      "scope": "one booking NFT plus 45 USDC in one Hedera transaction; transaction-boundary atomicity only; not newer D-010 final-path LIVE proof"
+  "productDemo": {
+    "status": "verified fixture",
+    "entryPoint": "/product-preview",
+    "journey": "Maya holds a Friday Yoga booking she cannot use and authorizes recovery with a 40 USDC net minimum. Studio A's provider policy remains independent. A 32 USDC offer is rejected with no payment attempted. A 45 USDC offer passes mandate, provider policy, buyer eligibility, payment and current booking checks. Bob becomes holder, finds the booking under My Bookings and checks in. Studio A sees Bob as holder and fulfils. Maya retains her recovery receipt, and later fulfilment does not rewrite the successful recovery.",
+    "economics": {
+      "holderMinimumNetUsdc": 40,
+      "rejectedOfferUsdc": 32,
+      "successfulOfferGrossUsdc": 45,
+      "providerRoyaltyPercent": 10,
+      "royaltyIsDemoConfiguration": true,
+      "holderReceivesUsdc": 40.5,
+      "providerReceivesUsdc": 4.5,
+      "minimumAppliesTo": "seller net proceeds"
     }
   },
-  "optionalFinalPathEvidenceUpgrades": {
-    "ledgerExactFinalIntegratedDeviceApproveReject": "NOT_REQUIRED_TO_INVALIDATE_EXISTING_SUBMISSION_EVIDENCE; REQUIRED_ONLY_IF_CLAIMING_FINAL_INTEGRATED_DEVICE_PROVENANCE",
-    "worldExactCredentialBearingFinalSignedRoute": "OPTIONAL_CLAIM_UPGRADE_UNLESS_SPONSOR_RULES_REQUIRE_IT; DO_NOT_PROMOTE_WITHOUT_EXECUTION",
-    "hederaFreshD010BobFundedFinalPathSettlement": "OPTIONAL_CLAIM_UPGRADE; HISTORICAL_LIVE_TRANSACTION_REMAINS_VALID_FOR_ITS_OLD_EXACT_SCOPE"
+  "integrations": {
+    "ledger": {
+      "loadBearing": true,
+      "role": "Defines what the human allows. A structured Recovery Mandate turns a blanket approval into a narrow, expiring, replay-protected capability that the server cannot widen.",
+      "eventDelta": [
+        "Recovery Mandate structure and validation",
+        "Current-authority projection re-checked per request",
+        "Expiry, nonce and authority-version enforcement",
+        "Out-of-band device ceremony isolated from application credentials"
+      ],
+      "packages": [
+        "@ledgerhq/device-management-kit",
+        "@ledgerhq/device-signer-kit-ethereum",
+        "@ledgerhq/device-transport-kit-node-hid"
+      ],
+      "evidence": [
+        "lib/ledger/",
+        "app/api/ledger/recovery-mandate/",
+        "scripts/ledger-device-proof/",
+        "LEDGER_DX_FEEDBACK.md"
+      ],
+      "boundaries": [
+        "Ledger authorizes the Recovery Mandate; it does not sign the Hedera settlement transaction",
+        "Physical device evidence covers the rejection path and is not presented as device-approved provenance"
+      ]
+    },
+    "world": {
+      "loadBearing": true,
+      "role": "Proves who is asking to act. Verifies that the requester is the registered human-backed agent the mandate names, without granting booking authority.",
+      "eventDelta": [
+        "AgentKit signature verification bound to exact resource, statement, operation and intent",
+        "AgentBook agent resolution",
+        "Nonce-backed replay rejection",
+        "Trust boundary separating identity from authorization"
+      ],
+      "packages": ["@worldcoin/agentkit"],
+      "evidence": [
+        "lib/recovery/canonical-world-consumer.ts",
+        "lib/world-agentkit/",
+        "app/api/agent/confirm/route.ts",
+        "WORLD_AGENTKIT_FEEDBACK.md"
+      ],
+      "boundaries": [
+        "AgentBook registration and resolution evidence is live",
+        "World ID Sandbox evidence is real and non-production",
+        "Verified requester identity is not booking ownership, holder authority or permission to settle"
+      ]
+    },
+    "hedera": {
+      "loadBearing": true,
+      "role": "Enforces and records what actually happened. Booking rights are serial-scoped tokens, settlement is stable-value, and ownership and transfers are independently readable through Mirror.",
+      "eventDelta": [
+        "Current provider, holder, eligibility and payment state re-read at request time",
+        "Seller-net minimum enforcement",
+        "Single begin-effect boundary",
+        "Exact retained unsigned transaction bytes",
+        "External-signing validation before signing and before submission",
+        "One-shot dispatch fencing",
+        "Indexed receipt reconciliation"
+      ],
+      "packages": ["@hashgraph/sdk", "@hashgraph/hedera-agent-kit"],
+      "evidence": [
+        "lib/hedera-agent-kit/",
+        "lib/recovery/single-begin-composition.ts",
+        "docs/ethonline-2026/HEDERA_FEEDBACK.md"
+      ],
+      "historicalTestnetTransaction": {
+        "transactionId": "0.0.8504405@1789139309.785362819",
+        "result": "SUCCESS",
+        "nftTokenId": "0.0.8505698",
+        "nftSerial": 213,
+        "usdcTokenId": "0.0.429274",
+        "usdcAmount": 45.0,
+        "verifyUrl": "https://testnet.mirrornode.hedera.com/api/v1/transactions/0.0.8504405-1789139309-785362819",
+        "proves": "One booking NFT and a flat 45 USDC moved together in a single atomic Hedera transaction",
+        "doesNotProve": "The newer 40.5 / 4.5 demo royalty economics, or atomicity of the cross-system workflow"
+      },
+      "boundaries": [
+        "Atomicity applies to the single Hedera transaction boundary only, not the whole workflow",
+        "The public confirmation route stops at retained unsigned transaction bytes and does not sign or submit automatically"
+      ]
+    }
   },
-  "submissionPackage": {
-    "readme": "APPLIED_IN_DOCS_ONLY_NO_REF_SUCCESSOR",
-    "reviewerGuide": "APPLIED_IN_DOCS_ONLY_NO_REF_SUCCESSOR",
-    "finishPhases": "APPLIED_IN_DOCS_ONLY_NO_REF_SUCCESSOR",
-    "acceptance": "APPLIED_IN_DOCS_ONLY_NO_REF_SUCCESSOR",
-    "finalEvidence": "APPLIED_IN_DOCS_ONLY_NO_REF_SUCCESSOR",
-    "worldFeedback": "APPLIED_ROOT_CANONICAL_DOC",
-    "ledgerFeedback": "APPLIED_ROOT_CANONICAL_DOC",
-    "hederaFeedback": "PRESENT",
-    "mediaStatus": "APPLIED_IN_DOCS_ONLY_NO_REF_SUCCESSOR",
-    "publicVideoMirror": "https://youtu.be/weiLDw20zss",
-    "ethGlobalVideoUpload": "HUMAN_REPORTED_COMPLETE",
-    "issue7EvidenceIndex": "ROUTER_READY_FOR_ISSUE_BODY",
-    "finalHumanLock": "PENDING",
-    "packageGateTrigger": "MET_AND_DOCS_ONLY_PACKAGE_COMMIT_PREPARED_NO_REF",
-    "exactFinalBrowserRun": "PENDING"
+  "verification": {
+    "applicationCodeSha": "60a51fe09e735409a1c0b35593bc4413a49016e1",
+    "ciRun": 34727782318,
+    "ciResult": "success",
+    "typecheck": "pass",
+    "productionBuild": "pass",
+    "browserQa": "pass",
+    "browserQaScope": "Local browser QA executed against the exact submission package: holder navigation, booking navigation, integrity, connected-actor and full product journey suites, at desktop 1440x1000 and mobile 390x844, with zero server errors.",
+    "credentialFreeReproduction": true,
+    "reproduceCommands": [
+      "npm ci --legacy-peer-deps",
+      "npx tsc --noEmit --incremental false",
+      "npm run build",
+      "node --experimental-transform-types scripts/single-begin-composition-check.mjs",
+      "node --experimental-transform-types scripts/hedera-external-signing-check.mjs",
+      "node --experimental-transform-types scripts/hedera-receipt-reader-check.mjs"
+    ]
   },
-  "claimLimits": [
-    "FIXTURE, CI/LOCAL, AGENTBOOK, SANDBOX, DEVICE and LIVE/TESTNET are separate evidence classes.",
-    "Selected/frozen final software is 60a51fe09e735409a1c0b35593bc4413a49016e1 at SOURCE/HOSTED-CI/LOCAL; final whole-candidate Security #16 5650032923 is green for those exact bytes.",
-    "A docs-only package successor may change repository/document bytes after Security only if runtime/Product/package/lock/workflow executable bytes remain unchanged.",
-    "Do not imply one LIVE Ledger-to-World-to-Hedera run from separate evidence artifacts.",
-    "Historical Hedera LIVE/TESTNET evidence remains valid only for its exact historical transaction semantics and transaction boundary.",
-    "World AgentBook and Sandbox do not establish the final credential-bearing signed recovery route.",
-    "The preserved Ledger physical rejection attempt does not by itself establish exact final integrated DEVICE provenance.",
-    "Owner-approved royalty means seller minimums apply to seller net proceeds; do not state that Maya necessarily receives buyer gross.",
-    "The component-cleared one-shot control is not itself real authenticated-human plumbing or Hedera transport execution."
+  "sponsorFeedback": {
+    "ledger": "LEDGER_DX_FEEDBACK.md",
+    "world": "WORLD_AGENTKIT_FEEDBACK.md",
+    "hedera": "docs/ethonline-2026/HEDERA_FEEDBACK.md"
+  },
+  "claimBoundaries": [
+    "The product journey is a deterministic fixture demonstrating real product behavior, not live settlement",
+    "AgentBook resolution is live; World ID Sandbox evidence is real and non-production",
+    "Physical Ledger evidence covers the rejection path only and is not an approval",
+    "The historical Hedera transaction moved a flat 45 USDC and does not demonstrate the 40.5 / 4.5 demo royalty split",
+    "No single continuous live Ledger to World to Hedera execution is claimed",
+    "The public confirmation route performs no automatic signing or submission"
   ]
 }

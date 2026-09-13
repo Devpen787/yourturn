@@ -1,54 +1,75 @@
-# YourTurn ETHOnline 2026 — Reviewer Guide
+# Reviewer guide
 
-## 60-second orientation
+A five-minute path through YourTurn for someone who has never seen it.
 
-YourTurn lets a booking holder delegate a narrow recovery mandate without handing an agent broad wallet authority. The product story is Maya (holder) → bounded recovery mandate → exact human-backed requester → provider/current-state/payment checks → Bob-funded recovery → one booking lifecycle reflected to Maya, Bob and Studio A.
+## What is YourTurn?
 
-Exactly three Continuity tracks are claimed:
+A booking product for the moment plans change. You paid for a class or session, you can't make it, and you'd rather not lose the money or spend the evening finding a replacement. YourTurn lets you delegate that recovery to an agent — but only inside one narrow instruction you set: this booking, this action, this minimum price, this deadline.
 
-1. **Ledger Continuity** — bounded human Recovery Mandate.
-2. **World AgentKit Continuity** — exact human-backed delegated requester.
-3. **Hedera Continuity** — booking authority + settlement layer.
+## 1. Watch first
 
-## Product entry
+The [three-minute demo](https://youtu.be/weiLDw20zss) shows the whole journey end to end. Start there.
+
+## 2. Then run it
+
+No credentials, no hardware, no network writes:
+
+```bash
+npm ci --legacy-peer-deps
+npx tsc --noEmit --incremental false
+npm run build
+npm run dev
+```
 
 Open `/product-preview`.
 
-Product R5 is a human-approved **FIXTURE** at exact SHA:
-`342f46ee6e0c4d0f332287d8433735c5ac015528`.
+To check the authorization and settlement boundaries directly:
 
-The Product fixture is intentionally separated from sponsor LIVE proof. Do not infer that one browser session is itself a LIVE Ledger→World→Hedera execution.
+```bash
+node --experimental-transform-types scripts/single-begin-composition-check.mjs
+node --experimental-transform-types scripts/hedera-external-signing-check.mjs
+node --experimental-transform-types scripts/hedera-receipt-reader-check.mjs
+```
 
-## Evidence map
+## 3. The story you'll see
 
-Read `FINAL_EVIDENCE.json` for current exact source/evidence binding.
+Maya holds a Friday Yoga booking she can't use. She authorizes recovery with a **40 USDC minimum**. Studio A's provider policy stays independent of her wishes. Bob offers **32 USDC** — below the floor, so it's rejected and no payment is attempted. Bob offers **45 USDC**; the system re-checks the mandate, provider policy, Bob's eligibility and payment, and current booking state. At the demo's 10% royalty Maya nets **40.5** and Studio A receives **4.5**. Bob becomes holder, finds the booking under **My Bookings**, and checks in. Studio A sees Bob as holder and fulfils. Maya keeps her receipt — and later fulfilment never rewrites the fact that the recovery succeeded.
 
-Strongest settled external evidence:
+## 4. Why three technologies
 
-- **World AgentBook:** LIVE/AGENTBOOK.
-- **World ID:** real non-production Sandbox proof.
-- **Ledger:** real physical signTypedData rejection attempt exists, but exact final integrated DEVICE provenance is not promoted by that fact alone.
-- **Hedera:** independently qualified historical LIVE/TESTNET transaction at `0.0.8504405@1789139309.785362819`, containing the booking NFT + 45 USDC in one Hedera transaction. “Atomic” means that Hedera transaction boundary only.
+**Ledger — what the human allows.** The Recovery Mandate binds owner, agent, booking, action, minimum, settlement asset, expiry and a nonce. It's re-checked on every request; expired or rotated authority stops working immediately. Device signing runs out-of-band in [`scripts/ledger-device-proof/`](../../scripts/ledger-device-proof/) so no server process holds the key. Ledger does not sign the Hedera settlement transaction.
 
-Final software is selected and frozen at `60a51fe09e735409a1c0b35593bc4413a49016e1`, tree `f60a892ce6ecdb7ebb22b49e0e23985f938b7205` by #5 `5650011760`. Whole-candidate Security #16 `5650032923` **CLEARED — SOURCE / HOSTED-CI / LOCAL** for those exact bytes. Hosted exact-head qualification `34727782318` is SUCCESS. This still does not promote the software to LIVE/DEVICE/credential execution.
+**World AgentKit — who is asking.** Ledger establishes that Maya permits Agent X. At runtime the app still has to know whether the requester *is* Agent X. [`lib/recovery/canonical-world-consumer.ts`](../../lib/recovery/canonical-world-consumer.ts) verifies the AgentKit signature against the exact resource, statement, operation and intent, resolves the agent through AgentBook, and rejects replays. Identity is deliberately not ownership or permission to settle.
 
-## Continuity
+**Hedera — what actually happened.** Booking rights are serial-scoped tokens, settlement is stable-value, and ownership is independently readable through Mirror. See [`lib/hedera-agent-kit/`](../../lib/hedera-agent-kit/).
 
-Pre-event baseline:
-`d0b5f875afb4f2b29af29bc5972cf1edc404d473`.
+## 5. What changed during ETHOnline
 
-ETHOnline work adds the bounded cross-sponsor authority plane: Ledger mandate/current authority, World exact-requester verification, current provider/payment/eligibility/chain facts, Bob-funded economics, retained external-signing lifecycle, one-shot dispatch fencing and exact receipt reconciliation.
+The product already had tokenized booking rights, resale and recovery flows, provider rules and Hedera infrastructure — but recovery was something you did yourself, executed by trusted backend code on server-managed accounts. ETHOnline added the delegation layer: a bounded mandate, verified requester identity, and a settlement lifecycle that re-reads current state before anything moves. Full detail in [CONTINUITY_BEFORE_AFTER.md](CONTINUITY_BEFORE_AFTER.md).
 
-Historical Week-5/NYC material remains for provenance but is not the current judge entry.
+## 6. Where to verify each claim
 
-## Video
+| Claim | Where |
+| --- | --- |
+| Bounded mandate and current authority | [`lib/ledger/`](../../lib/ledger/) |
+| Requester verification | [`lib/recovery/canonical-world-consumer.ts`](../../lib/recovery/canonical-world-consumer.ts), [`lib/world-agentkit/`](../../lib/world-agentkit/) |
+| Settlement preparation and receipts | [`lib/hedera-agent-kit/`](../../lib/hedera-agent-kit/) |
+| One begin-effect boundary | [`lib/recovery/single-begin-composition.ts`](../../lib/recovery/single-begin-composition.ts) |
+| Public route boundary | [`app/api/agent/confirm/route.ts`](../../app/api/agent/confirm/route.ts) |
+| Machine-readable summary | [FINAL_EVIDENCE.json](FINAL_EVIDENCE.json) |
 
-Public mirror: https://youtu.be/weiLDw20zss
+The historical Hedera transaction is checkable with no credentials:
 
-The submitted video intentionally shows Product and sponsor proof with truthful evidence labels. Separate executions are not presented as one LIVE integrated ceremony.
+```bash
+curl -s https://testnet.mirrornode.hedera.com/api/v1/transactions/0.0.8504405-1789139309-785362819
+```
 
-## Source/release truth
+## 7. Demo evidence vs external evidence
 
-Judge source-level final integration against selected/frozen `60a51fe09e735409a1c0b35593bc4413a49016e1` or a docs-only packaged successor whose executable bytes are identical. Do not substitute the stale bare-repo default or the moving `feature/finishline-execution` ref.
+The `/product-preview` journey is a **deterministic product fixture** — real product behavior, not live settlement. AgentBook resolution is live. The World ID Sandbox round trip is real but non-production. Physical Ledger evidence covers the **rejection** path. The historical Hedera transaction is real and moved a booking NFT plus a flat 45 USDC together.
 
-The package successor is documentation-only. Exact-final browser/cold-judge evidence and a safe public Source Code ref/permalink remain separate release checks.
+There is no single continuous live Ledger → World → Hedera run, and none is claimed. See [CLAIMS.md](CLAIMS.md).
+
+## Provenance
+
+Application code reviewed at `60a51fe09e735409a1c0b35593bc4413a49016e1`; pre-event baseline `d0b5f875afb4f2b29af29bc5972cf1edc404d473`.

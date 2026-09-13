@@ -40,6 +40,6 @@ Serial-scoped approve/wrong-serial/revoke/post-revoke and settlement proofs are 
 
 **Suggested improvement:** provide a small official harness/checklist for owner-held preconditions, allowance scope, delegated transfer, revoke, post-revoke denial and final ownership/economic verification.
 
-## Evidence still required for the final integrated claim
+## What we would validate next for production
 
-The final candidate must execute one fresh Bob-funded Hedera testnet settlement from the canonical YourTurn path and attach the exact transaction ID, Mirror/HashScan references and indexed receipt. Historical Hedera testnet evidence remains useful provenance but does not prove execution of the new integrated candidate.
+The strongest next proof would be one fresh buyer-funded testnet settlement executed through the canonical path, attaching the exact transaction ID, Mirror/HashScan references and indexed receipt. That would demonstrate the newer royalty economics directly on chain. It is a production-hardening and evidence upgrade, not something needed to understand or evaluate the current work: the existing historical testnet transaction remains real and valid for exactly what it shows.
