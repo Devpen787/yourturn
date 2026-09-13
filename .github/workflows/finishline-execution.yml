@@ -58,6 +58,10 @@ jobs:
         run: node --experimental-transform-types scripts/current-payment-authorization-check.mjs
       - name: External signing validation regression
         run: node --experimental-transform-types scripts/hedera-external-signing-check.mjs
+      - name: Post-confirm signing-state Option-A regression
+        run: node --experimental-transform-types scripts/finishline-post-confirm-signing-state-check.mjs
+      - name: One-shot testnet submission-control regression
+        run: node --experimental-transform-types scripts/finishline-one-shot-submitter-check.mjs
       - name: Indexed receipt reader regression
         run: node --experimental-transform-types scripts/hedera-receipt-reader-check.mjs
       - name: Final canonical route source guard
