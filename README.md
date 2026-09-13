@@ -8,11 +8,10 @@ An AI agent could do that work for you. But "let an agent resell my booking" usu
 
 YourTurn is a booking product built around a third option. You hand over **one narrow instruction** — *recover this specific booking, never below 40 USDC* — and an agent can act only inside it. Not your wallet. Not your account. One booking, one action, one floor price, one deadline.
 
+▶ **[Try YourTurn](https://bookyourturn.vercel.app)**
 ▶ **[Watch the 3-minute demo](https://youtu.be/weiLDw20zss)**
 
 Built for ETHOnline 2026 · Hedera · World AgentKit · Ledger
-
-> **Note on the hosted link:** the public deployment is currently behind Vercel deployment protection and is not open to the public, so it is not linked here as a judge entry point. Everything in this README runs locally from a clean clone in about five minutes — see [Try it](#try-it). The demo video shows the full journey.
 
 ## The problem
 
@@ -160,6 +159,11 @@ npm run dev
 ```
 
 Then open **`/product-preview`** for the full Maya → Bob → Studio A journey.
+
+Or skip the clone entirely:
+
+- Public demo: **https://bookyourturn.vercel.app**
+- Product journey: **https://bookyourturn.vercel.app/product-preview**
 
 To read the load-bearing path in source, start at [`app/api/agent/confirm/route.ts`](app/api/agent/confirm/route.ts) and follow [`lib/recovery/canonical-world-consumer.ts`](lib/recovery/canonical-world-consumer.ts).
 
