@@ -1,160 +1,155 @@
 # YourTurn — ETHOnline 2026 Continuity
 
-YourTurn is a bounded booking-recovery system. A holder can delegate a narrowly scoped recovery mandate; a human-backed agent can request the action; provider policy and live booking/economic state are checked; and the recovery can be prepared for Hedera testnet settlement without giving the agent broad wallet authority.
+YourTurn lets a booking holder delegate **one narrowly bounded recovery authority** without giving an agent broad wallet control. The exact requester is verified, current provider/payment/eligibility/chain facts are re-read, and Hedera transaction bytes are prepared and retained for external human signing.
 
-This branch is the finish-line integration lane for **exactly three Continuity tracks**:
+**Continuity tracks:** Hedera · World AgentKit · Ledger
 
-- **Hedera** — serial-scoped delegated booking authority and USDC recovery economics.
-- **World AgentKit** — proves the exact requesting agent is human-backed; it does not prove booking ownership or permission.
-- **Ledger** — protects the human mandate that grants the agent authority; it does not sign the Hedera settlement transaction.
+## Submission source
 
-## Judge entry
+- Selected/frozen software: `60a51fe09e735409a1c0b35593bc4413a49016e1`
+- Tree: `f60a892ce6ecdb7ebb22b49e0e23985f938b7205`
+- Integration selection: issue #5 comment `5650011760`
+- Whole-candidate Security: issue #16 comment `5650032923` — **CLEARED SOURCE / HOSTED-CI / LOCAL**
+- Product R5: `342f46ee6e0c4d0f332287d8433735c5ac015528` — human-approved **FIXTURE**
+- Exact-head qualification: Actions run `34727782318` — SUCCESS
+- Pre-event baseline: `d0b5f875afb4f2b29af29bc5972cf1edc404d473`
 
-The human-approved Product R5 journey is available at:
+A documentation-only package successor may sit on top of the selected software. The selected **executable** software remains `60a51fe09e735409a1c0b35593bc4413a49016e1`.
+
+## Demo video
+
+Public mirror: https://youtu.be/weiLDw20zss
+
+The final video was also uploaded directly to the ETHGlobal submission form. It intentionally keeps Product fixture footage and sponsor proof at their real evidence classes; it does **not** pretend they were one LIVE three-sponsor execution.
+
+## Five-minute judge path
+
+```bash
+npm ci --legacy-peer-deps
+node --experimental-transform-types scripts/single-begin-composition-check.mjs
+node --experimental-transform-types scripts/hedera-external-signing-check.mjs
+node --experimental-transform-types scripts/hedera-receipt-reader-check.mjs
+npx tsc --noEmit --incremental false
+npm run build
+npm run dev
+```
+
+Then open:
 
 ```text
 /product-preview
 ```
 
-The canonical delegated-agent boundary is:
+`/product-preview` is **Product R5 FIXTURE**, not LIVE sponsor settlement.
 
-```text
-GET  /api/agent/confirm   # read-only challenge built from current server facts
-POST /api/agent/confirm   # fresh AgentKit-signed confirmation/status
-```
+For the current evidence map, read:
 
-The public confirmation path currently ends at a durable `effect-started` operation with exact retained **unsigned** Hedera transaction bytes. External signing validation and indexed-receipt reconciliation are implemented as server-side lifecycle primitives. No automatic signing, retrying, or network submission is claimed.
-
-For current exact evidence and remaining gates, use:
-
+- [`docs/ethonline-2026/REVIEWER_GUIDE.md`](docs/ethonline-2026/REVIEWER_GUIDE.md)
 - [`docs/ethonline-2026/FINAL_EVIDENCE.json`](docs/ethonline-2026/FINAL_EVIDENCE.json)
-- [`docs/ethonline-2026/HUMAN_CEREMONY.md`](docs/ethonline-2026/HUMAN_CEREMONY.md)
-- [`docs/ethonline-2026/COLD_JUDGE_RUNBOOK.md`](docs/ethonline-2026/COLD_JUDGE_RUNBOOK.md)
-- GitHub issue **#18** for the durable finish-line ledger
-- GitHub issue **#16** for independent Security dispositions
-- GitHub issue **#5** for exact integration selection
+- [`docs/ethonline-2026/MEDIA_STATUS.md`](docs/ethonline-2026/MEDIA_STATUS.md)
+- [`docs/ethonline-2026/CONTINUITY_BEFORE_AFTER.md`](docs/ethonline-2026/CONTINUITY_BEFORE_AFTER.md)
+- [`docs/ethonline-2026/CLAIMS.md`](docs/ethonline-2026/CLAIMS.md)
 
-## Product truth
+Internal issues #5/#16/#18 are provenance and coordination history; a judge should not need them to understand the submission.
 
-The Product fixture is frozen at human-approved R5:
+## What the software actually does
 
 ```text
-342f46ee6e0c4d0f332287d8433735c5ac015528
+Ledger Recovery Mandate
+  ↓
+current server-owned authority projection
+  ↓
+World AgentKit exact requester + resource + intent verification
+  ↓
+current provider policy + buyer eligibility/payment + Hedera chain facts
+  ↓
+single begin-effect boundary
+  ↓
+Hedera policy + exact transaction preparation
+  ↓
+durable retained unsigned bytes
 ```
 
-The finish-line execution branch deliberately composes those exact Product blobs with the newer sponsor/runtime lineage. Product bytes are not rewritten during integration.
+`/api/agent/confirm` intentionally stops at durable retained **unsigned** Hedera transaction bytes. External-signing validation, post-confirm signing-state validation, one-shot dispatch control and indexed-receipt reconciliation are reviewed lifecycle primitives at SOURCE/CI/LOCAL scope; they are **not automatically invoked by a public route**.
 
-The journey covers Maya as holder/seller, Bob as buyer/economic source, and Studio A as provider. R5 includes the required bridge states for provider-floor changes, listing/booking coherence, expiry, retry after first payment failure, and cancellation propagation while preserving the prior receipt.
+### Why the Ledger SDK is out-of-band
 
-## Authorization model
+Physical device signing lives under `scripts/ledger-device-proof/` so the server never holds or proxies Maya's hardware key. The result of that ceremony — the bounded Recovery Mandate — is load-bearing in server runtime. Without current valid mandate authority, the recovery operation cannot begin.
 
-The load-bearing path is:
+Ledger is **not** claimed to sign the Hedera HTS settlement transaction.
 
-```text
-current booking + active Ledger Recovery Mandate
-    ↓
-canonical server-owned authority projection
-    ↓
-World verifies the exact requester against that projection
-    ↓
-current provider policy + eligibility + payment record + public enrollment + Hedera chain facts
-    ↓
-Bob's exact durable payment authorization
-    ↓
-one atomic claimed → effect-started transition
-    ↓
-exact Hedera transaction retained before any external signing
-    ↓
-BEFORE_SIGN validation → external executor signer → BEFORE_SUBMIT validation
-    ↓
-(one human-authorized testnet submission; not automated here)
-    ↓
-Mirror indexed-receipt reconciliation → completed operation
-```
+## Evidence classes
 
-Important boundaries:
+| Surface | Strongest settled evidence | What it does **not** prove |
+| --- | --- | --- |
+| Product | Human-approved R5 **FIXTURE** | LIVE sponsor execution |
+| World | **LIVE/AGENTBOOK** + real non-production World ID Sandbox | final credential-bearing signed recovery route |
+| Ledger | real physical `signTypedData` rejection attempt + software authority SOURCE/CI/LOCAL | exact final integrated DEVICE approve/provenance |
+| Hedera | historical **LIVE/TESTNET** tx `0.0.8504405@1789139309.785362819`: booking NFT + flat 45 USDC in one transaction | newer D-010 final-path LIVE execution or whole-workflow atomicity |
+| Final integrated software | selected `60a51fe09e735409a1c0b35593bc4413a49016e1`, whole-candidate Security green SOURCE/HOSTED-CI/LOCAL | automatic live signing/submission or one LIVE three-sponsor run |
 
-- World identity is never holder authority.
-- Ledger approval never bypasses provider policy, current ownership, expiry, replay, economics, or Hedera allowance checks.
-- Bob funds the purchase. Maya receives **seller net proceeds** after any owner-approved royalty; minimum-recovery checks apply to net proceeds.
-- The server does not hold Maya's Ledger key or use Ledger to sign Hedera HTS transactions.
-- Current integration code does not automatically submit transactions to Hedera.
+Supporting World Sandbox evidence is preserved on `feature/ethonline-world-sandbox-proof`; that proof is real non-production evidence and does not confer booking authority.
 
-## Verification
+Historical Hedera checkpoint: `411f703e164cac82b5498c1f25a2cf21af7bc4be`. The word **atomic** applies only to that single Hedera transaction boundary.
 
-The integration lane has a dedicated workflow:
+## Canonical demo economics
 
-```text
-.github/workflows/finishline-execution.yml
-```
+Product R5 demonstrates this configured policy:
 
-It independently proves on the same exact tree that:
+- Maya's current holder-mandate minimum: **40 USDC net**
+- 32 USDC offer: **rejected**
+- successful offer: **45 USDC gross**
+- demo provider royalty: **10%**
+- demo result: **40.5 USDC to Maya + 4.5 USDC to Studio A**
+- the 10% rate is **demo configuration, not a universal system rate**
+- authorization = provider rules ∩ holder mandate ∩ buyer eligibility/payment
 
-- runtime/security-sensitive files remain byte-identical to the frozen runtime checkpoint;
-- Product files remain byte-identical to approved R5;
-- single-begin operation ownership still holds;
-- business eligibility, public provisioning and durable Bob authorization fail closed;
-- external-signing validation and indexed receipt verification remain green;
-- TypeScript and the production build pass;
-- Product R5 state, navigation, failure, Back/Forward/reload and rendered desktop/mobile journeys remain green.
+The historical Hedera transaction `0.0.8504405@1789139309.785362819` moves a **flat 45 USDC** and is not proof of the newer 40.5/4.5 D-010 split.
 
-## Continuity — what is new
+## Continuity — what changed during ETHOnline
 
-The pre-event product already had booking NFTs, recovery UI, policy-agent work, HCS/Mirror proof surfaces, Schedule Service proof, x402 experiments and earlier Hedera payment paths.
+Before ETHOnline, YourTurn already had Hedera booking NFTs, booking/recovery UI, HCS/Mirror proof surfaces, Schedule Service proof, policy-agent work and earlier payment paths.
 
 ETHOnline adds the new cross-sponsor authority plane:
 
-- a replay-safe Ledger Recovery Mandate and guarded owned-operation authority;
-- canonical mapping from that mandate to World requester and Hedera executor identities;
-- official AgentKit request verification with replay/resource/request-age boundaries;
-- operation-scoped current provider/payment/eligibility records;
-- configurable D-010 royalty/net-proceeds economics;
-- exact Bob-funded Hedera payment authorization;
-- one authoritative begin-effect boundary and durable retained transaction output;
-- external-signing validation before signing and before submission;
-- exact indexed-receipt reconciliation.
+- replay-safe Ledger Recovery Mandate and guarded current authority;
+- canonical mapping from holder mandate → World requester → Hedera executor;
+- official World AgentKit request verification with resource/intent/freshness/replay boundaries;
+- operation-scoped provider/payment/eligibility state;
+- Bob-funded payment authorization and seller-net minimum semantics;
+- durable one-begin preparation with retained unsigned transaction output;
+- external-signing and post-confirm validation primitives;
+- one-shot submission fencing and exact indexed-receipt reconciliation.
 
-## Claim boundaries
-
-### Supported by current software/CI
-
-- Product R5 fixture and journey behavior.
-- Canonical World → Ledger → Hedera preparation path at SOURCE/CI/LOCAL scope.
-- Current provider/payment/eligibility/public-enrollment fail-closed checks.
-- Bob-funded payment semantics and owner-approved royalty calculation.
-- External-signing validation and exact indexed-receipt validation primitives.
-- No server-side private signing or automatic Hedera submission in the canonical path.
-
-### Requires final human/live evidence before it may be claimed
-
-- Ledger physical-device provenance for the exact Recovery Mandate.
-- Ledger approve **and reject** evidence on the final integrated candidate.
-- A credential-bearing canonical World signed recovery request and required negative evidence.
-- The final public AgentBook/Sandbox evidence attached to that canonical route.
-- A fresh Bob-funded Hedera testnet settlement produced by the final integrated path.
-- A final whole-candidate independent Security clearance.
-- A cold-judge end-to-end PASS from this README.
-
-Do not upgrade those statements from pending merely because CI is green.
+See [`docs/ethonline-2026/CONTINUITY_BEFORE_AFTER.md`](docs/ethonline-2026/CONTINUITY_BEFORE_AFTER.md).
 
 ## Sponsor feedback
 
-Integration-grounded feedback is tracked in:
-
-- [`docs/ethonline-2026/LEDGER_FEEDBACK.md`](docs/ethonline-2026/LEDGER_FEEDBACK.md)
-- [`docs/ethonline-2026/WORLD_FEEDBACK.md`](docs/ethonline-2026/WORLD_FEEDBACK.md)
+- [`WORLD_AGENTKIT_FEEDBACK.md`](WORLD_AGENTKIT_FEEDBACK.md)
+- [`LEDGER_DX_FEEDBACK.md`](LEDGER_DX_FEEDBACK.md)
 - [`docs/ethonline-2026/HEDERA_FEEDBACK.md`](docs/ethonline-2026/HEDERA_FEEDBACK.md)
 
-## Local setup
+## Claim boundaries
+
+We do **not** claim:
+
+- Product R5 is LIVE;
+- World Sandbox is production identity;
+- AgentBook LIVE proves a final credential-bearing signed recovery mutation;
+- a Ledger rejection proves final DEVICE approve provenance;
+- the historical Hedera transaction proves the newer D-010 40.5/4.5 economics;
+- the whole cross-system workflow is atomic;
+- `/api/agent/confirm` automatically signs or submits to Hedera;
+- separate sponsor artifacts are one LIVE Ledger → World → Hedera execution.
+
+## Local configuration
 
 ```bash
-npm ci --legacy-peer-deps
 cp .env.example .env.local
-npm run dev
 ```
 
-The exact non-secret World/public-enrollment configuration inputs are documented in `.env.example`. Real addresses/accounts must come from reviewed live configuration; there are deliberately no production defaults.
+Use reviewed non-secret test configuration only. There are deliberately no production private-key defaults.
 
 ## Historical material
 
-Historical Week-5 and ETHGlobal NYC proof material remains in the repository for Continuity provenance. It is not the entry point for the ETHOnline 2026 submission.
+Week-5 and ETHGlobal NYC documents remain repository history/provenance. They are **not** the ETHOnline 2026 judge entry. For current truth, start with this README, `REVIEWER_GUIDE.md`, and `FINAL_EVIDENCE.json`.

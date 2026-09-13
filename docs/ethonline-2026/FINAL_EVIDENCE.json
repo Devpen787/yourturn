@@ -1,34 +1,32 @@
 {
-  "schemaVersion": 1,
-  "status": "SOFTWARE_GREEN_EXTERNAL_GATES_PENDING",
+  "schemaVersion": 2,
+  "status": "FINAL_SOFTWARE_SELECTED_WHOLE_CANDIDATE_SECURITY_CLEARED_PACKAGE_PREPARED_NO_REF",
   "submission": {
     "event": "ETHOnline 2026",
-    "tracks": [
-      "Hedera Continuity",
-      "World AgentKit Continuity",
-      "Ledger Continuity"
-    ],
+    "tracks": ["Hedera Continuity", "World AgentKit Continuity", "Ledger Continuity"],
     "primaryPartnerCount": 3
   },
   "exactSources": {
+    "baselineSha": "d0b5f875afb4f2b29af29bc5972cf1edc404d473",
     "approvedProductSha": "342f46ee6e0c4d0f332287d8433735c5ac015528",
+    "approvedProductEvidenceClass": "FIXTURE",
     "frozenRuntimeSecurityTargetSha": "25bc842b2c92772e17350ac6dffc021d144cbe32",
-    "productRuntimeCompositionSha": "0b0ee3df1e88690ec80e9aeb54ac6283281f0f37",
-    "testedIntegratedSoftwareSha": "97f0ef8e716201db50f6638af96448900b8c2a4d",
-    "frozenRuntimeQualificationRun": 34723265366,
-    "integratedQualificationRun": 34725481547
+    "authorityControlsQualifiedSha": "60a51fe09e735409a1c0b35593bc4413a49016e1",
+    "authorityControlsTree": "f60a892ce6ecdb7ebb22b49e0e23985f938b7205",
+    "authorityControlsQualificationRun": 34727782318,
+    "authorityControlsSecurityComment": 5649737536,
+    "currentExecutionBranchObservedHead": "00a9494866191628e243cc0301792d428039978a",
+    "currentExecutionBranchObservedTree": "e8ef21af6ab3f5ea6c9b113365ea7398f788e268",
+    "selectedFinalSoftwareSha": "60a51fe09e735409a1c0b35593bc4413a49016e1",
+    "selectedFinalSoftwareTree": "f60a892ce6ecdb7ebb22b49e0e23985f938b7205",
+    "selectionIssueComment": 5650011760,
+    "wholeCandidateSecurityComment": 5650032923
   },
-  "provenance": {
-    "product": {
-      "status": "APPROVED_GOLDEN_READY_FIXTURE",
-      "byteIdentityGuard": "PASS_ON_TESTED_INTEGRATED_SOFTWARE_SHA",
-      "humanApprovalRecorded": true
-    },
-    "runtime": {
-      "status": "BUILD_PROOF",
-      "byteIdentityGuard": "PASS_ON_TESTED_INTEGRATED_SOFTWARE_SHA",
-      "independentSecurityDisposition": "PENDING"
-    }
+  "product": {
+    "status": "HUMAN_APPROVED_R5_FIXTURE",
+    "exactSha": "342f46ee6e0c4d0f332287d8433735c5ac015528",
+    "byteIdentityMustRemainExact": true,
+    "wholeJourneyBrowserEvidence": "PASS_AT_PRODUCT_SCOPE"
   },
   "softwareGates": {
     "canonicalWorldLedgerHederaPrepareRetain": "PASS_CI_LOCAL",
@@ -38,94 +36,73 @@
     "durableBobPaymentAuthorization": "PASS_CI_LOCAL",
     "externalSigningValidation": "PASS_CI_LOCAL",
     "indexedReceiptValidation": "PASS_CI_LOCAL",
-    "runtimeTypeScript": "PASS",
-    "runtimeProductionBuild": "PASS",
-    "productR5ByteIdentity": "PASS",
-    "productR5StateAndTypeScript": "PASS",
-    "productR5ProductionBuild": "PASS",
-    "productR5RenderedBrowserSuite": "PASS",
-    "integratedSoftwareQualification": "PASS",
-    "coldJudgeSoftwareRehearsal": "PENDING_FINAL_POST_CONFIRM_IMPLEMENTATION"
-  },
-  "remainingCodeGates": [
-    {
-      "status": "BLOCKED_TOOLING_AND_SECURITY_REVIEW",
-      "name": "post-confirm current signing-state reconstruction / lease semantics",
-      "spec": "docs/ethonline-2026/POST_CONFIRM_SIGNING_STATE_SPEC.md",
-      "requiredContract": [
-        "reconstruct signing state from durable operation and current server/chain authority",
-        "recompute the full canonical intent and require equality to durable operation intentHash",
-        "never rerun preparation or repeat claimed-to-effect-started",
-        "keep receipt-only takeover distinct from any signing authority",
-        "fail closed on mandate/provider/payment/eligibility/enrollment/allowance/key/economics drift"
-      ],
-      "securityPreReviewComment": 5649404578
-    },
-    {
-      "status": "BLOCKED_TOOLING_AND_SECURITY_REVIEW",
-      "name": "human-authorized one-shot Hedera submitter",
-      "spec": "docs/ethonline-2026/HEDERA_ONE_SHOT_SUBMITTER_SPEC.md",
-      "requiredContract": [
-        "consume only exact BEFORE_SUBMIT-validated fully signed bytes",
-        "never sign or regenerate transaction bytes",
-        "submit at most once under an explicit human authorization boundary",
-        "never automatically retry an unknown network outcome",
-        "preserve exact transaction ID for reconciliation",
-        "hand off only to the existing indexed receipt reconciler"
-      ],
-      "securityPreReviewComment": 5649398725
-    }
-  ],
-  "humanExternalGates": {
-    "ledgerPhysicalApprove": "PENDING",
-    "ledgerPhysicalReject": "PENDING",
-    "ledgerReplayStaleNegative": "PENDING",
-    "worldCredentialBearingCanonicalRequest": "PENDING",
-    "worldTamperedNegative": "PENDING",
-    "worldUnresolvedRequesterNegative": "PENDING",
-    "worldReplayNegative": "PENDING",
-    "hederaFreshBobFundedTestnetSettlementFromFinalIntegratedPath": "PENDING",
-    "hederaMirrorHashScanEvidence": "PENDING",
-    "finalIndexedReceiptCompletion": "PENDING"
+    "postConfirmCurrentAuthorityReconstruction": "CLEARED_SOURCE_HOSTED_CI_LOCAL_SHAPE_ON_60A51FE",
+    "oneShotTestnetSubmissionControl": "CLEARED_SOURCE_HOSTED_CI_LOCAL_SHAPE_ON_60A51FE",
+    "runtimeTypeScript": "PASS_ON_60A51FE",
+    "runtimeProductionBuild": "PASS_ON_60A51FE",
+    "productR5ByteIdentity": "PASS_ON_60A51FE_QUALIFICATION",
+    "wholeCandidateSecurity": "CLEARED_SOURCE_HOSTED_CI_LOCAL_ON_SELECTED_60A51FE"
   },
   "security": {
+    "frozenRuntimeComponent": "CLEARED_BOUNDED_SOURCE_CI_LOCAL",
     "frozenRuntimeTarget": "25bc842b2c92772e17350ac6dffc021d144cbe32",
-    "attackRequestIssue": 16,
-    "attackRequestComment": 5649168044,
-    "disposition": "PENDING",
-    "wholeIntegratedCandidateDisposition": "PENDING"
+    "authorityControlsComponent": "CLEARED_BOUNDED_SOURCE_HOSTED_CI_LOCAL_SHAPE",
+    "authorityControlsSecurityComment": 5649737536,
+    "wholeIntegratedCandidateDisposition": "CLEARED_SOURCE_HOSTED_CI_LOCAL",
+    "wholeIntegratedCandidateSecurityComment": 5650032923
   },
   "integration": {
     "issue": 5,
-    "softwareCandidateReadyForHandoff": "97f0ef8e716201db50f6638af96448900b8c2a4d",
-    "exactCandidateSelection": "PENDING_SECURITY_AND_POST_CONFIRM_GATES",
-    "oldIntegrationBranchMayNotBeUsedAsFinalSource": true
+    "exactFinalCandidateSelection": "SELECTED_FROZEN",
+    "qualificationCandidateAvailable": "60a51fe09e735409a1c0b35593bc4413a49016e1",
+    "qualificationCandidateIsFinalSelection": true,
+    "oldIntegrationBranchMayNotBeUsedAsFinalSource": true,
+    "selectedFinalSoftwareSha": "60a51fe09e735409a1c0b35593bc4413a49016e1",
+    "selectedFinalSoftwareTree": "f60a892ce6ecdb7ebb22b49e0e23985f938b7205",
+    "selectionComment": 5650011760
+  },
+  "settledEvidence": {
+    "worldAgentBook": {"status": "LIVE_AGENTBOOK", "scope": "registered agent resolution only; not final signed recovery route"},
+    "worldSandbox": {"status": "REAL_NON_PRODUCTION_SANDBOX", "scope": "World ID Sandbox proof only; not production identity or signed recovery route"},
+    "ledgerPhysicalRejectAttempt": {"status": "REAL_PHYSICAL_ATTEMPT_PRESERVED_NOT_FINAL_DEVICE_QUALIFIED", "scope": "physical signTypedData rejection attempt exists; do not promote to final integrated DEVICE provenance without exact accepted artifact binding"},
+    "hederaHistoricalTransaction": {
+      "status": "LIVE_TESTNET_SECURITY_QUALIFIED_EXACT_TRANSACTION_BOUNDARY",
+      "checkpoint": "411f703e164cac82b5498c1f25a2cf21af7bc4be",
+      "transaction": "0.0.8504405@1789139309.785362819",
+      "scope": "one booking NFT plus 45 USDC in one Hedera transaction; transaction-boundary atomicity only; not newer D-010 final-path LIVE proof"
+    }
+  },
+  "optionalFinalPathEvidenceUpgrades": {
+    "ledgerExactFinalIntegratedDeviceApproveReject": "NOT_REQUIRED_TO_INVALIDATE_EXISTING_SUBMISSION_EVIDENCE; REQUIRED_ONLY_IF_CLAIMING_FINAL_INTEGRATED_DEVICE_PROVENANCE",
+    "worldExactCredentialBearingFinalSignedRoute": "OPTIONAL_CLAIM_UPGRADE_UNLESS_SPONSOR_RULES_REQUIRE_IT; DO_NOT_PROMOTE_WITHOUT_EXECUTION",
+    "hederaFreshD010BobFundedFinalPathSettlement": "OPTIONAL_CLAIM_UPGRADE; HISTORICAL_LIVE_TRANSACTION_REMAINS_VALID_FOR_ITS_OLD_EXACT_SCOPE"
   },
   "submissionPackage": {
-    "ethonlineReadme": "PRESENT_ON_EXECUTION_BRANCH",
-    "humanCeremonyRunbook": "PRESENT",
-    "worldCeremonyContract": "PRESENT",
-    "coldJudgeRunbook": "PRESENT",
-    "oneShotSubmitterContract": "PRESENT",
-    "postConfirmSigningStateContract": "PRESENT",
-    "ledgerFeedback": "PRESENT",
-    "worldFeedback": "PRESENT",
+    "readme": "APPLIED_IN_DOCS_ONLY_NO_REF_SUCCESSOR",
+    "reviewerGuide": "APPLIED_IN_DOCS_ONLY_NO_REF_SUCCESSOR",
+    "finishPhases": "APPLIED_IN_DOCS_ONLY_NO_REF_SUCCESSOR",
+    "acceptance": "APPLIED_IN_DOCS_ONLY_NO_REF_SUCCESSOR",
+    "finalEvidence": "APPLIED_IN_DOCS_ONLY_NO_REF_SUCCESSOR",
+    "worldFeedback": "APPLIED_ROOT_CANONICAL_DOC",
+    "ledgerFeedback": "APPLIED_ROOT_CANONICAL_DOC",
     "hederaFeedback": "PRESENT",
-    "submissionDraft": "PRESENT_WITH_FINAL_EVIDENCE_PLACEHOLDERS",
-    "demoVideoScript": "PRESENT",
-    "finalLockChecklist": "PRESENT",
-    "finalVideo": "PENDING_HUMAN_LIVE_EVIDENCE",
-    "finalScreenshots": "PENDING_FINAL_CANDIDATE",
-    "finalSubmissionFields": "PENDING_LIVE_EVIDENCE",
-    "finalHumanLock": "PENDING"
+    "mediaStatus": "APPLIED_IN_DOCS_ONLY_NO_REF_SUCCESSOR",
+    "publicVideoMirror": "https://youtu.be/weiLDw20zss",
+    "ethGlobalVideoUpload": "HUMAN_REPORTED_COMPLETE",
+    "issue7EvidenceIndex": "ROUTER_READY_FOR_ISSUE_BODY",
+    "finalHumanLock": "PENDING",
+    "packageGateTrigger": "MET_AND_DOCS_ONLY_PACKAGE_COMMIT_PREPARED_NO_REF",
+    "exactFinalBrowserRun": "PENDING"
   },
   "claimLimits": [
-    "Do not claim Ledger DEVICE provenance until physical approve/reject evidence exists on the final integrated candidate.",
-    "Do not claim World LIVE/SIGNED-ROUTE qualification until a credential-bearing canonical request and required negatives are captured on the final integrated candidate.",
-    "Do not claim the new cross-sponsor canonical Hedera settlement LIVE/TESTNET until a fresh Bob-funded transaction from the final integrated path is submitted and reconciled.",
-    "Historical/in-event Hedera transaction evidence remains bounded to its exact prior transaction scope and does not prove the new whole integrated path.",
-    "Do not claim Maya receives gross purchase amount when an owner-approved royalty applies; seller minimums apply to seller net proceeds.",
-    "Do not claim the canonical path automatically signs or submits Hedera transactions.",
-    "Do not claim final integration or final lock until issue #5 names one exact SHA and issue #16 clears that exact whole candidate."
+    "FIXTURE, CI/LOCAL, AGENTBOOK, SANDBOX, DEVICE and LIVE/TESTNET are separate evidence classes.",
+    "Selected/frozen final software is 60a51fe09e735409a1c0b35593bc4413a49016e1 at SOURCE/HOSTED-CI/LOCAL; final whole-candidate Security #16 5650032923 is green for those exact bytes.",
+    "A docs-only package successor may change repository/document bytes after Security only if runtime/Product/package/lock/workflow executable bytes remain unchanged.",
+    "Do not imply one LIVE Ledger-to-World-to-Hedera run from separate evidence artifacts.",
+    "Historical Hedera LIVE/TESTNET evidence remains valid only for its exact historical transaction semantics and transaction boundary.",
+    "World AgentBook and Sandbox do not establish the final credential-bearing signed recovery route.",
+    "The preserved Ledger physical rejection attempt does not by itself establish exact final integrated DEVICE provenance.",
+    "Owner-approved royalty means seller minimums apply to seller net proceeds; do not state that Maya necessarily receives buyer gross.",
+    "The component-cleared one-shot control is not itself real authenticated-human plumbing or Hedera transport execution."
   ]
 }

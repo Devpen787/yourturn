@@ -1,70 +1,61 @@
 # AGENTS — YourTurn ETHOnline 2026
 
-## ETHOnline mode
+## Current-truth read order
 
-When working on any `ethonline-2026` branch, this repository's **repo-local** ETHOnline files are authoritative. Do not depend on `/Users/...` AutoBots files or any other machine-local memory to continue work.
+For final-package or submission work, read in this order:
 
-### Mandatory read order
+1. `docs/ethonline-2026/FINAL_EVIDENCE.json`
+2. `docs/ethonline-2026/CURRENT_STATE.md`
+3. `docs/ethonline-2026/FINISH_PHASES.md`
+4. `docs/ethonline-2026/REVIEWER_GUIDE.md`
+5. `README.md`
+6. `docs/ethonline-2026/CONTINUITY_BASELINE.md`
+7. `docs/ethonline-2026/ACCEPTANCE.json`
+8. `docs/ethonline-2026/progress.md` — historical handoff log
+9. task/sponsor mission files only for implementation archaeology
 
-1. `docs/ethonline-2026/CONTINUITY_BASELINE.md`
-2. `docs/ethonline-2026/MASTER_PLAN.md`
-3. `docs/ethonline-2026/BUILD_LOOP.md`
-4. `docs/ethonline-2026/ACCEPTANCE.json`
-5. `docs/ethonline-2026/progress.md`
-6. your assigned `.knowns/tasks/ETHONLINE-*.md`
-7. the relevant sponsor mission under `docs/ethonline-2026/sponsors/`
-8. only then pull implementation context on demand
+When GitHub is available, newest exact dispositions in #18, #5, #16 and #34 outrank stale issue bodies and historical prompt text.
+
+## Frozen software truth
+
+- Pre-event baseline: `d0b5f875afb4f2b29af29bc5972cf1edc404d473`
+- Product R5: `342f46ee6e0c4d0f332287d8433735c5ac015528` — human-approved **FIXTURE**
+- Selected/frozen software: `60a51fe09e735409a1c0b35593bc4413a49016e1`
+- Selected software tree: `f60a892ce6ecdb7ebb22b49e0e23985f938b7205`
+- Integration selection: #5 `5650011760`
+- Whole-candidate Security: #16 `5650032923` — **CLEARED SOURCE/HOSTED-CI/LOCAL**
+- Hosted exact-head qualification: `34727782318` — SUCCESS
+
+A later documentation-only package successor must preserve runtime/Product/package/lock/workflow executable bytes and must continue to bind back to `60a51fe09e735409a1c0b35593bc4413a49016e1`.
+
+## Evidence rule
+
+Never promote evidence class by implication. `FIXTURE`, `CI/LOCAL`, `AGENTBOOK`, `SANDBOX`, `DEVICE`, historical `LIVE/TESTNET`, and any later final-path LIVE execution are distinct.
+
+Never imply:
+
+- separate sponsor proofs were one continuous LIVE run;
+- historical Hedera tx `0.0.8504405@1789139309.785362819` proves the newer D-010 final path;
+- World AgentBook/Sandbox proves final signed-route execution;
+- a physical Ledger reject proves final integrated DEVICE approve provenance;
+- CI/LOCAL software automatically signs or submits to Hedera.
 
 ## Prime directives
 
-- Baseline SHA is `d0b5f875afb4f2b29af29bc5972cf1edc404d473`.
 - Never claim baseline functionality as ETHOnline work.
-- One task = one branch/worktree = one bounded increment.
-- Repository state, commits, PRs, acceptance assertions and evidence are shared truth.
-- Builders do not mark their own sponsor qualification green; use an independent evaluator.
+- Repository state, exact commits, acceptance and evidence are shared truth.
+- Builders do not self-certify sponsor qualification.
 - Fail on uncertainty. `Not tested` is not `passed`.
-- Never weaken acceptance criteria to make implementation pass.
-- Never merge/deploy mainnet, rotate production secrets or spend real funds unattended.
+- Never weaken acceptance criteria to make work pass.
+- Do not modify Product R5 bytes during package/release work.
+- Do not merge, deploy mainnet/production, rotate production secrets or spend funds without explicit authorization.
 
-## Active task branches
+## Runtime boundary
 
-Canonical sponsor branch names are:
+`/api/agent/confirm` resolves current Ledger mandate authority, verifies the exact World requester, re-reads current provider/payment/eligibility/chain facts, crosses one begin-effect boundary, and retains exact **unsigned** Hedera transaction bytes.
 
-- `feature/ethonline-2026-foundation`
-- `feature/ethonline-hedera`
-- `feature/ethonline-world`
-- `feature/ethonline-ledger`
-- `feature/ethonline-integration`
+Automatic signing/submission is not part of that public route.
 
-Do not create alternate sponsor branch names such as `feature/ethonline-hedera-delegation`, `feature/ethonline-world-agentkit`, or `feature/ethonline-ledger-approval`. Sponsor branches must not rewrite each other's cores. Shared interface changes land through a small foundation change first.
+## Historical planning
 
-## Minimum verification
-
-Run what the environment supports and report only what actually ran:
-
-```bash
-npm ci
-npm run build
-npm run hedera:agent-check
-```
-
-New policy/transaction code requires focused tests. User-facing work requires browser verification. New Hedera authority/settlement claims require real testnet evidence through Mirror/HashScan where feasible.
-
-## Hourly handoff
-
-Every meaningful run appends to `docs/ethonline-2026/progress.md`:
-
-- branch/SHA;
-- mission;
-- change;
-- verification actually run;
-- evidence;
-- failed/open items;
-- claim impact;
-- exact next action.
-
-If code/test execution is unavailable, do not pretend work passed. Review, inspect CI, refine the blocker or leave a precise next action.
-
-## Legacy project context
-
-Outside ETHOnline branches, the inherited project directives and historical docs remain useful context. For ETHOnline execution, the repo-local rules above supersede machine-local AutoBots paths.
+`MASTER_PLAN.md`, legacy task files, Week-5/NYC docs and the body of `progress.md` are design/history inputs. They do not outrank `FINAL_EVIDENCE.json` or the selected/frozen SHA above.

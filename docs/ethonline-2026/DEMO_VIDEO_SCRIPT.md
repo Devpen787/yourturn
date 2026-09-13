@@ -1,82 +1,39 @@
-# Demo Video Script — YourTurn ETHOnline 2026
+# Demo Video / Judge Observable Contract — ETHOnline 2026
 
-Target length: **2:30–3:00**. Use the exact final selected SHA. Do not splice historical proof into a claim about the new integrated path without labeling it historical.
+Final video: https://youtu.be/weiLDw20zss
 
-## 0:00–0:20 — Problem and product
+The final video is already recorded/uploaded. This file is a **post-recording truth contract**, not a request to rerecord footage.
 
-**Visual:** README → `/product-preview`, Maya's booking.
+## Canonical observable product sequence
 
-**Narration:**
+The Product R5 fixture supports the judge-visible story:
 
-> Travel recovery is a perfect agent problem, but only if the agent gets exactly enough authority and no more. YourTurn lets Maya delegate one booking recovery without giving an agent her wallet or trusting a single identity signal to authorize value movement.
+1. Maya holds Friday Yoga under a current Recovery Mandate minimum of **40 USDC net**.
+2. A **32 USDC** offer is denied with no transfer/settlement.
+3. A **45 USDC gross** recovery succeeds under the configured demo policy.
+4. Bob receives the same booking lifecycle and reaches **My Bookings → Use booking → same-booking check-in**.
+5. Studio A sees the current holder and performs provider fulfilment.
+6. Maya can inspect receipt/activity and return without changing the recovered facts.
 
-Show the approved Maya → Bob → Studio A product flow briefly.
+The demo provider royalty is 10% **for this demo configuration only**, producing 40.5 USDC to Maya and 4.5 USDC to Studio A. That is not a universal rate.
 
-## 0:20–0:50 — Ledger: human mandate
+## Evidence boundary
 
-**Visual:** exact Recovery Mandate / human-readable typed-data statement and physical Ledger evidence from the final ceremony.
+- Product footage = **FIXTURE**.
+- World = **LIVE/AGENTBOOK** plus real non-production Sandbox support evidence.
+- Ledger = only the exact physical/software evidence independently supported; final DEVICE approve provenance is not claimed.
+- Hedera = historical exact LIVE/TESTNET evidence where shown. Transaction-boundary atomic wording only.
+- Selected software `60a51fe09e735409a1c0b35593bc4413a49016e1` = **SOURCE/HOSTED-CI/LOCAL**.
+- `/api/agent/confirm` stops at retained unsigned bytes.
+- Separate sponsor proofs must never be described as one LIVE Ledger → World → Hedera execution.
 
-**Narration:**
+## Historical Hedera proof
 
-> Ledger protects the human authorization. Maya signs a bounded Recovery Mandate for one booking serial, one resale action, a minimum seller-net recovery, Hedera USDC, an expiry and a nonce. The application still has to re-check current booking state and policy. The Ledger signature is not the Hedera settlement signature.
+Checkpoint: `411f703e164cac82b5498c1f25a2cf21af7bc4be`  
+Transaction: `0.0.8504405@1789139309.785362819`
 
-Show one frame of the reject proof and one of the approve/replay-safe proof.
+This transaction proves one booking NFT + a flat 45 USDC movement in one successful Hedera transaction. It is **not** proof of the newer D-010 40.5/4.5 split or whole-workflow atomicity.
 
-## 0:50–1:15 — World: exact requester
+## Recording history
 
-**Visual:** canonical GET challenge showing operation ID, intent hash, statement and exact resource; then the successful credential-bearing POST / AgentBook evidence.
-
-**Narration:**
-
-> World answers a different question: is this exact requesting agent human-backed? AgentKit signs the exact resource, operation and intent, and AgentBook resolves the requester. YourTurn never treats that as booking ownership or settlement permission.
-
-Briefly show tampered or replayed request rejection.
-
-## 1:15–1:55 — Hedera: current facts and exact transaction
-
-**Visual:** operation moves once to `effect-started`; retained transaction; D-010 gross / royalty / seller-net breakdown.
-
-**Narration:**
-
-> Before any effect starts, YourTurn re-reads provider policy, Bob's eligibility and payment authorization, the current booking allowance and Hedera chain state. Only one component may cross the begin-effect boundary. The exact transaction is retained before external signing. Bob funds the gross amount, and Maya's minimum applies to her seller net after any owner-approved royalty.
-
-Show BEFORE_SIGN, external executor signing, and BEFORE_SUBMIT validation as separate steps. Do not imply the server signs.
-
-## 1:55–2:20 — Fresh testnet evidence
-
-**Visual:** final transaction ID, HashScan, Mirror/indexed receipt and completed operation.
-
-**Narration:**
-
-> After explicit human authorization, those exact validated bytes are submitted once to Hedera testnet. YourTurn does not auto-retry an unknown outcome. Completion comes from the indexed receipt: the exact booking serial moves Maya to Bob, Bob is the USDC source, Maya receives net proceeds, the royalty collector receives the committed fee, and no extra movement is accepted.
-
-Use only the fresh transaction from the final integrated path here.
-
-## 2:20–2:45 — Product outcome / retry coherence
-
-**Visual:** R5 receipt/history across Maya/Bob/Studio A, desktop + mobile montage.
-
-**Narration:**
-
-> The security model is reflected in the product: first-payment failure does not create a false receipt, retry succeeds once, policy changes propagate consistently, and cancellation or refresh never creates a second truth.
-
-## 2:45–3:00 — Continuity / close
-
-**Visual:** simple before/after diagram or repository evidence manifest.
-
-**Narration:**
-
-> YourTurn existed before ETHOnline. The new work is the cross-sponsor authority plane: Ledger for the bounded human mandate, World for the exact human-backed requester, and Hedera for serial-scoped settlement and independently readable evidence. Three different trust questions, composed into one recovery path.
-
-## Recording checklist
-
-- [ ] Exact final SHA visible once.
-- [ ] No private keys, secrets, seed phrases, auth tokens or unnecessary World identifiers visible.
-- [ ] Ledger device claim only when final physical evidence exists.
-- [ ] World LIVE/SIGNED-ROUTE claim only when final canonical credential-bearing request exists.
-- [ ] Hedera LIVE/TESTNET claim uses only the fresh final integrated transaction.
-- [ ] Maya economics say **seller net**, not gross, when royalty is non-zero.
-- [ ] No claim that Ledger signs the Hedera transaction.
-- [ ] No claim that World proves booking ownership.
-- [ ] HashScan/Mirror URLs and transaction ID are readable in the final evidence segment.
-- [ ] Video URL is inserted into `SUBMISSION_DRAFT.md` and the final evidence manifest only after upload.
+Earlier script timings and aspirational final-live steps are superseded by this truth contract where they conflict with the submitted video/evidence classes. The submitted video remains valid; no rerecord is required merely to synchronize repository prose.

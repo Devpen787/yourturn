@@ -1,0 +1,26 @@
+# YourTurn — ETHOnline 2026 reviewer/agent routing
+
+Current product: bounded booking recovery with a human-approved Ledger Recovery Mandate, World-verified exact human-backed requester, provider/current-state checks, Bob-funded Hedera settlement preparation, and reconciliation back into one Maya/Bob/Studio A booking lifecycle.
+
+Read first:
+- README.md
+- docs/ethonline-2026/REVIEWER_GUIDE.md
+- docs/ethonline-2026/FINAL_EVIDENCE.json
+- docs/ethonline-2026/CURRENT_STATE.md
+- docs/ethonline-2026/CONTINUITY_BASELINE.md
+- docs/ethonline-2026/MEDIA_STATUS.md
+
+Product entry: /product-preview
+Product R5 SHA: 342f46ee6e0c4d0f332287d8433735c5ac015528
+Pre-event baseline: d0b5f875afb4f2b29af29bc5972cf1edc404d473
+
+Tracks: Hedera Continuity; World AgentKit Continuity; Ledger Continuity.
+
+Evidence rule: FIXTURE, CI/LOCAL, AGENTBOOK, SANDBOX, DEVICE and LIVE/TESTNET are different evidence classes. Never compose them into one LIVE run unless FINAL_EVIDENCE explicitly says so.
+
+Historical Week-5 and ETHGlobal NYC docs are provenance/background, not the ETHOnline 2026 judge entry.
+
+Selected final software: 60a51fe09e735409a1c0b35593bc4413a49016e1
+Selected tree: f60a892ce6ecdb7ebb22b49e0e23985f938b7205
+Whole-candidate Security: CLEARED SOURCE/HOSTED-CI/LOCAL (#16 5650032923)
+Package status: docs-only package successor prepared; exact-final browser/cold-judge and public Source Code ref remain pending.
