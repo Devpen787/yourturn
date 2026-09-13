@@ -147,7 +147,7 @@ export async function validateExternalRecoverySigning(args: ExternalSigningValid
           return await match(keys, paymentCommitmentMemo(c)) === true ? "claimed" : "unavailable";
         },
       }, now);
-      await policy.preToolExecutionHook({ client: client!, context: { mode: AgentMode.RETURN_BYTES, accountId: c.transactionFeePayerAccountId }, rawParams: params, toolType: "transaction" }, YOURTURN_DELEGATED_RECOVERY_SETTLE_USDC_TOOL);
+      await policy.preToolExecutionHook({ client: client!, context: { mode: AgentMode.RETURN_BYTES, accountId: c.transactionFeePayerAccountId }, rawParams: params }, YOURTURN_DELEGATED_RECOVERY_SETTLE_USDC_TOOL);
       requireValid(policy.lastDecision?.outcome === "ALLOW", "HOLDER_POLICY_DENIED");
       freshness();
       const afterRead = structuredClone(await resolveCurrent(operationId));
