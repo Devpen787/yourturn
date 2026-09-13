@@ -1,0 +1,74 @@
+name: Finish-line authority controls qualification
+
+on:
+  push:
+    branches:
+      - feature/finishline-authority-controls-qual
+  workflow_dispatch:
+
+concurrency:
+  group: finishline-authority-controls-qual
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Preserve approved Product R5 bytes
+        run: |
+          git diff --exit-code 342f46ee6e0c4d0f332287d8433735c5ac015528 HEAD -- \
+            app/product-preview \
+            components/SiteHeader.tsx \
+            components/home \
+            docs/product-workbench \
+            scripts/product-workbench-booking-fixtures.mjs \
+            scripts/product-workbench-booking-navigation-check.mjs \
+            scripts/product-workbench-booking-state-check.mjs \
+            scripts/product-workbench-holder-fixtures.mjs \
+            scripts/product-workbench-holder-navigation-check.mjs \
+            scripts/product-workbench-holder-state-check.mjs \
+            scripts/product-workbench-integrity-check.mjs \
+            scripts/product-workbench-r2-bridge-check.mjs \
+            scripts/product-workbench-r2-state-check.mjs \
+            scripts/product-workbench-r3-browser-check.mjs \
+            scripts/product-workbench-r3-runtime-check.mjs \
+            scripts/product-workbench-r3-state-check.mjs \
+            scripts/product-workbench-r4-connected-check.mjs \
+            scripts/product-workbench-r5-browser-check.mjs \
+            scripts/product-workbench-r5-state-check.mjs \
+            scripts/product-workbench-visual-check.mjs \
+            scripts/product-workbench-xc01-visual-check.mjs \
+            scripts/product-workbench-xc02-visual-check.mjs \
+            scripts/product-workbench-xc03-visual-check.mjs
+      - run: npm ci --legacy-peer-deps
+      - name: Post-confirm signing-state Option-A regression
+        run: node --experimental-transform-types scripts/finishline-post-confirm-signing-state-check.mjs
+      - name: One-shot testnet submission-control regression
+        run: node --experimental-transform-types scripts/finishline-one-shot-submitter-check.mjs
+      - name: Single-begin seam regression
+        run: node --experimental-transform-types scripts/single-begin-composition-check.mjs
+      - name: Durable payment authorization regression
+        run: node --experimental-transform-types scripts/current-payment-authorization-check.mjs
+      - name: External signing validation regression
+        run: node --experimental-transform-types scripts/hedera-external-signing-check.mjs
+      - name: Indexed receipt reader regression
+        run: node --experimental-transform-types scripts/hedera-receipt-reader-check.mjs
+      - name: Final canonical route source guard
+        run: node scripts/final-canonical-route-check.mjs
+      - name: Existing prepare-retain model regression
+        run: node --experimental-transform-types scripts/hedera-prepare-retain-check.mjs --model
+      - name: TypeScript
+        run: npx tsc --noEmit --incremental false
+      - name: Production build
+        run: npm run build
