@@ -21,7 +21,7 @@ export type OneShotSubmitterDependencies={
   now?:()=>number;
 };
 export class OneShotSubmissionDenied extends Error{constructor(readonly code:string){super(code);this.name="OneShotSubmissionDenied";}}
-const requireSubmit=(ok:unknown,code:string):asserts ok=>{if(!ok)throw new OneShotSubmissionDenied(code);};
+function requireSubmit(ok:unknown,code:string):asserts ok{if(!ok)throw new OneShotSubmissionDenied(code);}
 const label=(v:unknown):v is string=>typeof v==="string"&&/^[A-Za-z0-9._:@-]{1,200}$/.test(v),opid=(v:unknown):v is string=>typeof v==="string"&&/^[A-Za-z0-9._:-]{1,128}$/.test(v),digest=(v:unknown):v is string=>typeof v==="string"&&/^[a-f0-9]{64}$/.test(v),txid=(v:unknown):v is string=>typeof v==="string"&&/^0\.0\.[1-9][0-9]{0,18}@[1-9][0-9]{0,18}\.[0-9]{9}$/.test(v),safeMs=(v:unknown):v is number=>Number.isSafeInteger(v)&&(v as number)>=0;
 const recordFields="claimedAtMs,humanAuthorizationDigest,intentHash,network,operationId,ownerId,schemaVersion,state,transactionBytesSha256,transactionId,updatedAtMs",authorizationFields="authenticated,authorizationId,authorizedAtMs,expiresAtMs,intentHash,kind,network,oneShot,operationId,ownerId,schemaVersion,transactionBytesSha256,transactionId";
 function exactBytes(input:unknown){requireSubmit(typeof input==="string"&&input.length>0&&input.length<=87384&&/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(input),"SIGNED_TRANSACTION_BYTES_INVALID");const bytes=Buffer.from(input,"base64");requireSubmit(bytes.length>0&&bytes.length<=65536&&bytes.toString("base64")===input,"SIGNED_TRANSACTION_BYTES_INVALID");return {bytesBase64:input,sha256:createHash("sha256").update(bytes).digest("hex")};}
